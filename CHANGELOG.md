@@ -10,6 +10,30 @@
   `coverage_gate.py` provenance 从 `unknown` 变为固定 lock ref。
 - `ROADMAP.md` P0 关闭，阶段 0 口径冻结完成。
 
+### P4-KIT-1 KIT / STARTPACK 声明式 typed 导入（已完成）
+
+- `pcgen-core`：新增 `KitDefinition` / `KitEntry`，并加入
+  `TypedDefinitions.kits` 与 `CompiledRulePack.kits`。
+- `pcgen-ir`：解析 KIT/STARTPACK/TABLE 行，保留 `OPTION` / `LOOKUP` /
+  `VALUES` / `QTY` / `EQUIPBUY` / `APPLY` / `LOCATION` 等表达式；
+  `classify_for_category(category, tag)` 区分 KIT 与 Equipment 同名 tag，
+  KIT tag 由 typed import 消费。
+- 真实数据：DS-35E KIT pending 6,896→0，semantic completion
+  45.5%→76.2%；DS-3E 67.6%→68.9%；测试 119→122。
+- broad oracle / archive differential 行为不变（KIT 不执行随机展开）。
+
+### P4-RACE-1 / P4-TPL-1 / P4-DATA-1 第一阶段（已完成）
+
+- `.pcg` 解析 `TEMPLATESAPPLIED`，Template entities 可激活。
+- ability `.MOD` 合并到 base entity；`PRE*` 内嵌条件保留；`PRERACE` /
+  `HasEntity` 支持 race/class。
+- Halfling racial trait default 链修复，`3e_SWizSam` 三项豁免与 Java exact。
+- Half-Dragon template 的 `BONUS:STAT`、natural AC 与 HP 生效，
+  `35e_CloudGiantHalfDragon` / `35e_JimDop` 全字段与 Java exact。
+- `CLASSABILITIESLEVEL:HITPOINTS` 按等级保留，HP 使用 per-level minimum；
+  `3e_MonKee` HP 21→23。
+- broad oracle：23/23 java-compared + 0 known-diverging，全部字段 100%。
+
 ### P4-ENG-1 类/等级实体激活与 modifier target 归一化（已完成）
 
 - `pcgen-core`：`AttackProgression` 增加 `None` 并作为默认；没有显式

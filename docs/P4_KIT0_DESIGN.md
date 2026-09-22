@@ -6,19 +6,29 @@
 
 ## 1. 问题
 
-DS-35E 中 KIT / STARTPACK 相关 pending tag 约占全部 pending 的 72%：
+DS-35E 中 KIT / STARTPACK 相关 pending tag 约占全部 pending 的 72%。
+按 category 精确统计如下（数据来自 `compile_pcc` 逐实体探针）：
 
-| tag | DS-35E pending | 说明 |
-|---|---:|---|
-| `OPTION` | 4,734 | 随机选择权重，如 `OPTION:1,60` |
-| `LOOKUP` | 819 | 表内二次查表，如 `LOOKUP:Special Ability (B),roll("1d100")` |
-| `EQUIPBUY` | 488 | 起始装备预算，如 `EQUIPBUY:0` |
-| `APPLY` | 428 | 应用模式，如 `APPLY:INSTANT` |
-| `QTY` | 276 | 随机数量，如 `QTY:roll("1d6")*1000` |
-| `VALUES` | 130 | 随机表值定义，如 `VALUES:EQMOD:...|1,20|...` |
+| tag | KIT / STARTPACK | EQUIPMENT / EQUIPMOD | 说明 |
+|---|---:|---:|---|
+| `OPTION` | 4,734 | 0 | 随机选择权重，如 `OPTION:1,60` |
+| `LOOKUP` | 819 | 0 | 表内二次查表，如 `LOOKUP:Special Ability (B),roll("1d100")` |
+| `EQUIPBUY` | 488 | 0 | 起始装备预算，如 `EQUIPBUY:0` |
+| `APPLY` | 428 | 0 | 应用模式，如 `APPLY:INSTANT` |
+| `QTY` | 276 | 0 | 随机数量，如 `QTY:roll("1d6")*1000` |
+| `VALUES` | 130 | 0 | 随机表值定义，如 `VALUES:EQMOD:...|1,20|...` |
+| `LOCATION` | 21 | 0（DS-35E） | KIT 侧位置；DS-3E 另有 Equipment `LOCATION` 16 |
+| `BASEITEM` | 0 | 140 | 装备基础物品 |
+| `CONTAINS` | 0 | 92 | 容器内容 |
+| `SLOTS` | 0 | 48 | 装备槽位 |
+| `CHARGES` | 0 | 23 | EQUIPMOD 充能 |
 
-这些数字包含 category 混用：`APPLY` / `QTY` / `EQUIPBUY` 同时出现在 KIT 和装备语义中。
-在实现前必须先落地 `classify(category, tag)`，否则 owner 与 coverage 会互相污染。
+KIT / STARTPACK 侧合计 **6,896** 次。`LOCATION` 是明确同名不同义的 tag：
+
+- `KIT` / `STARTPACK` 的 `LOCATION` → **P4-KIT-1**；
+- `EQUIPMENT` 的 `LOCATION`（DS-3E 16 次）→ **P4-EQP-1**。
+
+因此实现前必须先落地 `classify(category, tag)`，否则 owner 与 coverage 会互相污染。
 
 ## 2. 数据形态
 
@@ -95,7 +105,7 @@ pub struct KitEntry {
   - KIT/STARTPACK 的 `APPLY:INSTANT`、`QTY:roll(...)`、`EQUIPBUY:0`；
   - EQUIPMOD/EQUIPMENT 的 `APPLY:Shield|PREEQUIP`、装备堆叠数量、购买预算。
 - P4-KIT-1 验收：
-  - DS-35E KIT/STARTPACK 侧的 6 个 tag 从 pending 清零或显式 reclassify；
+  - DS-35E KIT/STARTPACK 侧的 6,896 次 pending 清零或显式 reclassify；
   - `semantic_completion` 显著上升；
   - broad oracle / archive differential 不变（因为不执行随机展开）；
   - coverage baseline 重冻结一次。
@@ -109,7 +119,15 @@ pub struct KitEntry {
    `semantic_completion` 分母？
 4. `APPLY` / `QTY` / `EQUIPBUY` 的 category-aware 精确计数需在 P4-KIT-1 前完成。
 
-## 7. 结论
+## 7. 结论与落地状态
 
 P4-KIT-0 的 spike 结论是：**先做声明式 typed 导入，运行时随机展开单独立项**。
 这样既能清理 DS-35E 最大 pending 来源，又不会把随机角色生成复杂度引入核心规则引擎。
+
+P4-KIT-1 已按本设计落地：
+
+- `KitDefinition` / `KitEntry` 已进入 `pcgen-core` typed definitions；
+- KIT / STARTPACK 的 `OPTION` / `LOOKUP` / `VALUES` / `QTY` / `EQUIPBUY` /
+  `APPLY` / `LOCATION` 等 tag 已被 typed import 消费；
+- `classify_for_category(category, tag)` 已区分 KIT 与 Equipment 同名 tag；
+- DS-35E `semantic_completion` 从 45.5% 提升到 **76.15%**，DS-3E 提升到 **68.93%**。

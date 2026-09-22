@@ -8,18 +8,18 @@
 ## 当前状态（最近验证：固定数据 + 全量门禁）
 
 - 工作区：7 crate（core / formula / ir / import / engine / output / cli）。
-- 测试：`cargo test --workspace` **119 passed**。
+- 测试：`cargo test --workspace` **122 passed**。
 - DS-3E（回归代理，`srdbasic.pcc`）：3,779 entities，23,723 tag occurrences，
-  lowered 3,108；legacy 2,773（allowlisted 1,284 / pending 1,489）；
-  unsupported 3；**semantic completion 67.6%**。
+  lowered 3,108；legacy pending 1,398；unsupported 3；
+  **semantic completion 68.9%**。
 - DS-35E（主验收，`_rsrd_basics.pcc`）：15,741 entities，
-  lowered 7,814；legacy 12,329（allowlisted 3,087 / pending 9,242）；
-  unsupported 104；**semantic completion 45.5%**。
+  lowered 7,814；legacy pending 2,346；unsupported 104；
+  **semantic completion 76.2%**。
 - 门禁 `scripts/coverage_gate.py`：**12 pass / 0 fail / 0 skip**（严格模式，含双数据集 coverage 基线与 DS-35E 阈值）。
-- broad per-case oracle：23 cohort（23 computed = 21 java-compared +
-  2 known-diverging，**0 data-missing**），21 个 java-gated case；
-  BAB / AC / touch / flat-footed 均 21/21（100%），
-  HP 20/21（95.2%），save_* 20/21（95.2%）。
+- broad per-case oracle：23 cohort（**23 computed = 23 java-compared +
+  0 known-diverging**，0 data-missing），23 个 java-gated case；
+  `final_stats` / `bab` / `hit_points` / `initiative` / `armor_class` /
+  `touch_ac` / `flat_footed_ac` / `save_*` 全部 **23/23（100%）**。
 - curated Java differential：9/9。
 
 ## P0：口径冻结（阶段 0，已完成）
@@ -102,16 +102,16 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
 
 | Java 字段 | 一致率 | 主要候选 P4 项 |
 |---|---:|---|
-| `bab` | **100.0%（21/21）** | ✅ P4-ENG-1 |
-| `armor_class` | **100.0%（21/21）** | ✅ P4-BONUS-1 / P4-EQP-1 第一阶段（typed AC） |
-| `touch_ac` | **100.0%（21/21）** | ✅ 同上；armor/shield 不再泄漏到 touch |
-| `flat_footed_ac` | **100.0%（21/21）** | ✅ 同上；负 DEX 惩罚已保留 |
-| `hit_points` | 95.2%（20/21） | P4-DATA-1（3e_MonKee HP 边界） |
-| `save_fortitude` | 95.2%（20/21） | P4-RACE-1（Halfling 种族豁免） |
-| `save_reflex` | 95.2%（20/21） | P4-RACE-1（Halfling 种族豁免） |
-| `save_will` | 95.2%（20/21） | P4-RACE-1（Halfling 种族豁免） |
-| `final_stats` | 100.0%（21/21） | — |
-| `initiative` | 100.0%（21/21） | — |
+| `bab` | **100.0%（23/23）** | ✅ P4-ENG-1 |
+| `armor_class` | **100.0%（23/23）** | ✅ P4-BONUS-1 / P4-EQP-1 第一阶段 |
+| `touch_ac` | **100.0%（23/23）** | ✅ typed AC 组件 |
+| `flat_footed_ac` | **100.0%（23/23）** | ✅ typed AC + 负 DEX 惩罚 |
+| `hit_points` | **100.0%（23/23）** | ✅ per-level HP minimum + template CON |
+| `save_fortitude` | **100.0%（23/23）** | ✅ Halfling racial trait / template CON |
+| `save_reflex` | **100.0%（23/23）** | ✅ Halfling racial trait |
+| `save_will` | **100.0%（23/23）** | ✅ Halfling racial trait |
+| `final_stats` | **100.0%（23/23）** | ✅ template stat adjustments |
+| `initiative` | **100.0%（23/23）** | — |
 
 排序原则：
 
@@ -240,10 +240,10 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
 #### P4-BONUS-1 + P4-EQP-1 合并验收：BONUS 残余 / G1 stacking / G2 装备
 
 - **状态**：第一阶段已完成（typed numeric AC、默认豁免零值、flat-footed 负 DEX、
-  zero-HD HP 边界）。broad oracle：AC/touch/flat 21/21（100%），
-  HP 20/21，save_* 20/21；测试 117→119。
-  剩余：DS-3E/DS-35E `BONUS` unsupported、装备 pending legacy、3e_MonKee HP、
-  Halfling 种族豁免（P4-RACE-1）。
+  per-level HP minimum、Halfling 种族 trait、template stat/AC/HP）。
+  broad oracle 全部字段 23/23（100%），`known_diverging=0`；测试 119→122。
+  剩余：DS-3E/DS-35E `BONUS` unsupported、装备 pending legacy、完整 stacking
+  policy 与装备槽位语义。
 - **目标**：清零残余 BONUS 与装备类 pending legacy；在 IR/engine 层恢复
   archive `bonus.rs` 的 typed stacking policy（G1），并把装备槽位、冲突、
   顺序、装备加成 typed 化（G2）；两者必须走同一条 modifier/AC 管线。
@@ -277,6 +277,10 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
 
 #### P4-TPL-1 模板语义闭环
 
+- **状态**：第一阶段完成。已解析 `.pcg` `TEMPLATESAPPLIED`、激活 Template
+  entities，并把 `BONUS:STAT` / `BONUS:COMBAT|AC|TYPE=NaturalArmor` 接入
+  snapshot；Half-Dragon 的 STR/CON/INT/CHA、natural AC、HP 已与 Java exact。
+  剩余 CR/DR/SR/NATURALATTACKS 分类与更完整模板效果。
 - **目标**：模板 typed definitions + 激活 + effects 进入 snapshot；
   同时消费 P4-PRE-4 的模板谓词。
 - **指标**：`templates` typed count > 0；模板效果在 snapshot 可见；
@@ -347,6 +351,9 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
 
 #### P4-DATA-1 怪物 HD progression（JimDop / CloudGiant）
 
+- **状态**：验收已达成。`35e_JimDop` / `35e_CloudGiantHalfDragon` 已与 Java
+  全字段 exact；`known_diverging 2→0`，`java_compared 21→23`。
+  底层 monster HD 泛化仍可在 P4-RACE-1 中继续补强。
 - **目标**：建模 monster Hit Dice progression，让
   `35e_JimDop` / `35e_CloudGiantHalfDragon` 与 Java 一致。
 - **指标**：broad oracle `known_diverging` 2→0；`java_compared` 21→23；
@@ -379,10 +386,22 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
   - 依赖/风险：与 `P4-ENG-1`、`classify(category, tag)`、`P4-EQP-1` 的同名
     tag 拆分一起做；若 KIT 属创建期 UI/随机表，应考虑单独 coverage 桶或
     allowlist，避免继续主导 `semantic_completion`。
+- **P4-KIT-1 声明式 typed 导入（已完成）**
+  - **状态**：已完成。新增 `KitDefinition` / `KitEntry`，KIT/STARTPACK 的
+    `OPTION` / `LOOKUP` / `VALUES` / `QTY` / `EQUIPBUY` / `APPLY` /
+    `LOCATION` 等 tag 已由 typed import 消费；`classify_for_category` 区分
+    KIT 与 Equipment 同名 tag。
+  - **指标**：DS-35E KIT pending 6,896→0；DS-3E KIT pending 75→0；
+    DS-35E `semantic_completion` 45.5%→76.2%；DS-3E 67.6%→68.9%。
+  - **门禁**：`pcgen-ir/tests/kit_import.rs`、`tagclass` 单测、
+    `coverage_gate.py` 双数据集、broad oracle 不变。
+  - **完成定义**：`kits` typed count 进入 import-report；coverage baseline 重冻结。
 - **P4-TEMP-1 临时状态**（`TEMPBONUS`/`TEMPVALUE`，DS-35E 376 次）：
   active-state 模型（Rage 等），不是静态 snapshot。
 - **P4-RACE-1 种族 / 生物特征**（`RACESUBTYPE`/`REACH`/`NATURALATTACKS`/
   `UDAM`/`DR`/`SR`/`CR`/`VISION` 等，DS-35E 838 次）。
+  已完成 Halfling 种族 trait / `.MOD` ability 默认链，修复 3e_SWizSam 豁免；
+  剩余种族/生物特征 tag 仍待 lower。
 - **P4-CLASS-1 职业 / 进阶**（`SKILLMULT`/`LEVELSPERFEAT`/`HITDIE`/`EXCLASS`
   等，DS-35E 29 次）。
 - **P4-STAT-1 属性 / 尺寸**（`DEFINESTAT`/`STATMOD`/`SIZENUM`，DS-35E 46 次）。
@@ -417,7 +436,7 @@ DS-35E 阈值收紧到 0，并补 zero-tag 断言。
 
 ### P4 推荐执行顺序
 
-已完成：P4-PRE-1、P4-PRE-2、P4-PRE-5、P4-ENG-1。
+已完成：P4-PRE-1、P4-PRE-2、P4-PRE-5、P4-ENG-1、P4-KIT-0、P4-KIT-1、P4-DATA-1。
 
 > 阶段 0 口径冻结已完成：DS-3E 作回归代理、DS-35E 作主验收，
 > 两个数据集各自冻结 coverage 基线（见 `docs/TESTING.md`）。
@@ -429,12 +448,12 @@ DS-35E 阈值收紧到 0，并补 zero-tag 断言。
 | ~~0b~~ | ~~P4-PRE-6（部分）~~ | ✅ size 谓词 + `PRETEXT`；剩余并入 TPL/EQP/RACE |
 | ~~0c~~ | ~~P4-ENG-1~~ | ✅ 已完成：class/level 激活 + 默认 BAB=0 + modifier 归一化；BAB 21/21 |
 | ~~0d~~ | ~~P4-KIT-0~~ | ✅ 设计 spike 完成：声明式导入优先，随机展开单独立项 |
-| 1 | P4-KIT-1 | 声明式 KIT/STARTPACK typed 导入；不执行随机展开 |
-| 2 | P4-BONUS-1 + P4-EQP-1（合并验收） | 第一阶段已完成 AC/touch/flat 100%；剩余 BONUS/装备 pending 与 HP/save 边界 |
-| 3 | P4-DATA-1 + P4-RACE-1 | 怪物 PC 支持：monster HD + 种族/生物特征；消 known-diverging 2 |
-| 4 | P4-TPL-1 | 模板语义 + CR/DR/SR/NATURALATTACKS 归类 |
-| 5 | P4-SPELL-1 | 依赖 P4-PRE-3；可与第 2–4 项并行 |
-| 5b | P4-TEMP-1 / P4-PSI-1 | active-state 与灵能闭环；可与第 3–5 项并行 |
+| ~~1~~ | ~~P4-KIT-1~~ | ✅ 完成：KIT pending 6,896→0；DS-35E completion 45.5%→76.2% |
+| 2 | P4-BONUS-1 + P4-EQP-1 第二阶段 | 清残余 BONUS/装备 pending；完整 stacking policy 与槽位/冲突语义 |
+| 3 | P4-SPELL-1 | 清 DOMAINS/SPELLLEVEL/PRESPELL*；可与第 2 项并行 |
+| ~~4~~ | ~~P4-DATA-1~~ | ✅ 完成：known_diverging 0；23/23 Java exact |
+| 4b | P4-RACE-1 / P4-TPL-1 | 第一阶段完成 Halfling trait / Half-Dragon template；剩余种族/模板语义 |
+| 5 | P4-TEMP-1 / P4-PSI-1 | active-state 与灵能闭环；可与第 2–4 项并行 |
 | 6 | P4-CLASS-1 / P4-STAT-1 / P4-FAITH | triage 派生小项；清 `!PRESUBCLASS` 等 unsupported |
 | 7 | P4-DEC-2 / DEC-4 | G3 dropped、G4 归档 |
 
