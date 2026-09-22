@@ -8,7 +8,7 @@
 
 - 本轮把 8 个纯展示/角色生成/UI tag 改判 allowlist，DS-35E pending 减少 125 次。
 - 其余 74 个 pending tag **全部有了 owner**，其中 DS-35E 最大瓶颈是 KIT，
-  单独新建 `P4-KIT-1`。
+  单独新建 `P4-KIT-0`。
 - 尚无任何 pending tag 被判定为 out-of-scope（除已 dropped 的 `XPCOST`），符合
   “KIT / COMPANIONMOD / 怪物 in scope”的决策。
 
@@ -40,7 +40,7 @@
 
 | owner | tag 数 | DS-3E | DS-35E | tags / 说明 |
 |---|---:|---:|---:|---|
-| **P4-KIT-1（新增，DS-35E 主瓶颈）** | 6 | 75 | 6875 | `OPTION`, `LOOKUP`, `VALUES`, `EQUIPBUY`, `APPLY`, `QTY`<br/>KIT / STARTPACK 的随机选择权重（`OPTION:n,m`）、随机数量（`QTY:roll(...)`）、随机表（`LOOKUP`/`VALUES`）、起始装备预算（`EQUIPBUY:0`）、应用模式（`APPLY:INSTANT`）。KIT 已确认 in scope，故保留为语义 pending，不 allowlist。 |
+| **P4-KIT-0（新增设计 spike，DS-35E 主瓶颈）** | 6 | 75 | 6875 | `OPTION`, `LOOKUP`, `VALUES`, `EQUIPBUY`, `APPLY`, `QTY`<br/>KIT / STARTPACK 的随机选择权重（`OPTION:n,m`）、随机数量（`QTY:roll(...)`）、随机表（`LOOKUP`/`VALUES`）、起始装备预算（`EQUIPBUY:0`）、应用模式（`APPLY:INSTANT`）。KIT 已确认 in scope，故保留为语义 pending，不 allowlist；先产出设计 spike，判定声明式导入还是运行时随机展开，再决定实现路径。 |
 | **P4-EQP-1（已有）** | 14 | 132 | 389 | `BASEITEM`, `SLOTS`, `LOCATION`, `CHARGES`, `CONTAINS`, `BASEQTY`, `ALTCRITMULT`, `ALTCRITRANGE`, `ALTDAMAGE`, `ALTEQMOD`, `ALTTYPE`, `ARMORTYPE`, `CHANGEPROF`, `WEAPONBONUS`<br/>装备基础物品、槽位/位置、充能、容器、基础数量与武器/护甲变体；对应 G2。 |
 | **P4-TEMP-1（新增）** | 2 | 189 | 376 | `TEMPBONUS`, `TEMPVALUE`<br/>临时加值/临时值（如 Rage、Bardic Inspire），需要 active-state 模型，不是静态 snapshot。 |
 | **P4-PRE-3 / P4-SPELL-1（已有 + 新增）** | 13 | 236 | 407 | `DOMAINS`, `SPELLLEVEL`, `PROHIBITSPELL`, `ADDSPELLLEVEL`, `KNOWNSPELLSFROMSPECIALTY`, `SPELLBOOK`, `PRESPELLTYPE`, `PRESPELLBOOK`, `PROHIBITCOST`, `ADDDOMAINS`, `PRESPELLSCHOOL`, `PRESPELLCAST`, `PRESPELL`<br/>法术类型/法术书谓词（PRESPELL*）、领域、法术等级、禁止法术、额外法术位与专精已知法术。 |
@@ -61,11 +61,11 @@ triage/实现时必须按 category 区分，否则会误 allowlist 掉语义：
 
 | tag | KIT/STARTPACK 侧 | 其它 category 侧 |
 |---|---|---|
-| `APPLY` | `APPLY:INSTANT`（428，kit 应用模式）→ `P4-KIT-1` | `APPLY:Shield\|PREEQUIP`（equipmod）→ `P4-EQP-1` |
-| `QTY` | `QTY:roll(\"1d6\")*1000`（kit 内随机数量）→ `P4-KIT-1` | 装备堆叠/数量 → `P4-EQP-1` |
-| `EQUIPBUY` | `EQUIPBUY:0`（STARTPACK）→ `P4-KIT-1` | 潜在装备购买预算 → `P4-EQP-1` |
+| `APPLY` | `APPLY:INSTANT`（428，kit 应用模式）→ `P4-KIT-0` | `APPLY:Shield\|PREEQUIP`（equipmod）→ `P4-EQP-1` |
+| `QTY` | `QTY:roll(\"1d6\")*1000`（kit 内随机数量）→ `P4-KIT-0` | 装备堆叠/数量 → `P4-EQP-1` |
+| `EQUIPBUY` | `EQUIPBUY:0`（STARTPACK）→ `P4-KIT-0` | 潜在装备购买预算 → `P4-EQP-1` |
 
-建议在实现 `P4-KIT-1` / `P4-EQP-1` 时把 `classify` 升级为
+建议在设计 `P4-KIT-0`、实现 `P4-EQP-1` 时把 `classify` 升级为
 `classify(category, tag)`，并保留 tag-only 作为兜底。
 
 ## 4. Gap D：known-but-unbucketed（待补门禁）
@@ -79,6 +79,6 @@ triage/实现时必须按 category 区分，否则会误 allowlist 掉语义：
 
 ## 5. 后续动作
 
-1. `P4-KIT-1` 优先（DS-35E pending 的 ~72%）：定义 kit 运行时模型并按 category lower。
+1. `P4-KIT-0` 先做设计 spike（DS-35E pending 的 ~72%）：明确声明式导入 vs 运行时随机展开、category-aware 边界与首个 acceptance case；设计通过后再实现。
 2. `P4-PRE-6` 与 `P4-PRE-3` 并行：先清谓词类 pending。
 3. 实现 `classify(category, tag)` + Gap D 的 known 桶，随后一次性重新冻结 coverage baseline。

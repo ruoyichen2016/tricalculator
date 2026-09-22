@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### P0 工程收口（已完成）
+
+- 仓库初始化 `git` 并提交当前 117 测试基线；`.gitignore` 排除
+  `target/`、`.cargo-home/` 等生成物。
+- 恢复 `../raw/pcgen-master/.pcgen-rust-testdata` marker；
+  `coverage_gate.py` provenance 从 `unknown` 变为固定 lock ref。
+- `ROADMAP.md` P0 关闭，阶段 0 口径冻结完成。
+
+### P4-ENG-1 类/等级实体激活与 modifier target 归一化（已完成）
+
+- `pcgen-core`：`AttackProgression` 增加 `None` 并作为默认；没有显式
+  `BONUS:COMBAT|BASEAB` 的职业不再获得默认半等级 BAB。
+- `pcgen-engine`：class/class-level 实体激活与 progression lookup 统一
+  stable key / display name（`charlie_class` ↔ `Charlie Class`）；
+  `HP.CURRENTMAX`、`TL` 公式和 BASEAB/BASE.SAVE 去重归一化。
+- 回归测试：`pcgen-engine/tests/effects.rs` 新增无 BASEAB 职业、带空格类 key、
+  `HP.CURRENTMAX`、BASEAB/BASE.SAVE 不重复计数 3 个用例；测试 114→117。
+- broad oracle：BAB 13/21→21/21（100%）；AC 17→20、touch 17→19、
+  flat-footed 16→19、HP 15→17；`java_gated` 18→21；broad baseline 按
+  Java 一致率收敛后重生成。
+
 ### P4-PRE-4 模板 / 手 / 移动谓词（已完成）
 
 - `pcgen-core`：`Predicate` 增加 `TemplateCount` / `HandsAtLeast` /
@@ -84,7 +105,7 @@
 - backlog triage：新增 `docs/TAG_TRIAGE.md`；8 个展示/角色生成/UI tag
   （`AGEDIEROLL`/`BASEAGE`/`MAXAGE`/`HAIR`/`EYES`/`SKINTONE`/`SEX`/`ROLE`）
   改判 allowlist，DS-35E pending 9,367→9,242、completion 44.6%→44.9%；
-  82 个 pending tag **全部有 owner**，新建 `P4-KIT-1`（DS-35E pending 的 ~72%）。
+  82 个 pending tag **全部有 owner**，新建 `P4-KIT-0`（DS-35E pending 的 ~72%）。
   测试 104→105。
 - 决策落地：`P4-DEC-1` KIT / COMPANIONMOD in scope、`P4-DEC-2` G3 dropped、
   `P4-DEC-4` G4 superseded、`P4-DEC-3` Pathfinder 1e 正式延后（可复议）。

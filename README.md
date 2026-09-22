@@ -104,7 +104,9 @@ commit 并执行字段级差分）两个 job。细节见 [`docs/TESTING.md`](doc
 - 官方风格 fixture exact golden；
 - 真实官方 output sheet smoke（无 FTL 泄漏）；
 - Uncanny Dodge flat-footed AC；
-- 114 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
+- class/class-level 实体激活、无 BASEAB 职业默认 BAB=0、`HP.CURRENTMAX` /
+  `TL` modifier 归一化（P4-ENG-1，BAB 21/21）；
+- 117 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
 
 真实 PCGen 数据解析与完整角色计算正在按 [`MIGRATION.md`](MIGRATION.md) 从
 archive 迁移。

@@ -8,7 +8,7 @@
 ## 当前状态（最近验证：固定数据 + 全量门禁）
 
 - 工作区：7 crate（core / formula / ir / import / engine / output / cli）。
-- 测试：`cargo test --workspace` **114 passed**。
+- 测试：`cargo test --workspace` **117 passed**。
 - DS-3E（回归代理，`srdbasic.pcc`）：3,779 entities，23,723 tag occurrences，
   lowered 3,108；legacy 2,773（allowlisted 1,284 / pending 1,489）；
   unsupported 3；**semantic completion 67.6%**。
@@ -17,10 +17,12 @@
   unsupported 104；**semantic completion 45.5%**。
 - 门禁 `scripts/coverage_gate.py`：**12 pass / 0 fail / 0 skip**（严格模式，含双数据集 coverage 基线与 DS-35E 阈值）。
 - broad per-case oracle：23 cohort（23 computed = 21 java-compared +
-  2 known-diverging，**0 data-missing**），18 个 java-gated case。
+  2 known-diverging，**0 data-missing**），21 个 java-gated case；
+  BAB 21/21（100%），AC 20/21（95.2%），touch/flat 19/21（90.5%），
+  HP 17/21（81.0%）。
 - curated Java differential：9/9。
 
-## P0：口径冻结（阶段 0，进行中）
+## P0：口径冻结（阶段 0，已完成）
 
 - [x] 验收数据集固定：DS-3E `srdbasic.pcc`（回归代理）、
       DS-35E `_rsrd_basics.pcc`（主验收）；全量 RSRD 仅作信息报告
@@ -31,15 +33,14 @@
 - [x] 文档同步：`docs/TESTING.md` 第 7 节、`PRODUCT_SCOPE.md`
 - [x] backlog triage：新增 [`docs/TAG_TRIAGE.md`](docs/TAG_TRIAGE.md)，
       8 个展示/角色生成 tag 改判 allowlist；82 个 pending tag **全部有 owner**
-      （新增 `P4-KIT-1` 等，见 P4-F）
+      （新增 `P4-KIT-0` 等，见 P4-F）
 - [x] `P4-DEC-1`（KIT/COMPANIONMOD in scope；SIZE 数值保留）、
       `P4-DEC-2`（G3 dropped）、`P4-DEC-4`（G4 superseded）结论写入文档
 - [x] `P4-DEC-3` 结论：**正式延后（可复议）**。纳入前置条件：定义数据来源、
       profile 范围、首个 acceptance case 与 profile smoke 门禁；满足后再单独评估
-- [x] 工程硬化：broad oracle `--write-baseline` Java 一致率下降时拒写
-      （需 `--accept-diff` 才可显式接受）
-- [ ] 工程硬化：broad oracle `--write-baseline` diff 守卫、恢复 data marker、
-      `git init` + `.gitignore`
+- [x] 工程硬化：恢复 `.pcgen-rust-testdata` data marker；`git init` +
+      初始提交 + `.gitignore`；broad oracle `--write-baseline` Java 一致率
+      下降时拒写（需 `--accept-diff` 才可显式接受）
 - [x] 清理已完成阶段的状态头（P1/P2/P3）
 
 ## P1：可追溯性与门禁闭环（已完成）
@@ -101,11 +102,11 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
 
 | Java 字段 | 一致率 | 主要候选 P4 项 |
 |---|---:|---|
-| `bab` | 61.9%（13/21） | P4-DATA-1、P4-BONUS-1、P4-EQP-1 |
-| `hit_points` | 71.4%（15/21） | P4-DATA-1、P4-BONUS-1 |
-| `flat_footed_ac` | 76.2%（16/21） | P4-EQP-1（G2）、Uncanny Dodge 类效果 |
-| `armor_class` | 81.0%（17/21） | P4-EQP-1（G2） |
-| `touch_ac` | 81.0%（17/21） | P4-EQP-1（G2） |
+| `bab` | **100.0%（21/21）** | ✅ P4-ENG-1 已完成；P4-DATA-1 只保留 monster 边界 |
+| `hit_points` | 81.0%（17/21） | P4-BONUS-1、P4-DATA-1、P4-ENG-1 后续 HP 目标归一化 |
+| `flat_footed_ac` | 90.5%（19/21） | P4-BONUS-1 / P4-EQP-1（G1/G2 合并验收）、Dave flat-footed 边界 |
+| `armor_class` | 95.2%（20/21） | P4-BONUS-1 / P4-EQP-1；3e_MonKee 仍待处理 |
+| `touch_ac` | 90.5%（19/21） | P4-BONUS-1 / P4-EQP-1；typed AC 组件（Charlie 盾/甲不应进 touch） |
 | `save_reflex` | 81.0%（17/21） | P4-BONUS-1（G1）、P4-PRE-* |
 | `save_will` | 81.0%（17/21） | P4-BONUS-1（G1）、P4-PRE-* |
 | `save_fortitude` | 85.7%（18/21） | P4-BONUS-1（G1）、P4-PRE-* |
@@ -118,7 +119,7 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
 2. 再做能提升低一致率字段、且能由 Java csheet 精确裁决的重任务；
 3. Java 一致率只决定重任务之间的先后，不得通过放宽 baseline 换取通过。
 
-### P4-A PRE* 四组
+### P4-A PRE* 组
 
 unsupported tag 的清零路径（起点为真实 3e SRD 的 `unsupported_tags=38`）。
 P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
@@ -211,36 +212,50 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
   11 个带 `!PRE` 条件的 BONUS 由“静默去掉条件后生效”改为 unsupported
   （DS-35E `lowered_effects` 7,768→7,757），属修复而非回归。
 
+### P4-ENG-1 类/等级实体激活与 modifier target 归一化（已完成）
+
+- **状态**：已完成。修复 stable `EntityId` key（`charlie_class`）与 draft
+  class id（`Charlie Class`）不一致导致的 class/class-level 实体不激活；
+  `AttackProgression` 默认改为 `None`，无显式 `BONUS:COMBAT|BASEAB` 的职业
+  BAB 为 0；补 `HP.CURRENTMAX`、`TL` 公式与 progression lookup 归一化，
+  并避免 raw BASEAB / BASE.SAVE 与 typed progression 重复计算。
+- **指标**：broad oracle `bab` 13/21→**21/21（100%）**；
+  `armor_class` 17→20、`touch_ac` 17→19、`flat_footed_ac` 16→19、
+  `hit_points` 15→17；saves 不下降；`java_gated` 18→21（新增 BAB）。
+- **门禁**：`pcgen-engine/tests/effects.rs` 新增无 BASEAB 职业、带空格类 key、
+  `HP.CURRENTMAX`、BASEAB/BASE.SAVE 不重复计数用例；
+  `broad_oracle.py --check --json` 必须 `ok=true`；`coverage_gate.py` 严格模式；
+  `bash scripts/check.sh` 全绿。
+- **完成定义**：class/class-level effects 只应用一次；BAB 与 Java 一致；
+  broad baseline 已按 Java 收敛重生成；`ROADMAP` / `CHANGELOG` 更新。
+- **依赖/风险**：Charlie `touch_ac` 仍需要 P4-BONUS-1 / P4-EQP-1 的 typed
+  AC 组件；HP 的 1-vs-0 边界与 monster HD 归 P4-DATA-1 / P4-BONUS-1。
+
 ### P4-B 装备 / 灵能 / 模板语义
 
-#### P4-BONUS-1 BONUS 残余与 G1 stacking policy
+> **合并验收说明**：`P4-BONUS-1` 与 `P4-EQP-1` 共用 typed modifier /
+> bonus stack / AC 组件模型，后续按一个联合门禁验收；保留两个 ID 仅用于
+> `ARCHIVE_TEST_MAP.md` G1/G2 追溯。
 
-- **目标**：清零残余 BONUS，并在 IR 层恢复 archive `bonus.rs` 的类型化
-  stacking policy（`docs/ARCHIVE_TEST_MAP.md` G1）。
-- **指标**：`BONUS=0`；`unsupported_tags == 0`；
-  archive 5 个 bonus 测试的意图有对应新测试；
-  save_* / AC / skills 的 Java 一致率不下降。
-- **门禁**：新增 IR/engine stacking 测试；broad oracle `--check --json`
-  必须 `ok=true`；curated Java 9/9；baseline 只允许向 Java 收敛。
-- **完成定义**：`ARCHIVE_TEST_MAP.md` G1 标记 migrated；unsupported 全零；
-  `TAG_WORKLIST.md` 更新。
-- **依赖/风险**：stacking 规则跨越 equipment / spell / race / feat；
-  应先冻结 stack key 与 bonus type 语义。
+#### P4-BONUS-1 + P4-EQP-1 合并验收：BONUS 残余 / G1 stacking / G2 装备
 
-#### P4-EQP-1 装备槽位、冲突与顺序（G2）
-
-- **目标**：装备槽位、双手/盾牌冲突、装备顺序、装备加成 typed 化并进入 engine
-  （`docs/ARCHIVE_TEST_MAP.md` G2）。
-- **指标**：装备类 pending legacy 清零（至少 `EQUIPBUY` / `CONTAINS` /
-  `SLOTS` / `LOCATION` / `CHARGES` / `APPLY`，共 177 次）；
-  `armor_class` / `touch_ac` / `flat_footed_ac` Java 一致率目标 >= 90%；
-  archive `inventory` / `equipment_slot_sort` 意图有对应测试。
-- **门禁**：engine 装备测试 + curated equipment cases 字段级 exact；
-  broad baseline 只能向 Java 收敛；coverage gate 扩展 equipment 字段值检查。
-- **完成定义**：`ARCHIVE_TEST_MAP.md` G2 标记 migrated；装备 tag 清零或显式
-  reclassify；三个 AC 一致率达标；输出 sheet 排序复用同一槽位语义。
-- **依赖/风险**：G2 手工规则多；以 archive 测试和 Java csheet 为 oracle，
-  不凭直觉补规则。
+- **目标**：清零残余 BONUS 与装备类 pending legacy；在 IR/engine 层恢复
+  archive `bonus.rs` 的 typed stacking policy（G1），并把装备槽位、冲突、
+  顺序、装备加成 typed 化（G2）；两者必须走同一条 modifier/AC 管线。
+- **指标**：`BONUS=0`；DS-3E `unsupported_tags == 0`；
+  装备类 pending legacy 清零（至少 `EQUIPBUY` / `CONTAINS` / `SLOTS` /
+  `LOCATION` / `CHARGES` / `APPLY`，共 177 次）；
+  `armor_class` / `touch_ac` / `flat_footed_ac` Java 一致率 ≥95%，
+  且 Charlie touch、3e_MonKee、Dave flat-footed 等已知失败 case 清零；
+  archive 5 个 bonus 测试 + `inventory` / `equipment_slot_sort` 意图有对应测试。
+- **门禁**：新增 IR/engine stacking 与 equipment 测试；broad oracle
+  `--check --json` 必须 `ok=true`；curated Java 9/9；
+  baseline 只允许向 Java 收敛；coverage gate 扩展 equipment 字段值检查。
+- **完成定义**：`ARCHIVE_TEST_MAP.md` G1/G2 标记 migrated；
+  `TAG_WORKLIST.md` 更新；AC 三字段达标。
+- **依赖/风险**：先冻结 stack key 与 bonus type 语义，再做 `classify(category,
+  tag)` 拆分 KIT/装备同名 tag；G2 手工规则多，以 archive 测试和 Java csheet
+  为 oracle，不凭直觉补规则。
 
 #### P4-PSI-1 灵能语义闭环
 
@@ -330,7 +345,7 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
 - **目标**：建模 monster Hit Dice progression，让
   `35e_JimDop` / `35e_CloudGiantHalfDragon` 与 Java 一致。
 - **指标**：broad oracle `known_diverging` 2→0；`java_compared` 21→23；
-  `bab` / `hit_points` 一致率显著上升，两个 case 目标 exact；
+  `hit_points` / `final_stats` / AC 一致率显著上升，两个 case 目标 exact；
   cohort expectation 改为 `computed`，baseline 重新生成。
 - **门禁**：`broad_oracle.py --check --json` 要求 `ok=true` 且
   `known_diverging=0`；coverage gate 分母守卫保留；broad baseline 更新为 Java exact。
@@ -344,14 +359,18 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
 > 来源：[`docs/TAG_TRIAGE.md`](docs/TAG_TRIAGE.md)。目标是让每个 pending tag
 > 都有 owner。每项沿用同一验收模板：目标 / 指标 / 门禁 / 完成定义 / 依赖。
 
-- **P4-KIT-1 KIT / STARTPACK 运行时（DS-35E 主瓶颈，~6,875 次）**
-  - 目标：建模 KIT/STARTPACK 的随机选择（`OPTION`/`LOOKUP`/`VALUES`）、
-    随机数量（`QTY:roll(...)`）、起始装备预算（`EQUIPBUY`）与应用模式
-    （`APPLY:INSTANT`）。
-  - 指标：这些 tag 在 DS-35E pending 中清零或显式 reclassify；
-    DS-35E `semantic_completion` 从 44.9% 显著上升。
-  - 门禁：kit fixture + `coverage_gate.py` 双数据集；baseline 只允许下降。
-  - 依赖/风险：先定“确定性展开”语义；与 `classify(category, tag)` 升级一起做。
+- **P4-KIT-0 KIT / STARTPACK 设计 spike（DS-35E 主瓶颈，~6,875 次）**
+  - 目标：先判定 KIT/STARTPACK 应作为“声明式定义导入并统计”，还是“角色创建期
+    确定性随机展开”；若进入运行时，再定义 `OPTION`/`LOOKUP`/`VALUES` 权重、
+    `QTY:roll(...)`、`EQUIPBUY` 与 `APPLY:INSTANT` 的确定性语义、RNG seed、
+    fixture 和 Java/PCGen 对照方式。
+  - 指标：产出设计文档，明确数据来源、scope、首个 acceptance case、
+    coverage 桶与 `classify(category, tag)` 边界；设计评审通过前不承诺全量清零。
+  - 门禁：设计文档评审 + kit fixture 设计 + `coverage_gate.py` 双数据集口径；
+    baseline 只允许下降。
+  - 依赖/风险：与 `P4-ENG-1`、`classify(category, tag)`、`P4-EQP-1` 的同名
+    tag 拆分一起做；若 KIT 属创建期 UI/随机表，应考虑单独 coverage 桶或
+    allowlist，避免继续主导 `semantic_completion`。
 - **P4-TEMP-1 临时状态**（`TEMPBONUS`/`TEMPVALUE`，DS-35E 376 次）：
   active-state 模型（Rage 等），不是静态 snapshot。
 - **P4-RACE-1 种族 / 生物特征**（`RACESUBTYPE`/`REACH`/`NATURALATTACKS`/
@@ -363,32 +382,52 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
   `PRESIZELT`/`PRESIZELTEQ`/`PRESIZEGT`（DS-35E 58 次）与 `PRETEXT` 改判
   allowlist；`PRETEMPLATE`/`PREMOVE` 已在 P4-PRE-4 落地；剩余
   `!PRESUBCLASS`/`PRELANG`/`PREWEAPONPROF` 需要新运行时状态，分别并入
-  P4-RACE-1 / P4-EQP-1。
+  P4-CLASS-1 / P4-RACE-1 / P4-EQP-1；`PRESPELL`/`PRESPELLSCHOOL` 并入
+  P4-SPELL-1。
 - **P4-FAITH 信仰小项**（`DEITYWEAP`/`VALIDFORDEITY`/`VALIDFORFOLLOWER`，
   DS-35E 5 次）。
 
+### P4-G DS-35E unsupported owner 表
+
+DS-35E 当前 `unsupported_tags=104`（pending 102 + allowlisted 2）。下表把
+每个 unsupported pending tag 明确到 owner；全部清零后再把 coverage gate 的
+DS-35E 阈值收紧到 0，并补 zero-tag 断言。
+
+| tag | count | owner | 目标 / 门禁 |
+|---|---:|---|---|
+| `PREMULT` | 40 | P4-PRE-6 | 内层谓词补齐后自动 lower；zero-tag 断言 |
+| `BONUS` | 45 | P4-BONUS-1 / P4-EQP-1（合并验收） | 条件形式与装备/加值 target typed 化；`BONUS=0` |
+| `!PRESUBCLASS` | 8 | P4-CLASS-1 | 建立 subclass/substitution 状态；`!PRESUBCLASS=0` |
+| `PRESPELL` | 4 | P4-SPELL-1 | 法术定义 → executable spell effect；`PRESPELL=0` |
+| `PRESPELLSCHOOL` | 3 | P4-SPELL-1 | 法术学派状态；`PRESPELLSCHOOL=0` |
+| `PRELANG` | 1 | P4-RACE-1 | 语言集合进入 race state；`PRELANG=0` |
+| `PREWEAPONPROF` | 1 | P4-EQP-1 | 武器熟练状态；`PREWEAPONPROF=0` |
+| `PRETEXT` | 2 | allowlisted | 纯展示文本，已不计入 pending；保持 allowlist |
+
+> DS-3E 的残余 `BONUS=3` 同样由 P4-BONUS-1 / P4-EQP-1 合并验收清零，
+> 届时两个数据集都应达到 `unsupported_tags == 0`。
+
 ### P4 推荐执行顺序
 
-已完成：P4-PRE-1、P4-PRE-2、P4-PRE-5。
+已完成：P4-PRE-1、P4-PRE-2、P4-PRE-5、P4-ENG-1。
 
-> 当前优先是「阶段 0 口径冻结」：DS-3E 作回归代理、DS-35E 作主验收，
+> 阶段 0 口径冻结已完成：DS-3E 作回归代理、DS-35E 作主验收，
 > 两个数据集各自冻结 coverage 基线（见 `docs/TESTING.md`）。
-> 口径冻结后再按下表推进功能。
+> 后续按下表推进功能。
 
 | 顺序 | 任务 | 说明 |
 |---:|---|---|
-| ~~1~~ | ~~P4-PRE-3~~ | ✅ 已完成：`SpellPowerType` + 法术书，unsupported 25→16 |
-| ~~1b~~ | ~~P4-PRE-6（部分）~~ | ✅ size 谓词 + `PRETEXT`；剩余并入 TPL/EQP/RACE |
-| 2 | P4-KIT-1 | DS-35E pending 的 ~72%；先定确定性展开语义 |
-| 3 | P4-EQP-1（含 PRE-4 手/移动） | G2 装备语义；目标 AC 三字段 ≥90% |
-| 4 | P4-TPL-1（含 PRE-4 模板） | 模板语义 + CR/DR/SR/NATURALATTACKS 归类 |
-| 5 | P4-SPELL-1 | 依赖第 1 项 |
-| 5b | P4-RACE-1 / P4-TEMP-1 | 可与第 3–5 项并行 |
-| 6 | P4-BONUS-1（G1） | 可与第 2–5 项并行；目标 DS-3E unsupported==0 |
-| 6b | P4-CLASS-1 / P4-STAT-1 / P4-FAITH | triage 派生小项 |
-| 7 | P4-PSI-1 | 可与第 4–6 项并行 |
-| 8 | P4-DATA-1 | 怪物记录已确认 in scope；做 monster HD，消 known-diverging 2 |
-| 9 | P4-DEC-2 / DEC-4 | G3 dropped、G4 归档 |
+| ~~0~~ | ~~P4-PRE-3~~ | ✅ 已完成：`SpellPowerType` + 法术书，unsupported 25→16 |
+| ~~0b~~ | ~~P4-PRE-6（部分）~~ | ✅ size 谓词 + `PRETEXT`；剩余并入 TPL/EQP/RACE |
+| ~~0c~~ | ~~P4-ENG-1~~ | ✅ 已完成：class/level 激活 + 默认 BAB=0 + modifier 归一化；BAB 21/21 |
+| 1 | P4-KIT-0 | DS-35E pending 的 ~72%；先做设计 spike，不立即全量实现 |
+| 2 | P4-BONUS-1 + P4-EQP-1（合并验收） | G1 stacking + G2 装备/AC typed 化；目标 AC/touch/flat ≥95%，清零已知失败 case |
+| 3 | P4-DATA-1 + P4-RACE-1 | 怪物 PC 支持：monster HD + 种族/生物特征；消 known-diverging 2 |
+| 4 | P4-TPL-1 | 模板语义 + CR/DR/SR/NATURALATTACKS 归类 |
+| 5 | P4-SPELL-1 | 依赖 P4-PRE-3；可与第 2–4 项并行 |
+| 5b | P4-TEMP-1 / P4-PSI-1 | active-state 与灵能闭环；可与第 3–5 项并行 |
+| 6 | P4-CLASS-1 / P4-STAT-1 / P4-FAITH | triage 派生小项；清 `!PRESUBCLASS` 等 unsupported |
+| 7 | P4-DEC-2 / DEC-4 | G3 dropped、G4 归档 |
 
 > 每个任务合并前必须同时满足：`cargo test --workspace`、
 > `coverage_gate.py` 严格模式、`broad_oracle.py --check --json`；
