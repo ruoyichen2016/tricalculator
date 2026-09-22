@@ -65,13 +65,18 @@ impl Engine {
             let ability = ability.to_ascii_lowercase();
             ability.contains("retain_dex") || ability.contains("uncanny_dodge")
         });
-        let armor_class = 10 + armor_bonus + shield_bonus + dex_bonus + size_modifier;
-        let touch_ac = 10 + dex_mod + size_modifier;
-        let flat_footed_ac = if retain_dex_flat_footed {
-            10 + armor_bonus + shield_bonus + dex_bonus + size_modifier
+        let (effect_ac, effect_touch, effect_flat) = ac_bonus_components(&effect_state.ac_bonuses);
+        let armor_class = 10 + armor_bonus + shield_bonus + dex_bonus + size_modifier + effect_ac;
+        let touch_ac = 10 + dex_mod + size_modifier + effect_touch;
+        // Flat-footed loses a positive Dexterity bonus but still applies a
+        // Dexterity penalty (PHB 3.5, flat-footed).
+        let flat_footed_dex = if retain_dex_flat_footed {
+            dex_bonus
         } else {
-            10 + armor_bonus + shield_bonus + size_modifier
+            dex_bonus.min(0)
         };
+        let flat_footed_ac =
+            10 + armor_bonus + shield_bonus + flat_footed_dex + size_modifier + effect_flat;
 
         let gestalt = if draft.is_gestalt() {
             Some(plan_gestalt(
@@ -127,7 +132,15 @@ impl Engine {
                 .map(|entry| entry.hit_points_gained)
                 .sum()
         };
-        let hit_points = (base_hit_points + con_mod * total_level as i32).max(1);
+        // Real class levels have a minimum of 1 HP, but PCGen test/monster
+        // classes with no HD can legitimately record 0 base HP.
+        let raw_hit_points = base_hit_points + con_mod * total_level as i32;
+        let zero_hd_class = base_hit_points == 0 && !class_levels.is_empty();
+        let hit_points = if zero_hd_class {
+            raw_hit_points.max(0)
+        } else {
+            raw_hit_points.max(1)
+        };
 
         let saves = if let Some(plan) = &gestalt {
             let mut saves = BTreeMap::new();
@@ -764,6 +777,38 @@ fn equipment_totals(equipment: &[EquipmentDefinition]) -> (i32, i32, Option<i32>
 /// Human-readable lane summary used by CLI/debug output.
 pub fn lane_summary(lane: &pcgen_core::AdvancementLane) -> String {
     format!("{}:{}", lane.lane_id, lane.class_id)
+}
+
+fn ac_bonus_components(bonuses: &[crate::effects::AcBonus]) -> (i32, i32, i32) {
+    let mut armor_class = 0;
+    let mut touch_ac = 0;
+    let mut flat_footed_ac = 0;
+    for bonus in bonuses {
+        let bonus_type = bonus
+            .bonus_type
+            .as_deref()
+            .unwrap_or("")
+            .to_ascii_lowercase();
+        if bonus_type.contains("armor")
+            || bonus_type.contains("shield")
+            || bonus_type.contains("natural")
+        {
+            // Armor, shield and natural armor apply to normal/flat-footed AC,
+            // but not touch AC.
+            armor_class += bonus.value;
+            flat_footed_ac += bonus.value;
+        } else if bonus_type.contains("dodge") {
+            // Dodge applies to normal/touch AC, but not flat-footed AC.
+            armor_class += bonus.value;
+            touch_ac += bonus.value;
+        } else {
+            // Deflection, insight, luck, untyped, etc. apply to all three.
+            armor_class += bonus.value;
+            touch_ac += bonus.value;
+            flat_footed_ac += bonus.value;
+        }
+    }
+    (armor_class, touch_ac, flat_footed_ac)
 }
 
 fn apply_external_modifiers(snapshot: &mut CharacterSnapshot, modifiers: &BTreeMap<String, i32>) {

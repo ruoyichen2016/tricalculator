@@ -41,8 +41,11 @@ impl AttackProgression {
 #[serde(rename_all = "snake_case")]
 pub enum SaveProgression {
     Good,
-    #[default]
     Poor,
+    /// No base save progression.  PCGen classes only gain base saves when
+    /// they declare an explicit `BONUS:SAVE|BASE.*` (or a `SAVE` shorthand).
+    #[default]
+    None,
 }
 
 impl SaveProgression {
@@ -51,6 +54,7 @@ impl SaveProgression {
         match self {
             Self::Good => 2 + level / 2,
             Self::Poor => level / 3,
+            Self::None => 0,
         }
     }
 }
@@ -223,11 +227,11 @@ impl ClassDefinition {
             max_level: 20,
             attack_progression: AttackProgression::None,
             base_attack_formula: None,
-            fortitude: SaveProgression::Poor,
+            fortitude: SaveProgression::None,
             fortitude_formula: None,
-            reflex: SaveProgression::Poor,
+            reflex: SaveProgression::None,
             reflex_formula: None,
-            will: SaveProgression::Poor,
+            will: SaveProgression::None,
             will_formula: None,
             skill_points_per_level: 2,
             class_skills: Vec::new(),

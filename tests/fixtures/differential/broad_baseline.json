@@ -81,8 +81,8 @@
         "hit_points": true,
         "initiative": true,
         "save_fortitude": true,
-        "save_reflex": false,
-        "save_will": false,
+        "save_reflex": true,
+        "save_will": true,
         "touch_ac": true
       },
       "status": "computed",
@@ -102,8 +102,8 @@
         "initiative": 2,
         "saves": {
           "fortitude": 13,
-          "reflex": 3,
-          "will": 2
+          "reflex": 2,
+          "will": 1
         },
         "touch_ac": 17
       }
@@ -119,7 +119,7 @@
         "save_fortitude": true,
         "save_reflex": true,
         "save_will": true,
-        "touch_ac": false
+        "touch_ac": true
       },
       "status": "computed",
       "values": {
@@ -141,7 +141,7 @@
           "reflex": 0,
           "will": 0
         },
-        "touch_ac": 54
+        "touch_ac": 32
       }
     },
     "35e_CloudGiantHalfDragon": {
@@ -155,7 +155,7 @@
         "save_fortitude": false,
         "save_reflex": true,
         "save_will": true,
-        "touch_ac": false
+        "touch_ac": true
       },
       "status": "computed",
       "values": {
@@ -177,7 +177,7 @@
           "reflex": 9,
           "will": 10
         },
-        "touch_ac": 24
+        "touch_ac": 12
       }
     },
     "35e_Dave": {
@@ -185,8 +185,8 @@
         "armor_class": true,
         "bab": true,
         "final_stats": true,
-        "flat_footed_ac": false,
-        "hit_points": false,
+        "flat_footed_ac": true,
+        "hit_points": true,
         "initiative": true,
         "save_fortitude": true,
         "save_reflex": true,
@@ -205,8 +205,8 @@
           "STR": 9,
           "WIS": 30
         },
-        "flat_footed_ac": 10,
-        "hit_points": 1,
+        "flat_footed_ac": 8,
+        "hit_points": 0,
         "initiative": -2,
         "saves": {
           "fortitude": -1,
@@ -294,7 +294,7 @@
         "bab": true,
         "final_stats": true,
         "flat_footed_ac": true,
-        "hit_points": false,
+        "hit_points": true,
         "initiative": true,
         "save_fortitude": true,
         "save_reflex": true,
@@ -314,7 +314,7 @@
           "WIS": 10
         },
         "flat_footed_ac": 10,
-        "hit_points": 1,
+        "hit_points": 0,
         "initiative": 0,
         "saves": {
           "fortitude": 0,
@@ -330,11 +330,11 @@
         "bab": true,
         "final_stats": true,
         "flat_footed_ac": true,
-        "hit_points": false,
+        "hit_points": true,
         "initiative": true,
-        "save_fortitude": false,
-        "save_reflex": false,
-        "save_will": false,
+        "save_fortitude": true,
+        "save_reflex": true,
+        "save_will": true,
         "touch_ac": true
       },
       "status": "computed",
@@ -350,12 +350,12 @@
           "WIS": 10
         },
         "flat_footed_ac": 10,
-        "hit_points": 1,
+        "hit_points": 0,
         "initiative": 0,
         "saves": {
-          "fortitude": 1,
-          "reflex": 1,
-          "will": 1
+          "fortitude": 0,
+          "reflex": 0,
+          "will": 0
         },
         "touch_ac": 10
       }
@@ -404,9 +404,9 @@
         "flat_footed_ac": true,
         "hit_points": true,
         "initiative": true,
-        "save_fortitude": false,
-        "save_reflex": false,
-        "save_will": false,
+        "save_fortitude": true,
+        "save_reflex": true,
+        "save_will": true,
         "touch_ac": true
       },
       "status": "computed",
@@ -425,9 +425,9 @@
         "hit_points": 16,
         "initiative": 0,
         "saves": {
-          "fortitude": 3,
-          "reflex": 1,
-          "will": 1
+          "fortitude": 2,
+          "reflex": 0,
+          "will": 0
         },
         "touch_ac": 10
       }
@@ -443,7 +443,7 @@
         "save_fortitude": false,
         "save_reflex": true,
         "save_will": true,
-        "touch_ac": false
+        "touch_ac": true
       },
       "status": "computed",
       "values": {
@@ -465,7 +465,7 @@
           "reflex": 8,
           "will": 6
         },
-        "touch_ac": 18
+        "touch_ac": 14
       }
     },
     "35e_Lauren": {
@@ -722,20 +722,20 @@
     },
     "3e_MonKee": {
       "java_agreement": {
-        "armor_class": false,
+        "armor_class": true,
         "bab": true,
         "final_stats": true,
-        "flat_footed_ac": false,
+        "flat_footed_ac": true,
         "hit_points": false,
         "initiative": true,
         "save_fortitude": true,
         "save_reflex": true,
         "save_will": true,
-        "touch_ac": false
+        "touch_ac": true
       },
       "status": "computed",
       "values": {
-        "armor_class": 9,
+        "armor_class": 12,
         "bab": 6,
         "final_stats": {
           "CHA": 13,
@@ -745,7 +745,7 @@
           "STR": 13,
           "WIS": 15
         },
-        "flat_footed_ac": 10,
+        "flat_footed_ac": 12,
         "hit_points": 21,
         "initiative": -1,
         "saves": {
@@ -753,7 +753,7 @@
           "reflex": 5,
           "will": 8
         },
-        "touch_ac": 9
+        "touch_ac": 12
       }
     },
     "3e_SWizSam": {

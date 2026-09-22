@@ -13,10 +13,25 @@ use pcgen_ir::CompiledRulePack;
 use regex::Regex;
 use std::collections::{BTreeMap, BTreeSet};
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AcBonus {
+    pub value: i32,
+    pub bonus_type: Option<String>,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct EffectState {
     pub variables: BTreeMap<String, i32>,
+    /// Variables explicitly changed by `BONUS:VAR` / `SetVariable`; defined
+    /// variables must not overwrite these on later resolution passes.
+    pub explicit_variables: BTreeSet<String>,
+    /// Ability modifiers (`STR`..`CHA`) available to PCGen formulas.
+    pub ability_modifiers: BTreeMap<String, i32>,
     pub external_modifiers: BTreeMap<String, i32>,
+    /// Typed numeric AC bonuses.  Kept separate from `external_modifiers` so
+    /// armor/shield/natural bonuses do not leak into touch AC, and dodge
+    /// bonuses do not leak into flat-footed AC.
+    pub ac_bonuses: Vec<AcBonus>,
     pub active_abilities: BTreeSet<String>,
     pub choices: BTreeMap<String, String>,
     pub unresolved_choices: Vec<String>,
@@ -56,6 +71,11 @@ impl VariableResolver for EffectState {
         self.variables
             .get(name)
             .copied()
+            .or_else(|| {
+                self.ability_modifiers
+                    .get(&name.to_ascii_uppercase())
+                    .copied()
+            })
             .map(|value| FormulaValue::Int(value as i64))
     }
 }
@@ -94,11 +114,25 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
     templates.extend(draft.templates.iter().map(|name| name.to_ascii_lowercase()));
     let hands = race.map(|race| race.hands).unwrap_or(2);
     let movement = race.map(|race| race.movement.clone()).unwrap_or_default();
+    let mut ability_modifiers = BTreeMap::new();
+    {
+        let mut stats = draft.stats.clone();
+        if let Some(race) = pack.races.get(&draft.race_id) {
+            for (stat, adjustment) in &race.ability_adjustments {
+                *stats.entry(stat.clone()).or_insert(10) += adjustment;
+            }
+        }
+        for stat in ["STR", "DEX", "CON", "INT", "WIS", "CHA"] {
+            let score = stats.get(stat).copied().unwrap_or(10);
+            ability_modifiers.insert(stat.to_string(), (score - 10).div_euclid(2));
+        }
+    }
     let mut state = EffectState {
         size: base_size,
         legs: 2,
         race_types,
         character_class_levels: class_levels,
+        ability_modifiers,
         total_bab: prereq_bab,
         spell_powers,
         max_spell_level,
@@ -204,16 +238,28 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         }
     }
 
-    // Resolve DEFINE/VAR first, then evaluate formulas and re-resolve any
-    // variables that depend on formula results.
+    // Resolve DEFINE variables first.  Then resolve `VAR.*` formulas in
+    // dependency passes before non-variable effect formulas, so e.g.
+    // `MonkAC` is available when `COMBAT.AC` is evaluated.
+    resolve_variables(&mut state, &variable_defs, draft);
+
+    let mut variable_formulas = Vec::new();
+    let mut effect_formulas = Vec::new();
+    for (target, expression) in pending_formulas.drain(..) {
+        if target.starts_with("VAR.") {
+            variable_formulas.push((target, expression));
+        } else {
+            effect_formulas.push((target, expression));
+        }
+    }
+
     for _ in 0..16 {
-        resolve_variables(&mut state, &variable_defs, draft);
-        if pending_formulas.is_empty() {
+        if variable_formulas.is_empty() {
             break;
         }
-        let mut progress = false;
         let mut remaining = Vec::new();
-        for (target, expression) in pending_formulas.drain(..) {
+        let mut progress = false;
+        for (target, expression) in variable_formulas.drain(..) {
             let normalized = normalize_formula(&expression, draft, &state);
             match pcgen_formula::evaluate(&normalized, &state) {
                 Ok(value) => {
@@ -223,15 +269,26 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
                 Err(_) => remaining.push((target, expression)),
             }
         }
-        pending_formulas = remaining;
+        variable_formulas = remaining;
         if !progress {
             break;
         }
+        resolve_variables(&mut state, &variable_defs, draft);
     }
-    for (target, expression) in pending_formulas {
+    for (target, expression) in &variable_formulas {
         state.diagnostics.push(format!(
-            "unresolved formula `{expression}` for target `{target}`"
+            "unresolved variable formula `{expression}` for target `{target}`"
         ));
+    }
+
+    for (target, expression) in effect_formulas {
+        let normalized = normalize_formula(&expression, draft, &state);
+        match pcgen_formula::evaluate(&normalized, &state) {
+            Ok(value) => add_target(&mut state, &target, formula_to_i32(&value)),
+            Err(_) => state.diagnostics.push(format!(
+                "unresolved formula `{expression}` for target `{target}`"
+            )),
+        }
     }
     state
 }
@@ -272,6 +329,11 @@ fn apply_action(
                     &modifier.target,
                 ) {
                     state.structural_effects_skipped += 1;
+                } else if is_ac_target(&modifier.target) {
+                    state.ac_bonuses.push(AcBonus {
+                        value: modifier.value.floor() as i32,
+                        bonus_type: modifier.bonus_type.clone(),
+                    });
                 } else {
                     add_target(state, &modifier.target, modifier.value.floor() as i32);
                 }
@@ -397,8 +459,14 @@ fn find_entity(pack: &CompiledRulePack, entity: &pcgen_core::EntityId) -> Option
         })
 }
 
+fn is_ac_target(target: &str) -> bool {
+    let upper = target.to_ascii_uppercase();
+    upper == "AC" || upper == "COMBAT.AC"
+}
+
 fn add_target(state: &mut EffectState, target: &str, value: i32) {
     if let Some(name) = target.strip_prefix("VAR.") {
+        state.explicit_variables.insert(name.to_string());
         *state.variables.entry(name.to_string()).or_insert(0) += value;
     } else {
         *state
@@ -648,6 +716,9 @@ fn resolve_variables(
 
     for position in order {
         let name = &names[position];
+        if state.explicit_variables.contains(name) {
+            continue;
+        }
         let expression = definitions.get(name).cloned().unwrap_or_default();
         let normalized = normalize_formula(&expression, draft, state);
         match pcgen_formula::evaluate(&normalized, state) {
@@ -714,6 +785,15 @@ fn normalize_formula(expression: &str, draft: &CharacterDraft, state: &EffectSta
     normalized = total_level
         .replace_all(&normalized, draft.total_level().to_string())
         .to_string();
+    // `CL` is the class level of the source class.  Without source-context
+    // propagation we can resolve it unambiguously when the character has a
+    // single class; multiclass ability formulas remain deferred.
+    if draft.class_levels.len() == 1 {
+        let class_level = Regex::new(r"\bCL\b").unwrap();
+        normalized = class_level
+            .replace_all(&normalized, draft.class_levels[0].level.to_string())
+            .to_string();
+    }
     normalized = normalized.replace("%CHOICE%", "0").replace("%LIST%", "0");
     normalized
 }

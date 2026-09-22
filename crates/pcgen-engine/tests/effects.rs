@@ -334,6 +334,13 @@ fn class_without_explicit_baseab_has_zero_bab() {
     };
     let snapshot = Engine::new(pack).evaluate(&draft);
     assert_eq!(snapshot.base_attack_bonus, 0);
+    // No explicit BONUS:SAVE means no base save progression.
+    assert_eq!(snapshot.saves.get("Fortitude"), Some(&0));
+    assert_eq!(snapshot.saves.get("Reflex"), Some(&0));
+    assert_eq!(snapshot.saves.get("Will"), Some(&0));
+    // A class with no HD and no rolled HP stays at 0 rather than being
+    // forced to the generic level-1 minimum.
+    assert_eq!(snapshot.hit_points, 0);
 }
 
 #[test]
@@ -368,8 +375,9 @@ fn normalized_class_entity_activates_level_bonuses_once() {
     // Header `COMBAT.AC` and level-row `HP.CURRENTMAX` must both be active
     // even though the stable EntityId key is `charlie_class`.
     assert_eq!(snapshot.armor_class, 32);
+    assert_eq!(snapshot.touch_ac, 32);
+    assert_eq!(snapshot.flat_footed_ac, 32);
     assert_eq!(snapshot.hit_points, 15);
-    assert_eq!(snapshot.external_modifiers.get("COMBAT.AC"), Some(&22));
     assert_eq!(snapshot.external_modifiers.get("HP.CURRENTMAX"), Some(&5));
 }
 
@@ -410,4 +418,46 @@ fn typed_progression_prevents_raw_baseab_and_save_double_counting() {
         .external_modifiers
         .keys()
         .any(|target| target.to_ascii_uppercase().contains("BASEAB")));
+}
+
+#[test]
+fn typed_shield_bonus_does_not_apply_to_touch_ac() {
+    let records = vec![record(
+        "RACE",
+        "Shield Race",
+        "Shield Race",
+        &[("BONUS", "COMBAT|AC|4|TYPE=Shield")],
+    )];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["shield-ac".to_string()],
+        &records,
+    );
+    let draft = CharacterDraft {
+        race_id: "Shield Race".to_string(),
+        ..CharacterDraft::default()
+    };
+    let snapshot = Engine::new(pack).evaluate(&draft);
+    assert_eq!(snapshot.armor_class, 14);
+    assert_eq!(snapshot.flat_footed_ac, 14);
+    assert_eq!(snapshot.touch_ac, 10);
+}
+
+#[test]
+fn flat_footed_ac_keeps_negative_dex_penalty() {
+    let records = vec![record("RACE", "Slow Race", "Slow Race", &[])];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["slow-race".to_string()],
+        &records,
+    );
+    let draft = CharacterDraft {
+        race_id: "Slow Race".to_string(),
+        stats: std::collections::BTreeMap::from([("DEX".to_string(), 6)]),
+        ..CharacterDraft::default()
+    };
+    let snapshot = Engine::new(pack).evaluate(&draft);
+    assert_eq!(snapshot.armor_class, 8);
+    assert_eq!(snapshot.touch_ac, 8);
+    assert_eq!(snapshot.flat_footed_ac, 8);
 }

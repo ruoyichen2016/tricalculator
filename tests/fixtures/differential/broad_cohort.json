@@ -5,7 +5,14 @@
       "java_gated_fields": [
         "final_stats",
         "initiative",
-        "bab"
+        "bab",
+        "hit_points",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
@@ -17,7 +24,14 @@
       "java_gated_fields": [
         "final_stats",
         "initiative",
-        "bab"
+        "bab",
+        "hit_points",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
@@ -29,7 +43,14 @@
       "java_gated_fields": [
         "final_stats",
         "initiative",
-        "bab"
+        "bab",
+        "hit_points",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
@@ -41,7 +62,14 @@
       "java_gated_fields": [
         "final_stats",
         "initiative",
-        "bab"
+        "bab",
+        "hit_points",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
@@ -69,7 +97,14 @@
       "java_gated_fields": [
         "final_stats",
         "initiative",
-        "bab"
+        "bab",
+        "hit_points",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
@@ -79,7 +114,16 @@
     "35e_Eve": {
       "expectation": "computed",
       "java_gated_fields": [
-        "bab"
+        "bab",
+        "final_stats",
+        "hit_points",
+        "initiative",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
@@ -91,7 +135,14 @@
       "java_gated_fields": [
         "final_stats",
         "initiative",
-        "bab"
+        "bab",
+        "hit_points",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
@@ -103,7 +154,14 @@
       "java_gated_fields": [
         "final_stats",
         "initiative",
-        "bab"
+        "bab",
+        "hit_points",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
@@ -115,7 +173,14 @@
       "java_gated_fields": [
         "final_stats",
         "initiative",
-        "bab"
+        "bab",
+        "hit_points",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
@@ -125,7 +190,16 @@
     "35e_Ivan": {
       "expectation": "computed",
       "java_gated_fields": [
-        "bab"
+        "bab",
+        "final_stats",
+        "hit_points",
+        "initiative",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
@@ -137,7 +211,14 @@
       "java_gated_fields": [
         "final_stats",
         "initiative",
-        "bab"
+        "bab",
+        "hit_points",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
@@ -165,7 +246,14 @@
       "java_gated_fields": [
         "final_stats",
         "initiative",
-        "bab"
+        "bab",
+        "hit_points",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
@@ -175,7 +263,16 @@
     "35e_Mallory": {
       "expectation": "computed",
       "java_gated_fields": [
-        "bab"
+        "bab",
+        "final_stats",
+        "hit_points",
+        "initiative",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
@@ -187,7 +284,14 @@
       "java_gated_fields": [
         "final_stats",
         "initiative",
-        "bab"
+        "bab",
+        "hit_points",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
@@ -199,7 +303,14 @@
       "java_gated_fields": [
         "final_stats",
         "initiative",
-        "bab"
+        "bab",
+        "hit_points",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
@@ -211,7 +322,14 @@
       "java_gated_fields": [
         "final_stats",
         "initiative",
-        "bab"
+        "bab",
+        "hit_points",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
@@ -223,7 +341,14 @@
       "java_gated_fields": [
         "final_stats",
         "initiative",
-        "bab"
+        "bab",
+        "hit_points",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
@@ -235,7 +360,14 @@
       "java_gated_fields": [
         "final_stats",
         "initiative",
-        "bab"
+        "bab",
+        "hit_points",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
@@ -247,7 +379,13 @@
       "java_gated_fields": [
         "final_stats",
         "initiative",
-        "bab"
+        "bab",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
@@ -259,7 +397,11 @@
       "java_gated_fields": [
         "final_stats",
         "initiative",
-        "bab"
+        "bab",
+        "hit_points",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
@@ -271,7 +413,14 @@
       "java_gated_fields": [
         "final_stats",
         "initiative",
-        "bab"
+        "bab",
+        "hit_points",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
