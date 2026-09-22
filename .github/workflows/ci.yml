@@ -1,0 +1,102 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    # Nightly full-data gate.  GitHub cron is UTC.
+    - cron: "17 3 * * *"
+
+jobs:
+  no-data:
+    name: no-data (fmt / clippy / test / mini gate)
+    runs-on: ubuntu-latest
+    env:
+      PCGEN_BIN: ${{ github.workspace }}/pcgen-rust/target/debug/pcgen
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Architecture guardrails
+        run: bash scripts/check_architecture.sh
+
+      - name: Format
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Test (external-data tests skip explicitly)
+        run: cargo test --workspace
+
+      - name: Build CLI
+        run: cargo build -q -p pcgen-cli
+
+      - name: CLI smoke
+        run: ./target/debug/pcgen demo
+
+      - name: Mini import smoke
+        run: ./target/debug/pcgen import-report tests/fixtures/campaign-mini/mini.pcc
+
+      - name: No-data coverage gate (skips real-data gates explicitly)
+        run: python3 scripts/coverage_gate.py --allow-skip
+
+      - name: Tag histogram smoke (mini)
+        run: ./target/debug/pcgen import-report tests/fixtures/campaign-mini/mini.pcc --histogram
+
+  full-data:
+    name: full-data (pinned PCGen + differential)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      PCGEN_BIN: ${{ github.workspace }}/pcgen-rust/target/debug/pcgen
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Fetch pinned PCGen test data
+        run: bash scripts/fetch_testdata.sh
+
+      - name: Verify pinned test data
+        run: bash scripts/check_testdata.sh
+
+      - name: Build CLI
+        run: cargo build -q -p pcgen-cli
+
+      - name: Test (full data)
+        run: cargo test --workspace
+
+      - name: Full coverage gate (fails on skip; includes broad oracle once)
+        run: python3 scripts/coverage_gate.py
+
+      - name: Build archive oracle binary
+        run: |
+          cd ../reference/pcgen-rust-archive
+          CARGO_HOME="$GITHUB_WORKSPACE/pcgen-rust/.cargo-home" cargo build
+          cd "$GITHUB_WORKSPACE/pcgen-rust"
+
+      - name: Archive snapshot differential (strict)
+        run: |
+          ARCHIVE_PCGEN="$GITHUB_WORKSPACE/reference/pcgen-rust-archive/target/debug/pcgen" \
+            python3 scripts/snapshot_diff_archive.py --strict
+
+      - name: Broad Java differential (visibility report)
+        run: python3 scripts/differential_java_pcgen_all.py | tee broad-differential.txt
+
+      - name: Upload broad differential report
+        uses: actions/upload-artifact@v4
+        with:
+          name: broad-differential
+          path: broad-differential.txt
+          if-no-files-found: error

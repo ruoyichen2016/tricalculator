@@ -1,0 +1,1 @@
+<abilities><#list saves as save><@ability short="${save.name}" value="${save.value}"/></#list></abilities>

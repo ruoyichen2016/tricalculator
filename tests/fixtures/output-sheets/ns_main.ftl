@@ -1,0 +1,1 @@
+<#import "ns_macros.ftl" as mac><#assign title = name?upper_case><character name="${title}"><@mac.badge label="HP" value="${hp}"/></character>

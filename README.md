@@ -1,0 +1,110 @@
+# PCGen-Rust
+
+PCGen-Rust 是围绕统一 Rule IR、`CharacterDraft` / `CharacterSnapshot`
+边界和确定性引擎重构的新架构。
+
+旧实现完整保存在 [`../reference/pcgen-rust-archive`](../reference/pcgen-rust-archive)。
+
+## 架构文档
+
+- [`ARCHITECTURE.md`](ARCHITECTURE.md)
+- [`MIGRATION.md`](MIGRATION.md)
+- [`PRODUCT_SCOPE.md`](PRODUCT_SCOPE.md)
+- [`ROADMAP.md`](ROADMAP.md)
+- [`docs/TESTING.md`](docs/TESTING.md)
+- [`docs/TAG_TRIAGE.md`](docs/TAG_TRIAGE.md)
+- [`docs/P4_PRE3_SPELL_TYPE_DESIGN.md`](docs/P4_PRE3_SPELL_TYPE_DESIGN.md)
+
+## 工作区
+
+| crate | 作用 |
+|---|---|
+| `pcgen-core` | ID、精确有理数、Rule IR、Advancement、Gestalt、图算法、`EntityCategory`/`ChoiceKind` |
+| `pcgen-formula` | 公式解析与求值 |
+| `pcgen-ir` | 运行时 IR：RawRecord、PatchOperation、typed definitions、`PcgDraft`、CompiledRulePack、降低 pass |
+| `pcgen-import` | PCGen 文件格式：`.pcc` 图、`.lst` tokenize、`.pcg` 读写 |
+| `pcgen-engine` | `CharacterDraft → Engine → CharacterSnapshot`（只依赖 `pcgen-ir`） |
+| `pcgen-output` | Snapshot text/json 渲染 |
+| `pcgen-cli` | `pcgen` 命令行 |
+
+## 构建与测试
+
+仓库内测试与 mini 门禁不依赖外部数据：
+
+```bash
+CARGO_HOME="$PWD/.cargo-home" cargo test --workspace
+python3 scripts/coverage_gate.py --allow-skip
+```
+
+真实数据测试与差分门禁需要固定版本的 PCGen 测试数据：
+
+```bash
+bash scripts/fetch_testdata.sh      # 固定 commit，写入 <workspace>/raw/pcgen-master
+bash scripts/check_testdata.sh      # 校验必需文件与 blob hash
+python3 scripts/coverage_gate.py    # 严格模式：跳过真实数据门禁即失败
+```
+
+一键开发检查（数据缺失时会明确切换到 no-data smoke）：
+
+```bash
+bash scripts/check.sh
+```
+
+CI 分为 `no-data`（push / PR）与 `full-data`（nightly / 手动，抓取固定 PCGen
+commit 并执行字段级差分）两个 job。细节见 [`docs/TESTING.md`](docs/TESTING.md)。
+
+## 当前状态
+
+当前实现是架构骨架加核心切片，已经包含：
+
+- 精确有理数与稳定 ID；
+- 统一 Effect / Modifier / Predicate IR；
+- AdvancementFrame / Gestalt / prestige / archetype / faith / 增量重算；
+- 导入层、引擎、输出层、CLI；
+- 真实 `.pcc/.lst` source graph 与 lossless Raw AST；
+- typed Race/Class/Skill/Spell/Equipment definitions；
+- `ClassProgression` 由 import 层生成；
+- `import-report` typed counts；
+- `.pcg` Draft 读取、`parse-pcg` / `recalculate` / `export` CLI；
+- `CharacterSnapshot` 覆盖 HP / BAB / 豁免 / AC / 技能 / 法术 DC /
+  caster level / prepared spells / 灵能点字段；
+- 9 个 Java XML 差分全部通过；
+- archive v1 vs 新 engine snapshot differential；
+- 精确 RSRD 灵能点表；
+- text / Markdown / CSV / JSON / HTML 输出；
+- coverage non-regression gate；
+- broad Java differential oracle；
+- variant / faith / prestige 诊断；
+- 最小 FreeMarker 风格模板；
+- EffectApplicator：公式、变量、Grant/AUTO、Choose；
+- coverage gate 扩展到 formula/grant/choose/variable；
+- external modifiers 接入核心 snapshot；
+- 变量依赖图与循环诊断；
+- Grant 占位符与内嵌 PRE；
+- Deity/Domain typed definitions；
+- 执行覆盖率 gate；
+- 原生 archetype grants、Faith domain spells/weapon/alignment 校验；
+- FreeMarker `#assign` / `#include` / `?size` / `?join` / `?replace` / `?string`；
+- broad oracle 区分 data-missing 与真实差异；
+- substitution level lowerer；
+- FreeMarker `#macro` / `#import as ns`；
+- coverage gate 字段级执行覆盖；
+- PTS custom class BASEAB/SAVE 公式求值；
+- substitution BONUS / ADD:SPELLCASTER variant effect；
+- broad oracle per-case PCC 映射；
+- coverage gate 字段值级差分；
+- class 公式 `var("...")` / `BL=Class`；
+- substitution BONUS 真正 lower 为 Effect 并执行；
+- FreeMarker macro 默认参数；
+- coverage gate 运行 curated Java differential；
+- variant Grant / Choose 执行；
+- FreeMarker namespace macro；
+- Bard 字段值精确门禁；
+- macro in #list 精确展开；
+- 官方风格 fixture exact golden；
+- 真实官方 output sheet smoke（无 FTL 泄漏）；
+- Uncanny Dodge flat-footed AC；
+- 114 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
+
+真实 PCGen 数据解析与完整角色计算正在按 [`MIGRATION.md`](MIGRATION.md) 从
+archive 迁移。

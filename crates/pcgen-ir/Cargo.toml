@@ -1,0 +1,15 @@
+[package]
+name = "pcgen-ir"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Runtime rule IR shared by the importer and the engine."
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true
+pcgen-core = { path = "../pcgen-core" }
+pcgen-formula = { path = "../pcgen-formula" }
+serde_json.workspace = true
+indexmap.workspace = true
+regex.workspace = true

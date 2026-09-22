@@ -1,0 +1,15 @@
+[package]
+name = "pcgen-import"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true
+pcgen-core = { path = "../pcgen-core" }
+pcgen-ir = { path = "../pcgen-ir" }
+pcgen-formula = { path = "../pcgen-formula" }
+serde_json.workspace = true
+indexmap.workspace = true
+regex.workspace = true

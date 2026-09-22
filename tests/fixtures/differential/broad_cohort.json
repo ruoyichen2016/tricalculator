@@ -1,0 +1,278 @@
+{
+  "cases": {
+    "35e_Alice": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "final_stats",
+        "initiative"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Alice.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Alice.xml"
+    },
+    "35e_Bard": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "final_stats",
+        "initiative"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Bard.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Bard.xml"
+    },
+    "35e_Bob": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "final_stats",
+        "initiative"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Bob.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Bob.xml"
+    },
+    "35e_Charlie": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "final_stats",
+        "initiative"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Charlie.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Charlie.xml"
+    },
+    "35e_CloudGiantHalfDragon": {
+      "diverges_on": [
+        "bab",
+        "hit_points",
+        "final_stats",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude"
+      ],
+      "expectation": "computed_diverging",
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_CloudGiantHalfDragon.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_CloudGiantHalfDragon.xml"
+    },
+    "35e_Dave": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "final_stats",
+        "initiative"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Dave.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Dave.xml"
+    },
+    "35e_Eve": {
+      "expectation": "computed",
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Eve.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Eve.xml"
+    },
+    "35e_Fran": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "final_stats",
+        "initiative"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Fran.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Fran.xml"
+    },
+    "35e_Gordon": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "final_stats",
+        "initiative"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Gordon.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Gordon.xml"
+    },
+    "35e_Harold": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "final_stats",
+        "initiative"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Harold.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Harold.xml"
+    },
+    "35e_Ivan": {
+      "expectation": "computed",
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Ivan.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Ivan.xml"
+    },
+    "35e_Jango": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "final_stats",
+        "initiative"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Jango.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Jango.xml"
+    },
+    "35e_JimDop": {
+      "diverges_on": [
+        "bab",
+        "hit_points",
+        "final_stats",
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_fortitude"
+      ],
+      "expectation": "computed_diverging",
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_JimDop.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_JimDop.xml"
+    },
+    "35e_Lauren": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "final_stats",
+        "initiative"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Lauren.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Lauren.xml"
+    },
+    "35e_Mallory": {
+      "expectation": "computed",
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Mallory.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Mallory.xml"
+    },
+    "35e_Quasvin": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "final_stats",
+        "initiative"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Quasvin.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Quasvin.xml"
+    },
+    "3e_BarJack": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "final_stats",
+        "initiative"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/3e_BarJack.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/3e_BarJack.xml"
+    },
+    "3e_BrdJoe": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "final_stats",
+        "initiative"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/3e_BrdJoe.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/3e_BrdJoe.xml"
+    },
+    "3e_CleElf": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "final_stats",
+        "initiative"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/3e_CleElf.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/3e_CleElf.xml"
+    },
+    "3e_FigFae": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "final_stats",
+        "initiative"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/3e_FigFae.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/3e_FigFae.xml"
+    },
+    "3e_MonKee": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "final_stats",
+        "initiative"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/3e_MonKee.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/3e_MonKee.xml"
+    },
+    "3e_SWizSam": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "final_stats",
+        "initiative"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/3e_SWizSam.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/3e_SWizSam.xml"
+    },
+    "3e_WizShar": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "final_stats",
+        "initiative"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/3e_WizShar.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/3e_WizShar.xml"
+    }
+  },
+  "cohort_date": "2026-09-18",
+  "data_missing_limit": 0,
+  "data_ref": "f91bd03f2dbe1145d5526b52aa3e48fcd0f2fc8d",
+  "description": "All PCG/XML pairs in the pinned PCGen test suite that map to a data set. Each case declares an `expectation` (computed / data_missing / base_only) so the agreement denominator is fixed. `data_missing_limit` caps how many cases may be skipped for missing data. `java_gated_fields` must match the Java csheet exactly; the rest are frozen in broad_baseline.json.",
+  "expectation_summary": {
+    "base_only": 0,
+    "computed": 21,
+    "computed_diverging": 2,
+    "data_missing": 0,
+    "must_compute": 23
+  },
+  "known_data_gaps": {
+    "35e_CloudGiantHalfDragon": {
+      "blocker": "monster Hit Dice -> BAB/saves/HP/natural AC",
+      "reason": "monster (Giant) HD progression not modeled"
+    },
+    "35e_JimDop": {
+      "blocker": "monster Hit Dice -> BAB/saves/HP/natural AC",
+      "reason": "monster (Monstrous humanoid) HD progression not modeled"
+    }
+  },
+  "name": "pcgen-testsuite-broad",
+  "schema_version": 2
+}

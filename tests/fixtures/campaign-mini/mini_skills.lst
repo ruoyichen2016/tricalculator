@@ -1,0 +1,4 @@
+Climb	KEYSTAT:STR	ACHECK:YES
+Intimidate	KEYSTAT:CHA
+Spellcraft	KEYSTAT:INT
+Concentration	KEYSTAT:CON

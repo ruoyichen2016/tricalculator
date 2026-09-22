@@ -1,0 +1,5 @@
+CAMPAIGN:Fixture Root
+KEY:fixture-root
+GAMEMODE:3e
+PCC:child.pcc
+CLASS:data/root_classes.lst

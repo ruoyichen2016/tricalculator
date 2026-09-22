@@ -1,0 +1,10 @@
+CAMPAIGN:Mini Campaign
+KEY:mini-campaign
+GAMEMODE:3e
+RACE:mini_races.lst
+CLASS:mini_classes.lst
+SKILL:mini_skills.lst
+SKILL:mini_skills_mod.lst
+ABILITY:mini_abilities.lst
+SPELL:mini_spells.lst
+EQUIPMENT:mini_equipment.lst

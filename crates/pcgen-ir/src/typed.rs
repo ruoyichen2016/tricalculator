@@ -1,0 +1,842 @@
+//! Lossless records -> typed definitions + progression tables.
+//!
+//! This is the Sprint A migration of the archive `store.rs` / `lst.rs`
+//! behaviour.  It intentionally produces only the typed data the engine
+//! needs today; richer tag semantics can be layered on later.
+
+use crate::source::RawRecord;
+use pcgen_core::domain::{
+    AttackProgression, CastingType, ClassDefinition, ClassProgression, DeityDefinition,
+    DomainDefinition, DomainSpell, EquipmentDefinition, EquipmentModifierDefinition,
+    RaceDefinition, SaveProgression, SkillDefinition, SpellDefinition, SpellPowerType,
+    TypedDefinitions,
+};
+use pcgen_core::{EffectPhase, Provenance, VariantDefinition};
+use regex::Regex;
+use std::collections::BTreeMap;
+use std::collections::HashMap;
+
+/// Build typed definitions from lossless records.
+pub fn build_typed_definitions(records: &[RawRecord]) -> TypedDefinitions {
+    let mut typed = TypedDefinitions::default();
+    let mut current_class: Option<String> = None;
+    let mut current_substitution: Option<String> = None;
+
+    for record in records {
+        match record.category.to_ascii_uppercase().as_str() {
+            "CLASS" => {
+                if let Some(substitution) = record.name.strip_prefix("SUBSTITUTIONCLASS:") {
+                    current_substitution = Some(substitution.trim().to_string());
+                    continue;
+                }
+                if let Some(level) = record.name.strip_prefix("SUBSTITUTIONLEVEL:") {
+                    if let (Some(substitution), Ok(level)) =
+                        (current_substitution.as_ref(), level.trim().parse::<u32>())
+                    {
+                        let variant = parse_substitution_variant(
+                            record,
+                            substitution,
+                            level,
+                            current_class.as_deref(),
+                        );
+                        typed.variants.insert(variant.id.clone(), variant);
+                    }
+                    continue;
+                }
+                if record.name.trim().parse::<u32>().is_ok() {
+                    if let Some(class_id) = &current_class {
+                        if let Some(class) = typed.classes.get_mut(class_id) {
+                            parse_class_level_row(class, record);
+                        }
+                    }
+                } else if !record.name.contains(".COPY=") {
+                    // A `.MOD` with a base is merged by the patch pass.  A
+                    // remaining `.MOD` has no base; keep it as a typed
+                    // definition so the source is not silently lost.
+                    let class = parse_class(record);
+                    current_class = Some(class.id.clone());
+                    merge_class(&mut typed.classes, class);
+                }
+            }
+            "RACE" => {
+                let race = parse_race(record);
+                typed.races.insert(race.id.clone(), race);
+            }
+            "SKILL" => {
+                let skill = parse_skill(record);
+                typed.skills.insert(skill.id.clone(), skill);
+            }
+            "SPELL" => {
+                let spell = parse_spell(record);
+                typed.spells.insert(spell.id.clone(), spell);
+            }
+            "EQUIPMENT" => {
+                let equipment = parse_equipment(record);
+                typed.equipment.insert(equipment.id.clone(), equipment);
+            }
+            "EQUIPMOD" => {
+                let equipment_modifier = parse_equipment_modifier(record);
+                typed
+                    .equipment_modifiers
+                    .insert(equipment_modifier.id.clone(), equipment_modifier);
+            }
+            "ABILITY" => {
+                if let Some(variant) = parse_variant(record) {
+                    typed.variants.insert(variant.id.clone(), variant);
+                }
+            }
+            "DEITY" => {
+                let deity = parse_deity(record);
+                typed.deities.insert(deity.id.clone(), deity);
+            }
+            "DOMAIN" => {
+                let domain = parse_domain(record);
+                typed.domains.insert(domain.id.clone(), domain);
+            }
+            _ => {}
+        }
+    }
+
+    typed.progressions = typed
+        .classes
+        .values()
+        .map(|class| (class.id.clone(), build_class_progression(class)))
+        .collect();
+    typed
+}
+
+fn merge_class(classes: &mut BTreeMap<String, ClassDefinition>, class: ClassDefinition) {
+    match classes.get_mut(&class.id) {
+        Some(existing) => {
+            // PCGen classes are often continued across header rows; merge
+            // non-default fields instead of creating a duplicate.
+            if existing.hit_die == "d8" && class.hit_die != "d8" {
+                existing.hit_die = class.hit_die;
+            }
+            if class.is_prestige {
+                existing.is_prestige = true;
+            }
+            if class.is_psionic {
+                existing.is_psionic = true;
+            }
+            if class.skill_points_per_level != 2 {
+                existing.skill_points_per_level = class.skill_points_per_level;
+            }
+            existing.class_skills.extend(class.class_skills);
+            if class.spellcasting_ability.is_some() {
+                existing.spellcasting_ability = class.spellcasting_ability;
+            }
+            if existing.casting_type == CastingType::Unknown
+                && class.casting_type != CastingType::Unknown
+            {
+                existing.casting_type = class.casting_type;
+            }
+            existing.templates.extend(class.templates);
+            existing.level_bonuses.extend(class.level_bonuses);
+            existing.level_abilities.extend(class.level_abilities);
+            existing
+                .level_prerequisites
+                .extend(class.level_prerequisites);
+            existing.spell_slots.extend(class.spell_slots);
+            existing.spells_known.extend(class.spells_known);
+            if !class.spell_list.is_empty() {
+                existing.spell_list = class.spell_list;
+            }
+        }
+        None => {
+            classes.insert(class.id.clone(), class);
+        }
+    }
+}
+
+fn parse_race(record: &RawRecord) -> RaceDefinition {
+    let mut race = RaceDefinition::new(record.key.clone(), record.name.clone());
+    if let Some(size) = tag(record, "SIZE") {
+        race.size = expand_size(size).to_string();
+    }
+    for move_value in tags(record, "MOVE") {
+        let parts: Vec<&str> = move_value.split(',').map(str::trim).collect();
+        if parts.len().is_multiple_of(2) && !parts.is_empty() {
+            for pair in parts.chunks(2) {
+                let Ok(rate) = pair[1].parse::<u32>() else {
+                    continue;
+                };
+                let mode = pair[0].to_ascii_lowercase();
+                if mode.is_empty() {
+                    continue;
+                }
+                race.movement.insert(mode.clone(), rate);
+                if mode == "walk" {
+                    race.speed_feet = rate as i32;
+                }
+            }
+        } else if let Some(speed) = parts.iter().find_map(|part| part.parse::<i32>().ok()) {
+            race.speed_feet = speed;
+        }
+    }
+    race.hands = tag(record, "HANDS")
+        .and_then(|value| value.trim().parse::<u32>().ok())
+        .unwrap_or(2);
+    for bonus in tags(record, "BONUS") {
+        let parts: Vec<&str> = bonus.split('|').map(str::trim).collect();
+        if parts.len() >= 3 && parts[0].eq_ignore_ascii_case("STAT") {
+            if let Ok(value) = parts[2].parse::<i32>() {
+                for stat in parts[1].split(',') {
+                    race.ability_adjustments
+                        .insert(stat.trim().to_uppercase(), value);
+                }
+            }
+        }
+    }
+    race.favored_class = tag(record, "FAVOREDCLASS").map(str::to_string);
+    race.type_tags = type_tags(record);
+    for template in tags(record, "TEMPLATE") {
+        for name in template.split('|').map(str::trim) {
+            if !name.is_empty() && !name.to_ascii_uppercase().starts_with("CHOOSE:") {
+                race.templates.push(name.to_string());
+            }
+        }
+    }
+    race
+}
+
+fn parse_class(record: &RawRecord) -> ClassDefinition {
+    let mut class = ClassDefinition::new(record.key.clone(), record.name.clone());
+    let hit_die = tag(record, "HD").unwrap_or("8");
+    class.hit_die = if hit_die.starts_with('d') {
+        hit_die.to_string()
+    } else {
+        format!("d{hit_die}")
+    };
+    if let Some(bab) = tag(record, "BAB") {
+        class.attack_progression = attack_progression_from_text(bab);
+    }
+    class.max_level = tag(record, "MAXLEVEL")
+        .and_then(|value| value.parse::<u32>().ok())
+        .unwrap_or(20);
+    class.skill_points_per_level = tag(record, "STARTSKILLPTS")
+        .or_else(|| tag(record, "SKILLPTS"))
+        .and_then(|value| value.parse::<u32>().ok())
+        .unwrap_or(2);
+    class.spellcasting_ability = tag(record, "SPELLSTAT").map(str::to_string);
+    if let Some(memorize) = tag(record, "MEMORIZE") {
+        class.casting_type = casting_type_from_text(memorize);
+    } else if class.spellcasting_ability.is_some() {
+        class.casting_type = CastingType::Prepared;
+    }
+    // FACT:SpellType|Arcane/Divine/Psionic declares the class's magic source.
+    class.spell_power = tags(record, "FACT")
+        .find_map(|value| value.split_once('|').map(|(_, power)| power))
+        .and_then(SpellPowerType::from_pcgen)
+        .unwrap_or_default();
+    class.requires_spellbook =
+        tag(record, "SPELLBOOK").is_some_and(|value| value.eq_ignore_ascii_case("YES"));
+    class.is_prestige = type_tags(record)
+        .iter()
+        .any(|tag| tag.eq_ignore_ascii_case("prestige"));
+    class.is_psionic = type_tags(record)
+        .iter()
+        .any(|tag| tag.eq_ignore_ascii_case("psionic"))
+        || tags(record, "FACT").any(|value| value.eq_ignore_ascii_case("SpellType|Psionic"));
+    class.is_monster = type_tags(record)
+        .iter()
+        .any(|tag| tag.eq_ignore_ascii_case("monster"))
+        || tags(record, "FACT").any(|value| value.eq_ignore_ascii_case("ClassType|Monster"));
+    class.gestalt_slot_cost = tag(record, "GESTALTCOST").and_then(parse_slot_cost);
+    for template in tags(record, "TEMPLATE") {
+        for name in template.split('|').map(str::trim) {
+            if !name.is_empty() && !name.to_ascii_uppercase().starts_with("CHOOSE:") {
+                class.templates.push(name.to_string());
+            }
+        }
+    }
+    for skill_list in tags(record, "CSKILL") {
+        class.class_skills.extend(
+            skill_list
+                .split([',', '|'])
+                .map(|skill| skill.trim().trim_start_matches("TYPE=").to_string())
+                .filter(|skill| !skill.is_empty()),
+        );
+    }
+    for bonus in tags(record, "BONUS") {
+        apply_class_bonus(&mut class, bonus);
+    }
+    class
+}
+
+fn parse_class_level_row(class: &mut ClassDefinition, record: &RawRecord) {
+    let Ok(level) = record.name.trim().parse::<u32>() else {
+        return;
+    };
+    for tag in &record.tags {
+        let name = tag.name.to_ascii_uppercase();
+        match name.as_str() {
+            "CAST" => {
+                class
+                    .spell_slots
+                    .insert(level, parse_spell_table(&tag.value));
+            }
+            "KNOWN" => {
+                class
+                    .spells_known
+                    .insert(level, parse_spell_table(&tag.value));
+            }
+            "SPELLLIST" => {
+                class.spell_list = tag
+                    .value
+                    .split('|')
+                    .map(str::trim)
+                    .filter(|entry| !entry.is_empty())
+                    .map(str::to_string)
+                    .collect();
+            }
+            "ABILITY" => {
+                class
+                    .level_abilities
+                    .entry(level)
+                    .or_default()
+                    .push(tag.value.clone());
+            }
+            "TEMPLATE" => {
+                for template in tag.value.split('|').map(str::trim) {
+                    if !template.is_empty()
+                        && !template.to_ascii_uppercase().starts_with("CHOOSE:")
+                        && !class.templates.iter().any(|existing| existing == template)
+                    {
+                        class.templates.push(template.to_string());
+                    }
+                }
+            }
+            "BONUS" => {
+                class
+                    .level_bonuses
+                    .entry(level)
+                    .or_default()
+                    .push(format!("BONUS:{}", tag.value));
+            }
+            _ if crate::tags::is_predicate_tag(&name) => {
+                class
+                    .level_prerequisites
+                    .entry(level)
+                    .or_default()
+                    .push(format!("{}:{}", tag.name, tag.value));
+            }
+            _ => {}
+        }
+    }
+}
+
+fn parse_skill(record: &RawRecord) -> SkillDefinition {
+    let mut skill = SkillDefinition::new(record.key.clone(), record.name.clone());
+    skill.key_stat = tag(record, "KEYSTAT").map(|value| value.to_uppercase());
+    skill.armor_check =
+        tag(record, "ACHECK").is_some_and(|value| value.eq_ignore_ascii_case("YES"));
+    skill.trained_only =
+        tag(record, "USEUNTRAINED").is_some_and(|value| value.eq_ignore_ascii_case("NO"));
+    skill
+}
+
+fn parse_spell(record: &RawRecord) -> SpellDefinition {
+    let mut spell = SpellDefinition::new(record.key.clone(), record.name.clone());
+    spell.school = tag(record, "SCHOOL")
+        .or_else(|| tag(record, "SCHOOLS"))
+        .unwrap_or("")
+        .to_string();
+    if let Some(level) = tag(record, "LEVEL").and_then(|value| value.parse().ok()) {
+        spell.level = level;
+    }
+    for class_levels in tags(record, "CLASSES") {
+        for entry in class_levels.split('|') {
+            let Some((classes, level)) = entry.split_once('=') else {
+                continue;
+            };
+            let Ok(level) = level.trim().parse::<u32>() else {
+                continue;
+            };
+            for class in classes.split(',') {
+                let class = class.trim();
+                if !class.is_empty() {
+                    spell.class_levels.insert(class.to_string(), level);
+                }
+            }
+        }
+    }
+    spell.is_psionic = type_tags(record)
+        .iter()
+        .any(|tag| tag.eq_ignore_ascii_case("psionic"));
+    spell
+}
+
+fn parse_equipment(record: &RawRecord) -> EquipmentDefinition {
+    let mut equipment = EquipmentDefinition::new(record.key.clone(), record.name.clone());
+    equipment.cost_gp = tag(record, "COST").and_then(parse_number).unwrap_or(0.0);
+    equipment.weight_lb = tag(record, "WT").and_then(parse_number).unwrap_or(0.0);
+    equipment.max_dex_bonus = tag(record, "MAXDEX").and_then(|value| value.parse().ok());
+    equipment.armor_check_penalty = tag(record, "ACCHECK")
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(0);
+    equipment.type_tags = type_tags(record);
+    equipment.damage = tag(record, "DAMAGE").map(str::to_string);
+    equipment.crit_mult = tag(record, "CRITMULT").map(str::to_string);
+    equipment.crit_range = tag(record, "CRITRANGE").and_then(|value| value.parse().ok());
+    equipment.wield = tag(record, "WIELD").map(str::to_string);
+    for bonus in tags(record, "BONUS") {
+        let parts: Vec<&str> = bonus.split('|').map(str::trim).collect();
+        if parts.len() >= 3
+            && parts[0].eq_ignore_ascii_case("COMBAT")
+            && parts[1].eq_ignore_ascii_case("AC")
+        {
+            equipment.armor_bonus += parts[2].parse::<i32>().unwrap_or(0);
+        }
+    }
+    equipment
+}
+
+fn parse_deity(record: &RawRecord) -> DeityDefinition {
+    let mut deity = DeityDefinition::new(record.key.clone(), record.name.clone());
+    deity.alignment = tag(record, "ALIGN").map(str::to_string);
+    deity.favored_weapon = tag(record, "DEITYWEAP").map(str::to_string);
+    deity.pantheon = tag(record, "PANTHEON").map(str::to_string);
+    for domain in tags(record, "DOMAINS") {
+        deity.domains.extend(
+            domain
+                .split([',', '|'])
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string),
+        );
+    }
+    deity
+}
+
+fn parse_domain(record: &RawRecord) -> DomainDefinition {
+    let mut domain = DomainDefinition::new(record.key.clone(), record.name.clone());
+    domain.granted_power = tag(record, "DESC").map(str::to_string);
+    for spell in tags(record, "SPELLLEVEL") {
+        let parts: Vec<&str> = spell.split('|').map(str::trim).collect();
+        let mut pending_level: Option<u32> = None;
+        for part in parts {
+            if let Some((_, level)) = part.split_once('=') {
+                pending_level = level.parse::<u32>().ok();
+            } else if !part.is_empty() {
+                domain.spell_list.push(part.to_string());
+                if let Some(level) = pending_level {
+                    domain.domain_spells.push(DomainSpell {
+                        level,
+                        name: part.to_string(),
+                    });
+                }
+            }
+        }
+    }
+    domain
+}
+
+fn ability_grants(record: &RawRecord) -> Vec<String> {
+    let mut grants = Vec::new();
+    for granted in tags(record, "ABILITY").chain(tags(record, "AUTO")) {
+        if let Some(key) = granted.split('|').map(str::trim).rfind(|part| {
+            !part.is_empty()
+                && !part.eq_ignore_ascii_case("AUTOMATIC")
+                && !part.eq_ignore_ascii_case("VIRTUAL")
+                && !part.eq_ignore_ascii_case("NORMAL")
+                && !part.starts_with("TYPE=")
+                && !crate::tags::is_predicate_tag(part)
+        }) {
+            grants.push(key.to_string());
+        }
+    }
+    grants
+}
+
+fn sample_class_skills(record: &RawRecord) -> Vec<String> {
+    let mut skills = Vec::new();
+    for skill in tags(record, "CSKILL") {
+        skills.extend(
+            skill
+                .split([',', '|'])
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string),
+        );
+    }
+    skills
+}
+
+fn parse_substitution_variant(
+    record: &RawRecord,
+    substitution: &str,
+    level: u32,
+    class_id: Option<&str>,
+) -> VariantDefinition {
+    let mut variant = VariantDefinition::new(
+        format!("{substitution} ~ level {level}"),
+        substitution.to_string(),
+    );
+    variant.applies_to = class_id.map(str::to_string);
+    variant.grants = ability_grants(record);
+    variant.class_skills = sample_class_skills(record);
+    variant.bonus_tags = tags(record, "BONUS")
+        .map(|value| format!("BONUS:{value}"))
+        .collect();
+    let source = Provenance::new(
+        record.source.path.display().to_string(),
+        format!("substitution level {level}"),
+    )
+    .with_line(record.source.line);
+    variant.effects = tags(record, "BONUS")
+        .filter_map(|value| crate::rulepack::lower_bonus_effect(value, EffectPhase::Class, &source))
+        .collect();
+    variant.spellcaster_advance =
+        tags(record, "ADD").any(|value| value.to_ascii_uppercase().contains("SPELLCASTER"));
+    variant
+}
+
+fn parse_variant(record: &RawRecord) -> Option<VariantDefinition> {
+    let record_type_tags = type_tags(record);
+    let is_variant = record_type_tags.iter().any(|tag| {
+        let tag = tag.to_ascii_lowercase();
+        tag.contains("archetype") || tag.contains("substitution")
+    });
+    if !is_variant {
+        return None;
+    }
+    let mut variant = VariantDefinition::new(record.key.clone(), record.name.clone());
+    variant.applies_to = tag(record, "APPLIESTO")
+        .or_else(|| tag(record, "CLASS"))
+        .map(str::to_string);
+    for replaces in tags(record, "REPLACES") {
+        variant.replaces.extend(
+            replaces
+                .split([',', '|'])
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string),
+        );
+    }
+    for grants in tags(record, "GRANTS") {
+        variant.grants.extend(
+            grants
+                .split([',', '|'])
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string),
+        );
+    }
+    for skill in tags(record, "CSKILL") {
+        variant.class_skills.extend(
+            skill
+                .split([',', '|'])
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string),
+        );
+    }
+    // Native PCGen archetypes usually express granted abilities through
+    // ABILITY/AUTO tags rather than an explicit GRANTS tag.
+    variant.grants.extend(ability_grants(record));
+    Some(variant)
+}
+
+fn parse_equipment_modifier(record: &RawRecord) -> EquipmentModifierDefinition {
+    let mut modifier = EquipmentModifierDefinition::new(record.key.clone(), record.name.clone());
+    modifier.cost_gp = tag(record, "COST").and_then(parse_number).unwrap_or(0.0);
+    modifier.weight_lb = tag(record, "WT").and_then(parse_number).unwrap_or(0.0);
+    modifier.type_tags = type_tags(record);
+    modifier.plus = tag(record, "PLUS").and_then(|value| value.parse().ok());
+    modifier.item_types = split_tag_list(record, "ITYPE");
+    modifier.replaces = split_tag_list(record, "REPLACES");
+    for bonus in tags(record, "BONUS") {
+        let parts: Vec<&str> = bonus.split('|').map(str::trim).collect();
+        if parts.len() >= 3
+            && parts[0].eq_ignore_ascii_case("COMBAT")
+            && parts[1].eq_ignore_ascii_case("AC")
+        {
+            modifier.armor_bonus += parts[2].parse::<i32>().unwrap_or(0);
+        }
+    }
+    modifier
+}
+
+/// Split a dot/comma separated tag (e.g. `ITYPE`, `REPLACES`) into a list.
+fn split_tag_list(record: &RawRecord, name: &str) -> Vec<String> {
+    tags(record, name)
+        .flat_map(|value| value.split(['.', ',', '|']))
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
+fn build_class_progression(class: &ClassDefinition) -> ClassProgression {
+    let mut progression = ClassProgression::from_class(class);
+    let max_level = class.max_level.max(1);
+    if let Some(formula) = &class.base_attack_formula {
+        progression.base_attack_bonus = (1..=max_level)
+            .map(|level| evaluate_class_formula(formula, level))
+            .collect();
+    }
+    if let Some(formula) = &class.fortitude_formula {
+        progression.fortitude = (1..=max_level)
+            .map(|level| evaluate_class_formula(formula, level))
+            .collect();
+    }
+    if let Some(formula) = &class.reflex_formula {
+        progression.reflex = (1..=max_level)
+            .map(|level| evaluate_class_formula(formula, level))
+            .collect();
+    }
+    if let Some(formula) = &class.will_formula {
+        progression.will = (1..=max_level)
+            .map(|level| evaluate_class_formula(formula, level))
+            .collect();
+    }
+    progression
+}
+
+fn evaluate_class_formula(formula: &str, level: u32) -> i32 {
+    let mut normalized = formula.to_string();
+    let classlevel = Regex::new(r#"classlevel\s*\(\s*["']?[^"')]*["']?\s*\)"#).unwrap();
+    normalized = classlevel
+        .replace_all(&normalized, level.to_string())
+        .to_string();
+    let var_call = Regex::new(r#"var\s*\(\s*["']?[^"')]+["']?\s*\)"#).unwrap();
+    normalized = var_call.replace_all(&normalized, "0").to_string();
+    let upper = Regex::new(r"\bTL\b").unwrap();
+    normalized = upper
+        .replace_all(&normalized, level.to_string())
+        .to_string();
+    let class_level = Regex::new(r"\bCL\b").unwrap();
+    normalized = class_level
+        .replace_all(&normalized, level.to_string())
+        .to_string();
+    pcgen_formula::evaluate_f64(&normalized, &HashMap::<String, i64>::new())
+        .map(|value| value as i32)
+        .unwrap_or(0)
+}
+
+fn apply_class_bonus(class: &mut ClassDefinition, bonus: &str) {
+    let parts: Vec<&str> = bonus.split('|').map(str::trim).collect();
+    if parts.len() < 3 {
+        return;
+    }
+    if parts[0].eq_ignore_ascii_case("COMBAT") && parts[1].eq_ignore_ascii_case("BASEAB") {
+        class.attack_progression = attack_progression_from_text(parts[2]);
+        class.base_attack_formula = Some(parts[2].to_string());
+    } else if parts[0].eq_ignore_ascii_case("SAVE") {
+        let progression = save_progression_from_text(parts[2]);
+        for target in parts[1].split(',') {
+            let target = target.trim().to_ascii_lowercase();
+            if target.contains("fortitude") || target.eq_ignore_ascii_case("all") {
+                class.fortitude = progression;
+                class.fortitude_formula = Some(parts[2].to_string());
+            }
+            if target.contains("reflex") || target.eq_ignore_ascii_case("all") {
+                class.reflex = progression;
+                class.reflex_formula = Some(parts[2].to_string());
+            }
+            if target.contains("will") || target.eq_ignore_ascii_case("all") {
+                class.will = progression;
+                class.will_formula = Some(parts[2].to_string());
+            }
+        }
+    }
+}
+
+fn attack_progression_from_text(text: &str) -> AttackProgression {
+    if text.contains("3/4") || text.eq_ignore_ascii_case("moderate") {
+        AttackProgression::ThreeQuarter
+    } else if text.contains("/2")
+        || text.eq_ignore_ascii_case("bad")
+        || text.eq_ignore_ascii_case("half")
+    {
+        AttackProgression::Half
+    } else {
+        AttackProgression::Full
+    }
+}
+
+fn save_progression_from_text(text: &str) -> SaveProgression {
+    if text.contains("/2+2") || text.contains("+2") {
+        SaveProgression::Good
+    } else {
+        SaveProgression::Poor
+    }
+}
+
+fn parse_slot_cost(value: &str) -> Option<pcgen_core::PrestigeSlotCost> {
+    match value.trim().to_ascii_uppercase().as_str() {
+        "SINGLE" | "SINGLELANE" | "SINGLE_LANE" => Some(pcgen_core::PrestigeSlotCost::SingleLane),
+        "DUAL" | "DUALLANE" | "DUAL_LANE" => Some(pcgen_core::PrestigeSlotCost::DualLane),
+        "BOTH" | "BOTHLANES" | "BOTH_LANES" => Some(pcgen_core::PrestigeSlotCost::BothLanes),
+        _ => None,
+    }
+}
+
+fn casting_type_from_text(text: &str) -> CastingType {
+    if text.trim().eq_ignore_ascii_case("NO") {
+        CastingType::Spontaneous
+    } else if text.trim().eq_ignore_ascii_case("YES") {
+        CastingType::Prepared
+    } else {
+        CastingType::Unknown
+    }
+}
+
+fn parse_spell_table(value: &str) -> Vec<u32> {
+    value
+        .split(',')
+        .map(str::trim)
+        .map(|entry| {
+            entry
+                .split('+')
+                .next()
+                .unwrap_or(entry)
+                .parse::<u32>()
+                .unwrap_or(0)
+        })
+        .collect()
+}
+
+fn parse_number(value: &str) -> Option<f64> {
+    value.trim().parse::<f64>().ok()
+}
+
+fn expand_size(value: &str) -> &'static str {
+    match value.trim().to_ascii_uppercase().as_str() {
+        "F" => "Fine",
+        "D" => "Diminutive",
+        "T" => "Tiny",
+        "S" => "Small",
+        "M" => "Medium",
+        "L" => "Large",
+        "H" => "Huge",
+        "G" => "Gargantuan",
+        "C" => "Colossal",
+        _ => "Medium",
+    }
+}
+
+fn type_tags(record: &RawRecord) -> Vec<String> {
+    tags(record, "TYPE")
+        .flat_map(|value| value.split('.'))
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .collect()
+}
+
+fn tag<'a>(record: &'a RawRecord, name: &str) -> Option<&'a str> {
+    record
+        .tags
+        .iter()
+        .find(|tag| tag.name.eq_ignore_ascii_case(name))
+        .map(|tag| tag.value.as_str())
+}
+
+fn tags<'a>(record: &'a RawRecord, name: &'a str) -> impl Iterator<Item = &'a str> + 'a {
+    record
+        .tags
+        .iter()
+        .filter(move |tag| tag.name.eq_ignore_ascii_case(name))
+        .map(|tag| tag.value.as_str())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::source::{RawTag, SourceRef};
+
+    fn record(category: &str, key: &str, tags: &[(&str, &str)]) -> RawRecord {
+        let source = SourceRef::new("/tmp/test.lst", 1, "test.pcc");
+        RawRecord {
+            category: category.to_string(),
+            key: key.to_string(),
+            name: key.to_string(),
+            tags: tags
+                .iter()
+                .map(|(name, value)| RawTag {
+                    name: (*name).to_string(),
+                    value: (*value).to_string(),
+                    source: source.clone(),
+                })
+                .collect(),
+            source,
+            raw: String::new(),
+        }
+    }
+
+    #[test]
+    fn parses_class_progression_and_spell_table() {
+        let header = record("CLASS", "Fighter", &[("HD", "10"), ("BAB", "GOOD")]);
+        let level = record("CLASS", "2", &[("CAST", "1,2")]);
+        let typed = build_typed_definitions(&[header, level]);
+        let class = typed.classes.get("Fighter").expect("class");
+        assert_eq!(class.hit_die, "d10");
+        assert_eq!(class.spell_slots.get(&2), Some(&vec![1, 2]));
+        let progression = typed.progressions.get("Fighter").expect("progression");
+        assert_eq!(progression.bab(2), 2);
+    }
+
+    #[test]
+    fn parses_native_archetype_grants() {
+        let archetype = record(
+            "ABILITY",
+            "Champion Archetype ~ Improved Critical",
+            &[
+                ("TYPE", "Archetype Ability.Fighter.Class Feature"),
+                ("ABILITY", "Class Feature|AUTOMATIC|Improved Critical"),
+            ],
+        );
+        let typed = build_typed_definitions(&[archetype]);
+        let variant = typed
+            .variants
+            .get("Champion Archetype ~ Improved Critical")
+            .expect("variant");
+        assert!(variant
+            .grants
+            .iter()
+            .any(|grant| grant == "Improved Critical"));
+    }
+
+    #[test]
+    fn parses_substitution_levels() {
+        let records = vec![
+            record("CLASS", "Elemental Theurge", &[("HD", "4")]),
+            record(
+                "CLASS",
+                "SUBSTITUTIONCLASS:Lesser Elemental Theurge Option",
+                &[],
+            ),
+            record(
+                "CLASS",
+                "SUBSTITUTIONLEVEL:2",
+                &[
+                    ("ABILITY", "Special Ability|AUTOMATIC|Domain Access"),
+                    ("BONUS", "VAR|DomainAccess|CL-1"),
+                    ("ADD", "SPELLCASTER|ANY"),
+                ],
+            ),
+        ];
+        let typed = build_typed_definitions(&records);
+        let variant = typed
+            .variants
+            .get("Lesser Elemental Theurge Option ~ level 2")
+            .expect("substitution variant");
+        assert_eq!(variant.applies_to.as_deref(), Some("Elemental Theurge"));
+        assert!(variant.grants.iter().any(|grant| grant == "Domain Access"));
+    }
+
+    #[test]
+    fn parses_psionic_spell_class_lists() {
+        let spell = record(
+            "SPELL",
+            "Mind Thrust",
+            &[("TYPE", "Psionic"), ("CLASSES", "Psion,Wilder=1")],
+        );
+        let typed = build_typed_definitions(&[spell]);
+        let spell = typed.spells.get("Mind Thrust").expect("spell");
+        assert!(spell.is_psionic);
+        assert_eq!(spell.class_levels.get("Psion"), Some(&1));
+        assert_eq!(spell.class_levels.get("Wilder"), Some(&1));
+    }
+}

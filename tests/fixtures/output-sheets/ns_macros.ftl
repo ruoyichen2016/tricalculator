@@ -1,0 +1,1 @@
+<#macro badge label value><badge name="${label}" value="${value}"/></#macro>

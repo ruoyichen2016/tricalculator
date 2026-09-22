@@ -1,0 +1,5 @@
+CAMPAIGN:Fixture Child
+KEY:fixture-child
+GAMEMODE:3e
+PCC:grandchild.pcc
+RACE:data/child_races.lst

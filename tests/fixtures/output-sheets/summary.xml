@@ -1,0 +1,15 @@
+<character>
+  <name>Aria</name>
+  <race>Elf</race>
+  <level>3</level>
+  <hp>24</hp>
+  <ac>17</ac>
+  <bab>2</bab>
+  <alive>true</alive>
+  <skills>
+    <skill name="Climb" value="9"/>
+  </skills>
+  <spells>
+    <spell name="Fireball|Wizard" dc="17"/>
+  </spells>
+</character>

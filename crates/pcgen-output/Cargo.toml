@@ -1,0 +1,11 @@
+[package]
+name = "pcgen-output"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+pcgen-core = { path = "../pcgen-core" }
+pcgen-engine = { path = "../pcgen-engine" }
+serde_json.workspace = true
+regex.workspace = true

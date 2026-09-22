@@ -1,0 +1,18 @@
+[package]
+name = "pcgen-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true
+pcgen-core = { path = "../pcgen-core" }
+pcgen-formula = { path = "../pcgen-formula" }
+pcgen-ir = { path = "../pcgen-ir" }
+regex.workspace = true
+
+[dev-dependencies]
+# `snapshot_summary.rs` is a loader + engine integration test and needs the
+# `.pcc` loader from the compatibility layer.  Production code must not.
+pcgen-import = { path = "../pcgen-import" }

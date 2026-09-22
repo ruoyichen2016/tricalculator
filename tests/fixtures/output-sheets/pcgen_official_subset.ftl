@@ -1,0 +1,1 @@
+<#assign title = name?upper_case><#macro ability short value><ability short="${short}" value="${value}"/></#macro><character name="${title}"><#include "pcgen_official_abilities.ftl"></character>

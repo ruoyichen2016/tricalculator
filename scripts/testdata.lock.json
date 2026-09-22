@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "description": "Pinned PCGen test-data snapshot. Update this file (only) when bumping the data revision; scripts/fetch_testdata.sh and scripts/check_testdata.sh read it.",
+  "repo": "PCGen/pcgen",
+  "ref": "f91bd03f2dbe1145d5526b52aa3e48fcd0f2fc8d",
+  "tag": "v6.09.08.RC1-NIGHTLY.20260911",
+  "game_version": "6.09.08.RC1",
+  "tarball_url": "https://codeload.github.com/PCGen/pcgen/tar.gz/f91bd03f2dbe1145d5526b52aa3e48fcd0f2fc8d",
+  "sparse_paths": [
+    "data",
+    "code/testsuite",
+    "outputsheets",
+    "gradle.properties"
+  ],
+  "minimum_counts": {
+    "code/testsuite/PCGfiles": { "pattern": "*.pcg", "min": 15 },
+    "code/testsuite/csheets": { "pattern": "*.xml", "min": 15 }
+  },
+  "required_files": [
+    { "path": "gradle.properties", "sha1": "0cdd29569080070f658777acf852a0d1fac95752", "size": 588 },
+    { "path": "data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc", "sha1": "e5e24e3e2b2137752cda028085eeb8e2f0558206", "size": 3355 },
+    { "path": "data/35e/wizards_of_the_coast/rsrd/basics/_rsrd_basics.pcc", "sha1": "51c05f0a614a10f152785c8412ea9886254a3ff1", "size": 6278 },
+    { "path": "data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc", "sha1": "491e7e07699e1a239cc32006c17df52ae175abf6", "size": 4784 },
+    { "path": "data/killshot/broken_ruler_games/killshot/killshot.pcc", "sha1": "683724a8f265fb07750f4d6377dbfbd734564c51", "size": 2667 },
+    { "path": "data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc", "sha1": "6050c02183a5954cb551b7490738dba8c5f87252", "size": 2032 },
+    { "path": "code/testsuite/PCGfiles/3e_FigFae.pcg", "sha1": "3fef9cc19e6895b6861cad1874374a1a1c04bb79", "size": 4050 },
+    { "path": "code/testsuite/PCGfiles/35e_Bard.pcg", "sha1": "594fee12aff181ee4cc24b21a141d4fe2e31517a", "size": 3654 },
+    { "path": "code/testsuite/PCGfiles/3e_BrdJoe.pcg", "sha1": "00fd535b11649928dc05afb12222e1b8812994a0", "size": 4312 },
+    { "path": "code/testsuite/csheets/3e_FigFae.xml", "sha1": "4366ea5696bb8180aaae6ad57648ee51780701b5", "size": 38124 },
+    { "path": "code/testsuite/csheets/35e_Bard.xml", "sha1": "12747e8dfe410351f7f69036f51da35fd9d5fe3f", "size": 48536 },
+    { "path": "outputsheets/d20/5e/htmlxml/csheet_5e_xml_generic.html.ftl", "sha1": "ea93bffbc8b7fb3437a2ba5154cfa8ed4fa3a69f", "size": 114158 }
+  ]
+}

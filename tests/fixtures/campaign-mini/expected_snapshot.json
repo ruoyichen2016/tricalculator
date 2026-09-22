@@ -1,0 +1,11 @@
+{
+  "name": "Mini Hero",
+  "race": "Human",
+  "total_level": 2,
+  "hit_points": 16,
+  "base_attack_bonus": 2,
+  "climb_rank": 4.0,
+  "climb_total": 6,
+  "dex_adjusted": 14,
+  "has_power_attack": true
+}

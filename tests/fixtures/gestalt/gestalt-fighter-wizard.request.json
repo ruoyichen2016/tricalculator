@@ -1,0 +1,64 @@
+{
+  "name": "Gestalt Arden",
+  "race_id": "Human",
+  "campaign": "3e",
+  "stats": {
+    "STR": 14,
+    "DEX": 12,
+    "CON": 14,
+    "INT": 14,
+    "WIS": 10,
+    "CHA": 10
+  },
+  "classes": [],
+  "skills": {},
+  "abilities": [],
+  "equipment": [],
+  "validate_prerequisites": false,
+  "advancement_frames": [
+    {
+      "character_level": 1,
+      "lanes": [
+        {
+          "lane_id": "a",
+          "class_id": "Fighter",
+          "class_level": 1,
+          "hit_points_gained": 10,
+          "experience_gained": 0,
+          "advances": [],
+          "archetype": "Two-Handed Fighter",
+          "substitution_level": "1"
+        },
+        {
+          "lane_id": "b",
+          "class_id": "Wizard",
+          "class_level": 1,
+          "hit_points_gained": 4,
+          "experience_gained": 0,
+          "advances": [],
+          "deity": "Boccob",
+          "domains": [
+            "Magic",
+            "Knowledge"
+          ]
+        }
+      ]
+    },
+    {
+      "character_level": 2,
+      "lanes": [
+        {
+          "lane_id": "a",
+          "class_id": "Mystic Theurge",
+          "class_level": 2,
+          "hit_points_gained": 6,
+          "experience_gained": 0,
+          "advances": [
+            "Fighter",
+            "Wizard"
+          ]
+        }
+      ]
+    }
+  ]
+}

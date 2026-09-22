@@ -1,0 +1,7 @@
+# 本地验证版本：rustc 1.98.0 (stable)。
+# 之所以先写 stable 而不是具体版本号，是为了避免在离线/镜像环境触发工具链下载；
+# 需要严格复现时，把 channel 改成具体版本（例如 "1.98.0"）并同步更新 CI。
+[toolchain]
+channel = "stable"
+components = ["clippy", "rustfmt"]
+profile = "minimal"
