@@ -90,7 +90,17 @@ impl CharacterDraft {
     pub fn level_in_class(&self, class_id: &str) -> u32 {
         self.class_levels
             .iter()
-            .find(|entry| entry.class_id.eq_ignore_ascii_case(class_id))
+            .find(|entry| class_ids_match(&entry.class_id, class_id))
             .map_or(0, |entry| entry.level)
     }
+}
+
+/// Class IDs appear in two spellings: PCGen display names (`Charlie Class`)
+/// and stable `EntityId` keys (`charlie_class`).  Treat them as equivalent.
+fn class_ids_match(left: &str, right: &str) -> bool {
+    left.eq_ignore_ascii_case(right) || normalize_class_id(left) == normalize_class_id(right)
+}
+
+fn normalize_class_id(value: &str) -> String {
+    value.trim().to_ascii_lowercase().replace(' ', "_")
 }

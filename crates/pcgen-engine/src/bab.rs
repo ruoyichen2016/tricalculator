@@ -191,20 +191,26 @@ fn contains_total_bab(predicate: &pcgen_core::Predicate) -> bool {
     }
 }
 
+fn normalize_key(value: &str) -> String {
+    value.trim().to_ascii_lowercase().replace(' ', "_")
+}
+
 fn find_class<'a>(pack: &'a CompiledRulePack, class_id: &str) -> Option<&'a ClassDefinition> {
+    let wanted = normalize_key(class_id);
     pack.classes.get(class_id).or_else(|| {
         pack.classes
             .iter()
-            .find(|(key, _)| key.eq_ignore_ascii_case(class_id))
+            .find(|(key, _)| key.eq_ignore_ascii_case(class_id) || normalize_key(key) == wanted)
             .map(|(_, class)| class)
     })
 }
 
 fn find_progression<'a>(pack: &'a CompiledRulePack, class_id: &str) -> Option<&'a ClassProgress> {
+    let wanted = normalize_key(class_id);
     pack.progressions.get(class_id).or_else(|| {
         pack.progressions
             .iter()
-            .find(|(key, _)| key.eq_ignore_ascii_case(class_id))
+            .find(|(key, _)| key.eq_ignore_ascii_case(class_id) || normalize_key(key) == wanted)
             .map(|(_, progression)| progression)
     })
 }

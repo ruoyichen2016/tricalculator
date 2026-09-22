@@ -644,12 +644,12 @@ fn apply_class_bonus(class: &mut ClassDefinition, bonus: &str) {
 }
 
 fn attack_progression_from_text(text: &str) -> AttackProgression {
-    if text.contains("3/4") || text.eq_ignore_ascii_case("moderate") {
+    let normalized = text.trim().to_ascii_lowercase();
+    if normalized == "none" || normalized == "0" {
+        AttackProgression::None
+    } else if normalized.contains("3/4") || normalized == "moderate" {
         AttackProgression::ThreeQuarter
-    } else if text.contains("/2")
-        || text.eq_ignore_ascii_case("bad")
-        || text.eq_ignore_ascii_case("half")
-    {
+    } else if normalized.contains("/2") || normalized == "bad" || normalized == "half" {
         AttackProgression::Half
     } else {
         AttackProgression::Full

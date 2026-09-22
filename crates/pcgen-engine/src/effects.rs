@@ -340,7 +340,9 @@ fn initial_entities(pack: &CompiledRulePack, draft: &CharacterDraft) -> Vec<usiz
         let key = normalized(&entity.id.key);
         let active = match &entity.category {
             EntityCategory::Race => key == normalized(&draft.race_id),
-            EntityCategory::Class => draft.level_in_class(&entity.id.key) > 0,
+            EntityCategory::Class => {
+                draft.level_in_class(&entity.id.key) > 0 || draft.level_in_class(&entity.name) > 0
+            }
             EntityCategory::ClassLevel => {
                 entity
                     .id
@@ -708,6 +710,10 @@ fn normalize_formula(expression: &str, draft: &CharacterDraft, state: &EffectSta
             state.variables.get(name).copied().unwrap_or(0).to_string()
         })
         .to_string();
+    let total_level = Regex::new(r"\bTL\b").unwrap();
+    normalized = total_level
+        .replace_all(&normalized, draft.total_level().to_string())
+        .to_string();
     normalized = normalized.replace("%CHOICE%", "0").replace("%LIST%", "0");
     normalized
 }
@@ -765,17 +771,9 @@ fn structural_effect_skipped(
             // counting.  Monster classes (Giant, Monstrous humanoid, ...)
             // have *no* progression table: their BAB/saves come only from
             // these formula BONUS tags, so they must be applied.
-            let has_progression = source_entity.is_some_and(|id| {
-                pack.progressions
-                    .get(&id.key)
-                    .or_else(|| {
-                        pack.progressions
-                            .iter()
-                            .find(|(key, _)| key.eq_ignore_ascii_case(&id.key))
-                            .map(|(_, progression)| progression)
-                    })
-                    .is_some_and(class_progression_is_populated)
-            });
+            let has_progression = source_entity
+                .and_then(|id| class_progression_for(pack, &id.key))
+                .is_some_and(class_progression_is_populated);
             (target.contains("BASEAB") || target.contains("BASE.")) && has_progression
         }
         // Equipment armor/shield AC is already represented by
@@ -788,6 +786,22 @@ fn structural_effect_skipped(
 /// A progression is "populated" when it actually has table data.  Monster
 /// classes can have an entry with empty vectors, which must be treated as
 /// absent so their formula BONUS tags are applied instead.
+fn class_progression_for<'a>(
+    pack: &'a CompiledRulePack,
+    entity_key: &str,
+) -> Option<&'a pcgen_core::ClassProgression> {
+    // Class-level entities carry keys such as `charlie_class#1`; the
+    // progression is keyed by the class id only.
+    let class_key = entity_key.split('#').next().unwrap_or(entity_key);
+    let wanted = normalized(class_key);
+    pack.progressions.get(class_key).or_else(|| {
+        pack.progressions
+            .iter()
+            .find(|(key, _)| key.eq_ignore_ascii_case(class_key) || normalized(key) == wanted)
+            .map(|(_, progression)| progression)
+    })
+}
+
 fn class_progression_is_populated(progression: &pcgen_core::ClassProgression) -> bool {
     !progression.base_attack_bonus.is_empty()
         || !progression.fortitude.is_empty()

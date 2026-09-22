@@ -4,7 +4,8 @@
       "expectation": "computed",
       "java_gated_fields": [
         "final_stats",
-        "initiative"
+        "initiative",
+        "bab"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
@@ -15,7 +16,8 @@
       "expectation": "computed",
       "java_gated_fields": [
         "final_stats",
-        "initiative"
+        "initiative",
+        "bab"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
@@ -26,7 +28,8 @@
       "expectation": "computed",
       "java_gated_fields": [
         "final_stats",
-        "initiative"
+        "initiative",
+        "bab"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
@@ -37,7 +40,8 @@
       "expectation": "computed",
       "java_gated_fields": [
         "final_stats",
-        "initiative"
+        "initiative",
+        "bab"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
@@ -64,7 +68,8 @@
       "expectation": "computed",
       "java_gated_fields": [
         "final_stats",
-        "initiative"
+        "initiative",
+        "bab"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
@@ -73,6 +78,9 @@
     },
     "35e_Eve": {
       "expectation": "computed",
+      "java_gated_fields": [
+        "bab"
+      ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
       "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Eve.pcg",
@@ -82,7 +90,8 @@
       "expectation": "computed",
       "java_gated_fields": [
         "final_stats",
-        "initiative"
+        "initiative",
+        "bab"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
@@ -93,7 +102,8 @@
       "expectation": "computed",
       "java_gated_fields": [
         "final_stats",
-        "initiative"
+        "initiative",
+        "bab"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
@@ -104,7 +114,8 @@
       "expectation": "computed",
       "java_gated_fields": [
         "final_stats",
-        "initiative"
+        "initiative",
+        "bab"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
@@ -113,6 +124,9 @@
     },
     "35e_Ivan": {
       "expectation": "computed",
+      "java_gated_fields": [
+        "bab"
+      ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
       "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Ivan.pcg",
@@ -122,7 +136,8 @@
       "expectation": "computed",
       "java_gated_fields": [
         "final_stats",
-        "initiative"
+        "initiative",
+        "bab"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
@@ -149,7 +164,8 @@
       "expectation": "computed",
       "java_gated_fields": [
         "final_stats",
-        "initiative"
+        "initiative",
+        "bab"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
@@ -158,6 +174,9 @@
     },
     "35e_Mallory": {
       "expectation": "computed",
+      "java_gated_fields": [
+        "bab"
+      ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
       "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Mallory.pcg",
@@ -167,7 +186,8 @@
       "expectation": "computed",
       "java_gated_fields": [
         "final_stats",
-        "initiative"
+        "initiative",
+        "bab"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
@@ -178,7 +198,8 @@
       "expectation": "computed",
       "java_gated_fields": [
         "final_stats",
-        "initiative"
+        "initiative",
+        "bab"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
@@ -189,7 +210,8 @@
       "expectation": "computed",
       "java_gated_fields": [
         "final_stats",
-        "initiative"
+        "initiative",
+        "bab"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
@@ -200,7 +222,8 @@
       "expectation": "computed",
       "java_gated_fields": [
         "final_stats",
-        "initiative"
+        "initiative",
+        "bab"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
@@ -211,7 +234,8 @@
       "expectation": "computed",
       "java_gated_fields": [
         "final_stats",
-        "initiative"
+        "initiative",
+        "bab"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
@@ -222,7 +246,8 @@
       "expectation": "computed",
       "java_gated_fields": [
         "final_stats",
-        "initiative"
+        "initiative",
+        "bab"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
@@ -233,7 +258,8 @@
       "expectation": "computed",
       "java_gated_fields": [
         "final_stats",
-        "initiative"
+        "initiative",
+        "bab"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
@@ -244,7 +270,8 @@
       "expectation": "computed",
       "java_gated_fields": [
         "final_stats",
-        "initiative"
+        "initiative",
+        "bab"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",

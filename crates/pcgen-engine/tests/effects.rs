@@ -314,3 +314,100 @@ fn pretotalab_bab_modifier_cycle_is_diagnosed() {
         .iter()
         .any(|diagnostic| diagnostic.contains("PRETOTALAB_BAB_CYCLE")));
 }
+
+#[test]
+fn class_without_explicit_baseab_has_zero_bab() {
+    let records = vec![
+        record("CLASS", "No Bab", "No Bab", &[("HD", "8")]),
+        record("RACE", "Test Race", "Test Race", &[]),
+    ];
+    let (pack, _) = lower_records(Some("3e".to_string()), vec!["no-bab".to_string()], &records);
+    let draft = CharacterDraft {
+        race_id: "Test Race".to_string(),
+        class_levels: vec![DraftClassLevel {
+            class_id: "No Bab".to_string(),
+            level: 5,
+            hit_points_gained: 0,
+            experience_gained: 0,
+        }],
+        ..CharacterDraft::default()
+    };
+    let snapshot = Engine::new(pack).evaluate(&draft);
+    assert_eq!(snapshot.base_attack_bonus, 0);
+}
+
+#[test]
+fn normalized_class_entity_activates_level_bonuses_once() {
+    let records = vec![
+        record(
+            "CLASS",
+            "Charlie Class",
+            "Charlie Class",
+            &[("HD", "10"), ("BONUS", "COMBAT|AC|22|TYPE=Deflection")],
+        ),
+        record("CLASS", "1", "1", &[("BONUS", "HP|CURRENTMAX|5")]),
+        record("RACE", "Test Race", "Test Race", &[]),
+    ];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["class-activation".to_string()],
+        &records,
+    );
+    let draft = CharacterDraft {
+        race_id: "Test Race".to_string(),
+        stats: std::collections::BTreeMap::from([("DEX".to_string(), 10)]),
+        class_levels: vec![DraftClassLevel {
+            class_id: "Charlie Class".to_string(),
+            level: 1,
+            hit_points_gained: 10,
+            experience_gained: 0,
+        }],
+        ..CharacterDraft::default()
+    };
+    let snapshot = Engine::new(pack).evaluate(&draft);
+    // Header `COMBAT.AC` and level-row `HP.CURRENTMAX` must both be active
+    // even though the stable EntityId key is `charlie_class`.
+    assert_eq!(snapshot.armor_class, 32);
+    assert_eq!(snapshot.hit_points, 15);
+    assert_eq!(snapshot.external_modifiers.get("COMBAT.AC"), Some(&22));
+    assert_eq!(snapshot.external_modifiers.get("HP.CURRENTMAX"), Some(&5));
+}
+
+#[test]
+fn typed_progression_prevents_raw_baseab_and_save_double_counting() {
+    let records = vec![
+        record(
+            "CLASS",
+            "Fighter",
+            "Fighter",
+            &[
+                ("HD", "10"),
+                ("BONUS", "COMBAT|BASEAB|TL|TYPE=Base.REPLACE"),
+                ("BONUS", "SAVE|BASE.Fortitude|2"),
+            ],
+        ),
+        record("RACE", "Test Race", "Test Race", &[]),
+    ];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["double-count".to_string()],
+        &records,
+    );
+    let draft = CharacterDraft {
+        race_id: "Test Race".to_string(),
+        class_levels: vec![DraftClassLevel {
+            class_id: "Fighter".to_string(),
+            level: 4,
+            hit_points_gained: 0,
+            experience_gained: 0,
+        }],
+        ..CharacterDraft::default()
+    };
+    let snapshot = Engine::new(pack).evaluate(&draft);
+    assert_eq!(snapshot.base_attack_bonus, 4);
+    assert_eq!(snapshot.saves.get("Fortitude"), Some(&2));
+    assert!(!snapshot
+        .external_modifiers
+        .keys()
+        .any(|target| target.to_ascii_uppercase().contains("BASEAB")));
+}

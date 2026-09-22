@@ -772,7 +772,9 @@ fn apply_external_modifiers(snapshot: &mut CharacterSnapshot, modifiers: &BTreeM
             continue;
         }
         let upper = target.to_ascii_uppercase();
-        if upper == "HP" {
+        if upper == "HP" || upper.starts_with("HP.") {
+            // PCGen class-level `BONUS:HP|CURRENTMAX|N` is a hit-point
+            // modifier; normalize it to the snapshot HP field.
             snapshot.hit_points += value;
         } else if upper == "BAB" || upper.contains("BASEAB") {
             // Already included by `bab::compute_bab` before snapshot creation.

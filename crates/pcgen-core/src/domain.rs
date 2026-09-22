@@ -15,9 +15,12 @@ use std::collections::BTreeMap;
 pub enum AttackProgression {
     Full,
     ThreeQuarter,
-    #[default]
     Half,
     Custom,
+    /// No base attack progression.  PCGen classes only gain BAB when they
+    /// declare an explicit `BONUS:COMBAT|BASEAB` (or a `BAB` shorthand).
+    #[default]
+    None,
 }
 
 impl AttackProgression {
@@ -28,6 +31,7 @@ impl AttackProgression {
             Self::ThreeQuarter => (level * 3) / 4,
             Self::Half => level / 2,
             Self::Custom => level,
+            Self::None => 0,
         }
     }
 }
@@ -217,7 +221,7 @@ impl ClassDefinition {
             gestalt_slot_cost: None,
             hit_die: "d8".to_string(),
             max_level: 20,
-            attack_progression: AttackProgression::Half,
+            attack_progression: AttackProgression::None,
             base_attack_formula: None,
             fortitude: SaveProgression::Poor,
             fortitude_formula: None,
