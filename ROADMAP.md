@@ -296,6 +296,9 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
 
 #### P4-SPELL-1 法术定义 → 可执行 spell effect
 
+- **状态**：预研已完成，见
+  [`docs/P4_SPELL1_PRERESEARCH.md`](docs/P4_SPELL1_PRERESEARCH.md)。
+  建议与 P4-BONUS/EQP 第二阶段并行，先做 S1 typed 定义与覆盖率。
 - **目标**：建立 spell effect 模型，将 spell 定义降低为可执行 `Effect`，
   并在 `import-report` 新增 `spell_effects` 指标。
 - **指标**：`spell_effects > 0` 并冻结基线；

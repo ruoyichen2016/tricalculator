@@ -22,6 +22,14 @@
   45.5%→76.2%；DS-3E 67.6%→68.9%；测试 119→122。
 - broad oracle / archive differential 行为不变（KIT 不执行随机展开）。
 
+### P4-SPELL-1 预研（已完成）
+
+- 新增 [`docs/P4_SPELL1_PRERESEARCH.md`](docs/P4_SPELL1_PRERESEARCH.md)：
+  按 category 统计 `DOMAINS` / `SPELLLEVEL` / `PROHIBITSPELL` /
+  `ADDSPELLLEVEL` / `KNOWNSPELLSFROMSPECIALTY` / `SPELLBOOK` 与
+  `PRESPELL` / `PRESPELLSCHOOL`，给出 S1 typed 定义 / S2 执行的分阶段验收。
+- 预研不改变 engine 行为，可与 P4-BONUS/EQP 第二阶段并行。
+
 ### P4-RACE-1 / P4-TPL-1 / P4-DATA-1 第一阶段（已完成）
 
 - `.pcg` 解析 `TEMPLATESAPPLIED`，Template entities 可激活。
