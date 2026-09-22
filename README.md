@@ -106,7 +106,12 @@ commit 并执行字段级差分）两个 job。细节见 [`docs/TESTING.md`](doc
 - Uncanny Dodge flat-footed AC；
 - class/class-level 实体激活、无 BASEAB 职业默认 BAB=0、`HP.CURRENTMAX` /
   `TL` modifier 归一化（P4-ENG-1，BAB 21/21）；
-- 117 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
+- typed AC 组件（armor/shield/dodge/deflection）、默认豁免零值、flat-footed
+  负 DEX 与 zero-HD HP 边界（P4-BONUS-1 / P4-EQP-1 第一阶段，
+  AC / touch / flat-footed 21/21）；
+- KIT / STARTPACK 设计 spike（P4-KIT-0，见
+  [`docs/P4_KIT0_DESIGN.md`](docs/P4_KIT0_DESIGN.md)）；
+- 119 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
 
 真实 PCGen 数据解析与完整角色计算正在按 [`MIGRATION.md`](MIGRATION.md) 从
 archive 迁移。

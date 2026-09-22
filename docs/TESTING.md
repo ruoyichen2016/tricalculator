@@ -203,8 +203,9 @@ KIT / COMPANIONMOD / 怪物记录**均在范围内**（见 `PRODUCT_SCOPE.md`）
 
 每个 pending tag 的 owner 划分见 [`docs/TAG_TRIAGE.md`](TAG_TRIAGE.md)：
 8 个展示/角色生成 tag 已改判 allowlist，其余全部归入 P4 任务；
-DS-35E 的主瓶颈是 KIT（`P4-KIT-0`，约 6,875 次）；先做设计 spike，
-明确声明式导入与运行时随机展开的边界后再实现。
+DS-35E 的主瓶颈是 KIT（`P4-KIT-0`，约 6,875 次）；设计 spike 结论见
+[`P4_KIT0_DESIGN.md`](P4_KIT0_DESIGN.md)：声明式 typed 导入优先，运行时随机
+展开单独立项。
 
 ## 8. 架构护栏：engine 不得依赖 import
 

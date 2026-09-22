@@ -8,7 +8,7 @@
 ## 当前状态（最近验证：固定数据 + 全量门禁）
 
 - 工作区：7 crate（core / formula / ir / import / engine / output / cli）。
-- 测试：`cargo test --workspace` **117 passed**。
+- 测试：`cargo test --workspace` **119 passed**。
 - DS-3E（回归代理，`srdbasic.pcc`）：3,779 entities，23,723 tag occurrences，
   lowered 3,108；legacy 2,773（allowlisted 1,284 / pending 1,489）；
   unsupported 3；**semantic completion 67.6%**。
@@ -18,8 +18,8 @@
 - 门禁 `scripts/coverage_gate.py`：**12 pass / 0 fail / 0 skip**（严格模式，含双数据集 coverage 基线与 DS-35E 阈值）。
 - broad per-case oracle：23 cohort（23 computed = 21 java-compared +
   2 known-diverging，**0 data-missing**），21 个 java-gated case；
-  BAB 21/21（100%），AC 20/21（95.2%），touch/flat 19/21（90.5%），
-  HP 17/21（81.0%）。
+  BAB / AC / touch / flat-footed 均 21/21（100%），
+  HP 20/21（95.2%），save_* 20/21（95.2%）。
 - curated Java differential：9/9。
 
 ## P0：口径冻结（阶段 0，已完成）
@@ -102,14 +102,14 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
 
 | Java 字段 | 一致率 | 主要候选 P4 项 |
 |---|---:|---|
-| `bab` | **100.0%（21/21）** | ✅ P4-ENG-1 已完成；P4-DATA-1 只保留 monster 边界 |
-| `hit_points` | 81.0%（17/21） | P4-BONUS-1、P4-DATA-1、P4-ENG-1 后续 HP 目标归一化 |
-| `flat_footed_ac` | 90.5%（19/21） | P4-BONUS-1 / P4-EQP-1（G1/G2 合并验收）、Dave flat-footed 边界 |
-| `armor_class` | 95.2%（20/21） | P4-BONUS-1 / P4-EQP-1；3e_MonKee 仍待处理 |
-| `touch_ac` | 90.5%（19/21） | P4-BONUS-1 / P4-EQP-1；typed AC 组件（Charlie 盾/甲不应进 touch） |
-| `save_reflex` | 81.0%（17/21） | P4-BONUS-1（G1）、P4-PRE-* |
-| `save_will` | 81.0%（17/21） | P4-BONUS-1（G1）、P4-PRE-* |
-| `save_fortitude` | 85.7%（18/21） | P4-BONUS-1（G1）、P4-PRE-* |
+| `bab` | **100.0%（21/21）** | ✅ P4-ENG-1 |
+| `armor_class` | **100.0%（21/21）** | ✅ P4-BONUS-1 / P4-EQP-1 第一阶段（typed AC） |
+| `touch_ac` | **100.0%（21/21）** | ✅ 同上；armor/shield 不再泄漏到 touch |
+| `flat_footed_ac` | **100.0%（21/21）** | ✅ 同上；负 DEX 惩罚已保留 |
+| `hit_points` | 95.2%（20/21） | P4-DATA-1（3e_MonKee HP 边界） |
+| `save_fortitude` | 95.2%（20/21） | P4-RACE-1（Halfling 种族豁免） |
+| `save_reflex` | 95.2%（20/21） | P4-RACE-1（Halfling 种族豁免） |
+| `save_will` | 95.2%（20/21） | P4-RACE-1（Halfling 种族豁免） |
 | `final_stats` | 100.0%（21/21） | — |
 | `initiative` | 100.0%（21/21） | — |
 
@@ -239,6 +239,11 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
 
 #### P4-BONUS-1 + P4-EQP-1 合并验收：BONUS 残余 / G1 stacking / G2 装备
 
+- **状态**：第一阶段已完成（typed numeric AC、默认豁免零值、flat-footed 负 DEX、
+  zero-HD HP 边界）。broad oracle：AC/touch/flat 21/21（100%），
+  HP 20/21，save_* 20/21；测试 117→119。
+  剩余：DS-3E/DS-35E `BONUS` unsupported、装备 pending legacy、3e_MonKee HP、
+  Halfling 种族豁免（P4-RACE-1）。
 - **目标**：清零残余 BONUS 与装备类 pending legacy；在 IR/engine 层恢复
   archive `bonus.rs` 的 typed stacking policy（G1），并把装备槽位、冲突、
   顺序、装备加成 typed 化（G2）；两者必须走同一条 modifier/AC 管线。
@@ -359,7 +364,10 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
 > 来源：[`docs/TAG_TRIAGE.md`](docs/TAG_TRIAGE.md)。目标是让每个 pending tag
 > 都有 owner。每项沿用同一验收模板：目标 / 指标 / 门禁 / 完成定义 / 依赖。
 
-- **P4-KIT-0 KIT / STARTPACK 设计 spike（DS-35E 主瓶颈，~6,875 次）**
+- **P4-KIT-0 KIT / STARTPACK 设计 spike（已完成，DS-35E 主瓶颈 ~6,875 次）**
+  - **状态**：设计 spike 已完成，结论见
+    [`docs/P4_KIT0_DESIGN.md`](docs/P4_KIT0_DESIGN.md)：先做声明式 typed 导入
+    （P4-KIT-1），运行时确定性随机展开单独立项（P4-KIT-2，需产品确认）。
   - 目标：先判定 KIT/STARTPACK 应作为“声明式定义导入并统计”，还是“角色创建期
     确定性随机展开”；若进入运行时，再定义 `OPTION`/`LOOKUP`/`VALUES` 权重、
     `QTY:roll(...)`、`EQUIPBUY` 与 `APPLY:INSTANT` 的确定性语义、RNG seed、
@@ -420,8 +428,9 @@ DS-35E 阈值收紧到 0，并补 zero-tag 断言。
 | ~~0~~ | ~~P4-PRE-3~~ | ✅ 已完成：`SpellPowerType` + 法术书，unsupported 25→16 |
 | ~~0b~~ | ~~P4-PRE-6（部分）~~ | ✅ size 谓词 + `PRETEXT`；剩余并入 TPL/EQP/RACE |
 | ~~0c~~ | ~~P4-ENG-1~~ | ✅ 已完成：class/level 激活 + 默认 BAB=0 + modifier 归一化；BAB 21/21 |
-| 1 | P4-KIT-0 | DS-35E pending 的 ~72%；先做设计 spike，不立即全量实现 |
-| 2 | P4-BONUS-1 + P4-EQP-1（合并验收） | G1 stacking + G2 装备/AC typed 化；目标 AC/touch/flat ≥95%，清零已知失败 case |
+| ~~0d~~ | ~~P4-KIT-0~~ | ✅ 设计 spike 完成：声明式导入优先，随机展开单独立项 |
+| 1 | P4-KIT-1 | 声明式 KIT/STARTPACK typed 导入；不执行随机展开 |
+| 2 | P4-BONUS-1 + P4-EQP-1（合并验收） | 第一阶段已完成 AC/touch/flat 100%；剩余 BONUS/装备 pending 与 HP/save 边界 |
 | 3 | P4-DATA-1 + P4-RACE-1 | 怪物 PC 支持：monster HD + 种族/生物特征；消 known-diverging 2 |
 | 4 | P4-TPL-1 | 模板语义 + CR/DR/SR/NATURALATTACKS 归类 |
 | 5 | P4-SPELL-1 | 依赖 P4-PRE-3；可与第 2–4 项并行 |

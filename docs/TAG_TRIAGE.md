@@ -79,6 +79,6 @@ triage/实现时必须按 category 区分，否则会误 allowlist 掉语义：
 
 ## 5. 后续动作
 
-1. `P4-KIT-0` 先做设计 spike（DS-35E pending 的 ~72%）：明确声明式导入 vs 运行时随机展开、category-aware 边界与首个 acceptance case；设计通过后再实现。
+1. `P4-KIT-0` 设计 spike 已完成（见 [`P4_KIT0_DESIGN.md`](P4_KIT0_DESIGN.md)）：声明式 typed 导入优先，运行时随机展开单独立项；下一步 P4-KIT-1。
 2. `P4-PRE-6` 与 `P4-PRE-3` 并行：先清谓词类 pending。
 3. 实现 `classify(category, tag)` + Gap D 的 known 桶，随后一次性重新冻结 coverage baseline。

@@ -23,6 +23,27 @@
   flat-footed 16→19、HP 15→17；`java_gated` 18→21；broad baseline 按
   Java 一致率收敛后重生成。
 
+### P4-KIT-0 KIT / STARTPACK 设计 spike（已完成）
+
+- 新增 [`docs/P4_KIT0_DESIGN.md`](docs/P4_KIT0_DESIGN.md)，明确 KIT/STARTPACK
+  的两层范围：声明式 typed 导入优先（P4-KIT-1），运行时随机展开单独立项
+  （P4-KIT-2，需产品确认）。
+- 记录 `OPTION` / `LOOKUP` / `VALUES` / `EQUIPBUY` / `APPLY` / `QTY` 的
+  DS-35E pending 数据、category 混用问题与 `classify(category, tag)` 前置条件。
+- `ROADMAP.md` 将 KIT 任务拆为 P4-KIT-0（设计）与 P4-KIT-1（导入）。
+
+### P4-BONUS-1 + P4-EQP-1 第一阶段（已完成）
+
+- typed numeric AC 组件：armor/shield/natural 只进 AC/flat-footed，
+  dodge 只进 AC/touch，deflection 等进三字段；修复 Charlie 盾/甲泄漏到 touch。
+- `SaveProgression::None` 默认零值，修复无显式 `BONUS:SAVE|BASE.*` 的测试职业
+  多算基础豁免。
+- flat-footed 保留负 DEX 惩罚；zero-HD class 不再强制 1 HP。
+- 公式解析支持 ability modifier（`WIS` 等）与单职业 `CL`，并把 `VAR.*`
+  公式在 effect 公式前按依赖多轮求值；修复 3e_MonKee Monk AC 变量/条件。
+- broad oracle：BAB/AC/touch/flat 21/21（100%），HP 20/21，save_* 20/21；
+  cohort Java-gated 字段扩展；测试 117→119。
+
 ### P4-PRE-4 模板 / 手 / 移动谓词（已完成）
 
 - `pcgen-core`：`Predicate` 增加 `TemplateCount` / `HandsAtLeast` /
