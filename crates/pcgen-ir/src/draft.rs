@@ -15,6 +15,9 @@ pub struct PcgClassLevel {
     pub level: u32,
     #[serde(default)]
     pub hit_points_gained: i32,
+    /// Per-level HP rolls from `CLASSABILITIESLEVEL` records.
+    #[serde(default)]
+    pub hit_points_by_level: Vec<i32>,
     #[serde(default)]
     pub experience_gained: i32,
 }
@@ -49,6 +52,8 @@ pub struct PcgDraft {
     pub equipment: Vec<String>,
     #[serde(default)]
     pub abilities: Vec<(String, String)>,
+    #[serde(default)]
+    pub templates: Vec<String>,
     #[serde(default)]
     pub advancement: Vec<AdvancementFrame>,
 }

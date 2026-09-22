@@ -24,8 +24,8 @@ pub use advancement::{AdvancementFrame, AdvancementLane, LaneId};
 pub use algorithms::{strongly_connected_components, topological_sort};
 pub use domain::{
     AttackProgression, CastingType, ClassDefinition, ClassProgression, DeityDefinition,
-    DomainDefinition, DomainSpell, EquipmentDefinition, EquipmentModifierDefinition,
-    RaceDefinition, SaveProgression, SkillDefinition, SpellDefinition, SpellPowerType,
+    DomainDefinition, DomainSpell, EquipmentDefinition, EquipmentModifierDefinition, KitDefinition,
+    KitEntry, RaceDefinition, SaveProgression, SkillDefinition, SpellDefinition, SpellPowerType,
     TypedDefinitions,
 };
 pub use faith::{evaluate_faith, FaithDecision};

@@ -59,6 +59,7 @@ fn draft(level: u32) -> CharacterDraft {
             class_id: "Wizard".to_string(),
             level,
             hit_points_gained: 0,
+            hit_points_by_level: Vec::new(),
             experience_gained: 0,
         }],
         ..CharacterDraft::default()

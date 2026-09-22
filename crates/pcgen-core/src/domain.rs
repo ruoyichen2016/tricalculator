@@ -531,6 +531,56 @@ impl ClassProgression {
     }
 }
 
+/// One structured entry inside a KIT / STARTPACK definition.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct KitEntry {
+    /// Primary target tag, e.g. `GEAR`, `RACE`, `CLASS`, `SKILL`, `TABLE`.
+    pub target: String,
+    /// Primary target value/key.
+    pub key: String,
+    #[serde(default)]
+    pub quantity: Option<String>,
+    #[serde(default)]
+    pub option: Option<String>,
+    #[serde(default)]
+    pub lookup: Option<String>,
+    #[serde(default)]
+    pub values: Option<String>,
+    #[serde(default)]
+    pub conditions: Vec<String>,
+    /// Additional tags preserved losslessly for later runtime expansion.
+    #[serde(default)]
+    pub extra: BTreeMap<String, String>,
+}
+
+/// Declarative KIT / STARTPACK / TABLE definition.
+///
+/// This is intentionally import-only in P4-KIT-1: expressions such as
+/// `roll(...)` and weighted `OPTION` ranges are preserved as strings and are
+/// not evaluated until/unless P4-KIT-2 implements deterministic expansion.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct KitDefinition {
+    pub id: String,
+    pub name: String,
+    /// `STARTPACK`, `KIT`, or `TABLE`.
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default)]
+    pub type_tags: Vec<String>,
+    #[serde(default)]
+    pub visible: Option<String>,
+    #[serde(default)]
+    pub apply_mode: Option<String>,
+    #[serde(default)]
+    pub equip_buy: Option<String>,
+    #[serde(default)]
+    pub select_expression: Option<String>,
+    #[serde(default)]
+    pub conditions: Vec<String>,
+    #[serde(default)]
+    pub entries: Vec<KitEntry>,
+}
+
 /// All typed definitions produced by one import.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct TypedDefinitions {
@@ -543,5 +593,6 @@ pub struct TypedDefinitions {
     pub deities: BTreeMap<String, DeityDefinition>,
     pub domains: BTreeMap<String, DomainDefinition>,
     pub variants: BTreeMap<String, VariantDefinition>,
+    pub kits: BTreeMap<String, KitDefinition>,
     pub progressions: BTreeMap<String, ClassProgression>,
 }

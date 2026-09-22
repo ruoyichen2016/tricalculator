@@ -210,6 +210,7 @@ fn main() -> Result<()> {
                     "deities": pack.deities.len(),
                     "domains": pack.domains.len(),
                     "variants": pack.variants.len(),
+                    "kits": pack.kits.len(),
                     "progressions": pack.progressions.len(),
                 });
                 println!("{}", serde_json::to_string_pretty(&value)?);
@@ -351,6 +352,7 @@ fn draft_from_pcg(draft: PcgDraft) -> CharacterDraft {
                 class_id: entry.class_id,
                 level: entry.level,
                 hit_points_gained: entry.hit_points_gained,
+                hit_points_by_level: entry.hit_points_by_level,
                 experience_gained: entry.experience_gained,
             })
             .collect(),
@@ -368,9 +370,7 @@ fn draft_from_pcg(draft: PcgDraft) -> CharacterDraft {
             .collect(),
         equipment: draft.equipment,
         abilities: draft.abilities,
-        // `TEMPLATESAPPLIED` in `.pcg` is a nested PCGen structure; parsing it
-        // is part of P4-TPL-1.  Until then templates stay empty here.
-        templates: Vec::new(),
+        templates: draft.templates,
         choices: BTreeMap::new(),
     }
 }

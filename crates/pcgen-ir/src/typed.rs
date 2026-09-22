@@ -7,8 +7,8 @@
 use crate::source::RawRecord;
 use pcgen_core::domain::{
     AttackProgression, CastingType, ClassDefinition, ClassProgression, DeityDefinition,
-    DomainDefinition, DomainSpell, EquipmentDefinition, EquipmentModifierDefinition,
-    RaceDefinition, SaveProgression, SkillDefinition, SpellDefinition, SpellPowerType,
+    DomainDefinition, DomainSpell, EquipmentDefinition, EquipmentModifierDefinition, KitDefinition,
+    KitEntry, RaceDefinition, SaveProgression, SkillDefinition, SpellDefinition, SpellPowerType,
     TypedDefinitions,
 };
 use pcgen_core::{EffectPhase, Provenance, VariantDefinition};
@@ -21,6 +21,7 @@ pub fn build_typed_definitions(records: &[RawRecord]) -> TypedDefinitions {
     let mut typed = TypedDefinitions::default();
     let mut current_class: Option<String> = None;
     let mut current_substitution: Option<String> = None;
+    let mut current_kit: Option<String> = None;
 
     for record in records {
         match record.category.to_ascii_uppercase().as_str() {
@@ -93,6 +94,7 @@ pub fn build_typed_definitions(records: &[RawRecord]) -> TypedDefinitions {
                 let domain = parse_domain(record);
                 typed.domains.insert(domain.id.clone(), domain);
             }
+            "KIT" => parse_kit_record(record, &mut current_kit, &mut typed.kits),
             _ => {}
         }
     }
@@ -324,6 +326,132 @@ fn parse_class_level_row(class: &mut ClassDefinition, record: &RawRecord) {
             _ => {}
         }
     }
+}
+
+const KIT_ENTRY_TARGETS: &[&str] = &[
+    "GEAR", "RACE", "CLASS", "STAT", "SKILL", "ABILITY", "TEMPLATE", "KIT", "ALIGN", "NAME",
+    "TABLE", "SELECT", "QTY", "OPTION", "LOOKUP", "VALUES", "EQUIPBUY", "APPLY", "LOCATION",
+];
+
+fn parse_kit_record(
+    record: &RawRecord,
+    current_kit: &mut Option<String>,
+    kits: &mut BTreeMap<String, KitDefinition>,
+) {
+    let raw_key = record.key.trim();
+    if let Some(name) = raw_key.strip_prefix("STARTPACK:") {
+        let name = name.trim();
+        let kit = parse_kit_header(name, record, "STARTPACK");
+        kits.insert(name.to_string(), kit);
+        *current_kit = Some(name.to_string());
+        return;
+    }
+    if let Some(name) = raw_key.strip_prefix("TABLE:") {
+        let name = name.trim();
+        let kit = parse_kit_header(name, record, "TABLE");
+        kits.insert(name.to_string(), kit);
+        return;
+    }
+    let Some(kit_id) = current_kit.as_deref() else {
+        return;
+    };
+    let Some(entry) = parse_kit_entry(record) else {
+        return;
+    };
+    let kit = kits
+        .entry(kit_id.to_string())
+        .or_insert_with(|| KitDefinition {
+            id: kit_id.to_string(),
+            name: kit_id.to_string(),
+            kind: "STARTPACK".to_string(),
+            ..KitDefinition::default()
+        });
+    kit.entries.push(entry);
+}
+
+fn parse_kit_header(name: &str, record: &RawRecord, kind: &str) -> KitDefinition {
+    let mut kit = KitDefinition {
+        id: name.to_string(),
+        name: name.to_string(),
+        kind: kind.to_string(),
+        ..KitDefinition::default()
+    };
+    for tag in &record.tags {
+        let upper = tag.name.to_ascii_uppercase();
+        match upper.as_str() {
+            "TYPE" => {
+                kit.type_tags.extend(
+                    tag.value
+                        .split(['.', '|'])
+                        .map(str::trim)
+                        .filter(|part| !part.is_empty())
+                        .map(str::to_string),
+                );
+            }
+            "VISIBLE" => kit.visible = Some(tag.value.clone()),
+            "APPLY" => kit.apply_mode = Some(tag.value.clone()),
+            "EQUIPBUY" => kit.equip_buy = Some(tag.value.clone()),
+            "SELECT" => kit.select_expression = Some(tag.value.clone()),
+            _ if crate::tags::is_predicate_tag(&upper) => {
+                kit.conditions.push(format!("{}:{}", tag.name, tag.value));
+            }
+            _ => {}
+        }
+    }
+    kit
+}
+
+fn parse_kit_entry(record: &RawRecord) -> Option<KitEntry> {
+    let raw_key = record.key.trim();
+    let mut target: Option<String> = None;
+    let mut key: Option<String> = None;
+
+    for candidate in KIT_ENTRY_TARGETS {
+        let prefix = format!("{candidate}:");
+        if let Some(rest) = raw_key.strip_prefix(&prefix) {
+            target = Some((*candidate).to_string());
+            key = Some(rest.trim().to_string());
+            break;
+        }
+    }
+
+    if target.is_none() {
+        for tag in &record.tags {
+            let upper = tag.name.to_ascii_uppercase();
+            if KIT_ENTRY_TARGETS.contains(&upper.as_str()) {
+                target = Some(upper);
+                key = Some(tag.value.clone());
+                break;
+            }
+        }
+    }
+
+    let target = target?;
+    let mut entry = KitEntry {
+        target: target.clone(),
+        key: key.unwrap_or_else(|| record.name.clone()),
+        ..KitEntry::default()
+    };
+
+    for tag in &record.tags {
+        let upper = tag.name.to_ascii_uppercase();
+        if upper == target {
+            continue;
+        }
+        match upper.as_str() {
+            "QTY" | "RANK" | "LEVEL" => entry.quantity = Some(tag.value.clone()),
+            "OPTION" => entry.option = Some(tag.value.clone()),
+            "LOOKUP" => entry.lookup = Some(tag.value.clone()),
+            "VALUES" => entry.values = Some(tag.value.clone()),
+            _ if crate::tags::is_predicate_tag(&upper) => {
+                entry.conditions.push(format!("{}:{}", tag.name, tag.value));
+            }
+            _ => {
+                entry.extra.insert(upper, tag.value.clone());
+            }
+        }
+    }
+    Some(entry)
 }
 
 fn parse_skill(record: &RawRecord) -> SkillDefinition {

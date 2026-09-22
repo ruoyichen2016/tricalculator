@@ -201,12 +201,14 @@ fn prepclevel_excludes_monster_hd() {
                 class_id: "Giant".to_string(),
                 level: 3,
                 hit_points_gained: 0,
+                hit_points_by_level: Vec::new(),
                 experience_gained: 0,
             },
             DraftClassLevel {
                 class_id: "Wizard".to_string(),
                 level: 1,
                 hit_points_gained: 0,
+                hit_points_by_level: Vec::new(),
                 experience_gained: 0,
             },
         ],
@@ -249,6 +251,7 @@ fn pretotalab_draft(class_name: &str, level: u32) -> CharacterDraft {
             class_id: class_name.to_string(),
             level,
             hit_points_gained: 0,
+            hit_points_by_level: Vec::new(),
             experience_gained: 0,
         }],
         ..CharacterDraft::default()
@@ -328,6 +331,7 @@ fn class_without_explicit_baseab_has_zero_bab() {
             class_id: "No Bab".to_string(),
             level: 5,
             hit_points_gained: 0,
+            hit_points_by_level: Vec::new(),
             experience_gained: 0,
         }],
         ..CharacterDraft::default()
@@ -367,6 +371,7 @@ fn normalized_class_entity_activates_level_bonuses_once() {
             class_id: "Charlie Class".to_string(),
             level: 1,
             hit_points_gained: 10,
+            hit_points_by_level: Vec::new(),
             experience_gained: 0,
         }],
         ..CharacterDraft::default()
@@ -407,6 +412,7 @@ fn typed_progression_prevents_raw_baseab_and_save_double_counting() {
             class_id: "Fighter".to_string(),
             level: 4,
             hit_points_gained: 0,
+            hit_points_by_level: Vec::new(),
             experience_gained: 0,
         }],
         ..CharacterDraft::default()

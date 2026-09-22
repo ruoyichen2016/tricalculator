@@ -53,6 +53,8 @@ pub struct CompiledRulePack {
     #[serde(default)]
     pub variants: std::collections::BTreeMap<String, pcgen_core::VariantDefinition>,
     #[serde(default)]
+    pub kits: std::collections::BTreeMap<String, pcgen_core::KitDefinition>,
+    #[serde(default)]
     pub progressions: std::collections::BTreeMap<String, ClassProgression>,
 }
 
@@ -201,6 +203,8 @@ pub fn lower_records(
         });
     }
 
+    merge_ability_mod_entities(&mut entities);
+
     let typed = build_typed_definitions(records);
     let typed_digest = typed_digest(&typed);
     let rules_fingerprint = pcgen_core::rules_fingerprint(&pcgen_core::RuleFingerprintInput {
@@ -229,6 +233,7 @@ pub fn lower_records(
         deities: typed.deities,
         domains: typed.domains,
         variants: typed.variants,
+        kits: typed.kits,
         progressions: typed.progressions,
     };
     let report = ImportReport {
@@ -373,9 +378,34 @@ fn lower_grant(record: &RawRecord, tag: &crate::source::RawTag) -> Option<Effect
     } else {
         "Ability".to_string()
     };
+    let mut conditions = Vec::new();
+    let mut all_conditions_parsed = true;
+    for part in parts
+        .iter()
+        .copied()
+        .filter(|part| crate::tags::is_predicate_tag(part))
+    {
+        match parse_predicate(part, "") {
+            Some(predicate) => conditions.push(predicate),
+            // Preserve the previous lowering behavior for unsupported
+            // embedded predicates: keep the grant rather than dropping it
+            // from the lowered set.  The unsupported predicate is still
+            // visible through the source record and can be tightened later.
+            None => all_conditions_parsed = false,
+        }
+    }
+    let condition = if !all_conditions_parsed {
+        None
+    } else {
+        match conditions.len() {
+            0 => None,
+            1 => conditions.pop(),
+            _ => Some(Predicate::All(conditions)),
+        }
+    };
     Some(Effect {
         phase: EffectPhase::Global,
-        condition: None,
+        condition,
         action: EffectAction::Grant {
             entity: EntityId::new("pcgen", record.source.source_id.clone(), category, key),
         },
@@ -761,6 +791,47 @@ pub fn categories(pack: &CompiledRulePack) -> BTreeSet<String> {
 /// Digest of typed definitions that are not already covered by entities or
 /// progressions.  Keeping it coarse avoids coupling `pcgen-core` to every
 /// typed field while still invalidating a fingerprint when definitions change.
+/// Merge PCGen ability `.MOD` records into their base entity.
+///
+/// The lowering pass is line-oriented, so a base ability header and its
+/// following `.MOD` lines become separate entities.  In PCGen the `.MOD`
+/// records modify the base ability; merging their effects makes the base key
+/// resolve to the real implementation (e.g. `Halfling Racial Trait Default`).
+fn merge_ability_mod_entities(entities: &mut [CompiledEntity]) {
+    let mut merges: Vec<(usize, usize)> = Vec::new();
+    for (mod_index, entity) in entities.iter().enumerate() {
+        let Some(base_name) = entity.name.trim().strip_suffix(".MOD") else {
+            continue;
+        };
+        let base_name = base_name.rsplit('|').next().unwrap_or(base_name).trim();
+        let wanted = normalized_key(base_name);
+        if let Some(base_index) = entities.iter().enumerate().find_map(|(index, candidate)| {
+            if index == mod_index {
+                return None;
+            }
+            let candidate_key = normalized_key(&candidate.id.key);
+            let candidate_name = normalized_key(&candidate.name);
+            (candidate_key == wanted || candidate_name == wanted).then_some(index)
+        }) {
+            merges.push((mod_index, base_index));
+        }
+    }
+    for (mod_index, base_index) in merges {
+        let effects = std::mem::take(&mut entities[mod_index].effects);
+        let requirements = std::mem::take(&mut entities[mod_index].requirements);
+        let legacy = std::mem::take(&mut entities[mod_index].legacy_tags);
+        let unsupported = std::mem::take(&mut entities[mod_index].unsupported_tags);
+        entities[base_index].effects.extend(effects);
+        entities[base_index].requirements.extend(requirements);
+        entities[base_index].legacy_tags.extend(legacy);
+        entities[base_index].unsupported_tags.extend(unsupported);
+    }
+}
+
+fn normalized_key(value: &str) -> String {
+    value.trim().to_ascii_lowercase().replace(' ', "_")
+}
+
 fn typed_digest(typed: &TypedDefinitions) -> String {
     let mut parts = Vec::new();
     for key in typed.races.keys() {
@@ -786,6 +857,9 @@ fn typed_digest(typed: &TypedDefinitions) -> String {
     }
     for key in typed.domains.keys() {
         parts.push(format!("domain:{key}"));
+    }
+    for key in typed.kits.keys() {
+        parts.push(format!("kit:{key}"));
     }
     parts.push(format!("counts:{}", parts.len()));
     pcgen_core::hash_parts(&parts)
@@ -864,6 +938,12 @@ fn split_groups(input: &str) -> Option<Vec<String>> {
 /// not also be reported as a legacy (un-lowered) tag.
 fn consumed_legacy_tag(category: &str, tag_name: &str) -> bool {
     let name = tag_name.to_ascii_uppercase();
+    if pcgen_core::tagclass::is_kit_category(category)
+        && pcgen_core::tagclass::classify_for_category(category, &name)
+            == pcgen_core::tagclass::TagClass::Allowlisted
+    {
+        return true;
+    }
     match category {
         "ABILITY" | "ABILITYCATEGORY" => name == "CATEGORY",
         // Equipment modifier metadata captured by the typed model.

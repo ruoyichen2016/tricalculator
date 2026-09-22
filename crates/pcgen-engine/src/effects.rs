@@ -396,6 +396,35 @@ fn apply_choose(spec: &str, draft: &CharacterDraft, state: &mut EffectState) {
     }
 }
 
+/// Internal ability-category `.MOD` records that select racial defaults.
+///
+/// PCGen expresses racial traits as `CATEGORY=Internal|Select Racial Traits`
+/// records whose grants are gated by `PRERACE`.  Activate those selector
+/// records automatically; the normal grant closure then pulls in the
+/// race-specific default ability, whose own grants stay gated by `PREABILITY`.
+fn internal_race_selector(entity: &CompiledEntity) -> bool {
+    // PCGen models racial defaults as ability-category records whose grants
+    // are gated by PRERACE.  After `.MOD` merging the selector may live on the
+    // base ability entity, so key/name prefixes are not reliable here.
+    entity.effects.iter().any(|effect| {
+        matches!(effect.action, EffectAction::Grant { .. })
+            && effect
+                .condition
+                .as_ref()
+                .is_some_and(contains_race_predicate)
+    })
+}
+
+fn contains_race_predicate(predicate: &Predicate) -> bool {
+    match predicate {
+        Predicate::HasEntity { entity } => entity.entity_type.eq_ignore_ascii_case("race"),
+        Predicate::All(items) | Predicate::Any(items) => items.iter().any(contains_race_predicate),
+        Predicate::Not(item) => contains_race_predicate(item),
+        Predicate::AtLeast { items, .. } => items.iter().any(contains_race_predicate),
+        _ => false,
+    }
+}
+
 fn initial_entities(pack: &CompiledRulePack, draft: &CharacterDraft) -> Vec<usize> {
     let mut indexes = BTreeSet::new();
     for (index, entity) in pack.entities.iter().enumerate() {
@@ -417,10 +446,16 @@ fn initial_entities(pack: &CompiledRulePack, draft: &CharacterDraft) -> Vec<usiz
             EntityCategory::Equipment => draft.equipment.iter().any(|item| {
                 normalized(item) == key || normalized(&entity.name) == normalized(item)
             }),
-            category if category.is_ability_like() => draft.abilities.iter().any(|(_, ability)| {
-                ability.eq_ignore_ascii_case(&entity.id.key)
-                    || ability.eq_ignore_ascii_case(&entity.name)
+            EntityCategory::Template => draft.templates.iter().any(|template| {
+                normalized(template) == key || normalized(template) == normalized(&entity.name)
             }),
+            category if category.is_ability_like() => {
+                internal_race_selector(entity)
+                    || draft.abilities.iter().any(|(_, ability)| {
+                        ability.eq_ignore_ascii_case(&entity.id.key)
+                            || ability.eq_ignore_ascii_case(&entity.name)
+                    })
+            }
             _ => false,
         };
         if active {
@@ -440,22 +475,47 @@ fn find_entity(pack: &CompiledRulePack, entity: &pcgen_core::EntityId) -> Option
             // `ability_category` records that pool.  Prefer the entity whose
             // pool matches, so two abilities with the same key in different
             // pools resolve to the right one.
+            //
+            // PCGen ability `.MOD` records often carry the real effects while
+            // the base key is an empty shell.  When a name/key match exists,
+            // prefer the candidate with effects so `Halfling Racial Trait
+            // Default` resolves to its `.MOD` implementation.
             let target_key = normalized(&entity.key);
-            let mut fallback: Option<usize> = None;
+            let mut key_fallback: Option<usize> = None;
+            let mut name_fallback: Option<usize> = None;
+            let mut effect_fallback: Option<usize> = None;
             for (index, candidate) in pack.entities.iter().enumerate() {
-                if normalized(&candidate.id.key) != target_key {
+                let candidate_key = normalized(&candidate.id.key);
+                let candidate_name = normalized(&candidate.name);
+                let name_match = candidate_name == target_key
+                    || candidate_name
+                        .strip_suffix(".mod")
+                        .is_some_and(|base| base == target_key || base.ends_with(&target_key));
+                let key_match = candidate_key == target_key;
+                if !key_match && !name_match {
                     continue;
                 }
-                if candidate
-                    .ability_category
-                    .as_deref()
-                    .is_some_and(|pool| pool.eq_ignore_ascii_case(&entity.entity_type))
+                if key_match
+                    && candidate
+                        .ability_category
+                        .as_deref()
+                        .is_some_and(|pool| pool.eq_ignore_ascii_case(&entity.entity_type))
                 {
                     return Some(index);
                 }
-                fallback.get_or_insert(index);
+                if name_match && !candidate.effects.is_empty() {
+                    return Some(index);
+                }
+                if key_match {
+                    key_fallback.get_or_insert(index);
+                } else {
+                    name_fallback.get_or_insert(index);
+                }
+                if !candidate.effects.is_empty() {
+                    effect_fallback.get_or_insert(index);
+                }
             }
-            fallback
+            key_fallback.or(name_fallback).or(effect_fallback)
         })
 }
 
@@ -557,6 +617,17 @@ fn derive_spellcasting_prereq(
     (powers, max_spell_level, slots, has_spellbook, class_casting)
 }
 
+fn entity_is_active(state: &EffectState, draft: &CharacterDraft, entity: &EntityId) -> bool {
+    match entity.entity_type.to_ascii_lowercase().as_str() {
+        "race" => normalized(&draft.race_id) == normalized(&entity.key),
+        "class" => draft.level_in_class(&entity.key) > 0,
+        _ => state
+            .active_abilities
+            .iter()
+            .any(|ability| ability.eq_ignore_ascii_case(&entity.key)),
+    }
+}
+
 fn predicate_holds(
     predicate: Option<&Predicate>,
     draft: &CharacterDraft,
@@ -582,10 +653,7 @@ fn predicate_holds(
             let level = draft.level_in_class(class_id);
             level >= *min && max.is_none_or(|max| level <= max)
         }
-        Predicate::HasEntity { entity } => state
-            .active_abilities
-            .iter()
-            .any(|ability| ability.eq_ignore_ascii_case(&entity.key)),
+        Predicate::HasEntity { entity } => entity_is_active(state, draft, entity),
         Predicate::Variable { name, min, max } => {
             let value = state.variables.get(name).copied().unwrap_or(0);
             min.is_none_or(|min| value >= min) && max.is_none_or(|max| value <= max)

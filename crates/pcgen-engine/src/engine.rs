@@ -47,6 +47,19 @@ impl Engine {
                 *stats.entry(stat.clone()).or_insert(10) += adjustment;
             }
         }
+        // Template/class STAT modifiers are resolved through the effect
+        // pipeline, then folded into the ability scores before derived values
+        // (HP, saves, AC, skills) are computed.
+        for (target, value) in &effect_state.external_modifiers {
+            if let Some(stats_part) = target.strip_prefix("STAT.") {
+                for stat in stats_part.split(',') {
+                    let stat = stat.trim().to_ascii_uppercase();
+                    if matches!(stat.as_str(), "STR" | "DEX" | "CON" | "INT" | "WIS" | "CHA") {
+                        *stats.entry(stat).or_insert(10) += value;
+                    }
+                }
+            }
+        }
         let size_modifier = self
             .race(&draft.race_id)
             .map(|race| size_modifier(&race.size))
@@ -124,22 +137,24 @@ impl Engine {
         };
         diagnostics.extend(self.validate(draft));
 
-        let base_hit_points: i32 = if let Some(plan) = &gestalt {
-            plan.frames.iter().map(|frame| frame.hit_points).sum()
+        // Hit points are resolved per class level so PCGen's per-level
+        // minimum of 1 HP is preserved.  Classes with zero HD/zero rolls stay
+        // at 0, matching PCGen test/monster class records.
+        let hit_points = if let Some(plan) = &gestalt {
+            (plan
+                .frames
+                .iter()
+                .map(|frame| frame.hit_points)
+                .sum::<i32>()
+                + con_mod * total_level as i32)
+                .max(1)
+        } else if class_levels.is_empty() {
+            1
         } else {
             class_levels
                 .iter()
-                .map(|entry| entry.hit_points_gained)
+                .map(|entry| hit_points_for_entry(entry, con_mod))
                 .sum()
-        };
-        // Real class levels have a minimum of 1 HP, but PCGen test/monster
-        // classes with no HD can legitimately record 0 base HP.
-        let raw_hit_points = base_hit_points + con_mod * total_level as i32;
-        let zero_hd_class = base_hit_points == 0 && !class_levels.is_empty();
-        let hit_points = if zero_hd_class {
-            raw_hit_points.max(0)
-        } else {
-            raw_hit_points.max(1)
         };
 
         let saves = if let Some(plan) = &gestalt {
@@ -700,6 +715,30 @@ pub fn validate(_pack: &CompiledRulePack, _draft: &CharacterDraft) -> Vec<String
     Vec::new()
 }
 
+fn hit_points_for_entry(entry: &DraftClassLevel, con_mod: i32) -> i32 {
+    if !entry.hit_points_by_level.is_empty() {
+        let all_zero = entry.hit_points_by_level.iter().all(|roll| *roll == 0);
+        return entry
+            .hit_points_by_level
+            .iter()
+            .map(|roll| {
+                let adjusted = *roll + con_mod;
+                if all_zero {
+                    adjusted.max(0)
+                } else {
+                    adjusted.max(1)
+                }
+            })
+            .sum();
+    }
+    let raw = entry.hit_points_gained + con_mod * entry.level as i32;
+    if entry.hit_points_gained == 0 {
+        raw.max(0)
+    } else {
+        raw.max(entry.level as i32)
+    }
+}
+
 pub(crate) fn effective_class_levels(draft: &CharacterDraft) -> Vec<DraftClassLevel> {
     if !draft.class_levels.is_empty() {
         return draft.class_levels.clone();
@@ -713,6 +752,7 @@ pub(crate) fn effective_class_levels(draft: &CharacterDraft) -> Vec<DraftClassLe
                     class_id: lane.class_id.clone(),
                     level: 0,
                     hit_points_gained: 0,
+                    hit_points_by_level: Vec::new(),
                     experience_gained: 0,
                 });
             entry.level = entry.level.max(lane.class_level);

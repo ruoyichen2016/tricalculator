@@ -158,6 +158,42 @@ pub const ALLOWLISTED_TAGS: &[&str] = &[
     "ROLE", // class UI role (e.g. Combat), not a rules input
 ];
 
+/// KIT / STARTPACK tags captured by the typed KIT import.
+///
+/// These are not "presentation metadata"; they are consumed structurally by
+/// `KitDefinition`, so they must not be reported as pending work.  The same
+/// tag names can appear on equipment records, where they retain equipment
+/// semantics and therefore stay pending until `P4-EQP-1`.
+pub const KIT_CONSUMED_TAGS: &[&str] = &[
+    "STARTPACK",
+    "KIT",
+    "TABLE",
+    "SELECT",
+    "GEAR",
+    "RACE",
+    "CLASS",
+    "STAT",
+    "SKILL",
+    "ABILITY",
+    "TEMPLATE",
+    "ALIGN",
+    "NAME",
+    "QTY",
+    "OPTION",
+    "LOOKUP",
+    "VALUES",
+    "EQUIPBUY",
+    "APPLY",
+    "LOCATION",
+];
+
+pub fn is_kit_category(category: &str) -> bool {
+    matches!(
+        category.trim().to_ascii_uppercase().as_str(),
+        "KIT" | "STARTPACK"
+    )
+}
+
 /// Classify a bare (upper-case) tag name.
 ///
 /// Matching is exact and case-insensitive; leading `!`-negation prefixes (as
@@ -169,6 +205,20 @@ pub fn classify(tag_name: &str) -> TagClass {
         TagClass::Allowlisted
     } else {
         TagClass::Pending
+    }
+}
+
+/// Category-aware classification.
+///
+/// KIT / STARTPACK tags listed in [`KIT_CONSUMED_TAGS`] are consumed by the
+/// typed KIT import and are therefore excluded from pending coverage.  Other
+/// categories, including equipment, keep the tag-only classification.
+pub fn classify_for_category(category: &str, tag_name: &str) -> TagClass {
+    let upper = tag_name.trim().to_ascii_uppercase();
+    if is_kit_category(category) && KIT_CONSUMED_TAGS.contains(&upper.as_str()) {
+        TagClass::Allowlisted
+    } else {
+        classify(&upper)
     }
 }
 
@@ -233,6 +283,26 @@ mod tests {
         // Prefix must not match.
         assert_eq!(classify("SPROPX"), TagClass::Pending);
         assert_eq!(classify("!PRETYPE"), TagClass::Pending);
+    }
+
+    #[test]
+    fn category_aware_classification_splits_kit_and_equipment_tags() {
+        assert_eq!(
+            classify_for_category("KIT", "OPTION"),
+            TagClass::Allowlisted
+        );
+        assert_eq!(
+            classify_for_category("STARTPACK", "LOCATION"),
+            TagClass::Allowlisted
+        );
+        assert_eq!(
+            classify_for_category("EQUIPMENT", "OPTION"),
+            TagClass::Pending
+        );
+        assert_eq!(
+            classify_for_category("EQUIPMENT", "LOCATION"),
+            TagClass::Pending
+        );
     }
 
     #[test]

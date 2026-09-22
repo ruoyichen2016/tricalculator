@@ -37,9 +37,10 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
         spells: Vec::new(),
         equipment: Vec::new(),
         abilities: Vec::new(),
+        templates: Vec::new(),
         advancement: Vec::new(),
     };
-    let mut class_hp: BTreeMap<String, i32> = BTreeMap::new();
+    let mut class_hp: BTreeMap<(String, u32), i32> = BTreeMap::new();
 
     for raw_line in input.lines() {
         let line = raw_line.trim_end_matches('\r').trim();
@@ -79,16 +80,34 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
                 }
             }
             "ABILITY" => parse_ability(&mut draft, value),
+            "TEMPLATESAPPLIED" => {
+                for name in extract_template_names(value) {
+                    if !draft
+                        .templates
+                        .iter()
+                        .any(|existing| existing.eq_ignore_ascii_case(&name))
+                    {
+                        draft.templates.push(name);
+                    }
+                }
+            }
             "GESTALTJSON" => draft.advancement = serde_json::from_str(value)?,
             _ => {}
         }
     }
 
     for class in &mut draft.class_levels {
-        class.hit_points_gained = class_hp
-            .get(&class.class_id.to_lowercase())
-            .copied()
-            .unwrap_or(class.hit_points_gained);
+        let class_key = class.class_id.to_lowercase();
+        let mut rolls: Vec<(u32, i32)> = class_hp
+            .iter()
+            .filter(|((class_id, _), _)| class_id == &class_key)
+            .map(|((_, level), hp)| (*level, *hp))
+            .collect();
+        rolls.sort_by_key(|(level, _)| *level);
+        if !rolls.is_empty() {
+            class.hit_points_by_level = rolls.into_iter().map(|(_, hp)| hp).collect();
+            class.hit_points_gained = class.hit_points_by_level.iter().sum();
+        }
     }
     if draft.name.trim().is_empty() {
         return Err(PcgDraftError::MissingName);
@@ -152,6 +171,21 @@ pub fn save_pcg_draft_file(path: impl AsRef<Path>, draft: &PcgDraft) -> Result<(
     Ok(())
 }
 
+fn extract_template_names(value: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut rest = value;
+    while let Some(position) = rest.find("NAME:") {
+        let after = &rest[position + "NAME:".len()..];
+        let end = after.find([']', '|', '[']).unwrap_or(after.len());
+        let name = after[..end].trim();
+        if !name.is_empty() && !names.iter().any(|existing: &String| existing == name) {
+            names.push(name.to_string());
+        }
+        rest = &after[end..];
+    }
+    names
+}
+
 fn parse_class(draft: &mut PcgDraft, value: &str) {
     let parts = split_pipe(value);
     let Some(class_id) = parts.first().copied() else {
@@ -173,23 +207,32 @@ fn parse_class(draft: &mut PcgDraft, value: &str) {
             class_id: class_id.to_string(),
             level,
             hit_points_gained: 0,
+            hit_points_by_level: Vec::new(),
             experience_gained: 0,
         });
     }
 }
 
-fn parse_class_abilities(class_hp: &mut BTreeMap<String, i32>, value: &str) {
+fn parse_class_abilities(class_hp: &mut BTreeMap<(String, u32), i32>, value: &str) {
     let parts = split_pipe(value);
     let Some(first) = parts.first().copied() else {
         return;
     };
-    let class_id = first.split('=').next().unwrap_or(first).to_lowercase();
+    let (class_id, level) = first
+        .split_once('=')
+        .map(|(class_id, level)| {
+            (
+                class_id.to_lowercase(),
+                level.trim().parse::<u32>().unwrap_or(1),
+            )
+        })
+        .unwrap_or_else(|| (first.to_lowercase(), 1));
     if let Some(hit_points) = parts
         .iter()
         .find_map(|part| part.strip_prefix("HITPOINTS:"))
         .and_then(|hp| hp.parse::<i32>().ok())
     {
-        *class_hp.entry(class_id).or_insert(0) += hit_points;
+        *class_hp.entry((class_id, level)).or_insert(0) += hit_points;
     }
 }
 
@@ -333,6 +376,7 @@ GESTALTJSON:[{\"character_level\":1,\"lanes\":[{\"lane_id\":\"a\",\"class_id\":\
             spells: Vec::new(),
             equipment: Vec::new(),
             abilities: Vec::new(),
+            templates: Vec::new(),
             advancement: vec![AdvancementFrame::new(
                 1,
                 vec![

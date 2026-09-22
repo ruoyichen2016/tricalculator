@@ -10,6 +10,9 @@ pub struct DraftClassLevel {
     pub level: u32,
     #[serde(default)]
     pub hit_points_gained: i32,
+    /// Per-level HP rolls from the `.pcg` draft.
+    #[serde(default)]
+    pub hit_points_by_level: Vec<i32>,
     #[serde(default)]
     pub experience_gained: i32,
 }

@@ -77,16 +77,19 @@
       "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Charlie.xml"
     },
     "35e_CloudGiantHalfDragon": {
-      "diverges_on": [
+      "expectation": "computed",
+      "java_gated_fields": [
+        "final_stats",
         "bab",
         "hit_points",
-        "final_stats",
+        "initiative",
         "armor_class",
         "touch_ac",
         "flat_footed_ac",
-        "save_fortitude"
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
-      "expectation": "computed_diverging",
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
       "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_CloudGiantHalfDragon.pcg",
@@ -226,16 +229,19 @@
       "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Jango.xml"
     },
     "35e_JimDop": {
-      "diverges_on": [
+      "expectation": "computed",
+      "java_gated_fields": [
+        "final_stats",
         "bab",
         "hit_points",
-        "final_stats",
+        "initiative",
         "armor_class",
         "touch_ac",
         "flat_footed_ac",
-        "save_fortitude"
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
-      "expectation": "computed_diverging",
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
       "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_JimDop.pcg",
@@ -434,21 +440,12 @@
   "description": "All PCG/XML pairs in the pinned PCGen test suite that map to a data set. Each case declares an `expectation` (computed / data_missing / base_only) so the agreement denominator is fixed. `data_missing_limit` caps how many cases may be skipped for missing data. `java_gated_fields` must match the Java csheet exactly; the rest are frozen in broad_baseline.json.",
   "expectation_summary": {
     "base_only": 0,
-    "computed": 21,
-    "computed_diverging": 2,
+    "computed": 23,
+    "computed_diverging": 0,
     "data_missing": 0,
     "must_compute": 23
   },
-  "known_data_gaps": {
-    "35e_CloudGiantHalfDragon": {
-      "blocker": "monster Hit Dice -> BAB/saves/HP/natural AC",
-      "reason": "monster (Giant) HD progression not modeled"
-    },
-    "35e_JimDop": {
-      "blocker": "monster Hit Dice -> BAB/saves/HP/natural AC",
-      "reason": "monster (Monstrous humanoid) HD progression not modeled"
-    }
-  },
+  "known_data_gaps": {},
   "name": "pcgen-testsuite-broad",
   "schema_version": 2
 }

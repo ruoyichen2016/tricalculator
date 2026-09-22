@@ -29,6 +29,7 @@ fn mini_fighter_snapshot_matches_expected_core_values() {
             class_id: "Fighter".to_string(),
             level: 2,
             hit_points_gained: 16,
+            hit_points_by_level: Vec::new(),
             experience_gained: 0,
         }],
         skills: BTreeMap::from([("Climb".to_string(), 4.0)]),
