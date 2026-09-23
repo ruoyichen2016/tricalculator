@@ -6,6 +6,7 @@ use crate::typed::build_typed_definitions;
 use pcgen_core::domain::{
     ClassDefinition, ClassProgression, DeityDefinition, DomainDefinition, EquipmentDefinition,
     EquipmentModifierDefinition, RaceDefinition, SkillDefinition, SpellDefinition, SpellPowerType,
+    TemplateDefinition,
 };
 use pcgen_core::{
     CompiledEntity, Effect, EffectAction, EffectPhase, EntityId, Modifier, ModifierOperation,
@@ -54,6 +55,8 @@ pub struct CompiledRulePack {
     pub variants: std::collections::BTreeMap<String, pcgen_core::VariantDefinition>,
     #[serde(default)]
     pub kits: std::collections::BTreeMap<String, pcgen_core::KitDefinition>,
+    #[serde(default)]
+    pub templates: std::collections::BTreeMap<String, TemplateDefinition>,
     #[serde(default)]
     pub progressions: std::collections::BTreeMap<String, ClassProgression>,
 }
@@ -234,6 +237,7 @@ pub fn lower_records(
         domains: typed.domains,
         variants: typed.variants,
         kits: typed.kits,
+        templates: typed.templates,
         progressions: typed.progressions,
     };
     let report = ImportReport {
@@ -287,13 +291,10 @@ pub fn lower_bonus_effect(
     let mut conditions = Vec::new();
     for part in parts.iter().skip(value_index + 1) {
         if let Some(type_name) = part.strip_prefix("TYPE=") {
-            bonus_type = Some(
-                type_name
-                    .split('.')
-                    .next()
-                    .unwrap_or(type_name)
-                    .to_ascii_lowercase(),
-            );
+            // Preserve the full `TYPE=` expression so `.STACK` policies are
+            // visible to the engine's stacking layer; category matching uses
+            // `contains`, not equality.
+            bonus_type = Some(type_name.trim().to_ascii_lowercase());
         } else if crate::tags::is_predicate_tag(part) {
             // PRERULE gates the whole bonus; parse_predicate handles it.
             conditions.push(parse_predicate(part, "")?);
@@ -476,7 +477,24 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                     fields.next()?.trim().to_string(),
                 )
             };
-            let value = value.parse::<i32>().ok()?;
+            let Ok(value) = value.parse::<i32>() else {
+                // Symbolic form such as `PREVARGT:%CHOICE,STR`.
+                return match tag_upper.as_str() {
+                    "PREVARGT" | "PREVARGTEQ" | "PREVARLT" | "PREVARLTEQ" => {
+                        Some(Predicate::VariableCompare {
+                            left: name,
+                            right: value,
+                            greater: matches!(tag_upper.as_str(), "PREVARGT" | "PREVARGTEQ"),
+                        })
+                    }
+                    "PREVAREQ" | "PREVARNEQ" => Some(Predicate::VariableEquals {
+                        left: name,
+                        right: value,
+                        equals: tag_upper == "PREVAREQ",
+                    }),
+                    _ => None,
+                };
+            };
             let (min, max) = match tag_upper.as_str() {
                 "PREVARGTEQ" => (Some(value), None),
                 "PREVARLTEQ" => (None, Some(value)),
@@ -491,6 +509,137 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 Some(Predicate::Not(Box::new(predicate)))
             } else {
                 Some(predicate)
+            }
+        }
+        "PREEQUIP" | "PREEQUIPPRIMARY" | "PREEQUIPSECONDARY" | "PREEQUIPBOTH" => {
+            let slot = match tag_upper.as_str() {
+                "PREEQUIPPRIMARY" => "primary",
+                "PREEQUIPSECONDARY" => "secondary",
+                "PREEQUIPBOTH" => "both",
+                _ => "any",
+            };
+            let values: Vec<String> = parts
+                .iter()
+                .skip(1)
+                .map(|part| part.trim())
+                .filter(|part| !part.is_empty() && part.parse::<u32>().is_err())
+                .map(|part| part.to_ascii_lowercase())
+                .collect();
+            if values.is_empty() {
+                None
+            } else {
+                Some(Predicate::Equipped {
+                    slot: slot.to_string(),
+                    values,
+                })
+            }
+        }
+        "PREWEAPONPROF" | "PREWIELD" | "PREDOMAIN" => {
+            let values: Vec<String> = parts
+                .iter()
+                .skip(1)
+                .map(|part| part.trim())
+                .filter(|part| !part.is_empty() && part.parse::<u32>().is_err())
+                .map(|part| part.to_ascii_lowercase())
+                .collect();
+            if values.is_empty() {
+                return None;
+            }
+            match tag_upper.as_str() {
+                "PREWEAPONPROF" => Some(Predicate::WeaponProf { names: values }),
+                "PREWIELD" => Some(Predicate::Wield { categories: values }),
+                _ => Some(Predicate::Domain { names: values }),
+            }
+        }
+        "PREHD" => {
+            let mut min: Option<u32> = None;
+            let mut max: Option<u32> = None;
+            for part in parts
+                .iter()
+                .map(|part| part.trim())
+                .filter(|part| !part.is_empty())
+            {
+                if let Some((key, value)) = part.split_once('=') {
+                    let value = value.trim().parse::<u32>().ok()?;
+                    match key.trim().to_ascii_uppercase().as_str() {
+                        "MIN" => min = Some(value),
+                        "MAX" => max = Some(value),
+                        _ => return None,
+                    }
+                } else {
+                    min = Some(part.parse::<u32>().ok()?);
+                }
+            }
+            if min.is_none() && max.is_none() {
+                None
+            } else {
+                Some(Predicate::HitDice { min, max })
+            }
+        }
+        "PRESPELL" => {
+            let names: Vec<String> = parts
+                .iter()
+                .skip(1)
+                .map(|part| part.trim())
+                .filter(|part| !part.is_empty() && part.parse::<u32>().is_err())
+                .map(str::to_string)
+                .collect();
+            if names.is_empty() {
+                None
+            } else {
+                Some(Predicate::KnownSpell { names })
+            }
+        }
+        "PRESPELLSCHOOL" => {
+            let mut entries = Vec::new();
+            for part in parts
+                .iter()
+                .skip(1)
+                .map(|part| part.trim())
+                .filter(|part| !part.is_empty() && part.parse::<u32>().is_err())
+            {
+                let (school, level) = part.split_once('=')?;
+                let level = level.trim().parse::<u32>().ok()?;
+                entries.push((school.trim().to_string(), level));
+            }
+            if entries.is_empty() {
+                None
+            } else {
+                Some(Predicate::SpellSchoolLevel { entries })
+            }
+        }
+        "PRESUBCLASS" | "PRELANG" => {
+            let values: Vec<String> = parts
+                .iter()
+                .skip(1)
+                .map(|part| part.trim())
+                .filter(|part| !part.is_empty() && part.parse::<u32>().is_err())
+                .map(str::to_string)
+                .collect();
+            if values.is_empty() {
+                return None;
+            }
+            if tag_upper == "PRESUBCLASS" {
+                Some(Predicate::Subclass { names: values })
+            } else {
+                Some(Predicate::Language { names: values })
+            }
+        }
+        "PREARMORTYPE" | "PREPROFWITHARMOR" | "PREPROFWITHSHIELD" => {
+            let values: Vec<String> = parts
+                .iter()
+                .skip(1)
+                .map(|part| part.trim())
+                .filter(|part| !part.is_empty() && part.parse::<u32>().is_err())
+                .map(|part| part.to_ascii_lowercase())
+                .collect();
+            if values.is_empty() {
+                return None;
+            }
+            match tag_upper.as_str() {
+                "PREARMORTYPE" => Some(Predicate::ArmorType { types: values }),
+                "PREPROFWITHARMOR" => Some(Predicate::ArmorProf { categories: values }),
+                _ => Some(Predicate::ShieldProf { categories: values }),
             }
         }
         // PREPCLEVEL counts character class levels only; monster / racial HD
@@ -861,6 +1010,9 @@ fn typed_digest(typed: &TypedDefinitions) -> String {
     for key in typed.kits.keys() {
         parts.push(format!("kit:{key}"));
     }
+    for key in typed.templates.keys() {
+        parts.push(format!("template:{key}"));
+    }
     parts.push(format!("counts:{}", parts.len()));
     pcgen_core::hash_parts(&parts)
 }
@@ -945,11 +1097,40 @@ fn consumed_legacy_tag(category: &str, tag_name: &str) -> bool {
         return true;
     }
     match category {
-        "ABILITY" | "ABILITYCATEGORY" => name == "CATEGORY",
+        "ABILITY" | "ABILITYCATEGORY" => {
+            matches!(name.as_str(), "CATEGORY" | "SPELLLEVEL" | "ADDSPELLLEVEL")
+        }
+        "DEITY" => name == "DOMAINS",
+        "SPELL" => name == "DOMAINS",
+        "DOMAIN" => name == "SPELLLEVEL",
+        "RACE" | "TEMPLATE" => matches!(
+            name.as_str(),
+            "REACH"
+                | "REACHMULT"
+                | "FACE"
+                | "RACESUBTYPE"
+                | "NATURALATTACKS"
+                | "UDAM"
+                | "UMULT"
+                | "DR"
+                | "SR"
+                | "CR"
+                | "VISION"
+                | "MOVECLONE"
+                | "UNENCUMBEREDMOVE"
+                | "ATTACKCYCLE"
+        ),
+        "CLASS" | "CLASS_LEVEL" => matches!(
+            name.as_str(),
+            "SPELLLEVEL" | "PROHIBITSPELL" | "KNOWNSPELLSFROMSPECIALTY" | "SPELLBOOK"
+        ),
         // Equipment modifier metadata captured by the typed model.
-        "EQUIPMOD" => matches!(name.as_str(), "PLUS" | "ITYPE" | "REPLACES"),
-        // Weapon/armor metadata captured by the typed model.
-        "EQUIPMENT" => matches!(name.as_str(), "CRITMULT" | "CRITRANGE" | "WIELD"),
+        "EQUIPMOD" => matches!(name.as_str(), "PLUS" | "ITYPE" | "REPLACES" | "CHARGES"),
+        // Weapon/armor/item metadata captured by the typed model.
+        "EQUIPMENT" => matches!(
+            name.as_str(),
+            "CRITMULT" | "CRITRANGE" | "WIELD" | "BASEITEM" | "CONTAINS" | "SLOTS" | "LOCATION"
+        ),
         _ => false,
     }
 }

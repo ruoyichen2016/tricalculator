@@ -820,35 +820,69 @@ pub fn lane_summary(lane: &pcgen_core::AdvancementLane) -> String {
 }
 
 fn ac_bonus_components(bonuses: &[crate::effects::AcBonus]) -> (i32, i32, i32) {
-    let mut armor_class = 0;
-    let mut touch_ac = 0;
-    let mut flat_footed_ac = 0;
+    let mut typed: BTreeMap<String, i32> = BTreeMap::new();
+    let mut stacking: Vec<(String, i32)> = Vec::new();
     for bonus in bonuses {
         let bonus_type = bonus
             .bonus_type
             .as_deref()
             .unwrap_or("")
             .to_ascii_lowercase();
+        if is_stacking_bonus_type(&bonus_type) {
+            stacking.push((bonus_type, bonus.value));
+        } else {
+            typed
+                .entry(bonus_type)
+                .and_modify(|current| *current = choose_non_stacking(*current, bonus.value))
+                .or_insert(bonus.value);
+        }
+    }
+
+    let mut armor_class = 0;
+    let mut touch_ac = 0;
+    let mut flat_footed_ac = 0;
+    for (bonus_type, value) in typed.into_iter().chain(stacking) {
         if bonus_type.contains("armor")
             || bonus_type.contains("shield")
             || bonus_type.contains("natural")
         {
             // Armor, shield and natural armor apply to normal/flat-footed AC,
             // but not touch AC.
-            armor_class += bonus.value;
-            flat_footed_ac += bonus.value;
+            armor_class += value;
+            flat_footed_ac += value;
         } else if bonus_type.contains("dodge") {
             // Dodge applies to normal/touch AC, but not flat-footed AC.
-            armor_class += bonus.value;
-            touch_ac += bonus.value;
+            armor_class += value;
+            touch_ac += value;
         } else {
             // Deflection, insight, luck, untyped, etc. apply to all three.
-            armor_class += bonus.value;
-            touch_ac += bonus.value;
-            flat_footed_ac += bonus.value;
+            armor_class += value;
+            touch_ac += value;
+            flat_footed_ac += value;
         }
     }
     (armor_class, touch_ac, flat_footed_ac)
+}
+
+fn is_stacking_bonus_type(bonus_type: &str) -> bool {
+    bonus_type.is_empty()
+        || bonus_type == "untyped"
+        || bonus_type == "type"
+        || bonus_type.contains("stack")
+        || bonus_type.contains("dodge")
+        || bonus_type.contains("circumstance")
+}
+
+fn choose_non_stacking(old: i32, new: i32) -> i32 {
+    if old >= 0 && new >= 0 {
+        old.max(new)
+    } else if old <= 0 && new <= 0 {
+        old.min(new)
+    } else if new.abs() > old.abs() {
+        new
+    } else {
+        old
+    }
 }
 
 fn apply_external_modifiers(snapshot: &mut CharacterSnapshot, modifiers: &BTreeMap<String, i32>) {

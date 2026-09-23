@@ -211,6 +211,7 @@ fn main() -> Result<()> {
                     "domains": pack.domains.len(),
                     "variants": pack.variants.len(),
                     "kits": pack.kits.len(),
+                    "templates": pack.templates.len(),
                     "progressions": pack.progressions.len(),
                 });
                 println!("{}", serde_json::to_string_pretty(&value)?);

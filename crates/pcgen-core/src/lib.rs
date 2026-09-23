@@ -23,10 +23,10 @@ pub mod vocab;
 pub use advancement::{AdvancementFrame, AdvancementLane, LaneId};
 pub use algorithms::{strongly_connected_components, topological_sort};
 pub use domain::{
-    AttackProgression, CastingType, ClassDefinition, ClassProgression, DeityDefinition,
-    DomainDefinition, DomainSpell, EquipmentDefinition, EquipmentModifierDefinition, KitDefinition,
-    KitEntry, RaceDefinition, SaveProgression, SkillDefinition, SpellDefinition, SpellPowerType,
-    TypedDefinitions,
+    AttackProgression, CastingType, ClassDefinition, ClassProgression, CreatureTraits,
+    DeityDefinition, DomainDefinition, DomainSpell, EquipmentDefinition,
+    EquipmentModifierDefinition, KitDefinition, KitEntry, RaceDefinition, SaveProgression,
+    SkillDefinition, SpellDefinition, SpellPowerType, TemplateDefinition, TypedDefinitions,
 };
 pub use faith::{evaluate_faith, FaithDecision};
 pub use fingerprint::{

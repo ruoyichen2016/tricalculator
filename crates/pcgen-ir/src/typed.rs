@@ -9,7 +9,7 @@ use pcgen_core::domain::{
     AttackProgression, CastingType, ClassDefinition, ClassProgression, DeityDefinition,
     DomainDefinition, DomainSpell, EquipmentDefinition, EquipmentModifierDefinition, KitDefinition,
     KitEntry, RaceDefinition, SaveProgression, SkillDefinition, SpellDefinition, SpellPowerType,
-    TypedDefinitions,
+    TemplateDefinition, TypedDefinitions,
 };
 use pcgen_core::{EffectPhase, Provenance, VariantDefinition};
 use regex::Regex;
@@ -95,6 +95,10 @@ pub fn build_typed_definitions(records: &[RawRecord]) -> TypedDefinitions {
                 typed.domains.insert(domain.id.clone(), domain);
             }
             "KIT" => parse_kit_record(record, &mut current_kit, &mut typed.kits),
+            "TEMPLATE" => {
+                let template = parse_template(record);
+                typed.templates.insert(template.id.clone(), template);
+            }
             _ => {}
         }
     }
@@ -139,6 +143,11 @@ fn merge_class(classes: &mut BTreeMap<String, ClassDefinition>, class: ClassDefi
             existing
                 .level_prerequisites
                 .extend(class.level_prerequisites);
+            existing.spell_levels.extend(class.spell_levels);
+            existing.prohibited_spells.extend(class.prohibited_spells);
+            existing.known_spells_from_specialty = existing
+                .known_spells_from_specialty
+                .max(class.known_spells_from_specialty);
             existing.spell_slots.extend(class.spell_slots);
             existing.spells_known.extend(class.spells_known);
             if !class.spell_list.is_empty() {
@@ -192,6 +201,7 @@ fn parse_race(record: &RawRecord) -> RaceDefinition {
     }
     race.favored_class = tag(record, "FAVOREDCLASS").map(str::to_string);
     race.type_tags = type_tags(record);
+    parse_creature_traits(record, &mut race.traits);
     for template in tags(record, "TEMPLATE") {
         for name in template.split('|').map(str::trim) {
             if !name.is_empty() && !name.to_ascii_uppercase().starts_with("CHOOSE:") {
@@ -260,6 +270,10 @@ fn parse_class(record: &RawRecord) -> ClassDefinition {
                 .filter(|skill| !skill.is_empty()),
         );
     }
+    class.prohibited_spells = tags(record, "PROHIBITSPELL").map(str::to_string).collect();
+    class.known_spells_from_specialty = tag(record, "KNOWNSPELLSFROMSPECIALTY")
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(0);
     for bonus in tags(record, "BONUS") {
         apply_class_bonus(&mut class, bonus);
     }
@@ -282,6 +296,9 @@ fn parse_class_level_row(class: &mut ClassDefinition, record: &RawRecord) {
                 class
                     .spells_known
                     .insert(level, parse_spell_table(&tag.value));
+            }
+            "SPELLLEVEL" => {
+                class.spell_levels.push(tag.value.clone());
             }
             "SPELLLIST" => {
                 class.spell_list = tag
@@ -326,6 +343,32 @@ fn parse_class_level_row(class: &mut ClassDefinition, record: &RawRecord) {
             _ => {}
         }
     }
+}
+
+fn parse_template(record: &RawRecord) -> TemplateDefinition {
+    let mut template = TemplateDefinition::new(record.key.clone(), record.name.clone());
+    template.type_tags = type_tags(record);
+    parse_creature_traits(record, &mut template.traits);
+    template
+}
+
+fn parse_creature_traits(record: &RawRecord, traits: &mut pcgen_core::CreatureTraits) {
+    traits.reach_feet = tag(record, "REACH").and_then(|value| value.parse().ok());
+    traits.reach_mult = tag(record, "REACHMULT").and_then(|value| value.parse().ok());
+    traits.face = tag(record, "FACE").map(str::to_string);
+    traits.subtypes = split_tag_list(record, "RACESUBTYPE");
+    traits.natural_attacks = tags(record, "NATURALATTACKS").map(str::to_string).collect();
+    traits.unarmed_damage = tags(record, "UDAM").map(str::to_string).collect();
+    traits.unarmed_mult = tag(record, "UMULT").and_then(|value| value.parse().ok());
+    traits.damage_reduction = tags(record, "DR").map(str::to_string).collect();
+    traits.spell_resistance = tag(record, "SR").map(str::to_string);
+    traits.challenge_rating = tag(record, "CR").map(str::to_string);
+    traits.vision = tags(record, "VISION").map(str::to_string).collect();
+    traits.move_clone = tags(record, "MOVECLONE").map(str::to_string).collect();
+    traits.unencumbered_move = tags(record, "UNENCUMBEREDMOVE")
+        .map(str::to_string)
+        .collect();
+    traits.attack_cycle = tags(record, "ATTACKCYCLE").map(str::to_string).collect();
 }
 
 const KIT_ENTRY_TARGETS: &[&str] = &[
@@ -489,6 +532,15 @@ fn parse_spell(record: &RawRecord) -> SpellDefinition {
             }
         }
     }
+    for domain in tags(record, "DOMAINS") {
+        spell.domains.extend(
+            domain
+                .split([',', '|'])
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string),
+        );
+    }
     spell.is_psionic = type_tags(record)
         .iter()
         .any(|tag| tag.eq_ignore_ascii_case("psionic"));
@@ -508,6 +560,10 @@ fn parse_equipment(record: &RawRecord) -> EquipmentDefinition {
     equipment.crit_mult = tag(record, "CRITMULT").map(str::to_string);
     equipment.crit_range = tag(record, "CRITRANGE").and_then(|value| value.parse().ok());
     equipment.wield = tag(record, "WIELD").map(str::to_string);
+    equipment.base_item = tag(record, "BASEITEM").map(str::to_string);
+    equipment.contains = tags(record, "CONTAINS").map(str::to_string).collect();
+    equipment.slots = tag(record, "SLOTS").and_then(|value| value.parse().ok());
+    equipment.location = tag(record, "LOCATION").map(str::to_string);
     for bonus in tags(record, "BONUS") {
         let parts: Vec<&str> = bonus.split('|').map(str::trim).collect();
         if parts.len() >= 3
@@ -674,6 +730,7 @@ fn parse_equipment_modifier(record: &RawRecord) -> EquipmentModifierDefinition {
     modifier.plus = tag(record, "PLUS").and_then(|value| value.parse().ok());
     modifier.item_types = split_tag_list(record, "ITYPE");
     modifier.replaces = split_tag_list(record, "REPLACES");
+    modifier.charges = tag(record, "CHARGES").map(str::to_string);
     for bonus in tags(record, "BONUS") {
         let parts: Vec<&str> = bonus.split('|').map(str::trim).collect();
         if parts.len() >= 3

@@ -64,6 +64,14 @@ pub struct EffectState {
     pub hands: u32,
     /// Movement modes in feet (lower-cased mode -> rate).
     pub movement: BTreeMap<String, u32>,
+    /// Equipped item names, type tags and wielding categories (lower-cased).
+    pub equipment_values: BTreeSet<String>,
+    /// Known weapon proficiencies (lower-cased), when derivable.
+    pub weapon_proficiencies: BTreeSet<String>,
+    /// Character domains (lower-cased).
+    pub domains: BTreeSet<String>,
+    /// Total Hit Dice for `PREHD`.
+    pub hit_dice: u32,
 }
 
 impl VariableResolver for EffectState {
@@ -114,6 +122,31 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
     templates.extend(draft.templates.iter().map(|name| name.to_ascii_lowercase()));
     let hands = race.map(|race| race.hands).unwrap_or(2);
     let movement = race.map(|race| race.movement.clone()).unwrap_or_default();
+    let mut equipment_values = BTreeSet::new();
+    for item in &draft.equipment {
+        let normalized_item = normalized(item);
+        equipment_values.insert(normalized_item.clone());
+        for (id, definition) in &pack.equipment {
+            if normalized(id) == normalized_item || normalized(&definition.name) == normalized_item
+            {
+                equipment_values.extend(definition.type_tags.iter().map(|tag| normalized(tag)));
+                if let Some(wield) = &definition.wield {
+                    equipment_values.insert(normalized(wield));
+                }
+            }
+        }
+    }
+    let weapon_proficiencies: BTreeSet<String> = draft
+        .abilities
+        .iter()
+        .map(|(_, key)| normalized(key))
+        .collect();
+    let mut domains = BTreeSet::new();
+    for frame in &draft.advancement {
+        for lane in &frame.lanes {
+            domains.extend(lane.domains.iter().map(|domain| normalized(domain)));
+        }
+    }
     let mut ability_modifiers = BTreeMap::new();
     {
         let mut stats = draft.stats.clone();
@@ -142,6 +175,10 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         templates,
         hands,
         movement,
+        equipment_values,
+        weapon_proficiencies,
+        domains,
+        hit_dice: draft.total_level(),
         ..EffectState::default()
     };
     state
@@ -617,6 +654,24 @@ fn derive_spellcasting_prereq(
     (powers, max_spell_level, slots, has_spellbook, class_casting)
 }
 
+fn variable_value(state: &EffectState, name: &str) -> i32 {
+    let trimmed = name.trim();
+    if trimmed.eq_ignore_ascii_case("%CHOICE") {
+        return 0;
+    }
+    state
+        .variables
+        .get(trimmed)
+        .copied()
+        .or_else(|| {
+            state
+                .ability_modifiers
+                .get(&trimmed.to_ascii_uppercase())
+                .copied()
+        })
+        .unwrap_or(0)
+}
+
 fn entity_is_active(state: &EffectState, draft: &CharacterDraft, entity: &EntityId) -> bool {
     match entity.entity_type.to_ascii_lowercase().as_str() {
         "race" => normalized(&draft.race_id) == normalized(&entity.key),
@@ -721,6 +776,113 @@ fn predicate_holds(
         Predicate::MovementAtLeast { mode, feet } => {
             state.movement.get(mode).is_some_and(|rate| *rate >= *feet)
         }
+        Predicate::Equipped { slot: _, values } => values.iter().any(|value| {
+            state
+                .equipment_values
+                .iter()
+                .any(|item| item == value || item.contains(value))
+        }),
+        Predicate::WeaponProf { names } => names.iter().any(|name| {
+            state
+                .weapon_proficiencies
+                .iter()
+                .any(|prof| prof == name || prof.contains(name))
+        }),
+        Predicate::Wield { categories } => categories.iter().any(|category| {
+            state
+                .equipment_values
+                .iter()
+                .any(|item| item == category || item.contains(category))
+        }),
+        Predicate::Domain { names } => names.iter().any(|name| {
+            state
+                .domains
+                .iter()
+                .any(|domain| domain == name || domain.contains(name))
+        }),
+        Predicate::HitDice { min, max } => {
+            min.is_none_or(|min| state.hit_dice >= min)
+                && max.is_none_or(|max| state.hit_dice <= max)
+        }
+        Predicate::VariableCompare {
+            left,
+            right,
+            greater,
+        } => {
+            let left = variable_value(state, left);
+            let right = variable_value(state, right);
+            if *greater {
+                left > right
+            } else {
+                left < right
+            }
+        }
+        Predicate::VariableEquals {
+            left,
+            right,
+            equals,
+        } => {
+            let left = variable_value(state, left);
+            let right = variable_value(state, right);
+            if *equals {
+                left == right
+            } else {
+                left != right
+            }
+        }
+        Predicate::ArmorType { types } => types.iter().any(|armor_type| {
+            state
+                .equipment_values
+                .iter()
+                .any(|item| item.contains(armor_type))
+        }),
+        Predicate::ArmorProf { categories } => categories.iter().any(|category| {
+            state
+                .equipment_values
+                .iter()
+                .any(|item| item.contains(category))
+        }),
+        Predicate::ShieldProf { categories } => categories.iter().any(|category| {
+            state
+                .equipment_values
+                .iter()
+                .any(|item| item.contains(category))
+        }),
+        Predicate::KnownSpell { names } => names.iter().any(|name| {
+            draft
+                .spells
+                .iter()
+                .any(|spell| spell.name.eq_ignore_ascii_case(name))
+        }),
+        Predicate::Subclass { names } => names.iter().any(|name| {
+            draft
+                .advancement
+                .iter()
+                .flat_map(|frame| frame.lanes.iter())
+                .any(|lane| {
+                    lane.substitution_level
+                        .as_deref()
+                        .is_some_and(|subclass| subclass.eq_ignore_ascii_case(name))
+                })
+        }),
+        Predicate::Language { names } => names.iter().any(|name| {
+            draft
+                .abilities
+                .iter()
+                .any(|(_, ability)| ability.eq_ignore_ascii_case(name))
+        }),
+        Predicate::SpellSchoolLevel { entries } => entries.iter().all(|(school, level)| {
+            draft.spells.iter().any(|spell| {
+                spell
+                    .class_id
+                    .as_deref()
+                    .is_some_and(|_| spell.level >= *level)
+                    && spell
+                        .name
+                        .to_ascii_lowercase()
+                        .contains(&school.to_ascii_lowercase())
+            }) || *level == 0
+        }),
         Predicate::CastingTypeIs { prepared } => state.class_casting.values().any(|mode| {
             if *prepared {
                 *mode == CastingType::Prepared

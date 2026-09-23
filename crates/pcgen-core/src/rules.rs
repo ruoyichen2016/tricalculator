@@ -127,6 +127,71 @@ pub enum Predicate {
         mode: String,
         feet: u32,
     },
+    /// Equipped-item query (PCGen `PREEQUIP*`).  `slot` is one of
+    /// `any`, `primary`, `secondary`, `both`.
+    Equipped {
+        slot: String,
+        values: Vec<String>,
+    },
+    /// Weapon proficiency query (PCGen `PREWEAPONPROF`).
+    WeaponProf {
+        names: Vec<String>,
+    },
+    /// Wielding category query (PCGen `PREWIELD`).
+    Wield {
+        categories: Vec<String>,
+    },
+    /// Domain membership query (PCGen `PREDOMAIN`).
+    Domain {
+        names: Vec<String>,
+    },
+    /// Hit Dice threshold (PCGen `PREHD`).
+    HitDice {
+        min: Option<u32>,
+        max: Option<u32>,
+    },
+    /// Compare two variable/ability expressions (PCGen `PREVARGT/LT` with
+    /// symbolic operands such as `%CHOICE,STR`).
+    VariableCompare {
+        left: String,
+        right: String,
+        greater: bool,
+    },
+    /// Symbolic equality/inequality comparison (PCGen `PREVAREQ/NEQ` with
+    /// `var(...)` or `skillinfo(...)` operands).
+    VariableEquals {
+        left: String,
+        right: String,
+        equals: bool,
+    },
+    /// Armor type query (PCGen `PREARMORTYPE`).
+    ArmorType {
+        types: Vec<String>,
+    },
+    /// Armor proficiency query (PCGen `PREPROFWITHARMOR`).
+    ArmorProf {
+        categories: Vec<String>,
+    },
+    /// Shield proficiency query (PCGen `PREPROFWITHSHIELD`).
+    ShieldProf {
+        categories: Vec<String>,
+    },
+    /// Known-spell prerequisite (PCGen `PRESPELL`).
+    KnownSpell {
+        names: Vec<String>,
+    },
+    /// Spell-school level prerequisite (PCGen `PRESPELLSCHOOL`).
+    SpellSchoolLevel {
+        entries: Vec<(String, u32)>,
+    },
+    /// Subclass prerequisite (PCGen `PRESUBCLASS`).
+    Subclass {
+        names: Vec<String>,
+    },
+    /// Language prerequisite (PCGen `PRELANG`).
+    Language {
+        names: Vec<String>,
+    },
 }
 
 /// Ordering phase for one effect.

@@ -101,6 +101,61 @@ impl SpellPowerType {
 }
 
 /// Race definition.
+/// Creature traits shared by races and templates.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct CreatureTraits {
+    #[serde(default)]
+    pub reach_feet: Option<i32>,
+    #[serde(default)]
+    pub reach_mult: Option<i32>,
+    #[serde(default)]
+    pub face: Option<String>,
+    #[serde(default)]
+    pub subtypes: Vec<String>,
+    #[serde(default)]
+    pub natural_attacks: Vec<String>,
+    #[serde(default)]
+    pub unarmed_damage: Vec<String>,
+    #[serde(default)]
+    pub unarmed_mult: Option<i32>,
+    #[serde(default)]
+    pub damage_reduction: Vec<String>,
+    #[serde(default)]
+    pub spell_resistance: Option<String>,
+    #[serde(default)]
+    pub challenge_rating: Option<String>,
+    #[serde(default)]
+    pub vision: Vec<String>,
+    #[serde(default)]
+    pub move_clone: Vec<String>,
+    #[serde(default)]
+    pub unencumbered_move: Vec<String>,
+    #[serde(default)]
+    pub attack_cycle: Vec<String>,
+}
+
+/// Declarative creature template definition.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct TemplateDefinition {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub type_tags: Vec<String>,
+    #[serde(default)]
+    pub traits: CreatureTraits,
+}
+
+impl TemplateDefinition {
+    pub fn new(id: impl Into<String>, name: impl Into<String>) -> Self {
+        Self {
+            id: id.into(),
+            name: name.into(),
+            type_tags: Vec::new(),
+            traits: CreatureTraits::default(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RaceDefinition {
     pub id: String,
@@ -124,6 +179,9 @@ pub struct RaceDefinition {
     /// Inherent creature templates granted by the race (PCGen `TEMPLATE:`).
     #[serde(default)]
     pub templates: Vec<String>,
+    /// Creature traits (reach, natural attacks, DR/SR/CR, vision, ...).
+    #[serde(default)]
+    pub traits: CreatureTraits,
 }
 
 fn default_hands() -> u32 {
@@ -143,6 +201,7 @@ impl RaceDefinition {
             hands: default_hands(),
             movement: BTreeMap::new(),
             templates: Vec::new(),
+            traits: CreatureTraits::default(),
         }
     }
 }
@@ -211,6 +270,15 @@ pub struct ClassDefinition {
     pub level_bonuses: BTreeMap<u32, Vec<String>>,
     #[serde(default)]
     pub level_prerequisites: BTreeMap<u32, Vec<String>>,
+    /// PCGen `SPELLLEVEL` assignments captured from class level rows.
+    #[serde(default)]
+    pub spell_levels: Vec<String>,
+    /// Prohibited spell/school entries (PCGen `PROHIBITSPELL:`).
+    #[serde(default)]
+    pub prohibited_spells: Vec<String>,
+    /// Bonus known spells from specialty (PCGen `KNOWNSPELLSFROMSPECIALTY:`).
+    #[serde(default)]
+    pub known_spells_from_specialty: u32,
 }
 
 impl ClassDefinition {
@@ -246,6 +314,9 @@ impl ClassDefinition {
             level_abilities: BTreeMap::new(),
             level_bonuses: BTreeMap::new(),
             level_prerequisites: BTreeMap::new(),
+            spell_levels: Vec::new(),
+            prohibited_spells: Vec::new(),
+            known_spells_from_specialty: 0,
         }
     }
 }
@@ -286,6 +357,9 @@ pub struct SpellDefinition {
     pub school: String,
     #[serde(default)]
     pub class_levels: BTreeMap<String, u32>,
+    /// Domains that include this spell (PCGen `DOMAINS:`).
+    #[serde(default)]
+    pub domains: Vec<String>,
     #[serde(default)]
     pub is_psionic: bool,
 }
@@ -298,6 +372,7 @@ impl SpellDefinition {
             level: 0,
             school: String::new(),
             class_levels: BTreeMap::new(),
+            domains: Vec::new(),
             is_psionic: false,
         }
     }
@@ -332,6 +407,18 @@ pub struct EquipmentDefinition {
     /// Wielding category (PCGen `WIELD:`), e.g. `OneHanded`.
     #[serde(default)]
     pub wield: Option<String>,
+    /// Base item category (PCGen `BASEITEM:`), e.g. `Rod`.
+    #[serde(default)]
+    pub base_item: Option<String>,
+    /// Container contents (PCGen `CONTAINS:`), preserved as raw expressions.
+    #[serde(default)]
+    pub contains: Vec<String>,
+    /// Slots occupied (PCGen `SLOTS:`).
+    #[serde(default)]
+    pub slots: Option<i32>,
+    /// Equip location (PCGen `LOCATION:`), e.g. `Equipped`, `Carried`.
+    #[serde(default)]
+    pub location: Option<String>,
 }
 
 impl EquipmentDefinition {
@@ -349,6 +436,10 @@ impl EquipmentDefinition {
             crit_mult: None,
             crit_range: None,
             wield: None,
+            base_item: None,
+            contains: Vec::new(),
+            slots: None,
+            location: None,
         }
     }
 }
@@ -435,6 +526,9 @@ pub struct EquipmentModifierDefinition {
     /// Mutually exclusive modifiers (PCGen `REPLACES:`).
     #[serde(default)]
     pub replaces: Vec<String>,
+    /// Charge range expression (PCGen `CHARGES:`), e.g. `1|50`.
+    #[serde(default)]
+    pub charges: Option<String>,
 }
 
 impl EquipmentModifierDefinition {
@@ -449,6 +543,7 @@ impl EquipmentModifierDefinition {
             plus: None,
             item_types: Vec::new(),
             replaces: Vec::new(),
+            charges: None,
         }
     }
 }
@@ -594,5 +689,6 @@ pub struct TypedDefinitions {
     pub domains: BTreeMap<String, DomainDefinition>,
     pub variants: BTreeMap<String, VariantDefinition>,
     pub kits: BTreeMap<String, KitDefinition>,
+    pub templates: BTreeMap<String, TemplateDefinition>,
     pub progressions: BTreeMap<String, ClassProgression>,
 }

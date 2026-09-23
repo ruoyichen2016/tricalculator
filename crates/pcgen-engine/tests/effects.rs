@@ -467,3 +467,47 @@ fn flat_footed_ac_keeps_negative_dex_penalty() {
     assert_eq!(snapshot.touch_ac, 8);
     assert_eq!(snapshot.flat_footed_ac, 8);
 }
+
+#[test]
+fn ac_bonus_stacking_policy_applies_same_type_rules() {
+    let records = vec![
+        record(
+            "RACE",
+            "Armor Race",
+            "Armor Race",
+            &[
+                ("BONUS", "COMBAT|AC|2|TYPE=Armor"),
+                ("BONUS", "COMBAT|AC|3|TYPE=Armor"),
+            ],
+        ),
+        record(
+            "RACE",
+            "Dodge Race",
+            "Dodge Race",
+            &[
+                ("BONUS", "COMBAT|AC|2|TYPE=Dodge"),
+                ("BONUS", "COMBAT|AC|3|TYPE=Dodge"),
+            ],
+        ),
+    ];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["ac-stacking".to_string()],
+        &records,
+    );
+    let armor = Engine::new(pack.clone()).evaluate(&CharacterDraft {
+        race_id: "Armor Race".to_string(),
+        ..CharacterDraft::default()
+    });
+    assert_eq!(armor.armor_class, 13);
+    assert_eq!(armor.touch_ac, 10);
+    assert_eq!(armor.flat_footed_ac, 13);
+
+    let dodge = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Dodge Race".to_string(),
+        ..CharacterDraft::default()
+    });
+    assert_eq!(dodge.armor_class, 15);
+    assert_eq!(dodge.touch_ac, 15);
+    assert_eq!(dodge.flat_footed_ac, 10);
+}

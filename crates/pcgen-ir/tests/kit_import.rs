@@ -92,8 +92,8 @@ fn equipment_option_and_location_remain_pending() {
         report.coverage.legacy_pending_by_tag.get("OPTION"),
         Some(&1)
     );
-    assert_eq!(
-        report.coverage.legacy_pending_by_tag.get("LOCATION"),
-        Some(&1)
-    );
+    assert!(!report
+        .coverage
+        .legacy_pending_by_tag
+        .contains_key("LOCATION"));
 }

@@ -272,11 +272,10 @@ fn negated_bonus_condition_lowers() {
 }
 
 #[test]
-fn negated_unsupported_predicate_is_reported_as_unsupported() {
-    // `!PRESUBCLASS` has no positive lowering yet.  It must surface as
-    // unsupported work rather than silently disappearing into the legacy
-    // histogram.
-    let record = record("RACE", "No Subclass", &[("!PRESUBCLASS", "1,Foo")]);
+fn negated_unknown_predicate_is_reported_as_unsupported() {
+    // A genuinely unknown `!PRE*` form must surface as unsupported work
+    // rather than silently disappearing into the legacy histogram.
+    let record = record("RACE", "No Unknown", &[("!PREUNKNOWN", "1,Foo")]);
     let (pack, report) = lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[record]);
     assert!(pack.entities[0].requirements.is_empty());
     assert_eq!(report.coverage.unsupported_tags, 1);
