@@ -22,6 +22,21 @@
   45.5%→76.2%；DS-3E 67.6%→68.9%；测试 119→122。
 - broad oracle / archive differential 行为不变（KIT 不执行随机展开）。
 
+### P4-BONUS/EQP 续作 + P4-SPELL-1 S2 + P4-RACE/TPL owner 归并（当前切片）
+
+- 装备槽位：新增 `EquipSlot`、slot order 排序、slot conflict 诊断；
+  `EquipmentDefinition` 增加 `slot` 推断；archive `equipment_slot_sort`
+  意图已有 core 测试。
+- 法术效果指标：`ImportReport.spell_effects` 统计 SPELL/DOMAIN 上的可执行
+  effect；`import-report --json` 与 coverage gate 接入；DS-3E 16、DS-35E 41；
+  新增 `spell_effects` golden 测试。
+- Creature trait 输出：`CharacterSnapshot` 新增 `vision` /
+  `damage_reduction` / `spell_resistance` / `natural_attacks`，从
+  Race/Template `CreatureTraits` 聚合。
+- 新增 P4-H owner 表，把 Ability/ClassLevel/Equipment/EquipMod/CompanionMod
+  上剩余 creature-trait tag 归并到 P4-RACE-1 / P4-CLASS-1 / P4-EQP-1。
+- 测试 123→127。
+
 ### P4-BONUS/EQP 第二阶段 + P4-SPELL-1 S1 + P4-RACE/TPL 分类（已完成当前切片）
 
 - 残余 `BONUS` unsupported 清零；新增 `PREEQUIP*` / `PREWEAPONPROF` /

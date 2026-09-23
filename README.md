@@ -110,15 +110,19 @@ commit 并执行字段级差分）两个 job。细节见 [`docs/TESTING.md`](doc
   flat-footed 负 DEX、per-level HP minimum、Halfling 种族 trait / ability `.MOD`
   合并、Half-Dragon template stat/AC/HP 接入（P4-BONUS/EQP + P4-RACE/TPL）；
 - 装备 `BASEITEM` / `CONTAINS` / `SLOTS` / `CHARGES` typed 导入；
+- `EquipSlot` / 冲突诊断 / slot order 排序进入 engine；archive
+  `equipment_slot_sort` 意图已有对应测试；
 - 法术/领域 `DOMAINS` / `SPELLLEVEL` / `PROHIBITSPELL` / `ADDSPELLLEVEL` /
   `KNOWNSPELLSFROMSPECIALTY` / `SPELLBOOK` 与 `PRESPELL` / `PRESPELLSCHOOL`
-  接入（P4-SPELL-1 S1）；
+  接入（P4-SPELL-1 S1）；`spell_effects` 指标与 golden 已建立；
+- Race/Template `CreatureTraits` 进入 `CharacterSnapshot`：
+  `vision` / `damage_reduction` / `spell_resistance` / `natural_attacks`；
 - 残余 `BONUS` unsupported 清零；broad oracle 全部字段 23/23（100%），
   known-diverging 0；
 - KIT / STARTPACK 声明式 typed 导入（P4-KIT-1，见
   [`docs/P4_KIT0_DESIGN.md`](docs/P4_KIT0_DESIGN.md)）；DS-35E completion
   45.5%→88.3%；两个数据集 unsupported pending 均为 0；
-- 123 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
+- 127 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
 
 真实 PCGen 数据解析与完整角色计算正在按 [`MIGRATION.md`](MIGRATION.md) 从
 archive 迁移。

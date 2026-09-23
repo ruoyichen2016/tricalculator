@@ -1,6 +1,6 @@
 # P4-SPELL-1 预研：法术定义 → 可执行 spell effect
 
-> 状态：S1 typed 定义与覆盖率已完成；S2 执行层待做。
+> 状态：S1 typed 定义与覆盖率已完成；S2 已加入 `spell_effects` 指标与 golden，完整法术语义执行可继续扩展。
 > 数据：DS-35E `_rsrd_basics.pcc` 固定数据，逐 category pending 探针。
 > 关联任务：`ROADMAP.md` P4-C / P4-SPELL-1。
 

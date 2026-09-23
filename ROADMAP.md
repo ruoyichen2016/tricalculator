@@ -8,7 +8,7 @@
 ## 当前状态（最近验证：固定数据 + 全量门禁）
 
 - 工作区：7 crate（core / formula / ir / import / engine / output / cli）。
-- 测试：`cargo test --workspace` **123 passed**。
+- 测试：`cargo test --workspace` **127 passed**。
 - DS-3E（回归代理，`srdbasic.pcc`）：3,779 entities，23,723 tag occurrences，
   lowered 3,111；legacy pending 583；unsupported 0；
   **semantic completion 84.2%**。
@@ -239,11 +239,12 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
 
 #### P4-BONUS-1 + P4-EQP-1 合并验收：BONUS 残余 / G1 stacking / G2 装备
 
-- **状态**：已取得第二阶段阶段性成果。残余 `BONUS` unsupported 已清零；
-  `BASEITEM` / `CONTAINS` / `SLOTS` / `CHARGES` 已 typed 并消费；
-  AC 加值已接入 same-type non-stacking / dodge/circumstance/untyped stacking
-  规则。DS-3E/DS-35E unsupported pending 均为 0；broad oracle 23/23 100%。
-  剩余：saves/attack 等通用 stacking、装备槽位/冲突运行时语义。
+- **状态**：残余 `BONUS` unsupported 已清零；`BASEITEM` / `CONTAINS` /
+  `SLOTS` / `CHARGES` 已 typed 并消费；AC 加值已接入 same-type non-stacking /
+  dodge/circumstance/untyped stacking；装备 `EquipSlot`、冲突诊断、slot order
+  排序已进入 engine，archive `equipment_slot_sort` 意图已有对应测试。
+  DS-3E/DS-35E unsupported pending 均为 0；broad oracle 23/23 100%。
+  剩余：saves/attack/skill 的完整通用 stacking 与更细的 `PREEQUIP*` 槽位状态。
 - **目标**：清零残余 BONUS 与装备类 pending legacy；在 IR/engine 层恢复
   archive `bonus.rs` 的 typed stacking policy（G1），并把装备槽位、冲突、
   顺序、装备加成 typed 化（G2）；两者必须走同一条 modifier/AC 管线。
@@ -299,8 +300,9 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
 - **状态**：S1 已完成。`DOMAINS` / `SPELLLEVEL` / `PROHIBITSPELL` /
   `ADDSPELLLEVEL` / `KNOWNSPELLSFROMSPECIALTY` / `SPELLBOOK` 已 typed 或
   消费，`PRESPELL` / `PRESPELLSCHOOL` 已 lower，两个数据集这些 tag 均清零。
-  预研见 [`docs/P4_SPELL1_PRERESEARCH.md`](docs/P4_SPELL1_PRERESEARCH.md)；
-  S2 执行层 spell effect 与 golden 待做。
+  S2 已加入 `spell_effects` 指标与 golden 测试：DS-3E 16、DS-35E 41。
+  预研见 [`docs/P4_SPELL1_PRERESEARCH.md`](docs/P4_SPELL1_PRERESEARCH.md)。
+  完整 spell effect 执行（如领域/专精法术效果进入 snapshot）仍可继续扩展。
 - **目标**：建立 spell effect 模型，将 spell 定义降低为可执行 `Effect`，
   并在 `import-report` 新增 `spell_effects` 指标。
 - **指标**：`spell_effects > 0` 并冻结基线；
@@ -442,6 +444,24 @@ DS-35E unsupported 阈值收紧到 0。
 > DS-3E 的残余 `BONUS=3` 同样由 P4-BONUS-1 / P4-EQP-1 合并验收清零，
 > 届时两个数据集都应达到 `unsupported_tags == 0`。
 
+### P4-H 剩余 creature-trait owner 表
+
+Race/Template 上的 `VISION` / `DR` / `SR` / `NATURALATTACKS` / `REACH` /
+`RACESUBTYPE` / `UDAM` / `UMULT` 等已 typed 化，并进入 `CharacterSnapshot`
+的 `vision` / `damage_reduction` / `spell_resistance` / `natural_attacks`。
+剩余同名 tag 出现在 Ability / ClassLevel / Equipment 等 category，按 owner 归并：
+
+| category | tags / 次数 | owner | 处理方式 |
+|---|---|---|---|
+| Ability | `UDAM` 54、`UMULT` 54、`NATURALATTACKS` 18、`VISION` 9、`DR` 6、`SR` 3、`MOVECLONE` 1 | P4-RACE-1 / P4-CLASS-1 | 怪物/种族 trait 归 P4-RACE-1；职业能力归 P4-CLASS-1，后续汇入 `CreatureTraits` |
+| ClassLevel | `UDAM` 20、`UMULT` 1 | P4-CLASS-1 | 职业进阶表能力，进入 class feature / unarmed damage 模型 |
+| Equipment | `REACHMULT` 7、`SR` 5、`DR` 3 | P4-EQP-1 | 装备特殊能力，接入装备 trait 输出 |
+| EquipMod | `DR` 4、`SR` 6 | P4-EQP-1 | 装备 modifier 特殊能力 |
+| CompanionMod | `SR` 4 | P4-RACE-1 | companion trait |
+
+> 产品输出范围已冻结：Race/Template 的视觉、DR、SR、natural attacks 进入
+> `CharacterSnapshot`；其余 category 的 trait 由对应 owner 任务逐步汇入同一字段。
+
 ### P4 推荐执行顺序
 
 已完成：P4-PRE-1、P4-PRE-2、P4-PRE-5、P4-ENG-1、P4-KIT-0、P4-KIT-1、P4-DATA-1。
@@ -457,10 +477,10 @@ DS-35E unsupported 阈值收紧到 0。
 | ~~0c~~ | ~~P4-ENG-1~~ | ✅ 已完成：class/level 激活 + 默认 BAB=0 + modifier 归一化；BAB 21/21 |
 | ~~0d~~ | ~~P4-KIT-0~~ | ✅ 设计 spike 完成：声明式导入优先，随机展开单独立项 |
 | ~~1~~ | ~~P4-KIT-1~~ | ✅ 完成：KIT pending 6,896→0；DS-35E completion 45.5%→76.2% |
-| 2 | P4-BONUS-1 + P4-EQP-1 第二阶段 | ✅ 残余 BONUS/装备 pending 清零、AC stacking；剩余通用 stacking 与槽位/冲突语义 |
-| 3 | P4-SPELL-1 | ✅ S1 typed/coverage 清零；S2 spell effect 执行与 golden 待做 |
+| 2 | P4-BONUS-1 + P4-EQP-1 第二阶段 | ✅ BONUS/装备 pending 清零、AC stacking、EquipSlot/冲突/排序；剩余 saves/attack/skill 通用 stacking |
+| 3 | P4-SPELL-1 | ✅ S1 typed/coverage + S2 `spell_effects` 指标/golden；完整法术执行可继续扩展 |
 | ~~4~~ | ~~P4-DATA-1~~ | ✅ 完成：known_diverging 0；23/23 Java exact |
-| 4b | P4-RACE-1 / P4-TPL-1 | ✅ Race/Template typed + Half-Dragon/Halfling/Ally `.MOD`；剩余 Ability/ClassLevel/Equipment creature-trait owner 归并 |
+| 4b | P4-RACE-1 / P4-TPL-1 | ✅ Race/Template typed + snapshot traits + owner 表；Ability/ClassLevel/Equipment 剩余 trait 按 owner 推进 |
 | 5 | P4-TEMP-1 / P4-PSI-1 | active-state 与灵能闭环；可与第 2–4 项并行 |
 | 6 | P4-CLASS-1 / P4-STAT-1 / P4-FAITH | triage 派生小项；清 `!PRESUBCLASS` 等 unsupported |
 | 7 | P4-DEC-2 / DEC-4 | G3 dropped、G4 归档 |
