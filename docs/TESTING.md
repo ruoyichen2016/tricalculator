@@ -205,8 +205,8 @@ KIT / COMPANIONMOD / 怪物记录**均在范围内**（见 `PRODUCT_SCOPE.md`）
 8 个展示/角色生成 tag 已改判 allowlist，其余全部归入 P4 任务；
 DS-35E 的 KIT 主瓶颈已由 `P4-KIT-1` 声明式 typed 导入解决；
 设计结论见 [`P4_KIT0_DESIGN.md`](P4_KIT0_DESIGN.md)：声明式导入优先，运行时
-随机展开单独立项。当前 DS-35E `semantic_completion` 约 **76.2%**，
-DS-3E 约 **68.9%**。
+随机展开单独立项。当前 DS-35E `semantic_completion` 约 **88.3%**，
+DS-3E 约 **84.2%**；两个数据集 unsupported pending 均为 0。
 
 ## 8. 架构护栏：engine 不得依赖 import
 

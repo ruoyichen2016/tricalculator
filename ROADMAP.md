@@ -8,13 +8,13 @@
 ## 当前状态（最近验证：固定数据 + 全量门禁）
 
 - 工作区：7 crate（core / formula / ir / import / engine / output / cli）。
-- 测试：`cargo test --workspace` **122 passed**。
+- 测试：`cargo test --workspace` **123 passed**。
 - DS-3E（回归代理，`srdbasic.pcc`）：3,779 entities，23,723 tag occurrences，
-  lowered 3,108；legacy pending 1,398；unsupported 3；
-  **semantic completion 68.9%**。
+  lowered 3,111；legacy pending 583；unsupported 0；
+  **semantic completion 84.2%**。
 - DS-35E（主验收，`_rsrd_basics.pcc`）：15,741 entities，
-  lowered 7,814；legacy pending 2,346；unsupported 104；
-  **semantic completion 76.2%**。
+  lowered 7,859；legacy pending 1,038；unsupported pending 0
+  （仅 2 个 `PRETEXT` allowlisted）；**semantic completion 88.3%**。
 - 门禁 `scripts/coverage_gate.py`：**12 pass / 0 fail / 0 skip**（严格模式，含双数据集 coverage 基线与 DS-35E 阈值）。
 - broad per-case oracle：23 cohort（**23 computed = 23 java-compared +
   0 known-diverging**，0 data-missing），23 个 java-gated case；
@@ -239,11 +239,11 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
 
 #### P4-BONUS-1 + P4-EQP-1 合并验收：BONUS 残余 / G1 stacking / G2 装备
 
-- **状态**：第一阶段已完成（typed numeric AC、默认豁免零值、flat-footed 负 DEX、
-  per-level HP minimum、Halfling 种族 trait、template stat/AC/HP）。
-  broad oracle 全部字段 23/23（100%），`known_diverging=0`；测试 119→122。
-  剩余：DS-3E/DS-35E `BONUS` unsupported、装备 pending legacy、完整 stacking
-  policy 与装备槽位语义。
+- **状态**：已取得第二阶段阶段性成果。残余 `BONUS` unsupported 已清零；
+  `BASEITEM` / `CONTAINS` / `SLOTS` / `CHARGES` 已 typed 并消费；
+  AC 加值已接入 same-type non-stacking / dodge/circumstance/untyped stacking
+  规则。DS-3E/DS-35E unsupported pending 均为 0；broad oracle 23/23 100%。
+  剩余：saves/attack 等通用 stacking、装备槽位/冲突运行时语义。
 - **目标**：清零残余 BONUS 与装备类 pending legacy；在 IR/engine 层恢复
   archive `bonus.rs` 的 typed stacking policy（G1），并把装备槽位、冲突、
   顺序、装备加成 typed 化（G2）；两者必须走同一条 modifier/AC 管线。
@@ -277,10 +277,10 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
 
 #### P4-TPL-1 模板语义闭环
 
-- **状态**：第一阶段完成。已解析 `.pcg` `TEMPLATESAPPLIED`、激活 Template
-  entities，并把 `BONUS:STAT` / `BONUS:COMBAT|AC|TYPE=NaturalArmor` 接入
-  snapshot；Half-Dragon 的 STR/CON/INT/CHA、natural AC、HP 已与 Java exact。
-  剩余 CR/DR/SR/NATURALATTACKS 分类与更完整模板效果。
+- **状态**：已完成 `.pcg` `TEMPLATESAPPLIED`、Template entity 激活、
+  `TemplateDefinition` / `CreatureTraits` typed 化，并把 `BONUS:STAT` /
+  natural AC / HP 接入 snapshot。Race/Template 上的 CR/DR/SR/NATURALATTACKS
+  已分类消费；剩余更完整模板执行效果可后续补强。
 - **目标**：模板 typed definitions + 激活 + effects 进入 snapshot；
   同时消费 P4-PRE-4 的模板谓词。
 - **指标**：`templates` typed count > 0；模板效果在 snapshot 可见；
@@ -296,9 +296,11 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
 
 #### P4-SPELL-1 法术定义 → 可执行 spell effect
 
-- **状态**：预研已完成，见
-  [`docs/P4_SPELL1_PRERESEARCH.md`](docs/P4_SPELL1_PRERESEARCH.md)。
-  建议与 P4-BONUS/EQP 第二阶段并行，先做 S1 typed 定义与覆盖率。
+- **状态**：S1 已完成。`DOMAINS` / `SPELLLEVEL` / `PROHIBITSPELL` /
+  `ADDSPELLLEVEL` / `KNOWNSPELLSFROMSPECIALTY` / `SPELLBOOK` 已 typed 或
+  消费，`PRESPELL` / `PRESPELLSCHOOL` 已 lower，两个数据集这些 tag 均清零。
+  预研见 [`docs/P4_SPELL1_PRERESEARCH.md`](docs/P4_SPELL1_PRERESEARCH.md)；
+  S2 执行层 spell effect 与 golden 待做。
 - **目标**：建立 spell effect 模型，将 spell 定义降低为可执行 `Effect`，
   并在 `import-report` 新增 `spell_effects` 指标。
 - **指标**：`spell_effects > 0` 并冻结基线；
@@ -403,8 +405,10 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
   active-state 模型（Rage 等），不是静态 snapshot。
 - **P4-RACE-1 种族 / 生物特征**（`RACESUBTYPE`/`REACH`/`NATURALATTACKS`/
   `UDAM`/`DR`/`SR`/`CR`/`VISION` 等，DS-35E 838 次）。
-  已完成 Halfling 种族 trait / `.MOD` ability 默认链，修复 3e_SWizSam 豁免；
-  剩余种族/生物特征 tag 仍待 lower。
+  已完成 Halfling 种族 trait / `.MOD` ability 默认链、`CreatureTraits`
+  typed 化（Race/Template 的 reach / natural attacks / DR/SR/CR / vision 等）。
+  剩余出现在 Ability / ClassLevel / Equipment 上的 creature-trait tag
+  仍按 owner 分别归入 P4-CLASS-1 / P4-EQP-1 或后续 runtime。
 - **P4-CLASS-1 职业 / 进阶**（`SKILLMULT`/`LEVELSPERFEAT`/`HITDIE`/`EXCLASS`
   等，DS-35E 29 次）。
 - **P4-STAT-1 属性 / 尺寸**（`DEFINESTAT`/`STATMOD`/`SIZENUM`，DS-35E 46 次）。
@@ -417,11 +421,12 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
 - **P4-FAITH 信仰小项**（`DEITYWEAP`/`VALIDFORDEITY`/`VALIDFORFOLLOWER`，
   DS-35E 5 次）。
 
-### P4-G DS-35E unsupported owner 表
+### P4-G DS-35E unsupported owner 表（已清零）
 
-DS-35E 当前 `unsupported_tags=104`（pending 102 + allowlisted 2）。下表把
-每个 unsupported pending tag 明确到 owner；全部清零后再把 coverage gate 的
-DS-35E 阈值收紧到 0，并补 zero-tag 断言。
+DS-35E 原 `unsupported_tags=104`（pending 102 + allowlisted 2）。下表把
+每个 unsupported pending tag 明确到 owner；目前 `unsupported_pending=0`
+（仅 `PRETEXT` 2 个 allowlisted）。下表保留 owner 记录，后续门禁可把
+DS-35E unsupported 阈值收紧到 0。
 
 | tag | count | owner | 目标 / 门禁 |
 |---|---:|---|---|
@@ -452,10 +457,10 @@ DS-35E 阈值收紧到 0，并补 zero-tag 断言。
 | ~~0c~~ | ~~P4-ENG-1~~ | ✅ 已完成：class/level 激活 + 默认 BAB=0 + modifier 归一化；BAB 21/21 |
 | ~~0d~~ | ~~P4-KIT-0~~ | ✅ 设计 spike 完成：声明式导入优先，随机展开单独立项 |
 | ~~1~~ | ~~P4-KIT-1~~ | ✅ 完成：KIT pending 6,896→0；DS-35E completion 45.5%→76.2% |
-| 2 | P4-BONUS-1 + P4-EQP-1 第二阶段 | 清残余 BONUS/装备 pending；完整 stacking policy 与槽位/冲突语义 |
-| 3 | P4-SPELL-1 | 清 DOMAINS/SPELLLEVEL/PRESPELL*；可与第 2 项并行 |
+| 2 | P4-BONUS-1 + P4-EQP-1 第二阶段 | ✅ 残余 BONUS/装备 pending 清零、AC stacking；剩余通用 stacking 与槽位/冲突语义 |
+| 3 | P4-SPELL-1 | ✅ S1 typed/coverage 清零；S2 spell effect 执行与 golden 待做 |
 | ~~4~~ | ~~P4-DATA-1~~ | ✅ 完成：known_diverging 0；23/23 Java exact |
-| 4b | P4-RACE-1 / P4-TPL-1 | 第一阶段完成 Halfling trait / Half-Dragon template；剩余种族/模板语义 |
+| 4b | P4-RACE-1 / P4-TPL-1 | ✅ Race/Template typed + Half-Dragon/Halfling/Ally `.MOD`；剩余 Ability/ClassLevel/Equipment creature-trait owner 归并 |
 | 5 | P4-TEMP-1 / P4-PSI-1 | active-state 与灵能闭环；可与第 2–4 项并行 |
 | 6 | P4-CLASS-1 / P4-STAT-1 / P4-FAITH | triage 派生小项；清 `!PRESUBCLASS` 等 unsupported |
 | 7 | P4-DEC-2 / DEC-4 | G3 dropped、G4 归档 |

@@ -22,6 +22,25 @@
   45.5%→76.2%；DS-3E 67.6%→68.9%；测试 119→122。
 - broad oracle / archive differential 行为不变（KIT 不执行随机展开）。
 
+### P4-BONUS/EQP 第二阶段 + P4-SPELL-1 S1 + P4-RACE/TPL 分类（已完成当前切片）
+
+- 残余 `BONUS` unsupported 清零；新增 `PREEQUIP*` / `PREWEAPONPROF` /
+  `PREWIELD` / `PREDOMAIN` / `PREHD` / `PREVAR*` symbolic / `PREARMORTYPE` /
+  `PREPROFWITHARMOR` / `PREPROFWITHSHIELD` / `PRESPELL` / `PRESPELLSCHOOL` /
+  `PRESUBCLASS` / `PRELANG` predicate 解析与求值。
+- 装备 typed 字段：`BASEITEM` / `CONTAINS` / `SLOTS` / `LOCATION` /
+  `CHARGES`；DS-3E/DS-35E 这些 pending 清零。
+- AC same-type non-stacking / dodge/circumstance/untyped stacking 切片；
+  `TYPE=NaturalArmor.STACK` 保留 stack 语义。
+- Spell/domain typed/消费：`DOMAINS` / `SPELLLEVEL` / `PROHIBITSPELL` /
+  `ADDSPELLLEVEL` / `KNOWNSPELLSFROMSPECIALTY` / `SPELLBOOK`。
+- Race/Template `CreatureTraits` typed：reach / natural attacks / DR / SR /
+  CR / vision / subtypes / move clone 等；TemplateDefinition 加入
+  `TypedDefinitions` 与 `CompiledRulePack`。
+- 真实数据：DS-3E unsupported pending 0，completion 84.2%；
+  DS-35E unsupported pending 0，completion 88.3%；broad oracle 23/23 100%。
+- 测试 122→123。
+
 ### P4-SPELL-1 预研（已完成）
 
 - 新增 [`docs/P4_SPELL1_PRERESEARCH.md`](docs/P4_SPELL1_PRERESEARCH.md)：
