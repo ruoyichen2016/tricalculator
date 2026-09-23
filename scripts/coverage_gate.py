@@ -620,6 +620,7 @@ def main(argv: list[str] | None = None) -> int:
                     "equipment_modifiers": (">=", 100),
                     "deities": (">=", 2),
                     "domains": (">=", 20),
+                    "spell_effects": (">=", 10),
                     "progressions": (">=", 45),
                 },
                 zero_tags=[
@@ -671,6 +672,7 @@ def main(argv: list[str] | None = None) -> int:
                     "lowered_effects": (">=", 7700),
                     "unsupported_tags": ("<=", 110),
                 },
+                typed={"spell_effects": (">=", 30)},
                 zero_tags=[
                     "PRESPELLTYPE",
                     "PRESPELLBOOK",

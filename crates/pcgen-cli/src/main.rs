@@ -212,6 +212,7 @@ fn main() -> Result<()> {
                     "variants": pack.variants.len(),
                     "kits": pack.kits.len(),
                     "templates": pack.templates.len(),
+                    "spell_effects": report.spell_effects,
                     "progressions": pack.progressions.len(),
                 });
                 println!("{}", serde_json::to_string_pretty(&value)?);

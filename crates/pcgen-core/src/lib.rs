@@ -8,6 +8,7 @@
 pub mod advancement;
 pub mod algorithms;
 pub mod domain;
+pub mod equipment;
 pub mod faith;
 pub mod fingerprint;
 pub mod gestalt;

@@ -564,6 +564,7 @@ fn parse_equipment(record: &RawRecord) -> EquipmentDefinition {
     equipment.contains = tags(record, "CONTAINS").map(str::to_string).collect();
     equipment.slots = tag(record, "SLOTS").and_then(|value| value.parse().ok());
     equipment.location = tag(record, "LOCATION").map(str::to_string);
+    equipment.slot = pcgen_core::equipment::EquipSlot::from_type_tags(&equipment.type_tags);
     for bonus in tags(record, "BONUS") {
         let parts: Vec<&str> = bonus.split('|').map(str::trim).collect();
         if parts.len() >= 3

@@ -511,3 +511,31 @@ fn ac_bonus_stacking_policy_applies_same_type_rules() {
     assert_eq!(dodge.touch_ac, 15);
     assert_eq!(dodge.flat_footed_ac, 10);
 }
+
+#[test]
+fn creature_traits_are_exposed_in_snapshot() {
+    let records = vec![record(
+        "RACE",
+        "Trait Race",
+        "Trait Race",
+        &[
+            ("VISION", "Darkvision (60')"),
+            ("DR", "5/-"),
+            ("SR", "13"),
+            ("NATURALATTACKS", "Claw"),
+        ],
+    )];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["creature-traits".to_string()],
+        &records,
+    );
+    let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Trait Race".to_string(),
+        ..CharacterDraft::default()
+    });
+    assert_eq!(snapshot.vision, vec!["Darkvision (60')"]);
+    assert_eq!(snapshot.damage_reduction, vec!["5/-"]);
+    assert_eq!(snapshot.spell_resistance, Some(13));
+    assert_eq!(snapshot.natural_attacks, vec!["Claw"]);
+}

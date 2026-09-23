@@ -67,6 +67,9 @@ pub struct ImportReport {
     pub patch_operations: usize,
     pub diagnostics: usize,
     pub error_diagnostics: usize,
+    /// Executable effects attached to `SPELL` / `DOMAIN` definitions.
+    #[serde(default)]
+    pub spell_effects: usize,
 }
 
 /// Lower records into the runtime IR.
@@ -218,6 +221,16 @@ pub fn lower_records(
         variants: &typed.variants,
         typed_digest: &typed_digest,
     });
+    let spell_effects = entities
+        .iter()
+        .filter(|entity| {
+            matches!(
+                entity.category,
+                pcgen_core::EntityCategory::Spell | pcgen_core::EntityCategory::Domain
+            )
+        })
+        .map(|entity| entity.effects.len())
+        .sum();
     let pack = CompiledRulePack {
         header: CompiledPackHeader {
             game_mode,
@@ -245,6 +258,7 @@ pub fn lower_records(
         patch_operations: 0,
         diagnostics: 0,
         error_diagnostics: 0,
+        spell_effects,
     };
     (pack, report)
 }

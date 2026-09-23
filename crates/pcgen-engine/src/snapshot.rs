@@ -47,6 +47,18 @@ pub struct CharacterSnapshot {
     pub power_points: BTreeMap<String, i32>,
     #[serde(default)]
     pub manifester_levels: BTreeMap<String, i32>,
+    /// Creature vision modes from race + active templates (`VISION`).
+    #[serde(default)]
+    pub vision: Vec<String>,
+    /// Damage reduction entries from race + active templates (`DR`).
+    #[serde(default)]
+    pub damage_reduction: Vec<String>,
+    /// Spell resistance from race + active templates (`SR`).
+    #[serde(default)]
+    pub spell_resistance: Option<i32>,
+    /// Natural attack entries from race + active templates (`NATURALATTACKS`).
+    #[serde(default)]
+    pub natural_attacks: Vec<String>,
     #[serde(default)]
     pub gestalt: Option<GestaltPlan>,
     #[serde(default)]

@@ -252,6 +252,8 @@ impl Engine {
         let (caster_levels, spell_dcs, spell_slots, known_limits, prepared_spells) =
             self.spellcasting(draft, &class_levels, &stats);
         let (power_points, manifester_levels) = self.psionics(&class_levels, &stats);
+        let (vision, damage_reduction, spell_resistance, natural_attacks) =
+            self.creature_traits(&draft.race_id, &effect_state);
 
         let explanations = BTreeMap::from([
             (
@@ -300,6 +302,10 @@ impl Engine {
             has_spellbook: effect_state.has_spellbook,
             power_points,
             manifester_levels,
+            vision,
+            damage_reduction,
+            spell_resistance,
+            natural_attacks,
             gestalt,
             faith_decisions,
             domain_spells,
@@ -321,6 +327,55 @@ impl Engine {
         let external_modifiers = snapshot.external_modifiers.clone();
         apply_external_modifiers(&mut snapshot, &external_modifiers);
         snapshot
+    }
+
+    fn creature_traits(
+        &self,
+        race_id: &str,
+        effect_state: &crate::effects::EffectState,
+    ) -> (Vec<String>, Vec<String>, Option<i32>, Vec<String>) {
+        let mut vision = Vec::new();
+        let mut damage_reduction = Vec::new();
+        let mut spell_resistance: Option<i32> = None;
+        let mut natural_attacks = Vec::new();
+
+        if let Some(race) = self.race(race_id) {
+            merge_creature_traits(
+                &race.traits,
+                &mut vision,
+                &mut damage_reduction,
+                &mut spell_resistance,
+                &mut natural_attacks,
+            );
+        }
+        for template_name in &effect_state.templates {
+            if let Some(template) = self.pack.templates.get(template_name).or_else(|| {
+                self.pack
+                    .templates
+                    .iter()
+                    .find(|(key, _)| {
+                        key.eq_ignore_ascii_case(template_name)
+                            || normalized_name(key) == normalized_name(template_name)
+                    })
+                    .map(|(_, template)| template)
+            }) {
+                merge_creature_traits(
+                    &template.traits,
+                    &mut vision,
+                    &mut damage_reduction,
+                    &mut spell_resistance,
+                    &mut natural_attacks,
+                );
+            }
+        }
+
+        vision.sort();
+        vision.dedup();
+        damage_reduction.sort();
+        damage_reduction.dedup();
+        natural_attacks.sort();
+        natural_attacks.dedup();
+        (vision, damage_reduction, spell_resistance, natural_attacks)
     }
 
     /// Validate structural references and Gestalt policy constraints.
@@ -480,7 +535,7 @@ impl Engine {
         draft: &CharacterDraft,
         diagnostics: &mut Vec<String>,
     ) -> Vec<EquipmentDefinition> {
-        draft
+        let mut resolved: Vec<EquipmentDefinition> = draft
             .equipment
             .iter()
             .filter_map(|item| {
@@ -504,7 +559,18 @@ impl Engine {
                 }
                 found
             })
-            .collect()
+            .collect();
+        pcgen_core::equipment::sort_equipment_by_slot(&mut resolved, |definition| definition.slot);
+        for (slot, first, second) in pcgen_core::equipment::equipment_conflicts(
+            resolved
+                .iter()
+                .map(|definition| (definition.slot, definition.id.as_str())),
+        ) {
+            diagnostics.push(format!(
+                "equipment slot conflict: `{first}` and `{second}` both use {slot:?}"
+            ));
+        }
+        resolved
     }
 
     fn skills(
@@ -817,6 +883,33 @@ fn equipment_totals(equipment: &[EquipmentDefinition]) -> (i32, i32, Option<i32>
 /// Human-readable lane summary used by CLI/debug output.
 pub fn lane_summary(lane: &pcgen_core::AdvancementLane) -> String {
     format!("{}:{}", lane.lane_id, lane.class_id)
+}
+
+fn merge_creature_traits(
+    traits: &pcgen_core::CreatureTraits,
+    vision: &mut Vec<String>,
+    damage_reduction: &mut Vec<String>,
+    spell_resistance: &mut Option<i32>,
+    natural_attacks: &mut Vec<String>,
+) {
+    vision.extend(traits.vision.iter().cloned());
+    damage_reduction.extend(traits.damage_reduction.iter().cloned());
+    natural_attacks.extend(traits.natural_attacks.iter().cloned());
+    if let Some(raw) = &traits.spell_resistance {
+        let value = raw
+            .chars()
+            .filter(|ch| ch.is_ascii_digit())
+            .collect::<String>()
+            .parse::<i32>()
+            .ok();
+        if let Some(value) = value {
+            *spell_resistance = Some(spell_resistance.map_or(value, |current| current.max(value)));
+        }
+    }
+}
+
+fn normalized_name(value: &str) -> String {
+    value.trim().to_ascii_lowercase().replace(' ', "_")
 }
 
 fn ac_bonus_components(bonuses: &[crate::effects::AcBonus]) -> (i32, i32, i32) {

@@ -419,6 +419,9 @@ pub struct EquipmentDefinition {
     /// Equip location (PCGen `LOCATION:`), e.g. `Equipped`, `Carried`.
     #[serde(default)]
     pub location: Option<String>,
+    /// Standard equipment slot inferred from type tags.
+    #[serde(default)]
+    pub slot: crate::equipment::EquipSlot,
 }
 
 impl EquipmentDefinition {
@@ -440,6 +443,7 @@ impl EquipmentDefinition {
             contains: Vec::new(),
             slots: None,
             location: None,
+            slot: crate::equipment::EquipSlot::None,
         }
     }
 }
