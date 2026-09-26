@@ -20,6 +20,12 @@ type SpellcastingMaps = (
     BTreeMap<String, u32>,
 );
 
+type PsionicMaps = (
+    BTreeMap<String, i32>,
+    BTreeMap<String, i32>,
+    BTreeMap<String, Vec<String>>,
+);
+
 /// Aggregated creature traits merged from all active owner entities.
 #[derive(Debug, Default, PartialEq, Eq)]
 struct CreatureTraitAccumulator {
@@ -218,6 +224,13 @@ impl Engine {
                     }
                 }
             }
+            for entry in &class_levels {
+                for domain in self.class_added_domains(&entry.class_id, &effect_state.templates) {
+                    if let Some(definition) = self.domain(&domain) {
+                        spells.insert(definition.id.clone(), definition.domain_spells.clone());
+                    }
+                }
+            }
             spells
         };
         let variant_effects = {
@@ -372,7 +385,8 @@ impl Engine {
         let attack_bonuses = stacked_components(&effect_state.typed_bonuses, attack_bonus_targets);
         let (caster_levels, spell_dcs, spell_slots, known_limits, prepared_spells) =
             self.spellcasting(draft, &class_levels, &stat_mods);
-        let (power_points, manifester_levels) = self.psionics(&class_levels, &stat_mods);
+        let (power_points, manifester_levels, powers_known) =
+            self.psionics(&class_levels, &stat_mods);
         let skill_points = if let Some(plan) = &gestalt {
             plan.frames
                 .iter()
@@ -394,6 +408,17 @@ impl Engine {
                     excluded_class: progression.excluded_class.clone(),
                     exchange_level: progression.exchange_level.clone(),
                 })
+            })
+            .collect();
+        let prohibited_costs: BTreeMap<String, i32> = self
+            .pack
+            .entities
+            .iter()
+            .filter_map(|entity| {
+                entity
+                    .metadata
+                    .prohibited_cost
+                    .map(|cost| (entity.id.key.clone(), cost))
             })
             .collect();
         let CreatureTraitAccumulator {
@@ -457,6 +482,7 @@ impl Engine {
             feat_slots,
             base_attack_bonus,
             class_interactions,
+            prohibited_costs,
             initiative: dex_mod,
             armor_class,
             armor_bonus,
@@ -476,6 +502,7 @@ impl Engine {
             has_spellbook: effect_state.has_spellbook,
             power_points,
             manifester_levels,
+            powers_known,
             vision,
             damage_reduction,
             spell_resistance,
@@ -698,6 +725,28 @@ impl Engine {
                 .find(|(key, _)| key.eq_ignore_ascii_case(deity))
                 .map(|(_, deity)| deity)
         })
+    }
+
+    fn class_added_domains(&self, class_id: &str, templates: &BTreeSet<String>) -> Vec<String> {
+        let raw_values = self
+            .class(class_id)
+            .map(|class| class.added_domains.clone())
+            .or_else(|| {
+                self.pack
+                    .entities
+                    .iter()
+                    .find(|entity| {
+                        entity.category == pcgen_core::EntityCategory::Class
+                            && (normalized_name(&entity.id.key) == normalized_name(class_id)
+                                || normalized_name(&entity.name) == normalized_name(class_id))
+                    })
+                    .map(|entity| entity.metadata.added_domains.clone())
+            })
+            .unwrap_or_default();
+        raw_values
+            .iter()
+            .filter_map(|raw| resolve_added_domain(raw, templates))
+            .collect()
     }
 
     fn domain(&self, domain: &str) -> Option<&pcgen_core::DomainDefinition> {
@@ -975,23 +1024,60 @@ impl Engine {
         &self,
         class_levels: &[DraftClassLevel],
         stat_mods: &BTreeMap<String, i32>,
-    ) -> (BTreeMap<String, i32>, BTreeMap<String, i32>) {
-        let mut power_points = BTreeMap::new();
-        let mut manifester_levels = BTreeMap::new();
+    ) -> PsionicMaps {
+        let mut base_tracks: BTreeMap<String, u32> = BTreeMap::new();
+        let mut advanced_levels = 0u32;
         for entry in class_levels {
             let Some(class) = self.class(&entry.class_id) else {
                 continue;
             };
-            if !class.is_psionic {
-                continue;
+            let advances_psionic = class
+                .level_spellcaster_advance
+                .values()
+                .flatten()
+                .any(|value| value.to_ascii_uppercase().contains("PSIONIC"));
+            if class.is_psionic && !class.is_prestige {
+                base_tracks.insert(class.id.clone(), entry.level);
+            } else if advances_psionic {
+                advanced_levels += entry.level;
             }
-            let stat = class.spellcasting_ability.as_deref().unwrap_or("INT");
-            let ability_mod = stat_mods.get(stat).copied().unwrap_or(0);
-            let total = pcgen_core::total_power_points(&class.id, entry.level, ability_mod, 0);
-            power_points.insert(class.id.clone(), total);
-            manifester_levels.insert(class.id.clone(), entry.level as i32);
         }
-        (power_points, manifester_levels)
+        // A single PRC advancement track extends the (first) base manifester
+        // class.  Full multi-track choice is a later UI concern.
+        if advanced_levels > 0 {
+            if let Some(first) = base_tracks.keys().next().cloned() {
+                *base_tracks.entry(first).or_insert(0) += advanced_levels;
+            }
+        }
+        let mut power_points = BTreeMap::new();
+        let mut manifester_levels = BTreeMap::new();
+        let mut powers_known = BTreeMap::new();
+        for (class_id, level) in &base_tracks {
+            let stat = self
+                .class(class_id)
+                .and_then(|class| class.spellcasting_ability.as_deref())
+                .unwrap_or("INT");
+            let ability_mod = stat_mods.get(stat).copied().unwrap_or(0);
+            let total = pcgen_core::total_power_points(class_id, *level, ability_mod, 0);
+            power_points.insert(class_id.clone(), total);
+            manifester_levels.insert(class_id.clone(), *level as i32);
+            let mut known: Vec<String> = self
+                .pack
+                .spells
+                .values()
+                .filter(|spell| {
+                    spell.is_psionic
+                        && spell.class_levels.iter().any(|(name, power_level)| {
+                            name.eq_ignore_ascii_case(class_id) && *power_level <= *level
+                        })
+                })
+                .map(|spell| spell.name.clone())
+                .collect();
+            known.sort();
+            known.dedup();
+            powers_known.insert(class_id.clone(), known);
+        }
+        (power_points, manifester_levels, powers_known)
     }
 
     /// Resolve HP for one class-level entry.
@@ -1628,6 +1714,39 @@ fn entity_is_active_for_traits(
         }
         _ => false,
     }
+}
+
+fn resolve_added_domain(raw: &str, templates: &BTreeSet<String>) -> Option<String> {
+    let raw = raw.trim();
+    if raw.is_empty() {
+        return None;
+    }
+    let (domain, condition) = match raw.split_once('[') {
+        Some((domain, condition)) => (domain.trim(), condition.trim_end_matches(']').trim()),
+        None => (raw, ""),
+    };
+    if condition.is_empty() {
+        return Some(domain.to_string());
+    }
+    if let Some(body) = condition
+        .strip_prefix("PRETEMPLATE:")
+        .or_else(|| condition.strip_prefix("pretemplate:"))
+    {
+        let wanted: Vec<String> = body
+            .split(',')
+            .skip(1)
+            .map(normalized_name)
+            .filter(|value| !value.is_empty())
+            .collect();
+        if wanted.iter().any(|name| {
+            templates
+                .iter()
+                .any(|template| normalized_name(template) == *name)
+        }) {
+            return Some(domain.to_string());
+        }
+    }
+    None
 }
 
 fn normalized_name(value: &str) -> String {

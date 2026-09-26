@@ -63,6 +63,9 @@ pub struct CharacterSnapshot {
     /// `EXCLASS` / `EXCHANGELEVEL` metadata for active classes.
     #[serde(default)]
     pub class_interactions: Vec<ClassInteraction>,
+    /// `PROHIBITCOST` catalog keyed by source record key.
+    #[serde(default)]
+    pub prohibited_costs: BTreeMap<String, i32>,
     pub initiative: i32,
     pub armor_class: i32,
     pub armor_bonus: i32,
@@ -99,6 +102,9 @@ pub struct CharacterSnapshot {
     pub power_points: BTreeMap<String, i32>,
     #[serde(default)]
     pub manifester_levels: BTreeMap<String, i32>,
+    /// Psionic powers available/known per manifester class at current level.
+    #[serde(default)]
+    pub powers_known: BTreeMap<String, Vec<String>>,
     /// Creature vision modes from race + active templates (`VISION`).
     #[serde(default)]
     pub vision: Vec<String>,

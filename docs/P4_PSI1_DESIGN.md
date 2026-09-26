@@ -23,8 +23,9 @@ PCGen 用 `FACT:SpellType|Psionic` 标记灵能职业（如 `CLASS:Psion`），
 
 - `Engine::spellcasting` 跳过 `is_psionic` 职业，避免灵能职业冒出
   `caster_levels`（灵能有独立的显能者等级）。
-- `Engine::psionics` 为灵能职业输出 `power_points` 与
-  `manifester_levels`；关键属性优先取 `SPELLSTAT`，缺失时按职业默认。
+- `Engine::psionics` 为灵能职业输出 `power_points` / `manifester_levels` /
+  `powers_known`；关键属性优先取 `SPELLSTAT`，缺失时按职业默认。
+- `ADD:SPELLCASTER|Psionic` 的 PRC 等级会叠加到基础显能者职业。
 - `CharacterSnapshot.spell_power_types` 包含 `Psionic`；`spell_dcs` 记录
   灵能威力 DC（10 + 威力等级 + 关键属性调整）。
 - `PRECHECKBASE:n,Save=v` lower 为 `Predicate::BaseSave`，用于灵能专长的
@@ -38,7 +39,8 @@ Warrior、Psionic Fist、War Mind），加上 `关键属性调整 * 显能者等
 
 ## 5. 当前边界
 
-- 威力未知/已知列表尚未进入 snapshot，仍靠 `spells_known` 目标值。
-- `FACT:SpellType|Psionic` 的 PRC 灵能等级叠加（`BL=`）未完全建模。
+- `powers_known` 已按灵能职业 + 显能者等级输出；角色实际选择的已知威力
+  仍通过 `DraftSpell` / 后续选择 UI 输入。
+- `ADD:SPELLCASTER|Psionic` 已支持；其它 `BL=` / 多 track 选择策略仍可扩展。
 - 灵能威力的 `TEMPBONUS` 通过 P4-TEMP-1 的 active-state 激活，仍需显式
   `active_states` 输入。

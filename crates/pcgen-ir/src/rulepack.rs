@@ -223,6 +223,7 @@ pub fn lower_records(
         coverage.record_effect_actions(&effective_category, &effects);
         let mut traits = pcgen_core::CreatureTraits::default();
         parse_creature_traits(record, &mut traits);
+        let metadata = parse_entity_metadata(record);
         entities.push(CompiledEntity {
             id,
             category: pcgen_core::EntityCategory::from_pcgen(&effective_category),
@@ -235,6 +236,7 @@ pub fn lower_records(
             ability_category,
             temporary_value,
             traits,
+            metadata,
         });
     }
 
@@ -542,6 +544,30 @@ fn lower_define(tag: &crate::source::RawTag) -> Option<Effect> {
 
 fn lower_grant(record: &RawRecord, tag: &crate::source::RawTag) -> Option<Effect> {
     let parts: Vec<&str> = tag.value.split('|').map(str::trim).collect();
+    let first = *parts.first()?;
+    if first.eq_ignore_ascii_case("WEAPONPROF") || first.eq_ignore_ascii_case("ARMORPROF") {
+        let body = parts
+            .iter()
+            .skip(1)
+            .copied()
+            .filter(|part| !part.is_empty())
+            .collect::<Vec<_>>()
+            .join("|");
+        let action = if body.is_empty() {
+            first.to_ascii_uppercase()
+        } else {
+            format!("{}|{}", first.to_ascii_uppercase(), body)
+        };
+        return Some(Effect {
+            phase: EffectPhase::Global,
+            condition: None,
+            action: EffectAction::GrantTag { tag: action },
+            source: Provenance::new(
+                record.source.path.display().to_string(),
+                "AUTO proficiency lowering",
+            ),
+        });
+    }
     let meaningful: Vec<&str> = parts
         .iter()
         .copied()
@@ -611,6 +637,18 @@ fn lower_choose(tag: &crate::source::RawTag) -> Option<Effect> {
         },
         source: Provenance::new("pcgen", "CHOOSE lowering"),
     })
+}
+
+fn parse_qualified_names(body: &str) -> Vec<String> {
+    body.split([',', '|'])
+        .map(str::trim)
+        .filter(|part| {
+            !part.is_empty()
+                && part.parse::<u32>().is_err()
+                && !part.to_ascii_uppercase().starts_with("TYPE=")
+        })
+        .map(|part| part.to_ascii_lowercase())
+        .collect()
 }
 
 fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
@@ -736,13 +774,7 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
             }
         }
         "PREWEAPONPROF" | "PREWIELD" | "PREDOMAIN" => {
-            let values: Vec<String> = parts
-                .iter()
-                .skip(1)
-                .map(|part| part.trim())
-                .filter(|part| !part.is_empty() && part.parse::<u32>().is_err())
-                .map(|part| part.to_ascii_lowercase())
-                .collect();
+            let values = parse_qualified_names(body);
             if values.is_empty() {
                 return None;
             }
@@ -1328,10 +1360,81 @@ fn split_groups(input: &str) -> Option<Vec<String>> {
     Some(groups)
 }
 
+fn parse_entity_metadata(record: &RawRecord) -> pcgen_core::EntityMetadata {
+    let mut metadata = pcgen_core::EntityMetadata::default();
+    for tag in &record.tags {
+        let upper = tag.name.to_ascii_uppercase();
+        let value = tag.value.trim();
+        match upper.as_str() {
+            "ALTCRITMULT" => metadata.alternate_weapon.crit_mult = Some(value.to_string()),
+            "ALTCRITRANGE" => {
+                metadata.alternate_weapon.crit_range = value.parse::<i32>().ok();
+            }
+            "ALTDAMAGE" => metadata.alternate_weapon.damage = Some(value.to_string()),
+            "ALTTYPE" => extend_metadata_list(&mut metadata.alternate_weapon.types, value),
+            "ALTEQMOD" => {
+                extend_metadata_list(&mut metadata.alternate_weapon.equipment_mods, value);
+            }
+            "BASEQTY" => metadata.alternate_weapon.base_quantity = Some(value.to_string()),
+            "WEAPONBONUS" => metadata.weapon_bonus.push(value.to_string()),
+            "CHANGEPROF" => {
+                for entry in value
+                    .split([',', '|'])
+                    .map(str::trim)
+                    .filter(|v| !v.is_empty())
+                {
+                    if let Some((from, to)) = entry.rsplit_once('=') {
+                        metadata
+                            .changed_proficiencies
+                            .insert(from.trim().to_string(), to.trim().to_string());
+                    }
+                }
+            }
+            "ARMORTYPE" => extend_metadata_list(&mut metadata.armor_types, value),
+            "ADDDOMAINS" => metadata.added_domains.push(value.to_string()),
+            "PROHIBITCOST" => metadata.prohibited_cost = value.parse::<i32>().ok(),
+            "DONOTADD" => extend_metadata_list(&mut metadata.do_not_add, value),
+            "VARIANTS" => extend_metadata_list(&mut metadata.spell_variants, value),
+            _ => {}
+        }
+    }
+    metadata
+}
+
+fn extend_metadata_list(target: &mut Vec<String>, value: &str) {
+    target.extend(
+        value
+            .split([',', '|'])
+            .map(str::trim)
+            .filter(|entry| !entry.is_empty())
+            .map(str::to_string),
+    );
+}
+
 /// True if `tag_name` is consumed during lowering for `category`, so it should
 /// not also be reported as a legacy (un-lowered) tag.
 fn consumed_legacy_tag(category: &str, tag_name: &str) -> bool {
     let name = tag_name.to_ascii_uppercase();
+    // These tags are captured generically into `CompiledEntity.metadata` for
+    // every category by `parse_entity_metadata` above.
+    if matches!(
+        name.as_str(),
+        "ALTCRITMULT"
+            | "ALTCRITRANGE"
+            | "ALTDAMAGE"
+            | "ALTEQMOD"
+            | "ALTTYPE"
+            | "ARMORTYPE"
+            | "BASEQTY"
+            | "CHANGEPROF"
+            | "WEAPONBONUS"
+            | "ADDDOMAINS"
+            | "PROHIBITCOST"
+            | "DONOTADD"
+            | "VARIANTS"
+    ) {
+        return true;
+    }
     if pcgen_core::tagclass::is_kit_category(category)
         && pcgen_core::tagclass::classify_for_category(category, &name)
             == pcgen_core::tagclass::TagClass::Allowlisted

@@ -89,6 +89,8 @@ fn write_entity(hasher: &mut FingerprintHasher, entity: &CompiledEntity) {
     hasher.write(&format!("{:?}", entity.traits));
     hasher.write("temporary_value");
     hasher.write(&format!("{:?}", entity.temporary_value));
+    hasher.write("metadata");
+    hasher.write(&format!("{:?}", entity.metadata));
     for effect in &entity.effects {
         hasher.write("effect");
         hasher.write(&format!("{:?}", effect.phase));
@@ -280,6 +282,7 @@ mod tests {
             ability_category: None,
             temporary_value: None,
             traits: Default::default(),
+            metadata: Default::default(),
         }
     }
 

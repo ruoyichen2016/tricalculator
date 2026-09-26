@@ -44,10 +44,10 @@ pub use progression::SaveKind;
 pub use psionics::{ability_bonus_power_points, base_power_points, total_power_points};
 pub use rational::{Rational, RationalError};
 pub use rules::{
-    normalize_size, size_at_least, size_at_most, size_rank, BonusTypePolicy, CategoryCoverage,
-    CompiledEntity, Contribution, Effect, EffectAction, EffectPhase, Explanation, Modifier,
-    ModifierOperation, Predicate, Provenance, RuleCoverage, StackPolicyKind, TemporaryValue,
-    SIZE_ORDER,
+    normalize_size, size_at_least, size_at_most, size_rank, AlternateWeaponProfile,
+    BonusTypePolicy, CategoryCoverage, CompiledEntity, Contribution, Effect, EffectAction,
+    EffectPhase, EntityMetadata, Explanation, Modifier, ModifierOperation, Predicate, Provenance,
+    RuleCoverage, StackPolicyKind, TemporaryValue, SIZE_ORDER,
 };
 pub use tagclass::{
     bucket_for_unsupported, classify as classify_tag, is_allowlisted, TagBucket, TagClass,

@@ -1,8 +1,7 @@
 # Tag 迁移工作清单
 
 > 由固定数据上的真实 3e SRD（`srdbasic.pcc`）生成。
-> 最近更新：P0 口径修正后。`CHOOSE` 已经 lowering，不再重复计入 legacy；
-> `XPCOST` 按 P4-DEC-2 移入 out-of-scope allowlist。
+> 最近更新：阶段 2 后。三数据集目标装备/法术/灵能 tag pending 均为 0。
 
 ## 0. 口径
 
@@ -10,36 +9,27 @@
 
 ```text
 lowered_effects     3267
-legacy_tags         1359
-  ├─ allowlisted    1284  (含 XPCOST out-of-scope 5)
-  └─ pending        75
+legacy_tags         1319
+  ├─ allowlisted    1284
+  └─ pending        35
 unsupported_tags    0
   ├─ allowlisted    0
   └─ pending        0
-semantic_pending    75
-semantic_completion 97.8%
+semantic_pending    35
+semantic_completion 98.9%
 ```
 
 ## 1. pending unsupported
 
 无。三个验收数据集的 unsupported pending 均为 0。
 
-## 2. pending legacy（13 tag，75 次）
+## 2. pending legacy（4 tag，35 次）
 
 | count | tag |
 |---:|---|
 | 17 | `STACK` |
-| 10 | `VARIANTS` |
 | 9 | `ABILITYLIST` |
 | 8 | `CHOICE` |
-| 4 | `ALTCRITMULT` |
-| 4 | `ALTCRITRANGE` |
-| 4 | `ALTDAMAGE` |
-| 4 | `ALTEQMOD` |
-| 4 | `ALTTYPE` |
-| 4 | `ARMORTYPE` |
-| 4 | `BASEQTY` |
-| 2 | `WEAPONBONUS` |
 | 1 | `ATTACKCYCLE` |
 
 ## 3. allowlisted（47 tag，1284 次）
@@ -115,4 +105,4 @@ semantic_completion 97.8%
   （legacy_tags 2,902→2,773，semantic_completion 65.4%→67.2%）
 - monster class `classlevel()` BAB 公式修复（`classlevel()` 空括号）
 
-累计：`legacy_tags` 4289 → 1359，`unsupported` 337 → 0，`semantic_completion` 46.8% → 97.8%。
+累计：`legacy_tags` 4289 → 1319，`unsupported` 337 → 0，`semantic_completion` 46.8% → 98.9%。

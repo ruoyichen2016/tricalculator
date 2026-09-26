@@ -407,6 +407,54 @@ pub enum StackPolicyKind {
     Lowest,
 }
 
+/// Alternate weapon profile used by double weapons (`ALTCRIT*`, `ALTDAMAGE`,
+/// `ALTTYPE`, `ALTEQMOD`, `BASEQTY`).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AlternateWeaponProfile {
+    #[serde(default)]
+    pub damage: Option<String>,
+    #[serde(default)]
+    pub crit_mult: Option<String>,
+    #[serde(default)]
+    pub crit_range: Option<i32>,
+    #[serde(default)]
+    pub types: Vec<String>,
+    #[serde(default)]
+    pub equipment_mods: Vec<String>,
+    /// Base quantity for ammunition-like records (`BASEQTY`).
+    #[serde(default)]
+    pub base_quantity: Option<String>,
+}
+
+/// Runtime-visible metadata that is not specific to one typed definition
+/// family (weapon / armor / spell subclass/cost tags).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EntityMetadata {
+    #[serde(default)]
+    pub alternate_weapon: AlternateWeaponProfile,
+    /// Raw `WEAPONBONUS` entries, e.g. `TYPE=Simple` or specific names.
+    #[serde(default)]
+    pub weapon_bonus: Vec<String>,
+    /// `CHANGEPROF:Old=New` entries.
+    #[serde(default)]
+    pub changed_proficiencies: BTreeMap<String, String>,
+    /// `ARMORTYPE` entries (equipmod / armor proficiency metadata).
+    #[serde(default)]
+    pub armor_types: Vec<String>,
+    /// Raw `ADDDOMAINS` entries, including optional `[...]` conditions.
+    #[serde(default)]
+    pub added_domains: Vec<String>,
+    /// `PROHIBITCOST` value, when present.
+    #[serde(default)]
+    pub prohibited_cost: Option<i32>,
+    /// `DONOTADD` entries on class-level rows.
+    #[serde(default)]
+    pub do_not_add: Vec<String>,
+    /// Spell `VARIANTS` entries.
+    #[serde(default)]
+    pub spell_variants: Vec<String>,
+}
+
 /// UI metadata for a `TEMPVALUE` range associated with a temporary effect.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TemporaryValue {
@@ -439,6 +487,9 @@ pub struct CompiledEntity {
     /// DR/SR/CR, vision, unarmed damage, ...).
     #[serde(default)]
     pub traits: crate::domain::CreatureTraits,
+    /// Cross-cutting runtime metadata (weapon/armor/spell subclass tags).
+    #[serde(default)]
+    pub metadata: EntityMetadata,
 }
 
 /// Import/report totals.

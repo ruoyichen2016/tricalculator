@@ -211,6 +211,17 @@ fn merge_class(classes: &mut BTreeMap<String, ClassDefinition>, class: ClassDefi
                 .max(class.known_spells_from_specialty);
             existing.spell_slots.extend(class.spell_slots);
             existing.spells_known.extend(class.spells_known);
+            existing.weapon_bonus.extend(class.weapon_bonus);
+            existing.added_domains.extend(class.added_domains);
+            existing
+                .level_do_not_add
+                .extend(class.level_do_not_add.clone());
+            existing
+                .level_spellcaster_advance
+                .extend(class.level_spellcaster_advance.clone());
+            if class.prohibited_cost.is_some() {
+                existing.prohibited_cost = class.prohibited_cost;
+            }
             if !class.spell_list.is_empty() {
                 existing.spell_list = class.spell_list;
             }
@@ -275,6 +286,14 @@ fn parse_race(record: &RawRecord) -> RaceDefinition {
         tag(record, "XTRASKILLPTSPERLVL").and_then(|value| value.trim().parse().ok());
     race.stat_minimums = parse_stat_minimums(record);
     race.skill_multiplier = tag(record, "SKILLMULT").and_then(|value| value.trim().parse().ok());
+    for changed in tags(record, "CHANGEPROF") {
+        for entry in changed.split(',').map(str::trim) {
+            if let Some((from, to)) = entry.rsplit_once('=') {
+                race.changed_proficiencies
+                    .insert(from.trim().to_string(), to.trim().to_string());
+            }
+        }
+    }
     race.type_tags = type_tags(record);
     parse_creature_traits(record, &mut race.traits);
     for template in tags(record, "TEMPLATE") {
@@ -361,6 +380,9 @@ fn parse_class(record: &RawRecord) -> ClassDefinition {
             class.add_levels.insert(class_name.to_string(), levels);
         }
     }
+    class.weapon_bonus = tags(record, "WEAPONBONUS").map(str::to_string).collect();
+    class.added_domains = tags(record, "ADDDOMAINS").map(str::to_string).collect();
+    class.prohibited_cost = tag(record, "PROHIBITCOST").and_then(|value| value.parse().ok());
     class.prohibited_spells = tags(record, "PROHIBITSPELL").map(str::to_string).collect();
     class.known_spells_from_specialty = tag(record, "KNOWNSPELLSFROMSPECIALTY")
         .and_then(|value| value.parse().ok())
@@ -423,6 +445,22 @@ fn parse_class_level_row(class: &mut ClassDefinition, record: &RawRecord) {
                     .entry(level)
                     .or_default()
                     .push(format!("BONUS:{}", tag.value));
+            }
+            "DONOTADD" => {
+                class.level_do_not_add.entry(level).or_default().extend(
+                    tag.value
+                        .split('|')
+                        .map(str::trim)
+                        .filter(|value| !value.is_empty())
+                        .map(str::to_string),
+                );
+            }
+            "ADD" => {
+                class
+                    .level_spellcaster_advance
+                    .entry(level)
+                    .or_default()
+                    .push(tag.value.clone());
             }
             _ if crate::tags::is_predicate_tag(&name) => {
                 class
@@ -757,6 +795,15 @@ fn parse_spell(record: &RawRecord) -> SpellDefinition {
     spell.is_psionic = type_tags(record)
         .iter()
         .any(|tag| tag.eq_ignore_ascii_case("psionic"));
+    for variants in tags(record, "VARIANTS") {
+        spell.variants.extend(
+            variants
+                .split('|')
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string),
+        );
+    }
     spell
 }
 
@@ -777,6 +824,14 @@ fn parse_equipment(record: &RawRecord) -> EquipmentDefinition {
     equipment.contains = tags(record, "CONTAINS").map(str::to_string).collect();
     equipment.slots = tag(record, "SLOTS").and_then(|value| value.parse().ok());
     equipment.location = tag(record, "LOCATION").map(str::to_string);
+    equipment.proficiency = tag(record, "PROFICIENCY").map(str::to_string);
+    equipment.alternate_damage = tag(record, "ALTDAMAGE").map(str::to_string);
+    equipment.alternate_crit_mult = tag(record, "ALTCRITMULT").map(str::to_string);
+    equipment.alternate_crit_range =
+        tag(record, "ALTCRITRANGE").and_then(|value| value.parse().ok());
+    equipment.alternate_types = split_tag_list(record, "ALTTYPE");
+    equipment.alternate_equipment_mods = split_tag_list(record, "ALTEQMOD");
+    equipment.base_quantity = tag(record, "BASEQTY").map(str::to_string);
     equipment.slot = pcgen_core::equipment::EquipSlot::from_type_tags(&equipment.type_tags);
     for bonus in tags(record, "BONUS") {
         let parts: Vec<&str> = bonus.split('|').map(str::trim).collect();
@@ -950,6 +1005,7 @@ fn parse_equipment_modifier(record: &RawRecord) -> EquipmentModifierDefinition {
     modifier.item_types = split_tag_list(record, "ITYPE");
     modifier.replaces = split_tag_list(record, "REPLACES");
     modifier.charges = tag(record, "CHARGES").map(str::to_string);
+    modifier.armor_types = split_tag_list(record, "ARMORTYPE");
     for bonus in tags(record, "BONUS") {
         let parts: Vec<&str> = bonus.split('|').map(str::trim).collect();
         if parts.len() >= 3

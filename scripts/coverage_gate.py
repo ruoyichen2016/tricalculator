@@ -148,11 +148,12 @@ def check(
             if not ok:
                 failures += 1
     if zero_tags:
-        pending = report["coverage"].get("unsupported_pending_by_tag", {})
+        legacy = report["coverage"].get("legacy_pending_by_tag", {})
+        unsupported = report["coverage"].get("unsupported_pending_by_tag", {})
         for tag in zero_tags:
-            actual = pending.get(tag, 0)
+            actual = int(legacy.get(tag, 0)) + int(unsupported.get(tag, 0))
             ok = actual == 0
-            print(f"  unsupported:{tag:13} {actual:>8} == 0        {'OK' if ok else 'FAIL'}")
+            print(f"  pending:{tag:17} {actual:>8} == 0        {'OK' if ok else 'FAIL'}")
             if not ok:
                 failures += 1
     return failures
@@ -652,6 +653,19 @@ def main(argv: list[str] | None = None) -> int:
                     "PREHANDSGTEQ",
                     "PREHANDSEQ",
                     "PREMOVE",
+                    "ALTCRITMULT",
+                    "ALTCRITRANGE",
+                    "ALTDAMAGE",
+                    "ALTEQMOD",
+                    "ALTTYPE",
+                    "ARMORTYPE",
+                    "BASEQTY",
+                    "CHANGEPROF",
+                    "WEAPONBONUS",
+                    "ADDDOMAINS",
+                    "PROHIBITCOST",
+                    "DONOTADD",
+                    "VARIANTS",
                 ],
             ),
         )
@@ -702,6 +716,19 @@ def main(argv: list[str] | None = None) -> int:
                     "PREHANDSGTEQ",
                     "PREHANDSEQ",
                     "PREMOVE",
+                    "ALTCRITMULT",
+                    "ALTCRITRANGE",
+                    "ALTDAMAGE",
+                    "ALTEQMOD",
+                    "ALTTYPE",
+                    "ARMORTYPE",
+                    "BASEQTY",
+                    "CHANGEPROF",
+                    "WEAPONBONUS",
+                    "ADDDOMAINS",
+                    "PROHIBITCOST",
+                    "DONOTADD",
+                    "VARIANTS",
                 ],
             ),
         )
@@ -720,6 +747,21 @@ def main(argv: list[str] | None = None) -> int:
                     "unsupported_tags": ("==", 0),
                     "unsupported_pending": ("==", 0),
                 },
+                zero_tags=[
+                    "ALTCRITMULT",
+                    "ALTCRITRANGE",
+                    "ALTDAMAGE",
+                    "ALTEQMOD",
+                    "ALTTYPE",
+                    "ARMORTYPE",
+                    "BASEQTY",
+                    "CHANGEPROF",
+                    "WEAPONBONUS",
+                    "ADDDOMAINS",
+                    "PROHIBITCOST",
+                    "DONOTADD",
+                    "VARIANTS",
+                ],
                 typed={
                     "classes": (">=", 20),
                     "spells": (">=", 250),

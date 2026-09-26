@@ -8,16 +8,16 @@
 ## 当前状态（最近验证：固定数据 + 全量门禁）
 
 - 工作区：7 crate（core / formula / ir / import / engine / output / cli）。
-- 测试：`cargo test --workspace` **156 passed**。
+- 测试：`cargo test --workspace` **164 passed**。
 - DS-3E（回归代理，`srdbasic.pcc`）：3,779 entities，23,723 tag occurrences，
-  lowered 3,267；legacy pending 75；unsupported 0；
-  **semantic completion 97.8%**。
+  lowered 3,267；legacy pending 35；unsupported 0；
+  **semantic completion 98.9%**。
 - DS-35E（主验收，`_rsrd_basics.pcc`）：15,741 entities，
-  lowered 8,196；legacy pending 192；unsupported pending 0
-  （仅 2 个 `PRETEXT` allowlisted）；**semantic completion 97.7%**。
+  lowered 8,196；legacy pending 100；unsupported pending 0
+  （仅 2 个 `PRETEXT` allowlisted）；**semantic completion 98.8%**。
 - DS-PSI（灵能验收，`_rsrd_psionics.pcc`）：1,570 entities，
-  lowered 1,195；legacy pending 35；unsupported pending 0；
-  `psionic_effects` 50；**semantic completion 97.2%**。
+  lowered 1,195；legacy pending 11；unsupported pending 0；
+  `psionic_effects` 50；**semantic completion 99.1%**。
 - P0 口径清偿：`CHOOSE` 已经 lowering，不再重复计入 legacy pending；
   `XPCOST` 按 P4-DEC-2 移入 out-of-scope allowlist；三个数据集的
   `unsupported_pending` 均被门禁显式要求为 0。
@@ -48,6 +48,20 @@
       初始提交 + `.gitignore`；broad oracle `--write-baseline` Java 一致率
       下降时拒写（需 `--accept-diff` 才可显式接受）
 - [x] 清理已完成阶段的状态头（P1/P2/P3）
+
+### P0.3 阶段 2：剩余装备 / 法术 / 灵能 pending 清零（已完成）
+
+- [x] P4-EQP-2：`ALTCRITMULT` / `ALTCRITRANGE` / `ALTDAMAGE` /
+      `ALTEQMOD` / `ALTTYPE` / `ARMORTYPE` / `BASEQTY` / `CHANGEPROF` /
+      `WEAPONBONUS` 全部 typed 消费；alternate weapon profile 与
+      `PREWEAPONPROF` 状态接入 engine。
+- [x] P4-SPELL-2：`ADDDOMAINS` / `PROHIBITCOST` / `DONOTADD` /
+      Spell `VARIANTS` 全部 typed 消费；条件 `ADDDOMAINS` 进入
+      `domain_spells`，`PROHIBITCOST` 进入 snapshot `prohibited_costs`。
+- [x] P4-PSI-2：Wilder 第三个灵能职业 golden、`powers_known` 进入
+      snapshot、PRC `ADD:SPELLCASTER|Psionic` 叠加到基础 manifesting level。
+- [x] 三数据集目标 tag pending 均为 0；baseline 重冻结为
+      DS-3E 35 / 98.9%，DS-35E 100 / 98.8%，DS-PSI 11 / 99.1%。
 
 ### P0.2 阶段 1：typed-but-unconsumed 运行时闭环（已完成）
 
@@ -280,10 +294,11 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
   装备 `EquipSlot`、冲突诊断、slot order 排序已进入 engine；
   `CharacterSnapshot` 新增 `attack_bonuses`；literal 与公式型 `BONUS` 均
   进入 typed pipeline；broad oracle 23/23 100%。
-  装备 pending 仍集中在 alternate weapon profile / proficiency 类 tag：
-  DS-35E 65 次（`ALTCRIT*` / `ALTDAMAGE` / `ALTEQMOD` / `ALTTYPE` /
-  `ARMORTYPE` / `BASEQTY` / `CHANGEPROF` / `WEAPONBONUS`），DS-3E 30 次。
-  `PREEQUIP*`、EquipMod `DR`/`SR`、`.pcg EQMOD=`、`PRECHECKBASE` 已完成。
+  alternate weapon profile / proficiency 类 tag（`ALTCRIT*` /
+  `ALTDAMAGE` / `ALTEQMOD` / `ALTTYPE` / `ARMORTYPE` / `BASEQTY` /
+  `CHANGEPROF` / `WEAPONBONUS`）已由 P4-EQP-2 全部 typed 消费，三数据集
+  pending 为 0。`PREEQUIP*`、EquipMod `DR`/`SR`、`.pcg EQMOD=`、
+  `PRECHECKBASE` 已完成。
   CompanionMod 真实数据行已不再覆盖丢失，P4-COMP-1 已完成条件行选择与
   HD/SR/ABILITY/traits/BONUS:AC/STAT 消费。
 - **目标**：清零残余 BONUS 与装备类 pending legacy；在 IR/engine 层恢复
@@ -312,9 +327,10 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
   `spell_power_types`，并保持灵能职业不出现在 `caster_levels`；
   `PRECHECKBASE` 已 lower（base save 谓词）。
   验收数据集 DS-PSI（`_rsrd_psionics.pcc`）纳入 coverage gate：
-  1,570 entities，1,195 lowered，`psionic_effects` 50，completion 97.2%。
-  新增 `tests/psionics.rs`（Psion / Psychic Warrior）+ 临时态概念测试；
-  第三灵能职业 golden 与 known powers snapshot 仍待 P4-PSI-2。
+  1,570 entities，1,195 lowered，`psionic_effects` 50，completion 99.1%。
+  新增 `tests/psionics.rs`（Psion / Psychic Warrior / Wilder）+ 临时态
+  概念测试；P4-PSI-2 已补齐 Wilder golden、`powers_known` 与
+  `ADD:SPELLCASTER|Psionic` 的 PRC manifester stacking。
 - **目标**：补齐 `PRODUCT_SCOPE.md` 的灵能条目：威力、显能者等级、灵能点、
   威力 DC、已知威力。
 - **指标**：至少 3 个灵能职业的 power points / manifester level / DC 有 golden；
@@ -352,6 +368,9 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
   消费，`PRESPELL` / `PRESPELLSCHOOL` 已 lower，两个数据集这些 tag 均清零。
   S2 已加入 `spell_effects` 指标与 golden 测试：DS-3E 16、DS-35E 41；
   `CharacterSnapshot.spell_effects` 汇总领域法术与准备法术结果。
+  P4-SPELL-2 已消费 `ADDDOMAINS` / `PROHIBITCOST` / `DONOTADD` /
+  Spell `VARIANTS`：条件领域进入 `domain_spells`，禁止学派成本进入
+  snapshot `prohibited_costs`，三数据集这些 tag pending 为 0。
   预研见 [`docs/P4_SPELL1_PRERESEARCH.md`](docs/P4_SPELL1_PRERESEARCH.md)。
   更完整的法术效果数值应用仍可继续扩展。
 - **目标**：建立 spell effect 模型，将 spell 定义降低为可执行 `Effect`，
@@ -545,11 +564,11 @@ id 分组保存，并已由 P4-COMP-1 消费 `PRERACE` 条件、HD/SR/ABILITY/tr
 | ~~0c~~ | ~~P4-ENG-1~~ | ✅ 已完成：class/level 激活 + 默认 BAB=0 + modifier 归一化；BAB 21/21 |
 | ~~0d~~ | ~~P4-KIT-0~~ | ✅ 设计 spike 完成：声明式导入优先，随机展开单独立项 |
 | ~~1~~ | ~~P4-KIT-1~~ | ✅ 完成：KIT pending 6,896→0；DS-35E completion 45.5%→76.2% |
-| 2 | P4-BONUS-1 + P4-EQP-1 第二阶段 | ✅ 统一 `TypedBonus`、EquipSlot/冲突/排序、PREEQUIP、EquipMod DR/SR；剩余 alternate weapon profile / proficiency tag |
-| 3 | P4-SPELL-1 | ✅ S1 typed/coverage + S2 `spell_effects` 指标/golden + snapshot 汇总；法术数值执行可继续扩展 |
+| 2 | P4-BONUS-1 + P4-EQP-1/P4-EQP-2 | ✅ 统一 `TypedBonus`、EquipSlot/冲突/排序、PREEQUIP、EquipMod DR/SR、alternate weapon profile / WEAPONBONUS / PREWEAPONPROF |
+| 3 | P4-SPELL-1 / P4-SPELL-2 | ✅ S1/S2 spell_effect + `ADDDOMAINS`/`PROHIBITCOST`/`DONOTADD`/`VARIANTS` 消费；法术数值执行可继续扩展 |
 | ~~4~~ | ~~P4-DATA-1~~ | ✅ 完成：known_diverging 0；23/23 Java exact |
 | 4b | P4-RACE-1 / P4-TPL-1 / P4-COMP-1 | ✅ Race/Template typed + active owner trait 汇入 snapshot；MOVECLONE 与 EquipMod DR/SR 已消费；CompanionMod PRERACE/BONUS/traits runtime 已完成 |
-| 5 | P4-TEMP-1 / P4-PSI-1 | ✅ P4-TEMP-1 active-state；P4-PSI-1 首版完成，第三灵能职业与 known powers 待补 |
+| 5 | P4-TEMP-1 / P4-PSI-1/P4-PSI-2 | ✅ P4-TEMP-1 active-state；Psion/Psychic Warrior/Wilder golden、`powers_known`、PRC manifester stacking 完成 |
 | 6 | P4-CLASS-1/2、P4-STAT-1/2、P4-FAITH-1/2 | ✅ typed + runtime 消费完成：技能点/专长/HP/ADDLEVEL/EXCLASS/EXCHANGELEVEL、属性下限/STATMOD/SIZENUM、信仰校验 |
 | 7 | P4-DEC-2 / DEC-4 | G3 dropped、G4 归档 |
 

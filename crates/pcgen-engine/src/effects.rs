@@ -179,11 +179,22 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
             }
         }
     }
-    let weapon_proficiencies: BTreeSet<String> = draft
+    let mut weapon_proficiencies: BTreeSet<String> = draft
         .abilities
         .iter()
         .map(|(_, key)| normalized(key))
         .collect();
+    for &index in &initial {
+        if let Some(entity) = pack.entities.get(index) {
+            for bonus in &entity.metadata.weapon_bonus {
+                seed_weapon_bonus(pack, &mut weapon_proficiencies, bonus);
+            }
+            for (from, to) in &entity.metadata.changed_proficiencies {
+                weapon_proficiencies.insert(normalized(from));
+                weapon_proficiencies.insert(normalized(to));
+            }
+        }
+    }
     let mut domains = BTreeSet::new();
     for frame in &draft.advancement {
         for lane in &frame.lanes {
@@ -450,6 +461,9 @@ fn apply_action(
                 key: resolve_placeholders(&entity.key, state),
                 ..entity.clone()
             };
+            if resolved.entity_type.eq_ignore_ascii_case("weaponprof") {
+                seed_weapon_bonus(pack, &mut state.weapon_proficiencies, &resolved.key);
+            }
             if let Some(target) = find_entity(pack, &resolved) {
                 if !grant_allowed(&pack.entities[target], draft, state) {
                     state.diagnostics.push(format!(
@@ -468,6 +482,13 @@ fn apply_action(
         }
         EffectAction::GrantTag { tag } => {
             state.active_abilities.insert(tag.clone());
+            let mut parts = tag.split('|');
+            let category = parts.next().unwrap_or_default();
+            if category.eq_ignore_ascii_case("WEAPONPROF") {
+                for value in parts {
+                    seed_weapon_bonus(pack, &mut state.weapon_proficiencies, value);
+                }
+            }
         }
         EffectAction::Choose { spec } => {
             apply_choose(spec, draft, state);
@@ -1178,6 +1199,32 @@ fn formula_to_i32(value: &FormulaValue) -> i32 {
         FormulaValue::Float(value) => *value as i32,
         FormulaValue::Bool(value) => *value as i32,
         FormulaValue::String(_) => 0,
+    }
+}
+
+fn seed_weapon_bonus(pack: &CompiledRulePack, proficiencies: &mut BTreeSet<String>, value: &str) {
+    let token = normalized(value);
+    if token.is_empty() {
+        return;
+    }
+    if let Some(kind) = token
+        .strip_prefix("type=")
+        .or_else(|| token.strip_prefix("type."))
+    {
+        let kind = kind.trim().to_string();
+        proficiencies.insert(format!("type.{kind}"));
+        for definition in pack.equipment.values() {
+            if definition
+                .type_tags
+                .iter()
+                .any(|tag| normalized(tag) == kind)
+            {
+                proficiencies.insert(normalized(&definition.name));
+                proficiencies.insert(normalized(&definition.id));
+            }
+        }
+    } else {
+        proficiencies.insert(token);
     }
 }
 

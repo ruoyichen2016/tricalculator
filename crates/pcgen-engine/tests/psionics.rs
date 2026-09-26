@@ -136,3 +136,75 @@ fn psychic_warrior_power_points_use_wisdom() {
     assert_eq!(snapshot.power_points.get("Psychic Warrior"), Some(&20));
     assert_eq!(snapshot.manifester_levels.get("Psychic Warrior"), Some(&6));
 }
+
+#[test]
+fn wilder_is_the_third_psionic_class_golden() {
+    let pcc = psionics_pcc();
+    if !pcc.exists() {
+        eprintln!("skipping psionics test: {} does not exist", pcc.display());
+        return;
+    }
+    let (pack, _) = compile_pcc(&pcc).expect("psionics campaign should compile");
+    let draft = CharacterDraft {
+        race_id: "Human".to_string(),
+        stats: [("CHA".to_string(), 18)].into_iter().collect(),
+        class_levels: vec![DraftClassLevel {
+            class_id: "Wilder".to_string(),
+            level: 5,
+            hit_points_gained: 0,
+            hit_points_by_level: Vec::new(),
+            experience_gained: 0,
+        }],
+        ..CharacterDraft::default()
+    };
+    let snapshot = Engine::new(pack).evaluate(&draft);
+    // Wilder 5, CHA 18: 25 base + 10 ability = 35.
+    assert_eq!(snapshot.power_points.get("Wilder"), Some(&35));
+    assert_eq!(snapshot.manifester_levels.get("Wilder"), Some(&5));
+    assert!(!snapshot
+        .powers_known
+        .get("Wilder")
+        .expect("Wilder powers known")
+        .is_empty());
+}
+
+#[test]
+fn psionic_prestige_class_advances_base_manifester_level() {
+    let pcc = psionics_pcc();
+    if !pcc.exists() {
+        eprintln!("skipping psionics test: {} does not exist", pcc.display());
+        return;
+    }
+    let (pack, _) = compile_pcc(&pcc).expect("psionics campaign should compile");
+    let draft = CharacterDraft {
+        race_id: "Human".to_string(),
+        stats: [("INT".to_string(), 18)].into_iter().collect(),
+        class_levels: vec![
+            DraftClassLevel {
+                class_id: "Psion".to_string(),
+                level: 5,
+                hit_points_gained: 0,
+                hit_points_by_level: Vec::new(),
+                experience_gained: 0,
+            },
+            DraftClassLevel {
+                class_id: "Elocator".to_string(),
+                level: 3,
+                hit_points_gained: 0,
+                hit_points_by_level: Vec::new(),
+                experience_gained: 0,
+            },
+        ],
+        ..CharacterDraft::default()
+    };
+    let snapshot = Engine::new(pack).evaluate(&draft);
+    // Psion 5 + three Elocator levels that `ADD:SPELLCASTER|Psionic`.
+    assert_eq!(snapshot.manifester_levels.get("Psion"), Some(&8));
+    // Psion 8, INT 18: 58 base + 4 * 8 / 2 = 74.
+    assert_eq!(snapshot.power_points.get("Psion"), Some(&74));
+    assert!(!snapshot
+        .powers_known
+        .get("Psion")
+        .expect("Psion powers known")
+        .is_empty());
+}

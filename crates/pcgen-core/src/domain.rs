@@ -203,6 +203,9 @@ pub struct RaceDefinition {
     /// Skill points multiplier at first level (PCGen `SKILLMULT:`).
     #[serde(default)]
     pub skill_multiplier: Option<u32>,
+    /// `CHANGEPROF:Old=New` entries.
+    #[serde(default)]
+    pub changed_proficiencies: BTreeMap<String, String>,
 }
 
 fn default_hands() -> u32 {
@@ -226,6 +229,7 @@ impl RaceDefinition {
             extra_skill_points_per_level: None,
             stat_minimums: BTreeMap::new(),
             skill_multiplier: None,
+            changed_proficiencies: BTreeMap::new(),
         }
     }
 }
@@ -321,6 +325,21 @@ pub struct ClassDefinition {
     /// Additional class levels (PCGen `ADDLEVEL:Class|n`).
     #[serde(default)]
     pub add_levels: BTreeMap<String, u32>,
+    /// Weapon proficiency grants (PCGen `WEAPONBONUS:`).
+    #[serde(default)]
+    pub weapon_bonus: Vec<String>,
+    /// Domains added by this class / subclass (PCGen `ADDDOMAINS:`).
+    #[serde(default)]
+    pub added_domains: Vec<String>,
+    /// Prohibited school cost (PCGen `PROHIBITCOST:`).
+    #[serde(default)]
+    pub prohibited_cost: Option<i32>,
+    /// Per-level `DONOTADD` suppressions, e.g. `HITDIE` / `SKILLPOINTS`.
+    #[serde(default)]
+    pub level_do_not_add: BTreeMap<u32, Vec<String>>,
+    /// Per-level `ADD:SPELLCASTER` advancement entries, e.g. `Psionic`.
+    #[serde(default)]
+    pub level_spellcaster_advance: BTreeMap<u32, Vec<String>>,
 }
 
 impl ClassDefinition {
@@ -365,6 +384,11 @@ impl ClassDefinition {
             excluded_class: None,
             exchange_level: None,
             add_levels: BTreeMap::new(),
+            weapon_bonus: Vec::new(),
+            added_domains: Vec::new(),
+            prohibited_cost: None,
+            level_do_not_add: BTreeMap::new(),
+            level_spellcaster_advance: BTreeMap::new(),
         }
     }
 }
@@ -410,6 +434,9 @@ pub struct SpellDefinition {
     pub domains: Vec<String>,
     #[serde(default)]
     pub is_psionic: bool,
+    /// `VARIANTS` presentation choices on a spell record.
+    #[serde(default)]
+    pub variants: Vec<String>,
 }
 
 impl SpellDefinition {
@@ -422,6 +449,7 @@ impl SpellDefinition {
             class_levels: BTreeMap::new(),
             domains: Vec::new(),
             is_psionic: false,
+            variants: Vec::new(),
         }
     }
 }
@@ -470,6 +498,21 @@ pub struct EquipmentDefinition {
     /// Standard equipment slot inferred from type tags.
     #[serde(default)]
     pub slot: crate::equipment::EquipSlot,
+    /// Proficiency declaration (`PROFICIENCY:`), usually `WEAPON|Name`.
+    #[serde(default)]
+    pub proficiency: Option<String>,
+    #[serde(default)]
+    pub alternate_damage: Option<String>,
+    #[serde(default)]
+    pub alternate_crit_mult: Option<String>,
+    #[serde(default)]
+    pub alternate_crit_range: Option<i32>,
+    #[serde(default)]
+    pub alternate_types: Vec<String>,
+    #[serde(default)]
+    pub alternate_equipment_mods: Vec<String>,
+    #[serde(default)]
+    pub base_quantity: Option<String>,
 }
 
 impl EquipmentDefinition {
@@ -492,6 +535,13 @@ impl EquipmentDefinition {
             slots: None,
             location: None,
             slot: crate::equipment::EquipSlot::None,
+            proficiency: None,
+            alternate_damage: None,
+            alternate_crit_mult: None,
+            alternate_crit_range: None,
+            alternate_types: Vec::new(),
+            alternate_equipment_mods: Vec::new(),
+            base_quantity: None,
         }
     }
 }
@@ -593,6 +643,9 @@ pub struct EquipmentModifierDefinition {
     /// (`DR` / `SR`, captured from the raw record).
     #[serde(default)]
     pub traits: CreatureTraits,
+    /// Armor type membership (`ARMORTYPE:`), e.g. `Medium|Light`.
+    #[serde(default)]
+    pub armor_types: Vec<String>,
 }
 
 impl EquipmentModifierDefinition {
@@ -609,6 +662,7 @@ impl EquipmentModifierDefinition {
             replaces: Vec::new(),
             charges: None,
             traits: CreatureTraits::default(),
+            armor_types: Vec::new(),
         }
     }
 }

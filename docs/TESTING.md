@@ -207,7 +207,7 @@ KIT / COMPANIONMOD / 怪物记录**均在范围内**（见 `PRODUCT_SCOPE.md`）
 DS-35E 的 KIT 主瓶颈已由 `P4-KIT-1` 声明式 typed 导入解决；
 设计结论见 [`P4_KIT0_DESIGN.md`](P4_KIT0_DESIGN.md)：声明式导入优先，运行时
 随机展开单独立项。P0 口径修正后，当前 DS-35E `semantic_completion`
-约 **97.7%**，DS-3E 约 **97.8%**，DS-PSI 约 **97.2%**；三个数据集
+约 **98.8%**，DS-3E 约 **98.9%**，DS-PSI 约 **99.1%**；三个数据集
 unsupported pending 均为 0，且 gate 已显式检查该值。
 
 ## 8. 架构护栏：engine 不得依赖 import

@@ -14,6 +14,7 @@ fn compiled_entity_category_serializes_as_pcgen_string() {
         ability_category: None,
         temporary_value: None,
         traits: Default::default(),
+        metadata: Default::default(),
     };
     let json = serde_json::to_string(&entity).expect("serialize");
     assert!(
@@ -39,6 +40,7 @@ fn unknown_category_survives_round_trip() {
         ability_category: None,
         temporary_value: None,
         traits: Default::default(),
+        metadata: Default::default(),
     };
     let json = serde_json::to_string(&entity).expect("serialize");
     assert!(json.contains("\"category\":\"POWER\""), "got: {json}");

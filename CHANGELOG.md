@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### 阶段 2：剩余装备 / 法术 / 灵能 pending 清零（已完成）
+
+- **P4-EQP-2**：`ALTCRITMULT` / `ALTCRITRANGE` / `ALTDAMAGE` /
+  `ALTEQMOD` / `ALTTYPE` / `ARMORTYPE` / `BASEQTY` / `CHANGEPROF` /
+  `WEAPONBONUS` typed 化；`EquipmentDefinition` 增加 alternate weapon
+  profile，`WEAPONBONUS` / `AUTO:WEAPONPROF` 接入 `PREWEAPONPROF` 状态。
+- **P4-SPELL-2**：`ADDDOMAINS` / `PROHIBITCOST` / `DONOTADD` / Spell
+  `VARIANTS` 消费；条件 `ADDDOMAINS` 进入 `domain_spells`，
+  `PROHIBITCOST` 进入 `CharacterSnapshot.prohibited_costs`。
+- **P4-PSI-2**：Wilder 第三灵能职业 golden；`CharacterSnapshot.powers_known`
+  输出；`ADD:SPELLCASTER|Psionic` 的 PRC 等级叠加到基础 manifester level。
+- 三数据集目标 tag pending 为 0；baseline 重冻结为 DS-3E 35 / 98.9%，
+  DS-35E 100 / 98.8%，DS-PSI 11 / 99.1%；测试 156→164。
+
 ### 阶段 1：typed-but-unconsumed 运行时闭环（已完成）
 
 - **P4-CLASS-2**：`ClassProgression` 新增 `hit_die` / `skill_multiplier` /
