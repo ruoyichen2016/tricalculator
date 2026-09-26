@@ -83,6 +83,7 @@ fn demo_engine() -> Engine {
             first_level_skill_points: 8,
             class_skills: vec!["Climb".to_string()],
             features_by_level: BTreeMap::new(),
+            ..ClassProgress::default()
         },
     );
     progressions.insert(
@@ -96,6 +97,7 @@ fn demo_engine() -> Engine {
             first_level_skill_points: 8,
             class_skills: vec!["Spellcraft".to_string()],
             features_by_level: BTreeMap::new(),
+            ..ClassProgress::default()
         },
     );
     Engine::new(pack).with_progressions(progressions)

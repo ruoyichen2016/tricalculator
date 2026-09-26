@@ -1,7 +1,8 @@
 //! Derived character output.
 
 use pcgen_core::{
-    BuildProvenance, Contribution, DomainSpell, FaithDecision, GestaltPlan, SpellPowerType,
+    BuildProvenance, Contribution, CreatureTraits, DomainSpell, FaithDecision, GestaltPlan,
+    SpellPowerType,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -12,11 +13,32 @@ pub struct CompanionSnapshot {
     pub companion_type: String,
     pub master_level: u32,
     #[serde(default)]
+    pub race_id: Option<String>,
+    #[serde(default)]
     pub hit_dice_bonus: i32,
     #[serde(default)]
     pub spell_resistance: Option<i32>,
     #[serde(default)]
     pub abilities: Vec<String>,
+    /// `BONUS:COMBAT|AC` total after stacking/aggregation.
+    #[serde(default)]
+    pub armor_class_bonus: i32,
+    /// `BONUS:STAT|...` adjustments keyed by stat name.
+    #[serde(default)]
+    pub stat_adjustments: BTreeMap<String, i32>,
+    /// Creature traits granted to the companion.
+    #[serde(default)]
+    pub traits: CreatureTraits,
+}
+
+/// Runtime-visible class interaction metadata (`EXCLASS` / `EXCHANGELEVEL`).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ClassInteraction {
+    pub class_id: String,
+    #[serde(default)]
+    pub excluded_class: Option<String>,
+    #[serde(default)]
+    pub exchange_level: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -25,9 +47,22 @@ pub struct CharacterSnapshot {
     pub name: String,
     pub race_id: String,
     pub total_level: u32,
+    /// Canonical size rank used for size-derived values (`SIZENUM` aware).
+    #[serde(default)]
+    pub size_rank: usize,
     pub stats: BTreeMap<String, i32>,
     pub hit_points: i32,
+    /// Total skill points from class levels, including first-level
+    /// `SKILLMULT` and race `XTRASKILLPTSPERLVL`.
+    #[serde(default)]
+    pub skill_points: i32,
+    /// Feat slots derived from class `LEVELSPERFEAT` / default progression.
+    #[serde(default)]
+    pub feat_slots: u32,
     pub base_attack_bonus: i32,
+    /// `EXCLASS` / `EXCHANGELEVEL` metadata for active classes.
+    #[serde(default)]
+    pub class_interactions: Vec<ClassInteraction>,
     pub initiative: i32,
     pub armor_class: i32,
     pub armor_bonus: i32,

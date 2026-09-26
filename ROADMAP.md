@@ -8,7 +8,7 @@
 ## 当前状态（最近验证：固定数据 + 全量门禁）
 
 - 工作区：7 crate（core / formula / ir / import / engine / output / cli）。
-- 测试：`cargo test --workspace` **150 passed**。
+- 测试：`cargo test --workspace` **156 passed**。
 - DS-3E（回归代理，`srdbasic.pcc`）：3,779 entities，23,723 tag occurrences，
   lowered 3,267；legacy pending 75；unsupported 0；
   **semantic completion 97.8%**。
@@ -48,6 +48,24 @@
       初始提交 + `.gitignore`；broad oracle `--write-baseline` Java 一致率
       下降时拒写（需 `--accept-diff` 才可显式接受）
 - [x] 清理已完成阶段的状态头（P1/P2/P3）
+
+### P0.2 阶段 1：typed-but-unconsumed 运行时闭环（已完成）
+
+- [x] P4-CLASS-2：`SKILLMULT` 进入首级技能点，`LEVELSPERFEAT` 进入
+      `ClassProgression.feat_slots()` / snapshot `feat_slots`，`HITDIE`
+      进入无显式 HP 输入时的平均 HP，`ADDLEVEL` 进入 effective class levels，
+      `EXCLASS` / `EXCHANGELEVEL` 进入 progression 与 snapshot
+      `class_interactions`；新增 `class_progression.rs` golden。
+- [x] P4-STAT-2：`DEFINESTAT:MINVALUE` 进入属性下限，`STATMOD` 进入
+      派生属性修正，`SIZENUM` 进入 `size_rank` / size modifier；新增
+      `stats_and_size.rs`。
+- [x] P4-FAITH-2：`VALIDFORDEITY` / `VALIDFORFOLLOWER` 进入信仰诊断，
+      并覆盖 deity / alignment 两侧；扩展 `faith_rules.rs`。
+- [x] P4-COMP-1：CompanionMod 行级 `PRERACE` 匹配、`HD` / `SR` /
+      `ABILITY` / creature traits / `BONUS:COMBAT|AC` / `BONUS:STAT`
+      进入 `CompanionSnapshot`；扩展 `creature_traits.rs`。
+- [x] 真实数据指标与 broad oracle 不变：DS-3E 75 / 97.8%，DS-35E 192 /
+      97.7%，DS-PSI 35 / 97.2%；broad 23/23，archive 0 regression。
 
 ### P0.1 质量清偿 / 口径修正（已完成）
 
@@ -266,8 +284,8 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
   DS-35E 65 次（`ALTCRIT*` / `ALTDAMAGE` / `ALTEQMOD` / `ALTTYPE` /
   `ARMORTYPE` / `BASEQTY` / `CHANGEPROF` / `WEAPONBONUS`），DS-3E 30 次。
   `PREEQUIP*`、EquipMod `DR`/`SR`、`.pcg EQMOD=`、`PRECHECKBASE` 已完成。
-  CompanionMod 真实数据行已不再覆盖丢失，但条件行选择与 BONUS/KIT 消费
-  仍属 P4-COMP-1 后续。
+  CompanionMod 真实数据行已不再覆盖丢失，P4-COMP-1 已完成条件行选择与
+  HD/SR/ABILITY/traits/BONUS:AC/STAT 消费。
 - **目标**：清零残余 BONUS 与装备类 pending legacy；在 IR/engine 层恢复
   archive `bonus.rs` 的 typed stacking policy（G1），并把装备槽位、冲突、
   顺序、装备加成 typed 化（G2）；两者必须走同一条 modifier/AC 管线。
@@ -448,24 +466,24 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
   已完成 Halfling 种族 trait / `.MOD` ability 默认链、`CreatureTraits`
   typed 化（Race/Template 的 reach / natural attacks / DR/SR/CR / vision 等）。
   Ability / ClassLevel / Equipment 上的同名 trait 已捕获为 metadata，其中
-  active owner entity 会汇入 snapshot；EquipMod / CompanionMod /
-  `MOVECLONE` 仍为 pending，等待 P4-EQP-1 / P4-RACE-1 后续实现。
-- **P4-CLASS-1 职业 / 进阶（typed 完成，runtime 待补）**：
+  active owner entity 会汇入 snapshot；`MOVECLONE` 与 EquipMod `DR`/`SR`
+  已消费，CompanionMod 条件行选择已由 P4-COMP-1 落地。
+- **P4-CLASS-1 / P4-CLASS-2 职业 / 进阶（已完成）**：
   `SKILLMULT`/`LEVELSPERFEAT`/`HITDIE`/`EXCLASS`/`ADDLEVEL`/`EXCHANGELEVEL`
-  已进入 typed `ClassDefinition`，但首级技能点、专长进度、HP 等消费仍归
-  P4-CLASS-2。
-- **P4-STAT-1 属性 / 尺寸（typed 完成，runtime 待补）**：
-  `DEFINESTAT`/`STATMOD`/`SIZENUM` 已 typed，属性下限/公式/排序消费归
-  P4-STAT-2。
+  已进入 typed `ClassDefinition`，并消费到 `ClassProgression`、首级技能点、
+  专长槽、HP（HITDIE 平均）、effective levels 与 `class_interactions`。
+- **P4-STAT-1 / P4-STAT-2 属性 / 尺寸（已完成）**：
+  `DEFINESTAT`/`STATMOD`/`SIZENUM` 已 typed，并消费到属性下限、派生属性
+  修正与 `size_rank` / size modifier。
 - **P4-PRE-6 谓词补齐（部分完成）**：已完成 `PRESIZEEQ`/`PRESIZEGTEQ`/
   `PRESIZELT`/`PRESIZELTEQ`/`PRESIZEGT`（DS-35E 58 次）与 `PRETEXT` 改判
   allowlist；`PRETEMPLATE`/`PREMOVE` 已在 P4-PRE-4 落地；剩余
   `!PRESUBCLASS`/`PRELANG`/`PREWEAPONPROF` 需要新运行时状态，分别并入
   P4-CLASS-1 / P4-RACE-1 / P4-EQP-1；`PRESPELL`/`PRESPELLSCHOOL` 并入
   P4-SPELL-1。
-- **P4-FAITH 信仰小项（typed 完成，runtime 待补）**：
-  `DEITYWEAP` 已消费；`VALIDFORDEITY`/`VALIDFORFOLLOWER` 已 typed，信仰
-  校验消费归 P4-FAITH-2。
+- **P4-FAITH 信仰小项（已完成）**：
+  `DEITYWEAP` 已消费；`VALIDFORDEITY`/`VALIDFORFOLLOWER` 已进入 deity /
+  alignment 信仰校验诊断。
 
 ### P4-G DS-35E unsupported owner 表（已清零）
 
@@ -497,7 +515,8 @@ Race/Template 上的 `VISION` / `DR` / `SR` / `NATURALATTACKS` / `REACH` /
 captured 到 `CompiledRulePack.creature_trait_records`；其中 active
 ClassLevel / Ability / Feat / Equipment 已汇入 snapshot；`MOVECLONE` 与
 EquipMod `DR`/`SR` 已有 runtime 消费。CompanionMod 的 `FOLLOWER:` 行已按
-id 分组保存，但 `PRERACE`/`KIT`/`BONUS` 条件行选择仍待 P4-COMP-1：
+id 分组保存，并已由 P4-COMP-1 消费 `PRERACE` 条件、HD/SR/ABILITY/traits
+与 BONUS:AC/STAT：
 
 | category | tags / 次数 | owner | 处理方式 |
 |---|---|---|---|
@@ -505,7 +524,7 @@ id 分组保存，但 `PRERACE`/`KIT`/`BONUS` 条件行选择仍待 P4-COMP-1：
 | ClassLevel | `UDAM` 20、`UMULT` 1 | P4-CLASS-1 | 职业进阶表能力，进入 class feature / unarmed damage 模型 |
 | Equipment | `REACHMULT` 7、`SR` 5、`DR` 3 | P4-EQP-1 | 装备特殊能力，接入装备 trait 输出 |
 | EquipMod | `DR` 4、`SR` 6 | P4-EQP-1 | 装备 modifier 特殊能力 |
-| CompanionMod | `SR` 4 | P4-COMP-1 | 行级条件选择 + HD/SR/ABILITY/BONUS/KIT 消费 |
+| CompanionMod | `SR` 4 | P4-COMP-1 | ✅ 行级 PRERACE 选择 + HD/SR/ABILITY/traits/BONUS:AC/STAT 消费 |
 
 > 产品输出范围已冻结：Race/Template 的视觉、DR、SR、natural attacks、reach、
 > unarmed damage 进入 `CharacterSnapshot`；其余 category 的 trait 已保存为
@@ -526,12 +545,12 @@ id 分组保存，但 `PRERACE`/`KIT`/`BONUS` 条件行选择仍待 P4-COMP-1：
 | ~~0c~~ | ~~P4-ENG-1~~ | ✅ 已完成：class/level 激活 + 默认 BAB=0 + modifier 归一化；BAB 21/21 |
 | ~~0d~~ | ~~P4-KIT-0~~ | ✅ 设计 spike 完成：声明式导入优先，随机展开单独立项 |
 | ~~1~~ | ~~P4-KIT-1~~ | ✅ 完成：KIT pending 6,896→0；DS-35E completion 45.5%→76.2% |
-| 2 | P4-BONUS-1 + P4-EQP-1 第二阶段 | ✅ 统一 `TypedBonus`、EquipSlot/冲突/排序、PREEQUIP、EquipMod DR/SR；剩余 alternate weapon profile / proficiency tag，P4-COMP-1 companion selector |
+| 2 | P4-BONUS-1 + P4-EQP-1 第二阶段 | ✅ 统一 `TypedBonus`、EquipSlot/冲突/排序、PREEQUIP、EquipMod DR/SR；剩余 alternate weapon profile / proficiency tag |
 | 3 | P4-SPELL-1 | ✅ S1 typed/coverage + S2 `spell_effects` 指标/golden + snapshot 汇总；法术数值执行可继续扩展 |
 | ~~4~~ | ~~P4-DATA-1~~ | ✅ 完成：known_diverging 0；23/23 Java exact |
-| 4b | P4-RACE-1 / P4-TPL-1 / P4-COMP-1 | ✅ Race/Template typed + active owner trait 汇入 snapshot；MOVECLONE 与 EquipMod DR/SR 已消费；CompanionMod 行已保全，条件 selector 待 P4-COMP-1 |
+| 4b | P4-RACE-1 / P4-TPL-1 / P4-COMP-1 | ✅ Race/Template typed + active owner trait 汇入 snapshot；MOVECLONE 与 EquipMod DR/SR 已消费；CompanionMod PRERACE/BONUS/traits runtime 已完成 |
 | 5 | P4-TEMP-1 / P4-PSI-1 | ✅ P4-TEMP-1 active-state；P4-PSI-1 首版完成，第三灵能职业与 known powers 待补 |
-| 6 | P4-CLASS-1 / P4-STAT-1 / P4-FAITH | typed 导入完成；runtime 消费拆为 P4-CLASS-2 / P4-STAT-2 / P4-FAITH-2 |
+| 6 | P4-CLASS-1/2、P4-STAT-1/2、P4-FAITH-1/2 | ✅ typed + runtime 消费完成：技能点/专长/HP/ADDLEVEL/EXCLASS/EXCHANGELEVEL、属性下限/STATMOD/SIZENUM、信仰校验 |
 | 7 | P4-DEC-2 / DEC-4 | G3 dropped、G4 归档 |
 
 > 每个任务合并前必须同时满足：`cargo test --workspace`、

@@ -321,3 +321,76 @@ fn companion_rows_with_same_id_are_preserved_not_overwritten() {
     });
     assert_eq!(snapshot.companions[0].hit_dice_bonus, 1);
 }
+
+#[test]
+fn companion_condition_matching_applies_hd_sr_abilities_traits_and_bonuses() {
+    let records = vec![
+        record("RACE", "Human", &[("SIZE", "M")]),
+        record(
+            "COMPANIONMOD",
+            "FOLLOWER:FamiliarLVL=1",
+            &[
+                ("TYPE", "Familiar"),
+                ("HD", "1"),
+                ("SR", "mastervar(\"FamiliarLVL\")+5"),
+                ("ABILITY", "Special Ability|AUTOMATIC|Alertness"),
+                ("BONUS", "COMBAT|AC|2|TYPE=NaturalArmor"),
+                ("BONUS", "STAT|DEX|2"),
+                (
+                    "NATURALATTACKS",
+                    "Claw,Weapon.Natural.Melee.Piercing.Slashing,*1,1d4",
+                ),
+            ],
+        ),
+        record(
+            "COMPANIONMOD",
+            "FOLLOWER:FamiliarLVL=1",
+            &[
+                ("TYPE", "Familiar"),
+                ("PRERACE", "1,Companion ~ Bat"),
+                ("ABILITY", "Special Ability|AUTOMATIC|Bat Traits"),
+                ("BONUS", "STAT|STR|1"),
+            ],
+        ),
+        record(
+            "COMPANIONMOD",
+            "FOLLOWER:FamiliarLVL=1",
+            &[
+                ("TYPE", "Familiar"),
+                ("PRERACE", "1,Companion ~ Cat"),
+                ("BONUS", "STAT|DEX|5"),
+            ],
+        ),
+    ];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["companion-runtime".to_string()],
+        &records,
+    );
+    let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Human".to_string(),
+        companions: vec![
+            pcgen_engine::DraftCompanion::new("Familiar", 1).with_race("Companion ~ Bat")
+        ],
+        ..CharacterDraft::default()
+    });
+    let companion = &snapshot.companions[0];
+    assert_eq!(companion.hit_dice_bonus, 1);
+    assert_eq!(companion.spell_resistance, Some(6));
+    assert_eq!(companion.armor_class_bonus, 2);
+    assert_eq!(companion.stat_adjustments.get("DEX"), Some(&2));
+    assert_eq!(companion.stat_adjustments.get("STR"), Some(&1));
+    assert!(companion
+        .abilities
+        .iter()
+        .any(|ability| ability == "Alertness"));
+    assert!(companion
+        .abilities
+        .iter()
+        .any(|ability| ability == "Bat Traits"));
+    assert!(companion
+        .traits
+        .natural_attacks
+        .iter()
+        .any(|attack| attack.contains("Claw")));
+}

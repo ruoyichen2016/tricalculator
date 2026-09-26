@@ -622,6 +622,25 @@ pub struct ClassProgression {
     pub will: Vec<i32>,
     pub skill_points_per_level: u32,
     pub first_level_skill_points: u32,
+    /// Hit die actually used for this class (`HITDIE` override or base `HD`).
+    #[serde(default)]
+    pub hit_die: String,
+    /// First-level skill-point multiplier (`SKILLMULT` or game default 4).
+    #[serde(default)]
+    pub skill_multiplier: u32,
+    /// Levels per feat for monster / alternate progression (`LEVELSPERFEAT`).
+    #[serde(default)]
+    pub levels_per_feat: u32,
+    /// Additional class levels granted by `ADDLEVEL`.
+    #[serde(default)]
+    pub add_levels: BTreeMap<String, u32>,
+    /// Class levels converted to this class when prerequisites are lost
+    /// (`EXCLASS`).
+    #[serde(default)]
+    pub excluded_class: Option<String>,
+    /// Raw `EXCHANGELEVEL` specification.
+    #[serde(default)]
+    pub exchange_level: Option<String>,
     pub class_skills: Vec<String>,
     pub features_by_level: BTreeMap<u32, Vec<String>>,
 }
@@ -662,6 +681,18 @@ impl ClassProgression {
             .collect()
     }
 
+    /// Number of feat slots granted by this class progression up to `level`.
+    ///
+    /// PCGen's default is one feat at first level, then one per three levels.
+    /// Monster classes can override this with `LEVELSPERFEAT`.
+    pub fn feat_slots(&self, level: u32) -> u32 {
+        if level == 0 {
+            return 0;
+        }
+        let step = self.levels_per_feat.max(1);
+        1 + level / step
+    }
+
     pub fn from_class(class: &ClassDefinition) -> Self {
         let max_level = class.max_level.max(1);
         let mut progression = Self {
@@ -670,7 +701,19 @@ impl ClassProgression {
             reflex: Vec::with_capacity(max_level as usize),
             will: Vec::with_capacity(max_level as usize),
             skill_points_per_level: class.skill_points_per_level,
-            first_level_skill_points: class.skill_points_per_level.saturating_mul(4).max(4),
+            first_level_skill_points: class
+                .skill_points_per_level
+                .saturating_mul(class.skill_multiplier.unwrap_or(4))
+                .max(1),
+            hit_die: class
+                .hit_die_override
+                .clone()
+                .unwrap_or_else(|| class.hit_die.clone()),
+            skill_multiplier: class.skill_multiplier.unwrap_or(4),
+            levels_per_feat: class.levels_per_feat.unwrap_or(3).max(1),
+            add_levels: class.add_levels.clone(),
+            excluded_class: class.excluded_class.clone(),
+            exchange_level: class.exchange_level.clone(),
             class_skills: class.class_skills.clone(),
             features_by_level: BTreeMap::new(),
         };
@@ -772,6 +815,19 @@ pub struct StatDefinition {
     pub modifier_formula: Option<String>,
 }
 
+/// One parsed `BONUS` row on a companion modifier.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CompanionBonus {
+    /// Canonical target, e.g. `COMBAT.AC` or `STAT.STR`.
+    pub target: String,
+    /// Numeric formula, evaluated against the companion's master level.
+    pub formula: String,
+    #[serde(default)]
+    pub bonus_type: Option<String>,
+    #[serde(default)]
+    pub stack_key: Option<String>,
+}
+
 /// Declarative companion modifier (PCGen `FOLLOWER:` / `COMPANIONMOD`).
 ///
 /// One record describes the companion state for a master class at or above a
@@ -808,6 +864,9 @@ pub struct CompanionModDefinition {
     /// until the runtime companion selector can evaluate them.
     #[serde(default)]
     pub requirements: Vec<String>,
+    /// Parsed `BONUS` rows (AC / STAT / etc.) applied to the companion.
+    #[serde(default)]
+    pub bonuses: Vec<CompanionBonus>,
 }
 
 impl CompanionModDefinition {

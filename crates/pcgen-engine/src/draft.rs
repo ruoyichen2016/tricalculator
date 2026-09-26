@@ -74,6 +74,10 @@ pub struct DraftCompanion {
     pub companion_type: String,
     /// Master class/variable level used by `mastervar(...)` formulas.
     pub master_level: u32,
+    /// Selected companion race/key, used to match `PRERACE` rows
+    /// (e.g. `Companion ~ Ape`).
+    #[serde(default)]
+    pub race_id: Option<String>,
 }
 
 impl DraftCompanion {
@@ -81,7 +85,13 @@ impl DraftCompanion {
         Self {
             companion_type: companion_type.into(),
             master_level,
+            race_id: None,
         }
+    }
+
+    pub fn with_race(mut self, race_id: impl Into<String>) -> Self {
+        self.race_id = Some(race_id.into());
+        self
     }
 }
 

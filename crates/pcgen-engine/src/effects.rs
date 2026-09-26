@@ -549,7 +549,7 @@ pub(crate) fn class_level_is_active(
 
 fn initial_entities(pack: &CompiledRulePack, draft: &CharacterDraft) -> Vec<usize> {
     let mut indexes = BTreeSet::new();
-    let class_levels = crate::engine::effective_class_levels(draft);
+    let class_levels = crate::engine::effective_class_levels(pack, draft);
     for (index, entity) in pack.entities.iter().enumerate() {
         let key = normalized(&entity.id.key);
         let active = match &entity.category {
@@ -687,11 +687,11 @@ fn add_formula_target(state: &mut EffectState, pending: &PendingFormula, value: 
 /// When the draft only has advancement frames (no explicit class_levels), fall
 /// back to `total_level()` rather than guessing which lanes are racial HD.
 fn character_class_levels(pack: &CompiledRulePack, draft: &CharacterDraft) -> u32 {
-    if draft.class_levels.is_empty() {
+    let levels = crate::engine::effective_class_levels(pack, draft);
+    if levels.is_empty() {
         return draft.total_level();
     }
-    draft
-        .class_levels
+    levels
         .iter()
         .filter_map(|entry| {
             let class = pack.classes.get(&entry.class_id).or_else(|| {
@@ -727,7 +727,7 @@ fn derive_spellcasting_prereq(
     let mut slots: BTreeMap<(SpellPowerType, u32), u32> = BTreeMap::new();
     let mut has_spellbook = false;
     let mut class_casting = BTreeMap::new();
-    for entry in crate::engine::effective_class_levels(draft) {
+    for entry in crate::engine::effective_class_levels(pack, draft) {
         let Some(class) = pack.classes.get(&entry.class_id).or_else(|| {
             pack.classes
                 .iter()

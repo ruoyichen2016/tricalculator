@@ -121,8 +121,12 @@ commit 并执行字段级差分）两个 job。细节见 [`docs/TESTING.md`](doc
   `KNOWNSPELLSFROMSPECIALTY` / `SPELLBOOK` 与 `PRESPELL` / `PRESPELLSCHOOL`
   接入（P4-SPELL-1 S1）；`spell_effects` 指标/golden 与 snapshot 汇总完成；
 - 未训练技能基础展开、`MOVECLONE` 消费、CompanionMod `FOLLOWER:` 行保全；
-- P4-CLASS-1 / P4-STAT-1 / P4-FAITH 小项 typed 化（class/race metadata、
-  size/stat、alignment/deity）；
+- P4-CLASS-2 / P4-STAT-2 / P4-FAITH-2 运行时闭环：`SKILLMULT` /
+  `LEVELSPERFEAT` / `HITDIE` / `ADDLEVEL` / `EXCLASS` / `EXCHANGELEVEL`、
+  `DEFINESTAT` / `STATMOD` / `SIZENUM`、`VALIDFORDEITY` /
+  `VALIDFORFOLLOWER` 均已进入 snapshot / 诊断；
+- P4-COMP-1 companion runtime：`PRERACE` 条件匹配 + HD / SR / ABILITY /
+  creature traits / `BONUS:AC` / `BONUS:STAT`；
 - P4-PSI-1 灵能闭环：`power_points` / `manifester_levels` / 灵能 DC /
   `spell_power_types` 输出，`psionic_effects` 指标，DS-PSI 数据集；
 - P4-BONUS/EQP 残留：`PREEQUIP*` primary/secondary/both、EquipMod `DR`/`SR`
@@ -134,8 +138,8 @@ commit 并执行字段级差分）两个 job。细节见 [`docs/TESTING.md`](doc
   `vision` / `damage_reduction` / `spell_resistance` / `natural_attacks` /
   `reach_feet` / `reach_mult` / `unarmed_damage` / `unarmed_mult`；
   active ClassLevel / Ability / Feat / Equipment 也会汇入 snapshot；
-  `creature_trait_records` 作为 metadata catalog；`MOVECLONE` 与 EquipMod
-  `DR`/`SR` 已消费，CompanionMod 条件行选择待 P4-COMP-1；
+  `creature_trait_records` 作为 metadata catalog；`MOVECLONE`、EquipMod
+  `DR`/`SR` 与 CompanionMod 条件行选择均已消费；
 - 残余 `BONUS` unsupported 清零；broad oracle 全部字段 23/23（100%），
   known-diverging 0；
 - KIT / STARTPACK 声明式 typed 导入（P4-KIT-1，见
@@ -143,7 +147,7 @@ commit 并执行字段级差分）两个 job。细节见 [`docs/TESTING.md`](doc
   45.5%→97.7%；DS-PSI 灵能验收数据集 completion 97.2%；三个数据集
   unsupported pending 均为 0；P0 已完成 `CHOOSE` 口径去重、`XPCOST`
   out-of-scope allowlist 与 CompanionMod `FOLLOWER:` 行保全；
-- 150 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
+- 156 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
 
 真实 PCGen 数据解析与完整角色计算正在按 [`MIGRATION.md`](MIGRATION.md) 从
 archive 迁移。

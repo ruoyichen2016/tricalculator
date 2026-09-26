@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### 阶段 1：typed-but-unconsumed 运行时闭环（已完成）
+
+- **P4-CLASS-2**：`ClassProgression` 新增 `hit_die` / `skill_multiplier` /
+  `levels_per_feat` / `add_levels` / `excluded_class` / `exchange_level`；
+  `SKILLMULT` 进入首级技能点，`LEVELSPERFEAT` 进入 feat slot，`HITDIE`
+  进入无显式 HP 输入时的平均 HP，`ADDLEVEL` 进入 effective class levels，
+  `EXCLASS` / `EXCHANGELEVEL` 进入 snapshot `class_interactions`。
+- **P4-STAT-2**：`DEFINESTAT:MINVALUE` 进入属性下限，`STATMOD` 进入
+  派生属性修正，`SIZENUM` 进入 `size_rank` / size modifier。
+- **P4-FAITH-2**：`VALIDFORDEITY` / `VALIDFORFOLLOWER` 进入 deity /
+  alignment 信仰校验诊断。
+- **P4-COMP-1**：CompanionMod 行按 `PRERACE` 选择，HD / SR / ABILITY /
+  creature traits / `BONUS:COMBAT|AC` / `BONUS:STAT` 进入
+  `CompanionSnapshot`。
+- 新增 `class_progression.rs`、`stats_and_size.rs` 测试，并扩展
+  `creature_traits.rs` / `faith_rules.rs`；测试 150→156。
+- 真实数据 / broad oracle / archive differential 不变：DS-3E 75 /
+  97.8%，DS-35E 192 / 97.7%，DS-PSI 35 / 97.2%；broad 23/23。
+
 ### P0.1 质量清偿 / 口径修正 / CompanionMod 数据保全（已完成）
 
 - `CHOOSE` 不再同时计入 `lowered_effects` 与 `legacy_pending`；新增

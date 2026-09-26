@@ -67,3 +67,46 @@ fn deity_domain_spells_and_weapon_alignment_are_checked() {
         .iter()
         .any(|diagnostic| diagnostic.contains("favored weapon")));
 }
+
+#[test]
+fn valid_deity_and_follower_flags_are_diagnosed() {
+    let records = vec![
+        record(
+            "DEITY",
+            "Dead God",
+            &[
+                ("ALIGN", "NG"),
+                ("DOMAINS", "Sun"),
+                ("DEITYWEAP", "Mace"),
+                ("VALIDFORDEITY", "NO"),
+                ("VALIDFORFOLLOWER", "NO"),
+            ],
+        ),
+        record(
+            "ALIGNMENT",
+            "N",
+            &[("VALIDFORDEITY", "NO"), ("VALIDFORFOLLOWER", "NO")],
+        ),
+        record("DOMAIN", "Sun", &[("SPELLLEVEL", "DOMAIN|Sun=1|Light")]),
+    ];
+    let (pack, _) = lower_records(Some("3e".to_string()), vec!["faith".to_string()], &records);
+    let draft = CharacterDraft {
+        race_id: "Human".to_string(),
+        alignment: "N".to_string(),
+        advancement: vec![AdvancementFrame::new(
+            1,
+            vec![AdvancementLane::new("a", "Cleric", 1, 8, 0)
+                .with_faith("Dead God", ["Sun".to_string()])],
+        )],
+        ..CharacterDraft::default()
+    };
+    let snapshot = Engine::new(pack).evaluate(&draft);
+    assert!(snapshot
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("not valid for deity selection")));
+    assert!(snapshot
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("not valid for followers")));
+}

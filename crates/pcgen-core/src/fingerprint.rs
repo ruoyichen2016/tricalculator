@@ -121,6 +121,19 @@ fn write_progression(hasher: &mut FingerprintHasher, name: &str, progression: &C
     }
     hasher.write(&progression.skill_points_per_level.to_string());
     hasher.write(&progression.first_level_skill_points.to_string());
+    hasher.write(&progression.hit_die);
+    hasher.write(&progression.skill_multiplier.to_string());
+    hasher.write(&progression.levels_per_feat.to_string());
+    for (class_id, levels) in &progression.add_levels {
+        hasher.write(class_id);
+        hasher.write(&levels.to_string());
+    }
+    if let Some(excluded) = &progression.excluded_class {
+        hasher.write(excluded);
+    }
+    if let Some(exchange) = &progression.exchange_level {
+        hasher.write(exchange);
+    }
     for skill in &progression.class_skills {
         hasher.write(skill);
     }

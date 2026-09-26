@@ -12,7 +12,7 @@
 //! self-referential fixed point; they still contribute to the final snapshot.
 
 use crate::draft::CharacterDraft;
-use crate::engine::{effective_class_levels, evaluate_class_formula, stat_modifier};
+use crate::engine::{effective_class_levels, evaluate_class_formula, stat_modifier_for_pack};
 use crate::progression::ClassProgress;
 use pcgen_core::domain::ClassDefinition;
 use pcgen_core::gestalt::{plan_gestalt, ClassProgressSource};
@@ -62,7 +62,7 @@ pub fn derive_base_saves(
     draft: &CharacterDraft,
 ) -> BTreeMap<SaveKind, i32> {
     let mut totals = BTreeMap::new();
-    for entry in effective_class_levels(draft) {
+    for entry in effective_class_levels(pack, draft) {
         let Some(progression) = find_progression(pack, &entry.class_id) else {
             continue;
         };
@@ -83,7 +83,7 @@ fn class_bab(
         let plan = plan_gestalt(
             &draft.advancement,
             &PackProgressSource { pack },
-            stat_modifier(int_mod),
+            stat_modifier_for_pack(pack, "INT", int_mod),
             &GestaltPolicy::default(),
         );
         return plan
@@ -95,7 +95,7 @@ fn class_bab(
 
     let total_level = draft.total_level();
     let mut bab = 0;
-    for entry in effective_class_levels(draft) {
+    for entry in effective_class_levels(pack, draft) {
         let Some(class) = find_class(pack, &entry.class_id) else {
             continue;
         };

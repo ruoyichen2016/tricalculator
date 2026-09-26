@@ -25,10 +25,10 @@ pub use advancement::{AdvancementFrame, AdvancementLane, LaneId};
 pub use algorithms::{strongly_connected_components, topological_sort};
 pub use domain::{
     AlignmentDefinition, AttackProgression, CastingType, ClassDefinition, ClassProgression,
-    CompanionModDefinition, CreatureTraits, DeityDefinition, DomainDefinition, DomainSpell,
-    EquipmentDefinition, EquipmentModifierDefinition, KitDefinition, KitEntry, RaceDefinition,
-    SaveProgression, SizeDefinition, SkillDefinition, SpellDefinition, SpellPowerType,
-    StatDefinition, TemplateDefinition, TypedDefinitions,
+    CompanionBonus, CompanionModDefinition, CreatureTraits, DeityDefinition, DomainDefinition,
+    DomainSpell, EquipmentDefinition, EquipmentModifierDefinition, KitDefinition, KitEntry,
+    RaceDefinition, SaveProgression, SizeDefinition, SkillDefinition, SpellDefinition,
+    SpellPowerType, StatDefinition, TemplateDefinition, TypedDefinitions,
 };
 pub use faith::{evaluate_faith, FaithDecision};
 pub use fingerprint::{

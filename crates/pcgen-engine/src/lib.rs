@@ -12,4 +12,4 @@ pub use draft::{CharacterDraft, DraftClassLevel, DraftCompanion, DraftSpell};
 pub use effects::{apply_effects, EffectState};
 pub use engine::{lane_summary, validate, Engine};
 pub use progression::ClassProgress;
-pub use snapshot::{CharacterSnapshot, CompanionSnapshot};
+pub use snapshot::{CharacterSnapshot, ClassInteraction, CompanionSnapshot};

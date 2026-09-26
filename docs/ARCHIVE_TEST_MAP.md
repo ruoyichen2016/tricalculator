@@ -4,7 +4,7 @@
 > 静默丢失**。旧实现的运行路径已被删除，本表记录每个测试域的去向。
 >
 > 统计口径：archive `#[test]` 共 **114** 个（core 54 / data 45 / formula 3 /
-> output 12 / cli 0）。新工作区当前 **150** 个（P4-KIT-1 / RACE / TPL / BONUS / EQUIP / SPELL / BONUS-PIPELINE / TEMP-1 / PSI-1 / CLASS-STAT-FAITH / P0 后）。
+> output 12 / cli 0）。新工作区当前 **156** 个（P4-KIT-1 / RACE / TPL / BONUS / EQUIP / SPELL / BONUS-PIPELINE / TEMP-1 / PSI-1 / CLASS-STAT-FAITH / P0 / 阶段 1 后）。
 >
 > 分类：
 > - **migrated**：行为在新工作区有对应测试。
@@ -117,5 +117,5 @@
 
 **结论**：114 个测试中，**无一个属于"未决的静默丢失"**——每个都归类为
 migrated / superseded / dropped；dropped 与差距都有明确记录，且 archive
-differential 现已作为 strict 门禁运行。当前 150 个测试是不同粒度
+differential 现已作为 strict 门禁运行。当前 156 个测试是不同粒度
 （IR + 门禁 + differential）的结果，不应与 114 直接比数量。

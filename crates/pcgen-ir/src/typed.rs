@@ -6,10 +6,10 @@
 
 use crate::source::RawRecord;
 use pcgen_core::domain::{
-    AttackProgression, CastingType, ClassDefinition, ClassProgression, DeityDefinition,
-    DomainDefinition, DomainSpell, EquipmentDefinition, EquipmentModifierDefinition, KitDefinition,
-    KitEntry, RaceDefinition, SaveProgression, SkillDefinition, SpellDefinition, SpellPowerType,
-    TemplateDefinition, TypedDefinitions,
+    AttackProgression, CastingType, ClassDefinition, ClassProgression, CompanionBonus,
+    DeityDefinition, DomainDefinition, DomainSpell, EquipmentDefinition,
+    EquipmentModifierDefinition, KitDefinition, KitEntry, RaceDefinition, SaveProgression,
+    SkillDefinition, SpellDefinition, SpellPowerType, TemplateDefinition, TypedDefinitions,
 };
 use pcgen_core::{EffectPhase, Provenance, VariantDefinition};
 use regex::Regex;
@@ -542,7 +542,46 @@ fn parse_companion_mod(record: &RawRecord) -> Option<pcgen_core::CompanionModDef
                 .push(format!("{}:{}", tag.name, tag.value));
         }
     }
+    for bonus in tags(record, "BONUS") {
+        if let Some(parsed) = parse_companion_bonus(bonus) {
+            companion.bonuses.push(parsed);
+        }
+    }
     Some(companion)
+}
+
+/// Parse one `BONUS:` row on a companion modifier into a structured bonus.
+///
+/// Companion bonuses commonly carry formulas over `mastervar("X")` and are
+/// evaluated later against the master level, so the raw formula is preserved.
+fn parse_companion_bonus(value: &str) -> Option<CompanionBonus> {
+    let parts: Vec<&str> = value.split('|').map(str::trim).collect();
+    let first = *parts.first()?;
+    if first.is_empty() {
+        return None;
+    }
+    let (target, value_index) =
+        if parts.len() >= 3 && parts[1].parse::<i32>().is_err() && !parts[1].is_empty() {
+            (format!("{}.{}", first, parts[1].to_ascii_uppercase()), 2)
+        } else {
+            (first.to_ascii_uppercase(), 1)
+        };
+    let formula = parts.get(value_index)?.to_string();
+    let mut bonus_type = None;
+    let mut stack_key = None;
+    for part in parts.iter().skip(value_index + 1) {
+        if let Some(value) = part.strip_prefix("TYPE=") {
+            bonus_type = Some(value.trim().to_string());
+        } else if let Some(value) = part.strip_prefix("STACK=") {
+            stack_key = Some(value.trim().to_string());
+        }
+    }
+    Some(CompanionBonus {
+        target,
+        formula,
+        bonus_type,
+        stack_key,
+    })
 }
 
 const KIT_ENTRY_TARGETS: &[&str] = &[

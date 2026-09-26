@@ -10,7 +10,7 @@ use pcgen_core::{
     SaveKind, VariantDefinition,
 };
 use pcgen_ir::CompiledRulePack;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 type SpellcastingMaps = (
     BTreeMap<String, i32>,
@@ -50,11 +50,90 @@ impl Engine {
         self
     }
 
+    /// Ability-score modifiers for all core stats, honouring typed `STATMOD`
+    /// formulas where present.
+    fn ability_modifiers(&self, stats: &BTreeMap<String, i32>) -> BTreeMap<String, i32> {
+        let mut modifiers = BTreeMap::new();
+        for stat in ["STR", "DEX", "CON", "INT", "WIS", "CHA"] {
+            let score = stats.get(stat).copied().unwrap_or(10);
+            modifiers.insert(
+                stat.to_string(),
+                stat_modifier_for_pack(&self.pack, stat, score),
+            );
+        }
+        modifiers
+    }
+
+    /// Apply `DEFINESTAT:MINVALUE` from the active race and templates.
+    fn apply_stat_minimums(
+        &self,
+        stats: &mut BTreeMap<String, i32>,
+        draft: &CharacterDraft,
+        effect_state: &crate::effects::EffectState,
+    ) {
+        let mut minimums: BTreeMap<String, i32> = BTreeMap::new();
+        if let Some(race) = self.race(&draft.race_id) {
+            for (stat, minimum) in &race.stat_minimums {
+                minimums
+                    .entry(stat.to_ascii_uppercase())
+                    .and_modify(|value| *value = (*value).max(*minimum))
+                    .or_insert(*minimum);
+            }
+        }
+        for template_name in &effect_state.templates {
+            if let Some(template) = find_template(&self.pack, template_name) {
+                for (stat, minimum) in &template.stat_minimums {
+                    minimums
+                        .entry(stat.to_ascii_uppercase())
+                        .and_modify(|value| *value = (*value).max(*minimum))
+                        .or_insert(*minimum);
+                }
+            }
+        }
+        for (stat, minimum) in minimums {
+            let entry = stats.entry(stat).or_insert(minimum);
+            *entry = (*entry).max(minimum);
+        }
+    }
+
+    /// Rank the draft race size, using the compiled `SIZE` records'
+    /// `SIZENUM` values when available and falling back to the canonical d20
+    /// order otherwise.
+    fn size_rank(&self, race_id: &str) -> usize {
+        let Some(race) = self.race(race_id) else {
+            return 4;
+        };
+        let normalized = pcgen_core::normalize_size(&race.size);
+        let abbreviation = normalized
+            .chars()
+            .next()
+            .map(|ch| ch.to_ascii_uppercase().to_string())
+            .unwrap_or_default();
+        let definition = self.pack.sizes.get(&abbreviation).or_else(|| {
+            self.pack.sizes.iter().find_map(|(key, definition)| {
+                (key.eq_ignore_ascii_case(&abbreviation)
+                    || definition.id.eq_ignore_ascii_case(&abbreviation)
+                    || pcgen_core::normalize_size(&definition.name) == normalized)
+                    .then_some(definition)
+            })
+        });
+        if let Some(size_number) = definition
+            .and_then(|definition| definition.size_number.as_deref())
+            .and_then(|raw| raw.trim().parse::<f64>().ok())
+        {
+            // RSRD uses 010..090 for Fine..Colossal.
+            if size_number >= 10.0 {
+                return (size_number / 10.0).round().max(1.0) as usize - 1;
+            }
+        }
+        pcgen_core::size_rank(&race.size)
+    }
+
     pub fn evaluate(&self, draft: &CharacterDraft) -> CharacterSnapshot {
         let mut diagnostics = Vec::new();
         let effect_state = apply_effects(&self.pack, draft);
         diagnostics.extend(effect_state.diagnostics.clone());
-        let class_levels = effective_class_levels(draft);
+        let class_levels = effective_class_levels(&self.pack, draft);
         let mut stats = draft.stats.clone();
         if let Some(race) = self.race(&draft.race_id) {
             for (stat, adjustment) in &race.ability_adjustments {
@@ -74,13 +153,17 @@ impl Engine {
                 }
             }
         }
-        let size_modifier = self
-            .race(&draft.race_id)
-            .map(|race| size_modifier(&race.size))
-            .unwrap_or(0);
-        let total_level = draft.total_level();
-        let con_mod = stat_modifier(stats.get("CON").copied().unwrap_or(10));
-        let dex_mod = stat_modifier(stats.get("DEX").copied().unwrap_or(10));
+        self.apply_stat_minimums(&mut stats, draft, &effect_state);
+        let size_rank = self.size_rank(&draft.race_id);
+        let size_modifier = size_modifier_from_rank(size_rank);
+        let total_level = if draft.is_gestalt() {
+            draft.total_level()
+        } else {
+            class_levels.iter().map(|entry| entry.level).sum()
+        };
+        let stat_mods = self.ability_modifiers(&stats);
+        let con_mod = stat_mods.get("CON").copied().unwrap_or(0);
+        let dex_mod = stat_mods.get("DEX").copied().unwrap_or(0);
         let equipment = self.resolve_equipment(draft, &mut diagnostics);
         let (armor_bonus, shield_bonus, max_dex, armor_check_penalty) =
             equipment_totals(&equipment);
@@ -110,7 +193,7 @@ impl Engine {
             Some(plan_gestalt(
                 &draft.advancement,
                 self,
-                stat_modifier(stats.get("INT").copied().unwrap_or(10)),
+                stat_mods.get("INT").copied().unwrap_or(0),
                 &GestaltPolicy::default(),
             ))
         } else {
@@ -168,7 +251,7 @@ impl Engine {
         } else {
             class_levels
                 .iter()
-                .map(|entry| hit_points_for_entry(entry, con_mod))
+                .map(|entry| self.hit_points_for_entry(draft, entry, con_mod))
                 .sum()
         };
 
@@ -188,14 +271,14 @@ impl Engine {
                         SaveKind::Will => frame.will_increment,
                     })
                     .sum::<i32>()
-                    + save_ability_modifier(&stats, kind);
+                    + save_ability_modifier(&stat_mods, kind);
                 saves.insert(key.to_string(), total);
             }
             saves
         } else {
-            let mut fort = save_ability_modifier(&stats, SaveKind::Fortitude);
-            let mut reflex = save_ability_modifier(&stats, SaveKind::Reflex);
-            let mut will = save_ability_modifier(&stats, SaveKind::Will);
+            let mut fort = save_ability_modifier(&stat_mods, SaveKind::Fortitude);
+            let mut reflex = save_ability_modifier(&stat_mods, SaveKind::Reflex);
+            let mut will = save_ability_modifier(&stat_mods, SaveKind::Will);
             for entry in &class_levels {
                 let Some(class) = self.class(&entry.class_id) else {
                     diagnostics.push(format!(
@@ -267,7 +350,7 @@ impl Engine {
             &effect_state.external_modifiers,
         );
 
-        let mut skills = self.skills(draft, &stats, armor_check_penalty);
+        let mut skills = self.skills(draft, &stat_mods, armor_check_penalty);
         for (skill, total) in
             stacked_components(&effect_state.typed_bonuses, skill_bonus_components)
         {
@@ -282,14 +365,37 @@ impl Engine {
                 *entry.1 += total;
                 continue;
             }
-            if let Some(base) = self.untrained_skill_base(&skill, &stats, armor_check_penalty) {
+            if let Some(base) = self.untrained_skill_base(&skill, &stat_mods, armor_check_penalty) {
                 skills.insert(skill.clone(), base + total);
             }
         }
         let attack_bonuses = stacked_components(&effect_state.typed_bonuses, attack_bonus_targets);
         let (caster_levels, spell_dcs, spell_slots, known_limits, prepared_spells) =
-            self.spellcasting(draft, &class_levels, &stats);
-        let (power_points, manifester_levels) = self.psionics(&class_levels, &stats);
+            self.spellcasting(draft, &class_levels, &stat_mods);
+        let (power_points, manifester_levels) = self.psionics(&class_levels, &stat_mods);
+        let skill_points = if let Some(plan) = &gestalt {
+            plan.frames
+                .iter()
+                .map(|frame| frame.skill_points as i32)
+                .sum()
+        } else {
+            self.total_skill_points(draft, &class_levels, &stat_mods)
+        };
+        let feat_slots = self.feat_slots(&class_levels);
+        let class_interactions = class_levels
+            .iter()
+            .filter_map(|entry| {
+                let progression = self.progression(&entry.class_id)?;
+                if progression.excluded_class.is_none() && progression.exchange_level.is_none() {
+                    return None;
+                }
+                Some(crate::snapshot::ClassInteraction {
+                    class_id: entry.class_id.clone(),
+                    excluded_class: progression.excluded_class.clone(),
+                    exchange_level: progression.exchange_level.clone(),
+                })
+            })
+            .collect();
         let CreatureTraitAccumulator {
             vision,
             damage_reduction,
@@ -344,9 +450,13 @@ impl Engine {
             name: draft.name.clone(),
             race_id: draft.race_id.clone(),
             total_level,
+            size_rank,
             stats,
             hit_points,
+            skill_points,
+            feat_slots,
             base_attack_bonus,
+            class_interactions,
             initiative: dex_mod,
             armor_class,
             armor_bonus,
@@ -412,7 +522,7 @@ impl Engine {
         effect_state: &crate::effects::EffectState,
     ) -> CreatureTraitAccumulator {
         let mut merged = CreatureTraitAccumulator::default();
-        let class_levels = effective_class_levels(draft);
+        let class_levels = effective_class_levels(&self.pack, draft);
 
         for entity in &self.pack.entities {
             if !entity_is_active_for_traits(entity, draft, effect_state, &class_levels) {
@@ -470,7 +580,7 @@ impl Engine {
     /// Validate structural references and Gestalt policy constraints.
     pub fn validate(&self, draft: &CharacterDraft) -> Vec<String> {
         let mut diagnostics = Vec::new();
-        for entry in effective_class_levels(draft) {
+        for entry in effective_class_levels(&self.pack, draft) {
             if self.class(&entry.class_id).is_none() {
                 diagnostics.push(format!("unknown class `{}`", entry.class_id));
             }
@@ -479,7 +589,10 @@ impl Engine {
             let plan = plan_gestalt(
                 &draft.advancement,
                 self,
-                stat_modifier(draft.stats.get("INT").copied().unwrap_or(10)),
+                self.ability_modifiers(&draft.stats)
+                    .get("INT")
+                    .copied()
+                    .unwrap_or(0),
                 &GestaltPolicy::default(),
             );
             for diagnostic in &plan.diagnostics {
@@ -500,6 +613,13 @@ impl Engine {
             if let Some(deity) = &track.deity {
                 match self.deity(deity) {
                     Some(definition) => {
+                        if definition.valid_for_deity == Some(false) {
+                            diagnostics
+                                .push(format!("deity `{deity}` is not valid for deity selection"));
+                        }
+                        if definition.valid_for_follower == Some(false) {
+                            diagnostics.push(format!("deity `{deity}` is not valid for followers"));
+                        }
                         for domain in &track.domains {
                             if !definition.domains.is_empty()
                                 && !definition
@@ -543,7 +663,31 @@ impl Engine {
                 }
             }
         }
+        if let Some(alignment) = self.alignment(&draft.alignment) {
+            if alignment.valid_for_deity == Some(false) {
+                diagnostics.push(format!(
+                    "alignment `{}` is not valid for deity selection",
+                    draft.alignment
+                ));
+            }
+            if alignment.valid_for_follower == Some(false) {
+                diagnostics.push(format!(
+                    "alignment `{}` is not valid for followers",
+                    draft.alignment
+                ));
+            }
+        }
         diagnostics
+    }
+
+    fn alignment(&self, alignment: &str) -> Option<&pcgen_core::AlignmentDefinition> {
+        self.pack.alignments.get(alignment).or_else(|| {
+            self.pack
+                .alignments
+                .iter()
+                .find(|(key, _)| key.eq_ignore_ascii_case(alignment))
+                .map(|(_, definition)| definition)
+        })
     }
 
     fn deity(&self, deity: &str) -> Option<&pcgen_core::DeityDefinition> {
@@ -665,7 +809,7 @@ impl Engine {
     fn skills(
         &self,
         draft: &CharacterDraft,
-        stats: &BTreeMap<String, i32>,
+        stat_mods: &BTreeMap<String, i32>,
         armor_check_penalty: i32,
     ) -> BTreeMap<String, i32> {
         let mut skills = BTreeMap::new();
@@ -681,7 +825,7 @@ impl Engine {
             });
             let ability_mod = definition
                 .and_then(|skill| skill.key_stat.as_deref())
-                .map(|key_stat| stat_modifier(stats.get(key_stat).copied().unwrap_or(10)))
+                .and_then(|key_stat| stat_mods.get(&key_stat.to_ascii_uppercase()).copied())
                 .unwrap_or(0);
             let armor_penalty = if definition.is_some_and(|skill| skill.armor_check) {
                 armor_check_penalty
@@ -701,7 +845,7 @@ impl Engine {
     fn untrained_skill_base(
         &self,
         skill: &str,
-        stats: &BTreeMap<String, i32>,
+        stat_mods: &BTreeMap<String, i32>,
         armor_check_penalty: i32,
     ) -> Option<i32> {
         let definition = self.skill(skill)?;
@@ -711,7 +855,7 @@ impl Engine {
         let ability_mod = definition
             .key_stat
             .as_deref()
-            .map(|key_stat| stat_modifier(stats.get(key_stat).copied().unwrap_or(10)))
+            .and_then(|key_stat| stat_mods.get(&key_stat.to_ascii_uppercase()).copied())
             .unwrap_or(0);
         let armor_penalty = if definition.armor_check {
             armor_check_penalty
@@ -737,7 +881,7 @@ impl Engine {
         &self,
         draft: &CharacterDraft,
         class_levels: &[DraftClassLevel],
-        stats: &BTreeMap<String, i32>,
+        stat_mods: &BTreeMap<String, i32>,
     ) -> SpellcastingMaps {
         let mut caster_levels = BTreeMap::new();
         let mut spell_slots = BTreeMap::new();
@@ -809,7 +953,7 @@ impl Engine {
                     .and_then(|(_, candidate)| candidate.class_levels.get(&class_id).copied())
                     .unwrap_or(0)
             };
-            let dc = 10 + level as i32 + stat_modifier(stats.get(&stat).copied().unwrap_or(10));
+            let dc = 10 + level as i32 + stat_mods.get(&stat).copied().unwrap_or(0);
             spell_dcs.insert(format!("{}|{}", spell.name, class_id), dc);
             if spell.times_memorized > 0 {
                 prepared_spells.insert(
@@ -830,7 +974,7 @@ impl Engine {
     fn psionics(
         &self,
         class_levels: &[DraftClassLevel],
-        stats: &BTreeMap<String, i32>,
+        stat_mods: &BTreeMap<String, i32>,
     ) -> (BTreeMap<String, i32>, BTreeMap<String, i32>) {
         let mut power_points = BTreeMap::new();
         let mut manifester_levels = BTreeMap::new();
@@ -842,12 +986,125 @@ impl Engine {
                 continue;
             }
             let stat = class.spellcasting_ability.as_deref().unwrap_or("INT");
-            let ability_mod = stat_modifier(stats.get(stat).copied().unwrap_or(10));
+            let ability_mod = stat_mods.get(stat).copied().unwrap_or(0);
             let total = pcgen_core::total_power_points(&class.id, entry.level, ability_mod, 0);
             power_points.insert(class.id.clone(), total);
             manifester_levels.insert(class.id.clone(), entry.level as i32);
         }
         (power_points, manifester_levels)
+    }
+
+    /// Resolve HP for one class-level entry.
+    ///
+    /// Explicit `.pcg` HP rolls / gains always win.  When a class or template
+    /// supplies `HITDIE`, a deterministic average (`die / 2 + 1` plus CON) is
+    /// used for synthetic drafts that do not carry per-level HP input.
+    fn hit_points_for_entry(
+        &self,
+        draft: &CharacterDraft,
+        entry: &DraftClassLevel,
+        con_mod: i32,
+    ) -> i32 {
+        if !entry.hit_points_by_level.is_empty() {
+            let all_zero = entry.hit_points_by_level.iter().all(|roll| *roll == 0);
+            return entry
+                .hit_points_by_level
+                .iter()
+                .map(|roll| {
+                    let adjusted = *roll + con_mod;
+                    if all_zero {
+                        adjusted.max(0)
+                    } else {
+                        adjusted.max(1)
+                    }
+                })
+                .sum();
+        }
+        if entry.hit_points_gained != 0 {
+            let raw = entry.hit_points_gained + con_mod * entry.level as i32;
+            return raw.max(entry.level as i32);
+        }
+        if let Some(die) = self.hit_die_override(draft, &entry.class_id) {
+            let per_level = (die / 2 + 1 + con_mod).max(1);
+            return per_level * entry.level as i32;
+        }
+        // Preserve the legacy zero-HD / zero-rolls behavior for classes
+        // without an explicit HITDIE override.
+        (con_mod * entry.level as i32).max(0)
+    }
+
+    fn hit_die_override(&self, draft: &CharacterDraft, class_id: &str) -> Option<i32> {
+        if let Some(class) = self.class(class_id) {
+            if let Some(value) = class.hit_die_override.as_deref() {
+                if let Some(die) = parse_hit_die(value) {
+                    return Some(die);
+                }
+            }
+        }
+        for template_name in &draft.templates {
+            if let Some(template) = find_template(&self.pack, template_name) {
+                if let Some(value) = template.hit_die_override.as_deref() {
+                    if let Some(die) = parse_hit_die(value) {
+                        return Some(die);
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    /// Total skill points from class levels plus race
+    /// `XTRASKILLPTSPERLVL`, using `SKILLMULT` for the first character level.
+    fn total_skill_points(
+        &self,
+        draft: &CharacterDraft,
+        class_levels: &[DraftClassLevel],
+        stat_mods: &BTreeMap<String, i32>,
+    ) -> i32 {
+        let int_mod = stat_mods.get("INT").copied().unwrap_or(0);
+        let race_extra = self
+            .race(&draft.race_id)
+            .and_then(|race| race.extra_skill_points_per_level)
+            .unwrap_or(0) as i32;
+        let race_mult = self
+            .race(&draft.race_id)
+            .and_then(|race| race.skill_multiplier);
+        let mut total = 0;
+        let mut first = true;
+        for entry in class_levels {
+            let Some(progression) = self.progression(&entry.class_id) else {
+                continue;
+            };
+            let normal = (progression.skill_points_per_level as i32 + race_extra + int_mod).max(1);
+            if first {
+                let first_base = if let Some(multiplier) = race_mult {
+                    progression
+                        .skill_points_per_level
+                        .saturating_mul(multiplier)
+                } else {
+                    progression.first_level_skill_points
+                };
+                total += (first_base as i32 + int_mod).max(1);
+                total += normal * entry.level.saturating_sub(1) as i32;
+                first = false;
+            } else {
+                total += normal * entry.level as i32;
+            }
+        }
+        total
+    }
+
+    /// Feat slots from class `LEVELSPERFEAT` / default progression.
+    fn feat_slots(&self, class_levels: &[DraftClassLevel]) -> u32 {
+        let mut total = 0;
+        for entry in class_levels {
+            if let Some(progression) = self.progression(&entry.class_id) {
+                total += progression.feat_slots(entry.level);
+            } else {
+                total += 1 + entry.level / 3;
+            }
+        }
+        total
     }
 
     /// Derive companion states from the master's companions and the typed
@@ -858,6 +1115,7 @@ impl Engine {
             let mut model = crate::snapshot::CompanionSnapshot {
                 companion_type: companion.companion_type.clone(),
                 master_level: companion.master_level,
+                race_id: companion.race_id.clone(),
                 ..crate::snapshot::CompanionSnapshot::default()
             };
             for rows in self.pack.companion_mods.values() {
@@ -868,17 +1126,12 @@ impl Engine {
                     {
                         continue;
                     }
-                    // Rows with `PRERACE`/`PRE*` select an alternative
-                    // companion or companion race.  Preserve them in the
-                    // rule pack, but do not apply them until the companion
-                    // selector can evaluate those conditions; applying all
-                    // rows blindly would over-count AnimalCompanion and
-                    // Familiar bonuses.
-                    if !definition.requirements.is_empty() {
+                    if !companion_row_matches(definition, companion) {
                         continue;
                     }
-                    // PCGen uses `mastervar("X")` inside the SR formula; we resolve
-                    // it against the companion's master level.
+                    if definition.master_level > companion.master_level {
+                        continue;
+                    }
                     if let Some(raw) = &definition.spell_resistance {
                         if let Some(value) = evaluate_companion_sr(
                             raw,
@@ -892,17 +1145,39 @@ impl Engine {
                             );
                         }
                     }
-                    if definition.master_level <= companion.master_level {
-                        model.hit_dice_bonus += definition.hit_dice_bonus;
-                        for ability in &definition.abilities {
-                            if !model.abilities.iter().any(|existing| existing == ability) {
-                                model.abilities.push(ability.clone());
-                            }
+                    model.hit_dice_bonus += definition.hit_dice_bonus;
+                    for ability in &definition.abilities {
+                        if !model.abilities.iter().any(|existing| existing == ability) {
+                            model.abilities.push(ability.clone());
+                        }
+                    }
+                    merge_companion_traits(&definition.traits, &mut model.traits);
+                    for bonus in &definition.bonuses {
+                        let Some(value) =
+                            evaluate_companion_formula(&bonus.formula, companion.master_level)
+                        else {
+                            continue;
+                        };
+                        let target = bonus.target.to_ascii_uppercase();
+                        if target == "COMBAT.AC" || target == "AC" {
+                            model.armor_class_bonus += value.floor() as i32;
+                        } else if let Some(stat) = target.strip_prefix("STAT.") {
+                            *model.stat_adjustments.entry(stat.to_string()).or_insert(0) +=
+                                value.floor() as i32;
                         }
                     }
                 }
             }
             model.abilities.sort();
+            model.abilities.dedup();
+            model.traits.vision.sort();
+            model.traits.vision.dedup();
+            model.traits.damage_reduction.sort();
+            model.traits.damage_reduction.dedup();
+            model.traits.natural_attacks.sort();
+            model.traits.natural_attacks.dedup();
+            model.traits.unarmed_damage.sort();
+            model.traits.unarmed_damage.dedup();
             models.push(model);
         }
         models
@@ -912,13 +1187,98 @@ impl Engine {
 /// Evaluate a companion `SR:` expression.
 ///
 /// The RSRD data uses `mastervar("SpecialMountLVL")+5` and plain constants.
-/// `mastervar` is resolved to the companion's master level; the `row_level`
-/// argument is the row's own master level (used for `@{...}`-style guards).
+/// `mastervar` is resolved to the companion's master level.
 fn evaluate_companion_sr(raw: &str, _row_level: u32, master_level: u32) -> Option<i32> {
+    evaluate_companion_formula(raw, master_level).map(|value| value.floor() as i32)
+}
+
+fn evaluate_companion_formula(raw: &str, master_level: u32) -> Option<f64> {
     let mastervar = regex::Regex::new(r#"mastervar\s*\(\s*["']?[^"')]*["']?\s*\)"#).ok()?;
     let normalized = mastervar.replace_all(raw, master_level.to_string());
-    let value = pcgen_formula::evaluate_f64(&normalized, &()).ok()?;
-    Some(value.floor() as i32)
+    pcgen_formula::evaluate_f64(&normalized, &()).ok()
+}
+
+fn companion_row_matches(
+    definition: &pcgen_core::CompanionModDefinition,
+    companion: &crate::draft::DraftCompanion,
+) -> bool {
+    definition
+        .requirements
+        .iter()
+        .all(|requirement| companion_requirement_matches(requirement, companion))
+}
+
+fn companion_requirement_matches(
+    requirement: &str,
+    companion: &crate::draft::DraftCompanion,
+) -> bool {
+    let Some((tag, body)) = requirement.split_once(':') else {
+        return false;
+    };
+    match tag.trim().to_ascii_uppercase().as_str() {
+        "PRERACE" => {
+            let Some(race_id) = companion.race_id.as_deref() else {
+                return false;
+            };
+            let wanted = normalized_name(race_id);
+            body.split(',')
+                .skip(1)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .any(|value| {
+                    let candidate = normalized_name(value);
+                    candidate == wanted
+                        || candidate.contains(&wanted)
+                        || wanted.contains(&candidate)
+                })
+        }
+        // Only PRERACE appears on RSRD `FOLLOWER` rows.  Unknown predicate
+        // forms must not be applied blindly.
+        _ => false,
+    }
+}
+
+fn merge_companion_traits(
+    traits: &pcgen_core::CreatureTraits,
+    merged: &mut pcgen_core::CreatureTraits,
+) {
+    merged.vision.extend(traits.vision.iter().cloned());
+    merged
+        .damage_reduction
+        .extend(traits.damage_reduction.iter().cloned());
+    merged
+        .natural_attacks
+        .extend(traits.natural_attacks.iter().cloned());
+    merged
+        .unarmed_damage
+        .extend(traits.unarmed_damage.iter().cloned());
+    merged.move_clone.extend(traits.move_clone.iter().cloned());
+    if let Some(value) = traits.reach_feet {
+        merged.reach_feet = Some(
+            merged
+                .reach_feet
+                .map_or(value, |current| current.max(value)),
+        );
+    }
+    if let Some(value) = traits.reach_mult {
+        merged.reach_mult = Some(
+            merged
+                .reach_mult
+                .map_or(value, |current| current.max(value)),
+        );
+    }
+    if let Some(value) = traits.unarmed_mult {
+        merged.unarmed_mult = Some(
+            merged
+                .unarmed_mult
+                .map_or(value, |current| current.max(value)),
+        );
+    }
+    if let Some(raw) = &traits.spell_resistance {
+        if merged.spell_resistance.is_none() {
+            merged.spell_resistance = Some(raw.clone());
+        }
+    }
 }
 
 impl pcgen_core::ClassProgressSource for Engine {
@@ -982,79 +1342,168 @@ pub fn validate(_pack: &CompiledRulePack, _draft: &CharacterDraft) -> Vec<String
     Vec::new()
 }
 
-fn hit_points_for_entry(entry: &DraftClassLevel, con_mod: i32) -> i32 {
-    if !entry.hit_points_by_level.is_empty() {
-        let all_zero = entry.hit_points_by_level.iter().all(|roll| *roll == 0);
-        return entry
-            .hit_points_by_level
-            .iter()
-            .map(|roll| {
-                let adjusted = *roll + con_mod;
-                if all_zero {
-                    adjusted.max(0)
-                } else {
-                    adjusted.max(1)
-                }
-            })
-            .sum();
-    }
-    let raw = entry.hit_points_gained + con_mod * entry.level as i32;
-    if entry.hit_points_gained == 0 {
-        raw.max(0)
-    } else {
-        raw.max(entry.level as i32)
-    }
+fn parse_hit_die(value: &str) -> Option<i32> {
+    let raw = value.trim().trim_start_matches(['d', 'D']);
+    raw.parse::<i32>().ok().filter(|value| *value > 0)
 }
 
-pub(crate) fn effective_class_levels(draft: &CharacterDraft) -> Vec<DraftClassLevel> {
-    if !draft.class_levels.is_empty() {
-        return draft.class_levels.clone();
-    }
+pub(crate) fn effective_class_levels(
+    pack: &CompiledRulePack,
+    draft: &CharacterDraft,
+) -> Vec<DraftClassLevel> {
     let mut levels: BTreeMap<String, DraftClassLevel> = BTreeMap::new();
-    for frame in &draft.advancement {
-        for lane in &frame.lanes {
-            let entry = levels
-                .entry(lane.class_id.clone())
-                .or_insert_with(|| DraftClassLevel {
-                    class_id: lane.class_id.clone(),
-                    level: 0,
-                    hit_points_gained: 0,
-                    hit_points_by_level: Vec::new(),
-                    experience_gained: 0,
-                });
-            entry.level = entry.level.max(lane.class_level);
-            entry.hit_points_gained += lane.hit_points_gained;
-            entry.experience_gained += lane.experience_gained;
+    if !draft.class_levels.is_empty() {
+        for entry in &draft.class_levels {
+            push_level(
+                &mut levels,
+                &entry.class_id,
+                entry.level,
+                entry.hit_points_gained,
+                entry.experience_gained,
+            );
+            if !entry.hit_points_by_level.is_empty() {
+                if let Some(existing) = levels.get_mut(&normalized_name(&entry.class_id)) {
+                    existing.hit_points_by_level = entry.hit_points_by_level.clone();
+                }
+            }
+        }
+    } else {
+        for frame in &draft.advancement {
+            for lane in &frame.lanes {
+                push_level(
+                    &mut levels,
+                    &lane.class_id,
+                    lane.class_level,
+                    lane.hit_points_gained,
+                    lane.experience_gained,
+                );
+            }
         }
     }
+
+    // `ADDLEVEL` grants extra class levels without changing the base draft.
+    // Template rows are the documented PCGen source; class rows are also
+    // preserved and consumed here for consistency.
+    let mut additions: Vec<(String, u32)> = Vec::new();
+    for template_name in &draft.templates {
+        if let Some(template) = find_template(pack, template_name) {
+            for (class_id, count) in &template.add_levels {
+                additions.push((class_id.clone(), *count));
+            }
+        }
+    }
+    let active_classes: Vec<String> = levels
+        .values()
+        .map(|entry| entry.class_id.clone())
+        .collect();
+    for class_id in active_classes {
+        if let Some(progression) = find_progression(pack, &class_id) {
+            for (target, count) in &progression.add_levels {
+                additions.push((target.clone(), *count));
+            }
+        }
+    }
+    for (target, count) in additions {
+        if count == 0 {
+            continue;
+        }
+        let key = normalized_name(&target);
+        let entry = levels.entry(key).or_insert_with(|| DraftClassLevel {
+            class_id: target.clone(),
+            level: 0,
+            hit_points_gained: 0,
+            hit_points_by_level: Vec::new(),
+            experience_gained: 0,
+        });
+        entry.level += count;
+    }
+
     levels.into_values().collect()
+}
+
+fn push_level(
+    levels: &mut BTreeMap<String, DraftClassLevel>,
+    class_id: &str,
+    level: u32,
+    hit_points_gained: i32,
+    experience_gained: i32,
+) {
+    let key = normalized_name(class_id);
+    let entry = levels.entry(key).or_insert_with(|| DraftClassLevel {
+        class_id: class_id.to_string(),
+        level: 0,
+        hit_points_gained: 0,
+        hit_points_by_level: Vec::new(),
+        experience_gained: 0,
+    });
+    entry.level = entry.level.max(level);
+    entry.hit_points_gained += hit_points_gained;
+    entry.experience_gained += experience_gained;
+}
+
+fn find_template<'a>(
+    pack: &'a CompiledRulePack,
+    name: &str,
+) -> Option<&'a pcgen_core::TemplateDefinition> {
+    let wanted = normalized_name(name);
+    pack.templates.get(name).or_else(|| {
+        pack.templates
+            .iter()
+            .find(|(key, _)| key.eq_ignore_ascii_case(name) || normalized_name(key) == wanted)
+            .map(|(_, template)| template)
+    })
+}
+
+fn find_progression<'a>(pack: &'a CompiledRulePack, class_id: &str) -> Option<&'a ClassProgress> {
+    let wanted = normalized_name(class_id);
+    pack.progressions.get(class_id).or_else(|| {
+        pack.progressions
+            .iter()
+            .find(|(key, _)| key.eq_ignore_ascii_case(class_id) || normalized_name(key) == wanted)
+            .map(|(_, progression)| progression)
+    })
 }
 
 pub(crate) fn stat_modifier(score: i32) -> i32 {
     (score - 10).div_euclid(2)
 }
 
-fn save_ability_modifier(stats: &BTreeMap<String, i32>, kind: SaveKind) -> i32 {
+/// Resolve one ability-score modifier, honouring a typed `STATMOD` formula
+/// when the compiled pack defines one for `stat`.
+pub(crate) fn stat_modifier_for_pack(pack: &CompiledRulePack, stat: &str, score: i32) -> i32 {
+    let wanted = stat.trim().to_ascii_uppercase();
+    let definition = pack.stats.get(&wanted).or_else(|| {
+        pack.stats.iter().find_map(|(key, definition)| {
+            (key.eq_ignore_ascii_case(&wanted)
+                || definition.id.eq_ignore_ascii_case(&wanted)
+                || definition.name.eq_ignore_ascii_case(&wanted))
+            .then_some(definition)
+        })
+    });
+    if let Some(formula) = definition.and_then(|definition| definition.modifier_formula.as_deref())
+    {
+        let mut variables = HashMap::new();
+        variables.insert("SCORE".to_string(), score);
+        variables.insert("score".to_string(), score);
+        if let Ok(value) = pcgen_formula::evaluate_f64(formula, &variables) {
+            return value.floor() as i32;
+        }
+    }
+    stat_modifier(score)
+}
+
+fn save_ability_modifier(stat_mods: &BTreeMap<String, i32>, kind: SaveKind) -> i32 {
     let stat = match kind {
         SaveKind::Fortitude => "CON",
         SaveKind::Reflex => "DEX",
         SaveKind::Will => "WIS",
     };
-    stat_modifier(stats.get(stat).copied().unwrap_or(10))
+    stat_mods.get(stat).copied().unwrap_or(0)
 }
 
-fn size_modifier(size: &str) -> i32 {
-    match size.to_ascii_lowercase().as_str() {
-        "fine" => 8,
-        "diminutive" => 4,
-        "tiny" => 2,
-        "small" => 1,
-        "large" => -1,
-        "huge" => -2,
-        "gargantuan" => -4,
-        "colossal" => -8,
-        _ => 0,
-    }
+fn size_modifier_from_rank(rank: usize) -> i32 {
+    const MODIFIERS: [i32; 9] = [8, 4, 2, 1, 0, -1, -2, -4, -8];
+    MODIFIERS.get(rank).copied().unwrap_or(-8)
 }
 
 fn equipment_totals(equipment: &[EquipmentDefinition]) -> (i32, i32, Option<i32>, i32) {
