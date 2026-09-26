@@ -135,6 +135,7 @@ fn demo_draft() -> CharacterDraft {
         active_states: Vec::new(),
         choices: BTreeMap::new(),
         companions: Vec::new(),
+        class_subclasses: BTreeMap::new(),
     }
 }
 
@@ -392,7 +393,8 @@ fn draft_from_pcg(draft: PcgDraft) -> CharacterDraft {
         abilities: draft.abilities,
         templates: draft.templates,
         active_states: Vec::new(),
-        choices: BTreeMap::new(),
+        choices: draft.choices,
         companions: Vec::new(),
+        class_subclasses: draft.class_subclasses,
     }
 }

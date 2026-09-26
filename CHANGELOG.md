@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### P5-1 `.pcg` choice / subclass ingestion（已完成）
+
+- `.pcg` `CLASS:...+SUBCLASS:...` 进入 `PcgDraft.class_subclasses`。
+- `.pcg` `ABILITY:...+APPLIEDTO:...` 进入 `PcgDraft.choices`。
+- CLI 转换把 choices / class_subclasses 传入 `CharacterDraft`。
+- engine `apply_choose` 支持按 source entity 上下文解析 `draft.choices`。
+- `PRESUBCLASS` 支持 `class_subclasses`。
+- curated PCG 的 `unresolved_choices` 大幅减少；broad Java 字段未回退。
+- 测试 174→177。
+
 ### P4 全量关闭（已完成）
 
 - residual pending 清零：`ATTACKCYCLE` / `MOVECLONE` / `REACH` typed 消费并

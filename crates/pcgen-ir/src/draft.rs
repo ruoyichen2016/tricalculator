@@ -60,4 +60,10 @@ pub struct PcgDraft {
     pub templates: Vec<String>,
     #[serde(default)]
     pub advancement: Vec<AdvancementFrame>,
+    /// Explicit choices parsed from `.pcg` (e.g. `APPLIEDTO`).
+    #[serde(default)]
+    pub choices: BTreeMap<String, String>,
+    /// Selected subclass per class id (`CLASS:...+SUBCLASS:...`).
+    #[serde(default)]
+    pub class_subclasses: BTreeMap<String, String>,
 }

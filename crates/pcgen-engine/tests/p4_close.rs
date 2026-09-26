@@ -253,3 +253,71 @@ fn monster_hd_uses_base_hit_die_average() {
     // d8 average is 5 per level, CON 10 has no modifier.
     assert_eq!(snapshot.hit_points, 10);
 }
+
+#[test]
+fn applied_to_choice_resolves_entity_context() {
+    let records = vec![
+        record("RACE", "Human", &[("SIZE", "M")]),
+        record(
+            "ABILITY",
+            "Expanded Knowledge",
+            &[
+                ("CATEGORY", "FEAT"),
+                ("CHOOSE", "SPELLS|SPELLTYPE=Psionic[KNOWN=NO]"),
+            ],
+        ),
+        record(
+            "RACE",
+            "Choiceful",
+            &[
+                ("SIZE", "M"),
+                ("ABILITY", "FEAT|AUTOMATIC|Expanded Knowledge"),
+            ],
+        ),
+    ];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["p5-appliedto".to_string()],
+        &records,
+    );
+    let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Choiceful".to_string(),
+        choices: [(
+            "Expanded Knowledge".to_string(),
+            "Animal Affinity".to_string(),
+        )]
+        .into_iter()
+        .collect(),
+        ..CharacterDraft::default()
+    });
+    assert_eq!(
+        snapshot.choices.get("SPELLS|SPELLTYPE=Psionic[KNOWN=NO]"),
+        Some(&"Animal Affinity".to_string())
+    );
+    assert!(snapshot.unresolved_choices.is_empty());
+}
+
+#[test]
+fn class_subclasses_map_feeds_presubclass() {
+    let records = vec![record(
+        "RACE",
+        "Specialist",
+        &[
+            ("SIZE", "M"),
+            ("BONUS", "VAR|IsTelepath|1|PRESUBCLASS:1,Telepath"),
+        ],
+    )];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["p5-subclass-map".to_string()],
+        &records,
+    );
+    let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Specialist".to_string(),
+        class_subclasses: [("Psion".to_string(), "Telepath".to_string())]
+            .into_iter()
+            .collect(),
+        ..CharacterDraft::default()
+    });
+    assert_eq!(snapshot.variables.get("IsTelepath"), Some(&1));
+}

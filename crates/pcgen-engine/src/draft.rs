@@ -64,6 +64,9 @@ pub struct CharacterDraft {
     /// Companions owned by the character, as `(type, master class level)`.
     #[serde(default)]
     pub companions: Vec<DraftCompanion>,
+    /// Selected subclass per class id, used by `PRESUBCLASS`.
+    #[serde(default)]
+    pub class_subclasses: BTreeMap<String, String>,
 }
 
 /// One companion owned by the master (familiar, special mount, ...).
@@ -115,6 +118,7 @@ impl Default for CharacterDraft {
             active_states: Vec::new(),
             choices: BTreeMap::new(),
             companions: Vec::new(),
+            class_subclasses: BTreeMap::new(),
         }
     }
 }

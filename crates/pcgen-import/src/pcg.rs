@@ -40,6 +40,8 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
         abilities: Vec::new(),
         templates: Vec::new(),
         advancement: Vec::new(),
+        choices: BTreeMap::new(),
+        class_subclasses: BTreeMap::new(),
     };
     let mut class_hp: BTreeMap<(String, u32), i32> = BTreeMap::new();
 
@@ -86,6 +88,26 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
                 }
             }
             "ABILITY" => parse_ability(&mut draft, value),
+            "CHOICE" => {
+                let parts = split_pipe(value);
+                if let (Some(key), Some(value)) = (parts.first(), parts.get(1)) {
+                    if !key.is_empty() && !value.is_empty() {
+                        draft
+                            .choices
+                            .insert((*key).to_string(), (*value).to_string());
+                    }
+                }
+            }
+            "SUBCLASS" => {
+                let parts = split_pipe(value);
+                if let (Some(class_id), Some(subclass)) = (parts.first(), parts.get(1)) {
+                    if !class_id.is_empty() && !subclass.is_empty() {
+                        draft
+                            .class_subclasses
+                            .insert((*class_id).to_string(), (*subclass).to_string());
+                    }
+                }
+            }
             "TEMPLATESAPPLIED" => {
                 for name in extract_template_names(value) {
                     if !draft
@@ -133,7 +155,19 @@ pub fn write_pcg_draft_string(draft: &PcgDraft) -> Result<String, PcgDraftError>
         writeln!(out, "STAT:{stat}|SCORE:{score}").ok();
     }
     for class in &draft.class_levels {
-        writeln!(out, "CLASS:{}|LEVEL:{}", class.class_id, class.level).ok();
+        match draft.class_subclasses.get(&class.class_id) {
+            Some(subclass) => {
+                writeln!(
+                    out,
+                    "CLASS:{}|LEVEL:{}|SUBCLASS:{}",
+                    class.class_id, class.level, subclass
+                )
+                .ok();
+            }
+            None => {
+                writeln!(out, "CLASS:{}|LEVEL:{}", class.class_id, class.level).ok();
+            }
+        }
         writeln!(
             out,
             "CLASSABILITIESLEVEL:{}|HITPOINTS:{}",
@@ -159,7 +193,24 @@ pub fn write_pcg_draft_string(draft: &PcgDraft) -> Result<String, PcgDraftError>
         writeln!(out, "EQUIPNAME:{item}").ok();
     }
     for (category, key) in &draft.abilities {
-        writeln!(out, "ABILITY:CATEGORY={category}|KEY:{key}").ok();
+        match draft.choices.get(key) {
+            Some(applied) => {
+                writeln!(
+                    out,
+                    "ABILITY:CATEGORY={category}|KEY:{key}|APPLIEDTO:{applied}"
+                )
+                .ok();
+            }
+            None => {
+                writeln!(out, "ABILITY:CATEGORY={category}|KEY:{key}").ok();
+            }
+        }
+    }
+    for (key, value) in &draft.choices {
+        writeln!(out, "CHOICE:{key}|{value}").ok();
+    }
+    for (class_id, subclass) in &draft.class_subclasses {
+        writeln!(out, "SUBCLASS:{class_id}|{subclass}").ok();
     }
     if !draft.advancement.is_empty() {
         writeln!(
@@ -197,6 +248,13 @@ fn parse_class(draft: &mut PcgDraft, value: &str) {
     let Some(class_id) = parts.first().copied() else {
         return;
     };
+    if let Some(subclass) = parts.iter().find_map(|part| part.strip_prefix("SUBCLASS:")) {
+        if !subclass.is_empty() {
+            draft
+                .class_subclasses
+                .insert(class_id.to_string(), subclass.to_string());
+        }
+    }
     let level = parts
         .iter()
         .find_map(|part| part.strip_prefix("LEVEL:"))
@@ -309,6 +367,7 @@ fn parse_ability(draft: &mut PcgDraft, value: &str) {
     let parts = split_pipe(value);
     let mut category = None;
     let mut key = None;
+    let mut applied = None;
     for part in parts {
         if let Some(value) = part.strip_prefix("CATEGORY:") {
             category = Some(value.to_string());
@@ -316,9 +375,14 @@ fn parse_ability(draft: &mut PcgDraft, value: &str) {
             category = Some(value.to_string());
         } else if let Some(value) = part.strip_prefix("KEY:") {
             key = Some(value.to_string());
+        } else if let Some(value) = part.strip_prefix("APPLIEDTO:") {
+            applied = Some(value.to_string());
         }
     }
     if let Some(key) = key {
+        if let Some(applied) = applied {
+            draft.choices.insert(key.clone(), applied);
+        }
         draft
             .abilities
             .push((category.unwrap_or_else(|| "Ability".to_string()), key));
@@ -405,9 +469,23 @@ GESTALTJSON:[{\"character_level\":1,\"lanes\":[{\"lane_id\":\"a\",\"class_id\":\
                     AdvancementLane::new("b", "Wizard", 1, 4, 0),
                 ],
             )],
+            ..PcgDraft::default()
         };
         let text = write_pcg_draft_string(&draft).unwrap();
         assert!(text.contains("GESTALTJSON:"));
         assert_eq!(parse_pcg_draft_str(&text).unwrap(), draft);
+    }
+    #[test]
+    fn parses_applied_to_choices_and_class_subclass() {
+        let text = "CHARACTERNAME:Choice Test\nCLASS:Psion|LEVEL:5|SUBCLASS:Telepath\nABILITY:FEAT|CATEGORY:FEAT|KEY:Expanded Knowledge|APPLIEDTO:Animal Affinity\n";
+        let draft = parse_pcg_draft_str(text).unwrap();
+        assert_eq!(
+            draft.class_subclasses.get("Psion").map(String::as_str),
+            Some("Telepath")
+        );
+        assert_eq!(
+            draft.choices.get("Expanded Knowledge").map(String::as_str),
+            Some("Animal Affinity")
+        );
     }
 }

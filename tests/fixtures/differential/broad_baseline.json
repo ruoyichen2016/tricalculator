@@ -50,12 +50,18 @@
           "salient_divine_ability": 0
         },
         "choices": {
+          "armorproficiency|all": "Heavy,Leather",
           "armorproficiency|equipment[type=medium]|leather": "Leather",
-          "deity|pantheon=elf": "Pantheon=Elf",
-          "skill|ability_skill_2|ability_skill_3|ability_skill_4|title=skill": "Ability Skill 2",
-          "skill|crossclass": "CROSSCLASS",
-          "skill|exclusive": "EXCLUSIVE",
-          "weaponproficiency|pc": "PC"
+          "deity|pantheon=elf": "Elf Deity",
+          "equipment|type=weapon": "Cool Sword",
+          "lang|all": "MonKee Language",
+          "shieldproficiency|all": "Light",
+          "skill|ability_skill_2|ability_skill_3|ability_skill_4|title=skill": "PLEASE MAKE APPROPRIATE SELECTION,Ability Skill 2,Ability Skill 3",
+          "skill|crossclass": "Test Skill Chooser_1,Test Skill Chooser_2",
+          "skill|exclusive": "Exclusing Skill_2",
+          "weaponproficiency|!pc[type=exotic]": "Jim Long Blade",
+          "weaponproficiency|all": "Bob Racial Weapon",
+          "weaponproficiency|pc": "Suns Weapon Of Choice,Tentacles of the Fey"
         },
         "repeatable_abilities": [
           "+2_to_perform_dance",
@@ -439,14 +445,7 @@
           "weapon_specialization",
           "weapon_specialization_sf"
         ],
-        "unresolved_choices": [
-          "ARMORPROFICIENCY|ALL",
-          "EQUIPMENT|TYPE=Weapon",
-          "LANG|ALL",
-          "SHIELDPROFICIENCY|ALL",
-          "WEAPONPROFICIENCY|!PC[TYPE=Exotic]",
-          "WEAPONPROFICIENCY|ALL"
-        ]
+        "unresolved_choices": []
       },
       "java_agreement": {
         "armor_class": true,
@@ -1010,9 +1009,12 @@
           "salient_divine_ability": 0
         },
         "choices": {
-          "nochoice": "",
-          "spelllevel|spelltype=arcane|0|maxlevel": "SpellType=Arcane",
-          "weaponproficiency|pc": "PC"
+          "nochoice": ",,",
+          "spelllevel|spelltype=arcane|0|maxlevel": "CLASS.MonKee;LEVEL.1",
+          "spells|classlist=monkee[levelmax=3;levelmin=1]": "Identify",
+          "template|all": "",
+          "weaponproficiency|!pc[type=exotic]": "Uber Sword",
+          "weaponproficiency|pc": "Uber Sword,Suns Weapon Of Choice"
         },
         "repeatable_abilities": [
           "+2_to_perform_dance",
@@ -1396,11 +1398,7 @@
           "weapon_specialization",
           "weapon_specialization_sf"
         ],
-        "unresolved_choices": [
-          "SPELLS|CLASSLIST=MonKee[LEVELMAX=3;LEVELMIN=1]",
-          "TEMPLATE|ALL",
-          "WEAPONPROFICIENCY|!PC[TYPE=Exotic]"
-        ]
+        "unresolved_choices": []
       },
       "java_agreement": {
         "armor_class": true,
@@ -1487,7 +1485,8 @@
           "salient_divine_ability": 0
         },
         "choices": {
-          "weaponproficiency|pc": "PC"
+          "weaponproficiency|!pc[type=exotic]": "Bob Two Hand Blade",
+          "weaponproficiency|pc": "Suns Weapon Of Choice"
         },
         "repeatable_abilities": [
           "+2_to_perform_dance",
@@ -1872,8 +1871,7 @@
           "weapon_specialization_sf"
         ],
         "unresolved_choices": [
-          "CLASS|ALL",
-          "WEAPONPROFICIENCY|!PC[TYPE=Exotic]"
+          "CLASS|ALL"
         ]
       },
       "java_agreement": {
@@ -2438,6 +2436,7 @@
           "salient_divine_ability": 0
         },
         "choices": {
+          "abilityselection|feat|type=chooseselection_testthing": "ChooseSelection_NoStackNoChoiceFeat,ChooseSelection_Naturally Something (comment),ChooseSelection_NoStackChoiceFeat(Ride),ChooseSelection_NoChooseFeat",
           "nochoice": ""
         },
         "repeatable_abilities": [
@@ -2822,9 +2821,7 @@
           "weapon_specialization",
           "weapon_specialization_sf"
         ],
-        "unresolved_choices": [
-          "ABILITYSELECTION|FEAT|TYPE=ChooseSelection_TestThing"
-        ]
+        "unresolved_choices": []
       },
       "java_agreement": {
         "armor_class": true,
@@ -2911,6 +2908,7 @@
           "salient_divine_ability": 0
         },
         "choices": {
+          "abilityselection|feat|type=chooseselection_testthing": "ChooseSelection_StackNoChoiceFeat,ChooseSelection_StackChoiceFeat(Ride),ChooseSelection_NoStackChoiceFeat(Tumble)",
           "nochoice": ""
         },
         "repeatable_abilities": [
@@ -3295,9 +3293,7 @@
           "weapon_specialization",
           "weapon_specialization_sf"
         ],
-        "unresolved_choices": [
-          "ABILITYSELECTION|FEAT|TYPE=ChooseSelection_TestThing"
-        ]
+        "unresolved_choices": []
       },
       "java_agreement": {
         "armor_class": true,
@@ -3383,7 +3379,9 @@
           "exotic_weapon_choice": 0,
           "salient_divine_ability": 0
         },
-        "choices": {},
+        "choices": {
+          "abilityselection|feat|type=chooseselection_testthing": "ChooseSelection_NoStackChoiceFeat(Ride),ChooseSelection_NoStackChoiceFeat(Ride),ChooseSelection_NoStackChoiceFeat(Tumble),ChooseSelection_StackNoChoiceFeat,ChooseSelection_StackNoChoiceFeat"
+        },
         "repeatable_abilities": [
           "+2_to_perform_dance",
           "a-test_choose_class_base",
@@ -3766,9 +3764,7 @@
           "weapon_specialization",
           "weapon_specialization_sf"
         ],
-        "unresolved_choices": [
-          "ABILITYSELECTION|FEAT|TYPE=ChooseSelection_TestThing"
-        ]
+        "unresolved_choices": []
       },
       "java_agreement": {
         "armor_class": true,
@@ -4793,7 +4789,8 @@
           "salient_divine_ability": 0
         },
         "choices": {
-          "weaponproficiency|any": "ANY"
+          "template|all": "Template-71",
+          "weaponproficiency|any": "Bob Long Blade,Bob Short Blade"
         },
         "repeatable_abilities": [
           "+2_to_perform_dance",
@@ -5177,9 +5174,7 @@
           "weapon_specialization",
           "weapon_specialization_sf"
         ],
-        "unresolved_choices": [
-          "TEMPLATE|ALL"
-        ]
+        "unresolved_choices": []
       },
       "java_agreement": {
         "armor_class": true,
@@ -6216,7 +6211,7 @@
         },
         "choices": {
           "nochoice": "",
-          "weaponproficiency|pc": "PC"
+          "weaponproficiency|pc": "Simple Weapon Three,Simple Weapon Four,Simple Weapon Four,Simple Weapon One,Simple Weapon Two"
         },
         "repeatable_abilities": [
           "+2_to_perform_dance",
@@ -6687,7 +6682,9 @@
           "salient_divine_ability": 0
         },
         "choices": {
-          "ability|special_ability|ability-57-4a|ability-57-4b": "Special Ability",
+          "abilityselection|feat|type=foo": "Dodge",
+          "abilityselection|feat|type=testfoob": "Test-57 Apply A5 LangGrant(English)",
+          "ability|special_ability|ability-57-4a|ability-57-4b": "Ability-57-4a",
           "nochoice": ""
         },
         "repeatable_abilities": [
@@ -7072,10 +7069,7 @@
           "weapon_specialization",
           "weapon_specialization_sf"
         ],
-        "unresolved_choices": [
-          "ABILITYSELECTION|FEAT|TYPE=Foo",
-          "ABILITYSELECTION|FEAT|TYPE=TestFooB"
-        ]
+        "unresolved_choices": []
       },
       "java_agreement": {
         "armor_class": true,
@@ -7340,7 +7334,9 @@
           "open_minded_skill": 0,
           "salient_divine_ability": 0
         },
-        "choices": {},
+        "choices": {
+          "spells|spelltype=psionic[known=no]": "Animal Affinity"
+        },
         "repeatable_abilities": [
           "+1_bonus_feat",
           "+1_skill_bonus",
@@ -7552,9 +7548,7 @@
           "weapon_focus",
           "weapon_specialization"
         ],
-        "unresolved_choices": [
-          "SPELLS|SPELLTYPE=Psionic[KNOWN=NO]"
-        ]
+        "unresolved_choices": []
       },
       "java_agreement": {
         "armor_class": true,
@@ -7789,7 +7783,9 @@
           "wizard_feat": []
         },
         "ability_pools": {},
-        "choices": {},
+        "choices": {
+          "skill|type=charisma|type=constitution|type=dexterity|type=intelligence|type=strength|type=wisdom": "Climb"
+        },
         "repeatable_abilities": [
           "+1_bonus_feat",
           "+1_skill_bonus",
@@ -7832,9 +7828,7 @@
           "weapon_focus",
           "weapon_specialization"
         ],
-        "unresolved_choices": [
-          "SKILL|TYPE=Charisma|TYPE=Constitution|TYPE=Dexterity|TYPE=Intelligence|TYPE=Strength|TYPE=Wisdom"
-        ]
+        "unresolved_choices": []
       },
       "java_agreement": {
         "armor_class": true,
@@ -7931,7 +7925,7 @@
         },
         "ability_pools": {},
         "choices": {
-          "nochoice": "",
+          "nochoice": "TurnUndead",
           "weaponproficiency|longsword|rapier": "Longsword"
         },
         "repeatable_abilities": [

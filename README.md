@@ -159,7 +159,10 @@ commit 并执行字段级差分）两个 job。细节见 [`docs/TESTING.md`](doc
   [`docs/P4_KIT0_DESIGN.md`](docs/P4_KIT0_DESIGN.md)）；DS-3E / DS-35E /
   DS-PSI 的 legacy 与 unsupported pending 均为 0，completion 100.0%；
   KIT runtime / Pathfinder 决策见 [`docs/P4_DECISIONS.md`](docs/P4_DECISIONS.md)；
-- 174 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
+- P5-1：`.pcg` `APPLIEDTO` / `SUBCLASS` 进入 `draft.choices` / `class_subclasses`，
+  engine 按 source entity 解析 `CHOOSE`，curated PCG 的 unresolved choices
+  已显著减少；
+- 177 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
 
 真实 PCGen 数据解析与完整角色计算正在按 [`MIGRATION.md`](MIGRATION.md) 从
 archive 迁移。

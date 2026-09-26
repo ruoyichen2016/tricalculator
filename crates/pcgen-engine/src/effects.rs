@@ -508,12 +508,17 @@ fn apply_action(
             }
         }
         EffectAction::Choose { spec } => {
-            apply_choose(spec, draft, state);
+            apply_choose(spec, draft, state, source_entity);
         }
     }
 }
 
-fn apply_choose(spec: &str, draft: &CharacterDraft, state: &mut EffectState) {
+fn apply_choose(
+    spec: &str,
+    draft: &CharacterDraft,
+    state: &mut EffectState,
+    source_entity: Option<&pcgen_core::EntityId>,
+) {
     let spec = spec.trim();
     if let Some(choice) = draft.choices.get(spec).cloned().or_else(|| {
         draft
@@ -524,6 +529,19 @@ fn apply_choose(spec: &str, draft: &CharacterDraft, state: &mut EffectState) {
     }) {
         state.choices.insert(spec.to_string(), choice);
         return;
+    }
+    if let Some(entity) = source_entity {
+        let wanted = normalized(&entity.key);
+        if let Some(choice) = draft.choices.iter().find_map(|(key, value)| {
+            let candidate = normalized(key);
+            (candidate == wanted
+                || candidate == entity.key.to_ascii_lowercase()
+                || candidate.ends_with(&format!("::{wanted}")))
+            .then_some(value.clone())
+        }) {
+            state.choices.insert(spec.to_string(), choice);
+            return;
+        }
     }
     if spec.eq_ignore_ascii_case("NOCHOICE") {
         state.choices.insert(spec.to_string(), String::new());
@@ -1084,6 +1102,10 @@ fn predicate_holds(
                         .or(lane.substitution_level.as_deref())
                         .is_some_and(|subclass| subclass.eq_ignore_ascii_case(name))
                 })
+                || draft
+                    .class_subclasses
+                    .values()
+                    .any(|subclass| subclass.eq_ignore_ascii_case(name))
         }),
         Predicate::Language { names } => names.iter().any(|name| {
             state
