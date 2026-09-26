@@ -114,6 +114,10 @@ python3 scripts/snapshot_diff_archive.py --strict
 - `tests/fixtures/differential/broad_baseline.json` 冻结当前观测值
   （含已知差异），任何字段变化都会失败；
 - cohort 中标记 `java_gated_fields` 的 case，还必须与 Java csheet 精确一致；
+- 每个 computed case 额外冻结 Rust-only `choice_state`：
+  `choices` / `unresolved_choices` / `ability_pools` / `ability_lists` /
+  `repeatable_abilities`，用于覆盖能力池与选择语义；Java csheet 不直接暴露
+  这些字段，因此它们只做 baseline 非回归，不参与 `java_gated_fields` 一致率；
 - cohort 中标记 `expectation = computed_diverging` 的 case 必须能计算，但不要求
   与 Java 一致（数值仍冻结在 baseline，用于捕捉漂移）；它们不计入 java 一致率分母。
 
@@ -207,7 +211,7 @@ KIT / COMPANIONMOD / 怪物记录**均在范围内**（见 `PRODUCT_SCOPE.md`）
 DS-35E 的 KIT 主瓶颈已由 `P4-KIT-1` 声明式 typed 导入解决；
 设计结论见 [`P4_KIT0_DESIGN.md`](P4_KIT0_DESIGN.md)：声明式导入优先，运行时
 随机展开单独立项。P0 口径修正后，当前 DS-35E `semantic_completion`
-约 **98.8%**，DS-3E 约 **98.9%**，DS-PSI 约 **99.1%**；三个数据集
+约 **100.0%**，DS-3E 约 **100.0%**，DS-PSI 约 **100.0%**；三个数据集
 unsupported pending 均为 0，且 gate 已显式检查该值。
 
 ## 8. 架构护栏：engine 不得依赖 import

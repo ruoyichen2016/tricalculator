@@ -421,6 +421,45 @@ impl Engine {
                     .map(|cost| (entity.id.key.clone(), cost))
             })
             .collect();
+        let ability_lists: BTreeMap<String, Vec<String>> = self
+            .pack
+            .ability_categories
+            .iter()
+            .map(|(id, category)| (id.clone(), category.ability_list.clone()))
+            .collect();
+        let ability_pools: BTreeMap<String, i32> = self
+            .pack
+            .ability_categories
+            .iter()
+            .filter_map(|(id, category)| {
+                category.pool.as_ref().map(|pool| {
+                    (
+                        id.clone(),
+                        effect_state.variables.get(pool).copied().unwrap_or(0),
+                    )
+                })
+            })
+            .collect();
+        let mut repeatable_abilities: Vec<String> = self
+            .pack
+            .abilities
+            .iter()
+            .filter(|(_, ability)| ability.stack == Some(true) || ability.multi == Some(true))
+            .map(|(id, _)| id.clone())
+            .collect();
+        repeatable_abilities.sort();
+        repeatable_abilities.dedup();
+        let class_choices: BTreeMap<String, String> = self
+            .pack
+            .classes
+            .iter()
+            .filter_map(|(id, class)| {
+                class
+                    .subclass_choice
+                    .as_ref()
+                    .map(|choice| (id.clone(), choice.clone()))
+            })
+            .collect();
         let CreatureTraitAccumulator {
             vision,
             damage_reduction,
@@ -483,6 +522,10 @@ impl Engine {
             base_attack_bonus,
             class_interactions,
             prohibited_costs,
+            ability_lists,
+            ability_pools,
+            repeatable_abilities,
+            class_choices,
             initiative: dex_mod,
             armor_class,
             armor_bonus,

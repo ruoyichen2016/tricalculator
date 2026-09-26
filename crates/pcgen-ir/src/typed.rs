@@ -96,9 +96,17 @@ pub fn build_typed_definitions(records: &[RawRecord]) -> TypedDefinitions {
                     .insert(equipment_modifier.id.clone(), equipment_modifier);
             }
             "ABILITY" => {
+                let ability = parse_ability(record);
+                typed.abilities.insert(ability.id.clone(), ability);
                 if let Some(variant) = parse_variant(record) {
                     typed.variants.insert(variant.id.clone(), variant);
                 }
+            }
+            "ABILITYCATEGORY" => {
+                let category = parse_ability_category(record);
+                typed
+                    .ability_categories
+                    .insert(category.id.clone(), category);
             }
             "DEITY" => {
                 let deity = parse_deity(record);
@@ -221,6 +229,9 @@ fn merge_class(classes: &mut BTreeMap<String, ClassDefinition>, class: ClassDefi
                 .extend(class.level_spellcaster_advance.clone());
             if class.prohibited_cost.is_some() {
                 existing.prohibited_cost = class.prohibited_cost;
+            }
+            if class.subclass_choice.is_some() {
+                existing.subclass_choice = class.subclass_choice;
             }
             if !class.spell_list.is_empty() {
                 existing.spell_list = class.spell_list;
@@ -383,6 +394,7 @@ fn parse_class(record: &RawRecord) -> ClassDefinition {
     class.weapon_bonus = tags(record, "WEAPONBONUS").map(str::to_string).collect();
     class.added_domains = tags(record, "ADDDOMAINS").map(str::to_string).collect();
     class.prohibited_cost = tag(record, "PROHIBITCOST").and_then(|value| value.parse().ok());
+    class.subclass_choice = tag(record, "CHOICE").map(str::to_string);
     class.prohibited_spells = tags(record, "PROHIBITSPELL").map(str::to_string).collect();
     class.known_spells_from_specialty = tag(record, "KNOWNSPELLSFROMSPECIALTY")
         .and_then(|value| value.parse().ok())
@@ -945,6 +957,38 @@ fn parse_substitution_variant(
     variant.spellcaster_advance =
         tags(record, "ADD").any(|value| value.to_ascii_uppercase().contains("SPELLCASTER"));
     variant
+}
+
+fn parse_ability(record: &RawRecord) -> pcgen_core::AbilityDefinition {
+    pcgen_core::AbilityDefinition {
+        id: entity_key(record),
+        name: record.name.clone(),
+        category: tag(record, "CATEGORY").map(str::to_string),
+        type_tags: type_tags(record),
+        stack: tag(record, "STACK").map(parse_yes_no),
+        multi: tag(record, "MULT").map(parse_yes_no),
+        choose: tag(record, "CHOOSE").map(str::to_string),
+    }
+}
+
+fn parse_ability_category(record: &RawRecord) -> pcgen_core::AbilityCategoryDefinition {
+    let mut ability_list = Vec::new();
+    for list in tags(record, "ABILITYLIST") {
+        ability_list.extend(
+            list.split('|')
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string),
+        );
+    }
+    pcgen_core::AbilityCategoryDefinition {
+        id: entity_key(record),
+        name: record.name.clone(),
+        category: tag(record, "CATEGORY").map(str::to_string),
+        type_tags: type_tags(record),
+        ability_list,
+        pool: tag(record, "POOL").map(str::to_string),
+    }
 }
 
 fn parse_variant(record: &RawRecord) -> Option<VariantDefinition> {

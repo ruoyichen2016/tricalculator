@@ -340,6 +340,9 @@ pub struct ClassDefinition {
     /// Per-level `ADD:SPELLCASTER` advancement entries, e.g. `Psionic`.
     #[serde(default)]
     pub level_spellcaster_advance: BTreeMap<u32, Vec<String>>,
+    /// Subclass choice expression (`CHOICE:` on a `SUBCLASS:` row).
+    #[serde(default)]
+    pub subclass_choice: Option<String>,
 }
 
 impl ClassDefinition {
@@ -389,6 +392,7 @@ impl ClassDefinition {
             prohibited_cost: None,
             level_do_not_add: BTreeMap::new(),
             level_spellcaster_advance: BTreeMap::new(),
+            subclass_choice: None,
         }
     }
 }
@@ -933,6 +937,43 @@ impl CompanionModDefinition {
     }
 }
 
+/// One `ABILITY:` definition, including stack / multi / choose metadata.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AbilityDefinition {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub category: Option<String>,
+    #[serde(default)]
+    pub type_tags: Vec<String>,
+    /// PCGen `STACK:` (whether repeated selections stack).
+    #[serde(default)]
+    pub stack: Option<bool>,
+    /// PCGen `MULT:` (whether the ability can be selected multiple times).
+    #[serde(default)]
+    pub multi: Option<bool>,
+    /// PCGen `CHOOSE:` expression, preserved as written.
+    #[serde(default)]
+    pub choose: Option<String>,
+}
+
+/// One `ABILITYCATEGORY:` definition.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AbilityCategoryDefinition {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub category: Option<String>,
+    #[serde(default)]
+    pub type_tags: Vec<String>,
+    /// Explicit ability membership (`ABILITYLIST:`).
+    #[serde(default)]
+    pub ability_list: Vec<String>,
+    /// Variable that supplies pool points (`POOL:`).
+    #[serde(default)]
+    pub pool: Option<String>,
+}
+
 /// All typed definitions produced by one import.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct TypedDefinitions {
@@ -947,6 +988,10 @@ pub struct TypedDefinitions {
     pub variants: BTreeMap<String, VariantDefinition>,
     pub kits: BTreeMap<String, KitDefinition>,
     pub templates: BTreeMap<String, TemplateDefinition>,
+    #[serde(default)]
+    pub abilities: BTreeMap<String, AbilityDefinition>,
+    #[serde(default)]
+    pub ability_categories: BTreeMap<String, AbilityCategoryDefinition>,
     /// Creature-trait metadata captured from every record, including
     /// Ability / ClassLevel / Equipment sources that are not yet modelled as
     /// full typed definitions.

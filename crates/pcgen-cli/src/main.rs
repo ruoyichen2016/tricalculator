@@ -217,6 +217,8 @@ fn main() -> Result<()> {
                     "variants": pack.variants.len(),
                     "kits": pack.kits.len(),
                     "templates": pack.templates.len(),
+                    "abilities": pack.abilities.len(),
+                    "ability_categories": pack.ability_categories.len(),
                     "creature_trait_records": pack.creature_trait_records.len(),
                     "companion_mods": pack
                         .companion_mods

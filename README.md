@@ -136,6 +136,10 @@ commit 并执行字段级差分）两个 job。细节见 [`docs/TESTING.md`](doc
 - P4-SPELL-2：`ADDDOMAINS` / `PROHIBITCOST` / `DONOTADD` / Spell
   `VARIANTS` 消费，条件领域进入 `domain_spells`，`prohibited_costs`
   进入 snapshot；
+- P4-ABILITY-1：`AbilityDefinition` / `AbilityCategoryDefinition`、
+  `ABILITYLIST` / `POOL` / `STACK` / `MULT` / `CHOICE` typed 化；
+  `draft.choices` 优先解析 `CHOOSE`，`unresolved_choices` 输出 diagnostics；
+  `ability_lists` / `ability_pools` / `repeatable_abilities` 进入 snapshot；
 - P4-BONUS/EQP 残留：`PREEQUIP*` primary/secondary/both、EquipMod `DR`/`SR`
   trait、`PRECHECKBASE` base-save 谓词；
 - P4-TEMP-1 active-state：`TEMPBONUS` / `TEMPVALUE` typed 化，
@@ -151,10 +155,10 @@ commit 并执行字段级差分）两个 job。细节见 [`docs/TESTING.md`](doc
   known-diverging 0；
 - KIT / STARTPACK 声明式 typed 导入（P4-KIT-1，见
   [`docs/P4_KIT0_DESIGN.md`](docs/P4_KIT0_DESIGN.md)）；DS-35E completion
-  98.8%；DS-PSI 灵能验收数据集 completion 99.1%；三个数据集
+  100.0%；DS-PSI 灵能验收数据集 completion 100.0%；三个数据集
   unsupported pending 均为 0；P0 已完成 `CHOOSE` 口径去重、`XPCOST`
   out-of-scope allowlist 与 CompanionMod `FOLLOWER:` 行保全；
-- 164 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
+- 168 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
 
 真实 PCGen 数据解析与完整角色计算正在按 [`MIGRATION.md`](MIGRATION.md) 从
 archive 迁移。

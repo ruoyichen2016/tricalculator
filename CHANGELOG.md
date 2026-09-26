@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### 阶段 3：能力池 / 选择语义闭环（已完成）
+
+- 新增 `AbilityDefinition` / `AbilityCategoryDefinition` typed 模型。
+- `ABILITYLIST` 进入 `CharacterSnapshot.ability_lists`，`POOL` 变量进入
+  `CharacterSnapshot.ability_pools`。
+- `STACK` / `MULT` 进入 repeatable ability metadata，`CHOICE` 进入
+  subclass class-choice metadata。
+- `CHOOSE` 优先从 `draft.choices` 解析；动态但未提供选择的情况进入
+  `unresolved_choices` 并写入 diagnostics，不再静默取 first/0。
+- broad oracle baseline 新增 choice / unresolved / ability pool / list /
+  repeatable ability 状态基线，覆盖现有 23-case cohort。
+- 选择类 pending 清零；coverage baseline 重冻结为 DS-3E 1 / 100.0%，
+  DS-35E 2 / 100.0%，DS-PSI 0 / 100.0%；测试 164→168。
+
 ### 阶段 2：剩余装备 / 法术 / 灵能 pending 清零（已完成）
 
 - **P4-EQP-2**：`ALTCRITMULT` / `ALTCRITRANGE` / `ALTDAMAGE` /

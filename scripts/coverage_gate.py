@@ -666,6 +666,10 @@ def main(argv: list[str] | None = None) -> int:
                     "PROHIBITCOST",
                     "DONOTADD",
                     "VARIANTS",
+                    "ABILITYLIST",
+                    "POOL",
+                    "STACK",
+                    "CHOICE",
                 ],
             ),
         )
@@ -729,6 +733,10 @@ def main(argv: list[str] | None = None) -> int:
                     "PROHIBITCOST",
                     "DONOTADD",
                     "VARIANTS",
+                    "ABILITYLIST",
+                    "POOL",
+                    "STACK",
+                    "CHOICE",
                 ],
             ),
         )
@@ -761,6 +769,10 @@ def main(argv: list[str] | None = None) -> int:
                     "PROHIBITCOST",
                     "DONOTADD",
                     "VARIANTS",
+                    "ABILITYLIST",
+                    "POOL",
+                    "STACK",
+                    "CHOICE",
                 ],
                 typed={
                     "classes": (">=", 20),

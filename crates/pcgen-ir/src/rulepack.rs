@@ -58,6 +58,11 @@ pub struct CompiledRulePack {
     #[serde(default)]
     pub templates: std::collections::BTreeMap<String, TemplateDefinition>,
     #[serde(default)]
+    pub abilities: std::collections::BTreeMap<String, pcgen_core::AbilityDefinition>,
+    #[serde(default)]
+    pub ability_categories:
+        std::collections::BTreeMap<String, pcgen_core::AbilityCategoryDefinition>,
+    #[serde(default)]
     pub creature_trait_records: std::collections::BTreeMap<String, pcgen_core::CreatureTraits>,
     #[serde(default)]
     pub companion_mods: std::collections::BTreeMap<String, Vec<pcgen_core::CompanionModDefinition>>,
@@ -289,6 +294,8 @@ pub fn lower_records(
         variants: typed.variants,
         kits: typed.kits,
         templates: typed.templates,
+        abilities: typed.abilities,
+        ability_categories: typed.ability_categories,
         creature_trait_records: typed.creature_trait_records,
         companion_mods: typed.companion_mods,
         sizes: typed.sizes,
@@ -1269,6 +1276,12 @@ fn typed_digest(typed: &TypedDefinitions) -> String {
     for key in typed.templates.keys() {
         parts.push(format!("template:{key}"));
     }
+    for key in typed.abilities.keys() {
+        parts.push(format!("ability:{key}"));
+    }
+    for key in typed.ability_categories.keys() {
+        parts.push(format!("ability-category:{key}"));
+    }
     for key in typed.creature_trait_records.keys() {
         parts.push(format!("trait-record:{key}"));
     }
@@ -1432,6 +1445,10 @@ fn consumed_legacy_tag(category: &str, tag_name: &str) -> bool {
             | "PROHIBITCOST"
             | "DONOTADD"
             | "VARIANTS"
+            | "STACK"
+            | "ABILITYLIST"
+            | "POOL"
+            | "CHOICE"
     ) {
         return true;
     }

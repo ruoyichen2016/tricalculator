@@ -8,16 +8,16 @@
 ## 当前状态（最近验证：固定数据 + 全量门禁）
 
 - 工作区：7 crate（core / formula / ir / import / engine / output / cli）。
-- 测试：`cargo test --workspace` **164 passed**。
+- 测试：`cargo test --workspace` **168 passed**。
 - DS-3E（回归代理，`srdbasic.pcc`）：3,779 entities，23,723 tag occurrences，
-  lowered 3,267；legacy pending 35；unsupported 0；
-  **semantic completion 98.9%**。
+  lowered 3,267；legacy pending 1；unsupported 0；
+  **semantic completion 100.0%**。
 - DS-35E（主验收，`_rsrd_basics.pcc`）：15,741 entities，
-  lowered 8,196；legacy pending 100；unsupported pending 0
-  （仅 2 个 `PRETEXT` allowlisted）；**semantic completion 98.8%**。
+  lowered 8,196；legacy pending 2；unsupported pending 0
+  （仅 2 个 `PRETEXT` allowlisted）；**semantic completion 100.0%**。
 - DS-PSI（灵能验收，`_rsrd_psionics.pcc`）：1,570 entities，
-  lowered 1,195；legacy pending 11；unsupported pending 0；
-  `psionic_effects` 50；**semantic completion 99.1%**。
+  lowered 1,195；legacy pending 0；unsupported pending 0；
+  `psionic_effects` 50；**semantic completion 100.0%**。
 - P0 口径清偿：`CHOOSE` 已经 lowering，不再重复计入 legacy pending；
   `XPCOST` 按 P4-DEC-2 移入 out-of-scope allowlist；三个数据集的
   `unsupported_pending` 均被门禁显式要求为 0。
@@ -48,6 +48,20 @@
       初始提交 + `.gitignore`；broad oracle `--write-baseline` Java 一致率
       下降时拒写（需 `--accept-diff` 才可显式接受）
 - [x] 清理已完成阶段的状态头（P1/P2/P3）
+
+### P0.4 阶段 3：能力池 / 选择语义闭环（已完成）
+
+- [x] `AbilityDefinition` / `AbilityCategoryDefinition` typed 模型。
+- [x] `ABILITYLIST` 成员关系进入 `CharacterSnapshot.ability_lists`。
+- [x] `POOL` 池点数从变量解析进入 `CharacterSnapshot.ability_pools`。
+- [x] `STACK` / `MULT` 进入 repeatable ability metadata。
+- [x] `CHOICE` 进入 class subclass choice metadata。
+- [x] `CHOOSE` 优先从 `draft.choices` 解析；无法确定的动态选择进入
+      `unresolved_choices` 并输出 diagnostics，不再静默取 first/0。
+- [x] broad oracle baseline 新增 choice / unresolved / ability pool / list /
+      repeatable ability 状态，覆盖现有 23-case cohort。
+- [x] 选择类 pending 清零：DS-3E 1（`ATTACKCYCLE`）、DS-35E 2
+      （`MOVECLONE` / `REACH`）、DS-PSI 0；completion 均为 100.0%。
 
 ### P0.3 阶段 2：剩余装备 / 法术 / 灵能 pending 清零（已完成）
 
@@ -571,6 +585,7 @@ id 分组保存，并已由 P4-COMP-1 消费 `PRERACE` 条件、HD/SR/ABILITY/tr
 | 5 | P4-TEMP-1 / P4-PSI-1/P4-PSI-2 | ✅ P4-TEMP-1 active-state；Psion/Psychic Warrior/Wilder golden、`powers_known`、PRC manifester stacking 完成 |
 | 6 | P4-CLASS-1/2、P4-STAT-1/2、P4-FAITH-1/2 | ✅ typed + runtime 消费完成：技能点/专长/HP/ADDLEVEL/EXCLASS/EXCHANGELEVEL、属性下限/STATMOD/SIZENUM、信仰校验 |
 | 7 | P4-DEC-2 / DEC-4 | G3 dropped、G4 归档 |
+| 8 | P4-ABILITY-1 | ✅ `AbilityDefinition` / `AbilityCategoryDefinition`、`ABILITYLIST`、`POOL`、`STACK`/`MULT`、`draft.choices` 解析与 `unresolved_choices` diagnostics；选择类 pending 清零 |
 
 > 每个任务合并前必须同时满足：`cargo test --workspace`、
 > `coverage_gate.py` 严格模式、`broad_oracle.py --check --json`；

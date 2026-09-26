@@ -130,4 +130,4 @@ P4-KIT-1 已按本设计落地：
 - KIT / STARTPACK 的 `OPTION` / `LOOKUP` / `VALUES` / `QTY` / `EQUIPBUY` /
   `APPLY` / `LOCATION` 等 tag 已被 typed import 消费；
 - `classify_for_category(category, tag)` 已区分 KIT 与 Equipment 同名 tag；
-- DS-35E `semantic_completion` 从 45.5% 提升到 **98.8%**，DS-3E 提升到 **98.9%**。
+- DS-35E `semantic_completion` 从 45.5% 提升到 **100.0%**，DS-3E 提升到 **100.0%**。

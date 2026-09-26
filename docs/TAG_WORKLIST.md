@@ -1,7 +1,7 @@
 # Tag 迁移工作清单
 
 > 由固定数据上的真实 3e SRD（`srdbasic.pcc`）生成。
-> 最近更新：阶段 2 后。三数据集目标装备/法术/灵能 tag pending 均为 0。
+> 最近更新：阶段 3 后。选择类 `ABILITYLIST` / `POOL` / `STACK` / `CHOICE` pending 已清零。
 
 ## 0. 口径
 
@@ -9,27 +9,24 @@
 
 ```text
 lowered_effects     3267
-legacy_tags         1319
+legacy_tags         1285
   ├─ allowlisted    1284
-  └─ pending        35
+  └─ pending        1
 unsupported_tags    0
   ├─ allowlisted    0
   └─ pending        0
-semantic_pending    35
-semantic_completion 98.9%
+semantic_pending    1
+semantic_completion 100.0%
 ```
 
 ## 1. pending unsupported
 
 无。三个验收数据集的 unsupported pending 均为 0。
 
-## 2. pending legacy（4 tag，35 次）
+## 2. pending legacy（1 tag，1 次）
 
 | count | tag |
 |---:|---|
-| 17 | `STACK` |
-| 9 | `ABILITYLIST` |
-| 8 | `CHOICE` |
 | 1 | `ATTACKCYCLE` |
 
 ## 3. allowlisted（47 tag，1284 次）
@@ -105,4 +102,4 @@ semantic_completion 98.9%
   （legacy_tags 2,902→2,773，semantic_completion 65.4%→67.2%）
 - monster class `classlevel()` BAB 公式修复（`classlevel()` 空括号）
 
-累计：`legacy_tags` 4289 → 1319，`unsupported` 337 → 0，`semantic_completion` 46.8% → 98.9%。
+累计：`legacy_tags` 4289 → 1285，`unsupported` 337 → 0，`semantic_completion` 46.8% → 100.0%。

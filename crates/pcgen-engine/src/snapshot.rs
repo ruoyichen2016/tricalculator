@@ -105,6 +105,18 @@ pub struct CharacterSnapshot {
     /// Psionic powers available/known per manifester class at current level.
     #[serde(default)]
     pub powers_known: BTreeMap<String, Vec<String>>,
+    /// `ABILITYLIST` membership keyed by ability-category id.
+    #[serde(default)]
+    pub ability_lists: BTreeMap<String, Vec<String>>,
+    /// `POOL` points keyed by ability-category id, resolved from variables.
+    #[serde(default)]
+    pub ability_pools: BTreeMap<String, i32>,
+    /// Ability ids marked repeatable via `STACK` / `MULT`.
+    #[serde(default)]
+    pub repeatable_abilities: Vec<String>,
+    /// Subclass `CHOICE:` expressions keyed by class id.
+    #[serde(default)]
+    pub class_choices: BTreeMap<String, String>,
     /// Creature vision modes from race + active templates (`VISION`).
     #[serde(default)]
     pub vision: Vec<String>,

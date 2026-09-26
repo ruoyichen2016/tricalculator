@@ -54,6 +54,40 @@ FIELDS = [
 SAVES = ["fortitude", "reflex", "will"]
 
 
+def choice_state(summary: dict) -> dict:
+    """Stable Rust-only choice / ability-pool state for the baseline.
+
+    Java sheets do not expose these fields directly, so they are frozen as a
+    generated-only regression surface while the Java-gated numeric fields stay
+    unchanged.
+    """
+    choices = {
+        normalize_key(key): value
+        for key, value in sorted(summary.get("choices", {}).items())
+    }
+    unresolved = sorted(set(summary.get("unresolved_choices", [])))
+    repeatable = sorted(set(summary.get("repeatable_abilities", [])))
+    ability_pools = {
+        normalize_key(key): int(value)
+        for key, value in sorted(summary.get("ability_pools", {}).items())
+    }
+    ability_lists = {
+        normalize_key(key): sorted(set(values))
+        for key, values in sorted(summary.get("ability_lists", {}).items())
+    }
+    return {
+        "choices": choices,
+        "unresolved_choices": unresolved,
+        "ability_pools": ability_pools,
+        "ability_lists": ability_lists,
+        "repeatable_abilities": repeatable,
+    }
+
+
+def normalize_key(value: str) -> str:
+    return value.trim().lower().replace(" ", "_") if hasattr(value, "trim") else str(value).strip().lower().replace(" ", "_")
+
+
 def load_cohort() -> dict:
     return json.loads(COHORT_PATH.read_text(encoding="utf-8"))
 
@@ -134,6 +168,7 @@ def evaluate_case(case: dict) -> dict:
         key: curated.normalise_value(key, rules.get(key)) for key in FIELDS
     }
     result["values"]["rust"]["saves"] = saves
+    result["values"]["rust"]["choice_state"] = choice_state(summary)
     return result
 
 
@@ -157,7 +192,12 @@ def build_baseline(cohort: dict) -> dict:
         result = evaluate_case(case)
         entry: dict = {"status": result["status"]}
         if result["status"] == "computed":
-            entry["values"] = result["values"]["rust"]
+            entry["values"] = {
+                key: value
+                for key, value in result["values"]["rust"].items()
+                if key != "choice_state"
+            }
+            entry["choice_state"] = result["values"]["rust"]["choice_state"]
             entry["java_agreement"] = field_agreement(result)
         elif result["status"] == "base_only":
             entry["values"] = result["values"]["base"]
@@ -167,7 +207,7 @@ def build_baseline(cohort: dict) -> dict:
             entry["error"] = result.get("error", "")
         cases[stem] = entry
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "cohort": cohort["name"],
         "data_ref": cohort["data_ref"],
         "generated_by": "scripts/broad_oracle.py --write-baseline",
@@ -215,6 +255,12 @@ def check_case(
                     f"{stem}: save_{save} {current.get('saves', {}).get(save)!r} != "
                     f"baseline {expected['values'].get('saves', {}).get(save)!r}"
                 )
+        expected_choice = expected.get("choice_state", {})
+        actual_choice = current.get("choice_state", {})
+        if actual_choice != expected_choice:
+            failures.append(
+                f"{stem}: choice_state changed; run --write-baseline after review"
+            )
     elif result["status"] == "base_only":
         for key, value in result["values"]["base"].items():
             if not compare_field(value, expected["values"].get(key)):

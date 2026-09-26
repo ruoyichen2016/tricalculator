@@ -497,21 +497,58 @@ fn apply_action(
 }
 
 fn apply_choose(spec: &str, draft: &CharacterDraft, state: &mut EffectState) {
-    if let Some(choice) = draft.choices.get(spec) {
-        state.choices.insert(spec.to_string(), choice.clone());
-    } else if spec.contains('|') {
-        let choices: Vec<&str> = spec.split('|').map(str::trim).collect();
-        let candidate = choices.iter().find(|choice| {
-            !choice.is_empty() && !choice.contains(':') && !ChoiceKind::is_keyword(choice)
-        });
-        if let Some(first) = candidate {
-            state.choices.insert(spec.to_string(), (*first).to_string());
-        } else {
-            state.unresolved_choices.push(spec.to_string());
-        }
-    } else {
-        state.unresolved_choices.push(spec.to_string());
+    let spec = spec.trim();
+    if let Some(choice) = draft.choices.get(spec).cloned().or_else(|| {
+        draft
+            .choices
+            .iter()
+            .find(|(key, _)| key.eq_ignore_ascii_case(spec))
+            .map(|(_, value)| value.clone())
+    }) {
+        state.choices.insert(spec.to_string(), choice);
+        return;
     }
+    if spec.eq_ignore_ascii_case("NOCHOICE") {
+        state.choices.insert(spec.to_string(), String::new());
+        return;
+    }
+    if let Some(candidate) = concrete_choice_candidate(spec) {
+        state.choices.insert(spec.to_string(), candidate);
+        return;
+    }
+    state.unresolved_choices.push(spec.to_string());
+    state
+        .diagnostics
+        .push(format!("unresolved choice `{spec}`"));
+}
+
+fn concrete_choice_candidate(spec: &str) -> Option<String> {
+    let tokens: Vec<&str> = spec
+        .split('|')
+        .map(str::trim)
+        .filter(|token| !token.is_empty())
+        .collect();
+    if tokens.len() == 1 {
+        let token = tokens[0];
+        if token.eq_ignore_ascii_case("NOCHOICE") || ChoiceKind::is_keyword(token) {
+            return None;
+        }
+        return Some(token.to_string());
+    }
+    for token in tokens.iter().skip(1) {
+        let upper = token.to_ascii_uppercase();
+        if ChoiceKind::is_keyword(token)
+            || matches!(upper.as_str(), "LIST" | "%LIST" | "%CHOICE" | "SPELLCASTER")
+            || upper.starts_with("TYPE=")
+            || upper.starts_with("TYPE.")
+            || upper.starts_with("PRE")
+            || token.contains('[')
+        {
+            continue;
+        }
+        return Some((*token).to_string());
+    }
+    None
 }
 
 /// Internal ability-category `.MOD` records that select racial defaults.
