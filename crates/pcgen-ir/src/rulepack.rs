@@ -2,7 +2,7 @@
 
 use crate::patches::PatchOperation;
 use crate::source::RawRecord;
-use crate::typed::build_typed_definitions;
+use crate::typed::{build_typed_definitions, parse_creature_traits};
 use pcgen_core::domain::{
     ClassDefinition, ClassProgression, DeityDefinition, DomainDefinition, EquipmentDefinition,
     EquipmentModifierDefinition, RaceDefinition, SkillDefinition, SpellDefinition, SpellPowerType,
@@ -10,7 +10,7 @@ use pcgen_core::domain::{
 };
 use pcgen_core::{
     CompiledEntity, Effect, EffectAction, EffectPhase, EntityId, Modifier, ModifierOperation,
-    Predicate, Provenance, Rational, RuleCoverage, TypedDefinitions,
+    Predicate, Provenance, Rational, RuleCoverage, TemporaryValue, TypedDefinitions,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
@@ -58,6 +58,16 @@ pub struct CompiledRulePack {
     #[serde(default)]
     pub templates: std::collections::BTreeMap<String, TemplateDefinition>,
     #[serde(default)]
+    pub creature_trait_records: std::collections::BTreeMap<String, pcgen_core::CreatureTraits>,
+    #[serde(default)]
+    pub companion_mods: std::collections::BTreeMap<String, Vec<pcgen_core::CompanionModDefinition>>,
+    #[serde(default)]
+    pub sizes: std::collections::BTreeMap<String, pcgen_core::SizeDefinition>,
+    #[serde(default)]
+    pub stats: std::collections::BTreeMap<String, pcgen_core::StatDefinition>,
+    #[serde(default)]
+    pub alignments: std::collections::BTreeMap<String, pcgen_core::AlignmentDefinition>,
+    #[serde(default)]
     pub progressions: std::collections::BTreeMap<String, ClassProgression>,
 }
 
@@ -67,9 +77,13 @@ pub struct ImportReport {
     pub patch_operations: usize,
     pub diagnostics: usize,
     pub error_diagnostics: usize,
-    /// Executable effects attached to `SPELL` / `DOMAIN` definitions.
+    /// Executable effects attached to `SPELL` / `POWER` / `DOMAIN`
+    /// definitions.
     #[serde(default)]
     pub spell_effects: usize,
+    /// Executable effects attached to `POWER` definitions.
+    #[serde(default)]
+    pub psionic_effects: usize,
 }
 
 /// Lower records into the runtime IR.
@@ -150,12 +164,23 @@ pub fn lower_records(
         let mut effects = Vec::new();
         let mut requirements = Vec::new();
         let mut unsupported_tags = Vec::new();
+        let mut temporary_value = None;
         for tag in &record.tags {
             let upper = tag.name.to_ascii_uppercase();
             if upper == "BONUS" {
                 match lower_bonus(tag, phase, &provenance) {
                     Some(effect) => effects.push(effect),
                     None => unsupported_tags.push(format!("BONUS:{}", tag.value)),
+                }
+            } else if upper == "TEMPBONUS" {
+                match lower_temp_bonus(record, tag, phase, &provenance) {
+                    Some(effect) => effects.push(effect),
+                    None => unsupported_tags.push(format!("TEMPBONUS:{}", tag.value)),
+                }
+            } else if upper == "TEMPVALUE" {
+                match parse_temporary_value(tag) {
+                    Some(value) => temporary_value = Some(value),
+                    None => unsupported_tags.push(format!("TEMPVALUE:{}", tag.value)),
                 }
             } else if upper == "DEFINE" || upper == "VAR" {
                 match lower_define(tag) {
@@ -196,6 +221,8 @@ pub fn lower_records(
         );
         coverage.record_tags(&effective_category, record.tags.len(), known);
         coverage.record_effect_actions(&effective_category, &effects);
+        let mut traits = pcgen_core::CreatureTraits::default();
+        parse_creature_traits(record, &mut traits);
         entities.push(CompiledEntity {
             id,
             category: pcgen_core::EntityCategory::from_pcgen(&effective_category),
@@ -206,6 +233,8 @@ pub fn lower_records(
             unsupported_tags,
             source: record.source.path.display().to_string(),
             ability_category,
+            temporary_value,
+            traits,
         });
     }
 
@@ -231,6 +260,13 @@ pub fn lower_records(
         })
         .map(|entity| entity.effects.len())
         .sum();
+    let psionic_effects = entities
+        .iter()
+        .filter(|entity| {
+            entity.category == pcgen_core::EntityCategory::Spell && spell_is_psionic(&typed, entity)
+        })
+        .map(|entity| entity.effects.len())
+        .sum();
     let pack = CompiledRulePack {
         header: CompiledPackHeader {
             game_mode,
@@ -251,6 +287,11 @@ pub fn lower_records(
         variants: typed.variants,
         kits: typed.kits,
         templates: typed.templates,
+        creature_trait_records: typed.creature_trait_records,
+        companion_mods: typed.companion_mods,
+        sizes: typed.sizes,
+        stats: typed.stats,
+        alignments: typed.alignments,
         progressions: typed.progressions,
     };
     let report = ImportReport {
@@ -259,6 +300,7 @@ pub fn lower_records(
         diagnostics: 0,
         error_diagnostics: 0,
         spell_effects,
+        psionic_effects,
     };
     (pack, report)
 }
@@ -283,6 +325,124 @@ fn lower_bonus(
     lower_bonus_effect(&tag.value, phase, provenance)
 }
 
+fn temp_state_names(record: &RawRecord) -> Vec<String> {
+    let mut states = Vec::new();
+    for raw in [record.key.as_str(), record.name.as_str()] {
+        let value = raw.trim();
+        let base = value.strip_suffix(".MOD").unwrap_or(value).trim();
+        let normalized = normalized_key(base);
+        if !normalized.is_empty() && !states.contains(&normalized) {
+            states.push(normalized);
+        }
+    }
+    states
+}
+
+fn equipped_condition(qualifier: &str) -> Option<Predicate> {
+    let mut any_groups = Vec::new();
+    for group in qualifier.split(';') {
+        let values: Vec<String> = group
+            .split(',')
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(normalized_key)
+            .collect();
+        if values.is_empty() {
+            continue;
+        }
+        let mut all = Vec::new();
+        for value in values {
+            all.push(Predicate::Equipped {
+                slot: "any".to_string(),
+                values: vec![value],
+            });
+        }
+        any_groups.push(if all.len() == 1 {
+            all.pop().expect("one predicate")
+        } else {
+            Predicate::All(all)
+        });
+    }
+    match any_groups.len() {
+        0 => None,
+        1 => any_groups.pop(),
+        _ => Some(Predicate::Any(any_groups)),
+    }
+}
+
+fn combine_conditions(
+    active: Option<Predicate>,
+    scope: Option<Predicate>,
+    existing: Option<Predicate>,
+) -> Option<Predicate> {
+    let mut all = Vec::new();
+    if let Some(predicate) = active {
+        all.push(predicate);
+    }
+    if let Some(predicate) = scope {
+        all.push(predicate);
+    }
+    if let Some(predicate) = existing {
+        all.push(predicate);
+    }
+    match all.len() {
+        0 => None,
+        1 => all.pop(),
+        _ => Some(Predicate::All(all)),
+    }
+}
+
+fn lower_temp_bonus(
+    record: &RawRecord,
+    tag: &crate::source::RawTag,
+    phase: EffectPhase,
+    provenance: &Provenance,
+) -> Option<Effect> {
+    let (scope, body) = tag.value.split_once('|')?;
+    let scope = scope.trim().to_ascii_uppercase();
+    if body.trim().is_empty() {
+        return None;
+    }
+    let active = Predicate::ActiveState {
+        states: temp_state_names(record),
+    };
+    let (bonus_body, scope_condition) = if scope == "EQ" {
+        let (qualifier, rest) = body.split_once('|')?;
+        (rest, equipped_condition(qualifier))
+    } else {
+        (body, None)
+    };
+    let mut effect = lower_bonus_effect(bonus_body, phase, provenance)?;
+    effect.condition = combine_conditions(Some(active), scope_condition, effect.condition);
+    Some(effect)
+}
+
+fn parse_temporary_value(tag: &crate::source::RawTag) -> Option<TemporaryValue> {
+    let mut value = TemporaryValue::default();
+    let mut saw_any = false;
+    for part in tag.value.split('|') {
+        let Some((key, raw)) = part.split_once('=') else {
+            continue;
+        };
+        match key.trim().to_ascii_uppercase().as_str() {
+            "MIN" => {
+                value.min = Some(raw.trim().parse::<i32>().ok()?);
+                saw_any = true;
+            }
+            "MAX" => {
+                value.max = Some(raw.trim().parse::<i32>().ok()?);
+                saw_any = true;
+            }
+            "TITLE" => {
+                value.title = Some(raw.trim().to_string());
+                saw_any = true;
+            }
+            _ => {}
+        }
+    }
+    saw_any.then_some(value)
+}
+
 /// Lower a raw `BONUS` value (without the `BONUS:` prefix) into an effect.
 pub fn lower_bonus_effect(
     value: &str,
@@ -302,6 +462,7 @@ pub fn lower_bonus_effect(
         };
     let raw_value = parts.get(value_index)?.to_string();
     let mut bonus_type = None;
+    let mut stack_key = None;
     let mut conditions = Vec::new();
     for part in parts.iter().skip(value_index + 1) {
         if let Some(type_name) = part.strip_prefix("TYPE=") {
@@ -309,6 +470,12 @@ pub fn lower_bonus_effect(
             // visible to the engine's stacking layer; category matching uses
             // `contains`, not equality.
             bonus_type = Some(type_name.trim().to_ascii_lowercase());
+        } else if let Some(stack) = part.strip_prefix("STACK=") {
+            stack_key = Some(if stack.eq_ignore_ascii_case("YES") || stack == "1" {
+                "stack".to_string()
+            } else {
+                "nonstack".to_string()
+            });
         } else if crate::tags::is_predicate_tag(part) {
             // PRERULE gates the whole bonus; parse_predicate handles it.
             conditions.push(parse_predicate(part, "")?);
@@ -326,7 +493,7 @@ pub fn lower_bonus_effect(
             operation: ModifierOperation::Add,
             value: Rational::from(value),
             bonus_type: bonus_type.clone(),
-            stack_key: None,
+            stack_key: stack_key.clone(),
             condition: condition.clone(),
             source: provenance.clone(),
         };
@@ -344,7 +511,7 @@ pub fn lower_bonus_effect(
                 target,
                 expression: raw_value,
                 bonus_type,
-                stack_key: None,
+                stack_key,
                 condition,
                 source: provenance.clone(),
             },
@@ -523,6 +690,26 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 Some(Predicate::Not(Box::new(predicate)))
             } else {
                 Some(predicate)
+            }
+        }
+        "PREITEM" => {
+            let values: Vec<String> = parts
+                .iter()
+                .filter_map(|part| {
+                    part.trim()
+                        .strip_prefix("TYPE=")
+                        .or_else(|| part.trim().strip_prefix("type="))
+                })
+                .map(|value| value.trim().to_ascii_lowercase().replace(' ', "_"))
+                .filter(|value| !value.is_empty())
+                .collect();
+            if values.is_empty() {
+                None
+            } else {
+                Some(Predicate::Equipped {
+                    slot: "any".to_string(),
+                    values,
+                })
             }
         }
         "PREEQUIP" | "PREEQUIPPRIMARY" | "PREEQUIPSECONDARY" | "PREEQUIPBOTH" => {
@@ -742,6 +929,15 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
             let body = body.strip_prefix("Q:").unwrap_or(body).trim();
             let min = body.parse::<u32>().ok()?;
             Some(Predicate::TotalBab { min })
+        }
+        // PRECHECKBASE:n,Save=value — base save bonus of one kind.
+        "PRECHECKBASE" => {
+            let part = parts.iter().find(|part| part.contains('='))?;
+            let (save, min) = part.split_once('=')?;
+            Some(Predicate::BaseSave {
+                save: save.trim().to_string(),
+                min: min.trim().parse::<i32>().ok()?,
+            })
         }
         "PRETYPE" => {
             let tag = parts
@@ -995,6 +1191,20 @@ fn normalized_key(value: &str) -> String {
     value.trim().to_ascii_lowercase().replace(' ', "_")
 }
 
+fn spell_is_psionic(typed: &TypedDefinitions, entity: &CompiledEntity) -> bool {
+    typed
+        .spells
+        .get(&entity.id.key)
+        .or_else(|| {
+            typed
+                .spells
+                .iter()
+                .find(|(key, _)| key.eq_ignore_ascii_case(&entity.id.key))
+                .map(|(_, spell)| spell)
+        })
+        .is_some_and(|spell| spell.is_psionic)
+}
+
 fn typed_digest(typed: &TypedDefinitions) -> String {
     let mut parts = Vec::new();
     for key in typed.races.keys() {
@@ -1026,6 +1236,24 @@ fn typed_digest(typed: &TypedDefinitions) -> String {
     }
     for key in typed.templates.keys() {
         parts.push(format!("template:{key}"));
+    }
+    for key in typed.creature_trait_records.keys() {
+        parts.push(format!("trait-record:{key}"));
+    }
+    for (key, rows) in &typed.companion_mods {
+        parts.push(format!("companion-mod:{key}:{}", rows.len()));
+        for row in rows {
+            parts.push(format!("companion-row:{row:?}"));
+        }
+    }
+    for key in typed.sizes.keys() {
+        parts.push(format!("size:{key}"));
+    }
+    for key in typed.stats.keys() {
+        parts.push(format!("stat:{key}"));
+    }
+    for key in typed.alignments.keys() {
+        parts.push(format!("alignment:{key}"));
     }
     parts.push(format!("counts:{}", parts.len()));
     pcgen_core::hash_parts(&parts)
@@ -1111,10 +1339,24 @@ fn consumed_legacy_tag(category: &str, tag_name: &str) -> bool {
         return true;
     }
     match category {
-        "ABILITY" | "ABILITYCATEGORY" => {
-            matches!(name.as_str(), "CATEGORY" | "SPELLLEVEL" | "ADDSPELLLEVEL")
-        }
-        "DEITY" => name == "DOMAINS",
+        "ABILITY" | "ABILITYCATEGORY" => matches!(
+            name.as_str(),
+            "CATEGORY"
+                | "DEFINESTAT"
+                | "SPELLLEVEL"
+                | "ADDSPELLLEVEL"
+                | "UDAM"
+                | "UMULT"
+                | "NATURALATTACKS"
+                | "VISION"
+                | "DR"
+                | "SR"
+        ),
+        "DEITY" => matches!(
+            name.as_str(),
+            "DOMAINS" | "VALIDFORDEITY" | "VALIDFORFOLLOWER" | "DEITYWEAP"
+        ),
+        "ALIGNMENT" => matches!(name.as_str(), "VALIDFORDEITY" | "VALIDFORFOLLOWER"),
         "SPELL" => name == "DOMAINS",
         "DOMAIN" => name == "SPELLLEVEL",
         "RACE" | "TEMPLATE" => matches!(
@@ -1133,18 +1375,48 @@ fn consumed_legacy_tag(category: &str, tag_name: &str) -> bool {
                 | "MOVECLONE"
                 | "UNENCUMBEREDMOVE"
                 | "ATTACKCYCLE"
+                | "HITDIE"
+                | "ADDLEVEL"
+                | "DEFINESTAT"
+                | "XTRASKILLPTSPERLVL"
+                | "SKILLMULT"
         ),
         "CLASS" | "CLASS_LEVEL" => matches!(
             name.as_str(),
-            "SPELLLEVEL" | "PROHIBITSPELL" | "KNOWNSPELLSFROMSPECIALTY" | "SPELLBOOK"
+            "UDAM"
+                | "UMULT"
+                | "DR"
+                | "SR"
+                | "SPELLLEVEL"
+                | "PROHIBITSPELL"
+                | "KNOWNSPELLSFROMSPECIALTY"
+                | "SPELLBOOK"
+                | "SKILLMULT"
+                | "LEVELSPERFEAT"
+                | "HITDIE"
+                | "EXCLASS"
+                | "ADDLEVEL"
+                | "EXCHANGELEVEL"
         ),
-        // Equipment modifier metadata captured by the typed model.
-        "EQUIPMOD" => matches!(name.as_str(), "PLUS" | "ITYPE" | "REPLACES" | "CHARGES"),
-        // Weapon/armor/item metadata captured by the typed model.
+        "SIZE" => name == "SIZENUM",
+        "STAT" => name == "STATMOD",
         "EQUIPMENT" => matches!(
             name.as_str(),
-            "CRITMULT" | "CRITRANGE" | "WIELD" | "BASEITEM" | "CONTAINS" | "SLOTS" | "LOCATION"
+            "DR" | "SR"
+                | "REACHMULT"
+                | "CRITMULT"
+                | "CRITRANGE"
+                | "WIELD"
+                | "BASEITEM"
+                | "CONTAINS"
+                | "SLOTS"
+                | "LOCATION"
         ),
+        "EQUIPMOD" => matches!(
+            name.as_str(),
+            "DR" | "SR" | "PLUS" | "ITYPE" | "REPLACES" | "CHARGES"
+        ),
+        "COMPANIONMOD" => matches!(name.as_str(), "SR" | "DEFINESTAT"),
         _ => false,
     }
 }

@@ -123,6 +123,9 @@ pub const ALLOWLISTED_TAGS: &[&str] = &[
     "EXCLUSIVE",
     "MODS",
     "FREE",
+    // Dropped by P4-DEC-2 (XP table / point buy / item XP-cost workflow).
+    // The tag is still recognized but intentionally out of scope.
+    "XPCOST",
     "GENDERLOCK",
     "SERVESAS",
     "MODTOSKILLS",
@@ -322,6 +325,14 @@ mod tests {
                 "{tag} is character-generation / UI metadata, not rules input"
             );
         }
+    }
+
+    #[test]
+    fn dropped_xp_cost_is_out_of_scope_allowlist() {
+        // P4-DEC-2 dropped the XP table / point-buy workflow.  XPCOST must
+        // not keep contributing to the semantic-completion denominator.
+        assert_eq!(classify("XPCOST"), TagClass::Allowlisted);
+        assert!(is_allowlisted("XPCOST"));
     }
 
     #[test]

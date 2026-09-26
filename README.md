@@ -14,6 +14,8 @@ PCGen-Rust 是围绕统一 Rule IR、`CharacterDraft` / `CharacterSnapshot`
 - [`docs/TESTING.md`](docs/TESTING.md)
 - [`docs/TAG_TRIAGE.md`](docs/TAG_TRIAGE.md)
 - [`docs/P4_PRE3_SPELL_TYPE_DESIGN.md`](docs/P4_PRE3_SPELL_TYPE_DESIGN.md)
+- [`docs/P4_TEMP1_DESIGN.md`](docs/P4_TEMP1_DESIGN.md)
+- [`docs/P4_PSI1_DESIGN.md`](docs/P4_PSI1_DESIGN.md)
 
 ## 工作区
 
@@ -112,17 +114,36 @@ commit 并执行字段级差分）两个 job。细节见 [`docs/TESTING.md`](doc
 - 装备 `BASEITEM` / `CONTAINS` / `SLOTS` / `CHARGES` typed 导入；
 - `EquipSlot` / 冲突诊断 / slot order 排序进入 engine；archive
   `equipment_slot_sort` 意图已有对应测试；
+- 统一 `TypedBonus` pipeline：literal 与公式型 `BONUS` 均支持 bonus
+  type / stack key，AC / saves / attack / skill 接入；`CharacterSnapshot`
+  新增 `attack_bonuses`；
 - 法术/领域 `DOMAINS` / `SPELLLEVEL` / `PROHIBITSPELL` / `ADDSPELLLEVEL` /
   `KNOWNSPELLSFROMSPECIALTY` / `SPELLBOOK` 与 `PRESPELL` / `PRESPELLSCHOOL`
-  接入（P4-SPELL-1 S1）；`spell_effects` 指标与 golden 已建立；
+  接入（P4-SPELL-1 S1）；`spell_effects` 指标/golden 与 snapshot 汇总完成；
+- 未训练技能基础展开、`MOVECLONE` 消费、CompanionMod `FOLLOWER:` 行保全；
+- P4-CLASS-1 / P4-STAT-1 / P4-FAITH 小项 typed 化（class/race metadata、
+  size/stat、alignment/deity）；
+- P4-PSI-1 灵能闭环：`power_points` / `manifester_levels` / 灵能 DC /
+  `spell_power_types` 输出，`psionic_effects` 指标，DS-PSI 数据集；
+- P4-BONUS/EQP 残留：`PREEQUIP*` primary/secondary/both、EquipMod `DR`/`SR`
+  trait、`PRECHECKBASE` base-save 谓词；
+- P4-TEMP-1 active-state：`TEMPBONUS` / `TEMPVALUE` typed 化，
+  `CharacterDraft.active_states` 显式激活临时加值，`CharacterSnapshot`
+  输出 `active_states`；
 - Race/Template `CreatureTraits` 进入 `CharacterSnapshot`：
-  `vision` / `damage_reduction` / `spell_resistance` / `natural_attacks`；
+  `vision` / `damage_reduction` / `spell_resistance` / `natural_attacks` /
+  `reach_feet` / `reach_mult` / `unarmed_damage` / `unarmed_mult`；
+  active ClassLevel / Ability / Feat / Equipment 也会汇入 snapshot；
+  `creature_trait_records` 作为 metadata catalog；`MOVECLONE` 与 EquipMod
+  `DR`/`SR` 已消费，CompanionMod 条件行选择待 P4-COMP-1；
 - 残余 `BONUS` unsupported 清零；broad oracle 全部字段 23/23（100%），
   known-diverging 0；
 - KIT / STARTPACK 声明式 typed 导入（P4-KIT-1，见
   [`docs/P4_KIT0_DESIGN.md`](docs/P4_KIT0_DESIGN.md)）；DS-35E completion
-  45.5%→88.3%；两个数据集 unsupported pending 均为 0；
-- 127 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
+  45.5%→97.7%；DS-PSI 灵能验收数据集 completion 97.2%；三个数据集
+  unsupported pending 均为 0；P0 已完成 `CHOOSE` 口径去重、`XPCOST`
+  out-of-scope allowlist 与 CompanionMod `FOLLOWER:` 行保全；
+- 150 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
 
 真实 PCGen 数据解析与完整角色计算正在按 [`MIGRATION.md`](MIGRATION.md) 从
 archive 迁移。

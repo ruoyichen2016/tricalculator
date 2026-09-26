@@ -4,7 +4,8 @@
 //! `DefineVariable` and `ModifyFormula`, applies modifiers to a runtime
 //! variable table, and records `CHOOSE` resolution.
 
-use crate::draft::CharacterDraft;
+use crate::draft::{CharacterDraft, DraftClassLevel};
+use pcgen_core::progression::SaveKind;
 use pcgen_core::{CastingType, SpellPowerType};
 use pcgen_core::{ChoiceKind, EntityCategory};
 use pcgen_core::{CompiledEntity, EffectAction, EntityId, ModifierOperation, Predicate};
@@ -14,9 +15,19 @@ use regex::Regex;
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AcBonus {
+pub struct TypedBonus {
+    pub target: String,
     pub value: i32,
     pub bonus_type: Option<String>,
+    pub stack_key: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct PendingFormula {
+    target: String,
+    expression: String,
+    bonus_type: Option<String>,
+    stack_key: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -28,10 +39,10 @@ pub struct EffectState {
     /// Ability modifiers (`STR`..`CHA`) available to PCGen formulas.
     pub ability_modifiers: BTreeMap<String, i32>,
     pub external_modifiers: BTreeMap<String, i32>,
-    /// Typed numeric AC bonuses.  Kept separate from `external_modifiers` so
-    /// armor/shield/natural bonuses do not leak into touch AC, and dodge
-    /// bonuses do not leak into flat-footed AC.
-    pub ac_bonuses: Vec<AcBonus>,
+    /// Typed numeric bonuses.  Kept separate from `external_modifiers` so
+    /// target-specific stacking (AC, saves, attack, skills) can be applied
+    /// with bonus type / stack key semantics.
+    pub typed_bonuses: Vec<TypedBonus>,
     pub active_abilities: BTreeSet<String>,
     pub choices: BTreeMap<String, String>,
     pub unresolved_choices: Vec<String>,
@@ -48,6 +59,8 @@ pub struct EffectState {
     pub character_class_levels: u32,
     /// Stable total BAB used by `PRETOTALAB` during predicate evaluation.
     pub total_bab: i32,
+    /// Class progression base saves used by `PRECHECKBASE`.
+    pub base_saves: BTreeMap<SaveKind, i32>,
     /// Spell power types the character can cast (stage-A derived).
     pub spell_powers: BTreeSet<SpellPowerType>,
     /// Highest spell level with a slot per power type.
@@ -66,6 +79,12 @@ pub struct EffectState {
     pub movement: BTreeMap<String, u32>,
     /// Equipped item names, type tags and wielding categories (lower-cased).
     pub equipment_values: BTreeSet<String>,
+    /// Items occupying the primary hand (`PREEQUIPPRIMARY`).
+    pub equipped_primary: BTreeSet<String>,
+    /// Items occupying the secondary hand (`PREEQUIPSECONDARY`).
+    pub equipped_secondary: BTreeSet<String>,
+    /// Items equipped in both hands (`PREEQUIPBOTH`).
+    pub equipped_both: BTreeSet<String>,
     /// Known weapon proficiencies (lower-cased), when derivable.
     pub weapon_proficiencies: BTreeSet<String>,
     /// Character domains (lower-cased).
@@ -110,6 +129,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
     let class_levels = character_class_levels(pack, draft);
     let initial = initial_entities(pack, draft);
     let prereq_bab = crate::bab::derive_prereq_bab(pack, draft, &initial);
+    let base_saves = crate::bab::derive_base_saves(pack, draft);
     let (spell_powers, max_spell_level, slots_by_power_level, has_spellbook, class_casting) =
         derive_spellcasting_prereq(pack, draft);
     let race = pack.races.get(&draft.race_id);
@@ -123,6 +143,9 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
     let hands = race.map(|race| race.hands).unwrap_or(2);
     let movement = race.map(|race| race.movement.clone()).unwrap_or_default();
     let mut equipment_values = BTreeSet::new();
+    let mut equipped_primary = BTreeSet::new();
+    let mut equipped_secondary = BTreeSet::new();
+    let mut equipped_both = BTreeSet::new();
     for item in &draft.equipment {
         let normalized_item = normalized(item);
         equipment_values.insert(normalized_item.clone());
@@ -132,6 +155,26 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
                 equipment_values.extend(definition.type_tags.iter().map(|tag| normalized(tag)));
                 if let Some(wield) = &definition.wield {
                     equipment_values.insert(normalized(wield));
+                }
+                if definition.slot == pcgen_core::equipment::EquipSlot::Weapon
+                    || definition.slot == pcgen_core::equipment::EquipSlot::Shield
+                {
+                    match definition
+                        .wield
+                        .as_deref()
+                        .map(|wield| wield.to_ascii_lowercase())
+                        .as_deref()
+                    {
+                        Some("twohanded") | Some("two-handed") | Some("both") => {
+                            equipped_both.insert(normalized_item.clone());
+                        }
+                        Some("offhand") | Some("off-hand") | Some("secondary") => {
+                            equipped_secondary.insert(normalized_item.clone());
+                        }
+                        _ => {
+                            equipped_primary.insert(normalized_item.clone());
+                        }
+                    }
                 }
             }
         }
@@ -167,6 +210,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         character_class_levels: class_levels,
         ability_modifiers,
         total_bab: prereq_bab,
+        base_saves,
         spell_powers,
         max_spell_level,
         slots_by_power_level,
@@ -176,6 +220,9 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         hands,
         movement,
         equipment_values,
+        equipped_primary,
+        equipped_secondary,
+        equipped_both,
         weapon_proficiencies,
         domains,
         hit_dice: draft.total_level(),
@@ -193,7 +240,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
     }
 
     let mut variable_defs: BTreeMap<String, String> = BTreeMap::new();
-    let mut pending_formulas: Vec<(String, String)> = Vec::new();
+    let mut pending_formulas: Vec<PendingFormula> = Vec::new();
 
     // Fixed-point closure over granted entities and variant effects.
     for _ in 0..16 {
@@ -282,11 +329,11 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
 
     let mut variable_formulas = Vec::new();
     let mut effect_formulas = Vec::new();
-    for (target, expression) in pending_formulas.drain(..) {
-        if target.starts_with("VAR.") {
-            variable_formulas.push((target, expression));
+    for pending in pending_formulas.drain(..) {
+        if pending.target.starts_with("VAR.") {
+            variable_formulas.push(pending);
         } else {
-            effect_formulas.push((target, expression));
+            effect_formulas.push(pending);
         }
     }
 
@@ -296,14 +343,14 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         }
         let mut remaining = Vec::new();
         let mut progress = false;
-        for (target, expression) in variable_formulas.drain(..) {
-            let normalized = normalize_formula(&expression, draft, &state);
+        for pending in variable_formulas.drain(..) {
+            let normalized = normalize_formula(&pending.expression, draft, &state);
             match pcgen_formula::evaluate(&normalized, &state) {
                 Ok(value) => {
-                    add_target(&mut state, &target, formula_to_i32(&value));
+                    add_formula_target(&mut state, &pending, formula_to_i32(&value));
                     progress = true;
                 }
-                Err(_) => remaining.push((target, expression)),
+                Err(_) => remaining.push(pending),
             }
         }
         variable_formulas = remaining;
@@ -312,18 +359,20 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         }
         resolve_variables(&mut state, &variable_defs, draft);
     }
-    for (target, expression) in &variable_formulas {
+    for pending in &variable_formulas {
         state.diagnostics.push(format!(
-            "unresolved variable formula `{expression}` for target `{target}`"
+            "unresolved variable formula `{}` for target `{}`",
+            pending.expression, pending.target
         ));
     }
 
-    for (target, expression) in effect_formulas {
-        let normalized = normalize_formula(&expression, draft, &state);
+    for pending in effect_formulas {
+        let normalized = normalize_formula(&pending.expression, draft, &state);
         match pcgen_formula::evaluate(&normalized, &state) {
-            Ok(value) => add_target(&mut state, &target, formula_to_i32(&value)),
+            Ok(value) => add_formula_target(&mut state, &pending, formula_to_i32(&value)),
             Err(_) => state.diagnostics.push(format!(
-                "unresolved formula `{expression}` for target `{target}`"
+                "unresolved formula `{}` for target `{}`",
+                pending.expression, pending.target
             )),
         }
     }
@@ -339,7 +388,7 @@ fn apply_action(
     draft: &CharacterDraft,
     state: &mut EffectState,
     variable_defs: &mut BTreeMap<String, String>,
-    pending_formulas: &mut Vec<(String, String)>,
+    pending_formulas: &mut Vec<PendingFormula>,
     active: &mut BTreeSet<usize>,
     queued: &mut BTreeSet<usize>,
     changed: &mut bool,
@@ -366,10 +415,12 @@ fn apply_action(
                     &modifier.target,
                 ) {
                     state.structural_effects_skipped += 1;
-                } else if is_ac_target(&modifier.target) {
-                    state.ac_bonuses.push(AcBonus {
+                } else if is_typed_bonus_target(&modifier.target) {
+                    state.typed_bonuses.push(TypedBonus {
+                        target: modifier.target.clone(),
                         value: modifier.value.floor() as i32,
                         bonus_type: modifier.bonus_type.clone(),
+                        stack_key: modifier.stack_key.clone(),
                     });
                 } else {
                     add_target(state, &modifier.target, modifier.value.floor() as i32);
@@ -377,12 +428,21 @@ fn apply_action(
             }
         }
         EffectAction::ModifyFormula {
-            target, expression, ..
+            target,
+            expression,
+            bonus_type,
+            stack_key,
+            ..
         } => {
             if structural_effect_skipped(source_category.clone(), source_entity, pack, target) {
                 state.structural_effects_skipped += 1;
             } else {
-                pending_formulas.push((target.clone(), expression.clone()));
+                pending_formulas.push(PendingFormula {
+                    target: target.clone(),
+                    expression: expression.clone(),
+                    bonus_type: bonus_type.clone(),
+                    stack_key: stack_key.clone(),
+                });
             }
         }
         EffectAction::Grant { entity } => {
@@ -462,8 +522,34 @@ fn contains_race_predicate(predicate: &Predicate) -> bool {
     }
 }
 
+pub(crate) fn ability_matches_draft(draft: &CharacterDraft, entity: &CompiledEntity) -> bool {
+    draft.abilities.iter().any(|(_, ability)| {
+        ability.eq_ignore_ascii_case(&entity.id.key) || ability.eq_ignore_ascii_case(&entity.name)
+    })
+}
+
+pub(crate) fn equipment_matches_draft(draft: &CharacterDraft, entity: &CompiledEntity) -> bool {
+    draft.equipment.iter().any(|item| {
+        normalized(item) == normalized(&entity.id.key)
+            || normalized(item) == normalized(&entity.name)
+    })
+}
+
+pub(crate) fn class_level_is_active(
+    class_levels: &[DraftClassLevel],
+    class_id: &str,
+    level: u32,
+) -> bool {
+    class_levels.iter().any(|entry| {
+        entry.level >= level
+            && (entry.class_id.eq_ignore_ascii_case(class_id)
+                || normalized(&entry.class_id) == normalized(class_id))
+    })
+}
+
 fn initial_entities(pack: &CompiledRulePack, draft: &CharacterDraft) -> Vec<usize> {
     let mut indexes = BTreeSet::new();
+    let class_levels = crate::engine::effective_class_levels(draft);
     for (index, entity) in pack.entities.iter().enumerate() {
         let key = normalized(&entity.id.key);
         let active = match &entity.category {
@@ -477,21 +563,24 @@ fn initial_entities(pack: &CompiledRulePack, draft: &CharacterDraft) -> Vec<usiz
                     .key
                     .split_once('#')
                     .is_some_and(|(class_id, level)| {
-                        draft.level_in_class(class_id) >= level.parse::<u32>().unwrap_or(0)
+                        class_level_is_active(
+                            &class_levels,
+                            class_id,
+                            level.parse::<u32>().unwrap_or(0),
+                        )
                     })
             }
-            EntityCategory::Equipment => draft.equipment.iter().any(|item| {
-                normalized(item) == key || normalized(&entity.name) == normalized(item)
-            }),
+            EntityCategory::Equipment => equipment_matches_draft(draft, entity),
+            EntityCategory::Spell | EntityCategory::Skill => {
+                draft.active_states.iter().any(|state| {
+                    normalized(state) == key || normalized(state) == normalized(&entity.name)
+                })
+            }
             EntityCategory::Template => draft.templates.iter().any(|template| {
                 normalized(template) == key || normalized(template) == normalized(&entity.name)
             }),
             category if category.is_ability_like() => {
-                internal_race_selector(entity)
-                    || draft.abilities.iter().any(|(_, ability)| {
-                        ability.eq_ignore_ascii_case(&entity.id.key)
-                            || ability.eq_ignore_ascii_case(&entity.name)
-                    })
+                internal_race_selector(entity) || ability_matches_draft(draft, entity)
             }
             _ => false,
         };
@@ -556,9 +645,16 @@ fn find_entity(pack: &CompiledRulePack, entity: &pcgen_core::EntityId) -> Option
         })
 }
 
-fn is_ac_target(target: &str) -> bool {
+fn is_typed_bonus_target(target: &str) -> bool {
     let upper = target.to_ascii_uppercase();
-    upper == "AC" || upper == "COMBAT.AC"
+    upper == "AC"
+        || upper == "COMBAT.AC"
+        || upper.starts_with("SAVE")
+        || upper.starts_with("SKILL")
+        || upper.contains("TOHIT")
+        || upper.starts_with("WEAPON")
+        || upper.starts_with("COMBAT.ATTACK")
+        || upper.starts_with("ATTACK")
 }
 
 fn add_target(state: &mut EffectState, target: &str, value: i32) {
@@ -570,6 +666,19 @@ fn add_target(state: &mut EffectState, target: &str, value: i32) {
             .external_modifiers
             .entry(target.to_string())
             .or_insert(0) += value;
+    }
+}
+
+fn add_formula_target(state: &mut EffectState, pending: &PendingFormula, value: i32) {
+    if is_typed_bonus_target(&pending.target) {
+        state.typed_bonuses.push(TypedBonus {
+            target: pending.target.clone(),
+            value,
+            bonus_type: pending.bonus_type.clone(),
+            stack_key: pending.stack_key.clone(),
+        });
+    } else {
+        add_target(state, &pending.target, value);
     }
 }
 
@@ -631,21 +740,31 @@ fn derive_spellcasting_prereq(
         if class.requires_spellbook {
             has_spellbook = true;
         }
-        if class.spellcasting_ability.is_none() {
+        if class.spellcasting_ability.is_none() && !class.is_psionic {
             continue;
         }
-        if class.spell_power != SpellPowerType::Unknown {
-            powers.insert(class.spell_power);
+        // Psionic classes often carry `FACT:SpellType|Psionic` without
+        // `SPELLSTAT`; treat `is_psionic` as authoritative and default to INT.
+        let power = if class.spell_power != SpellPowerType::Unknown {
+            class.spell_power
+        } else if class.is_psionic {
+            SpellPowerType::Psionic
+        } else {
+            SpellPowerType::Unknown
+        };
+        if power != SpellPowerType::Unknown {
+            powers.insert(power);
         }
+        let slot_power = power;
         if let Some(table) = class.spell_slots.get(&entry.level) {
             for (level, count) in table.iter().enumerate() {
                 if *count == 0 {
                     continue;
                 }
                 let level = level as u32;
-                *slots.entry((class.spell_power, level)).or_insert(0) += *count;
+                *slots.entry((slot_power, level)).or_insert(0) += *count;
                 max_spell_level
-                    .entry(class.spell_power)
+                    .entry(slot_power)
                     .and_modify(|current| *current = (*current).max(level))
                     .or_insert(level);
             }
@@ -693,6 +812,12 @@ fn predicate_holds(
     };
     match predicate {
         Predicate::Always => true,
+        Predicate::ActiveState { states } => states.iter().any(|state| {
+            draft
+                .active_states
+                .iter()
+                .any(|active| normalized(active) == normalized(state))
+        }),
         Predicate::All(items) => items
             .iter()
             .all(|item| predicate_holds(Some(item), draft, state)),
@@ -726,6 +851,15 @@ fn predicate_holds(
             min.is_none_or(|min| value >= min) && max.is_none_or(|max| value <= max)
         }
         Predicate::TotalBab { min } => state.total_bab >= *min as i32,
+        Predicate::BaseSave { save, min } => {
+            let kind = match save.to_ascii_lowercase().as_str() {
+                "fort" | "fortitude" => Some(SaveKind::Fortitude),
+                "ref" | "reflex" => Some(SaveKind::Reflex),
+                "will" => Some(SaveKind::Will),
+                _ => None,
+            };
+            kind.is_some_and(|kind| state.base_saves.get(&kind).copied().unwrap_or(0) >= *min)
+        }
         Predicate::HasTag { tag } => state
             .active_abilities
             .iter()
@@ -776,12 +910,22 @@ fn predicate_holds(
         Predicate::MovementAtLeast { mode, feet } => {
             state.movement.get(mode).is_some_and(|rate| *rate >= *feet)
         }
-        Predicate::Equipped { slot: _, values } => values.iter().any(|value| {
-            state
-                .equipment_values
-                .iter()
-                .any(|item| item == value || item.contains(value))
-        }),
+        Predicate::Equipped { slot, values } => {
+            let matches = |item: &String, value: &str| item == value || item.contains(value);
+            let in_scope = |set: &BTreeSet<String>| {
+                values
+                    .iter()
+                    .any(|value| set.iter().any(|item| matches(item, value)))
+            };
+            match slot.as_str() {
+                "primary" => in_scope(&state.equipped_primary) || in_scope(&state.equipped_both),
+                "secondary" => {
+                    in_scope(&state.equipped_secondary) || in_scope(&state.equipped_both)
+                }
+                "both" => in_scope(&state.equipped_both),
+                _ => in_scope(&state.equipment_values),
+            }
+        }
         Predicate::WeaponProf { names } => names.iter().any(|name| {
             state
                 .weapon_proficiencies

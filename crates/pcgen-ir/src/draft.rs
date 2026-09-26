@@ -50,6 +50,10 @@ pub struct PcgDraft {
     pub spells: Vec<PcgSpell>,
     #[serde(default)]
     pub equipment: Vec<String>,
+    /// Equipment modifiers attached to equipped items (`EQMOD=` in `.pcg`
+    /// `CUSTOMIZATION` data), keyed by item name, lower-cased.
+    #[serde(default)]
+    pub equipment_modifiers: BTreeMap<String, Vec<String>>,
     #[serde(default)]
     pub abilities: Vec<(String, String)>,
     #[serde(default)]

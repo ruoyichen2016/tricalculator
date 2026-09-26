@@ -20,3 +20,28 @@ fn real_srd_typed_smoke() {
     assert!(report.coverage.unsupported_tags < 800);
     assert!(report.coverage.tag_occurrences > 10_000);
 }
+
+#[test]
+fn real_rsrd_companion_rows_are_preserved() {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(
+        "../../../raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/_rsrd_basics.pcc",
+    );
+    if !path.exists() {
+        eprintln!(
+            "skipping companion row check: {} does not exist",
+            path.display()
+        );
+        return;
+    }
+    let (pack, _) = compile_pcc(&path).expect("RSRD companion data should compile");
+    let row_count: usize = pack.companion_mods.values().map(Vec::len).sum();
+    assert!(
+        row_count >= 100,
+        "expected all FOLLOWER rows to be preserved, got {row_count}"
+    );
+    assert!(
+        pack.companion_mods.len() >= 30,
+        "expected grouped companion ids, got {}",
+        pack.companion_mods.len()
+    );
+}

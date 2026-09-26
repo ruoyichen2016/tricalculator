@@ -83,10 +83,17 @@ fn write_entity(hasher: &mut FingerprintHasher, entity: &CompiledEntity) {
     hasher.write(&entity.id.to_string());
     hasher.write(entity.category.as_str());
     hasher.write(&entity.name);
+    // Creature traits are runtime semantics now that the engine consumes
+    // them for snapshot fields such as vision / DR / SR / natural attacks.
+    hasher.write("traits");
+    hasher.write(&format!("{:?}", entity.traits));
+    hasher.write("temporary_value");
+    hasher.write(&format!("{:?}", entity.temporary_value));
     for effect in &entity.effects {
         hasher.write("effect");
         hasher.write(&format!("{:?}", effect.phase));
         hasher.write(&format!("{:?}", effect.action));
+        hasher.write(&format!("{:?}", effect.condition));
         hasher.write(&effect.source.source);
     }
     for requirement in &entity.requirements {
@@ -258,6 +265,8 @@ mod tests {
             unsupported_tags: Vec::new(),
             source: "test.lst".to_string(),
             ability_category: None,
+            temporary_value: None,
+            traits: Default::default(),
         }
     }
 
@@ -297,6 +306,32 @@ mod tests {
         });
         assert_eq!(first, second);
         assert!(first.starts_with("fnv1a64:"));
+    }
+
+    #[test]
+    fn fingerprint_changes_with_creature_traits() {
+        let progressions = BTreeMap::new();
+        let variants = BTreeMap::new();
+        let mut with_traits = entity("Fighter", vec![]);
+        with_traits.traits.vision.push("Darkvision".to_string());
+
+        let base = rules_fingerprint(&RuleFingerprintInput {
+            game_mode: "3e",
+            sources: &[],
+            entities: &[entity("Fighter", vec![])],
+            progressions: &progressions,
+            variants: &variants,
+            typed_digest: "typed-v1",
+        });
+        let changed = rules_fingerprint(&RuleFingerprintInput {
+            game_mode: "3e",
+            sources: &[],
+            entities: &[with_traits],
+            progressions: &progressions,
+            variants: &variants,
+            typed_digest: "typed-v1",
+        });
+        assert_ne!(base, changed);
     }
 
     #[test]

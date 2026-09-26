@@ -539,3 +539,290 @@ fn creature_traits_are_exposed_in_snapshot() {
     assert_eq!(snapshot.spell_resistance, Some(13));
     assert_eq!(snapshot.natural_attacks, vec!["Claw"]);
 }
+
+#[test]
+fn typed_bonus_stacking_applies_to_saves_skills_and_attack() {
+    let records = vec![
+        record(
+            "RACE",
+            "Save Stack",
+            "Save Stack",
+            &[
+                ("BONUS", "SAVE|Fortitude|2|TYPE=Racial"),
+                ("BONUS", "SAVE|Fortitude|3|TYPE=Racial"),
+            ],
+        ),
+        record(
+            "RACE",
+            "Skill Stack",
+            "Skill Stack",
+            &[
+                ("BONUS", "SKILL|Climb|2|TYPE=Competence"),
+                ("BONUS", "SKILL|Climb|3|TYPE=Competence"),
+            ],
+        ),
+        record(
+            "RACE",
+            "Attack Stack",
+            "Attack Stack",
+            &[
+                ("BONUS", "COMBAT|TOHIT|2|TYPE=Morale"),
+                ("BONUS", "COMBAT|TOHIT|3|TYPE=Morale"),
+            ],
+        ),
+    ];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["typed-bonus".to_string()],
+        &records,
+    );
+    let save = Engine::new(pack.clone()).evaluate(&CharacterDraft {
+        race_id: "Save Stack".to_string(),
+        ..CharacterDraft::default()
+    });
+    assert_eq!(save.saves.get("Fortitude"), Some(&3));
+
+    let skill = Engine::new(pack.clone()).evaluate(&CharacterDraft {
+        race_id: "Skill Stack".to_string(),
+        skills: std::collections::BTreeMap::from([("Climb".to_string(), 1.0)]),
+        ..CharacterDraft::default()
+    });
+    assert_eq!(skill.skills.get("Climb"), Some(&4));
+
+    let attack = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Attack Stack".to_string(),
+        ..CharacterDraft::default()
+    });
+    assert_eq!(attack.attack_bonuses.get("COMBAT.TOHIT"), Some(&3));
+}
+
+#[test]
+fn formula_typed_bonus_keeps_bonus_type_and_stack_key() {
+    let records = vec![
+        record(
+            "RACE",
+            "Formula Nonstack",
+            "Formula Nonstack",
+            &[
+                ("BONUS", "SAVE|Fortitude|1+1|TYPE=Racial"),
+                ("BONUS", "SAVE|Fortitude|3|TYPE=Racial"),
+            ],
+        ),
+        record(
+            "RACE",
+            "Formula Stack",
+            "Formula Stack",
+            &[
+                ("BONUS", "SAVE|Fortitude|1+1|TYPE=Racial|STACK=YES"),
+                ("BONUS", "SAVE|Fortitude|3|TYPE=Racial|STACK=YES"),
+            ],
+        ),
+    ];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["formula-typed-bonus".to_string()],
+        &records,
+    );
+
+    let nonstack = Engine::new(pack.clone()).evaluate(&CharacterDraft {
+        race_id: "Formula Nonstack".to_string(),
+        ..CharacterDraft::default()
+    });
+    assert_eq!(nonstack.saves.get("Fortitude"), Some(&3));
+
+    let stack = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Formula Stack".to_string(),
+        ..CharacterDraft::default()
+    });
+    assert_eq!(stack.saves.get("Fortitude"), Some(&5));
+}
+
+#[test]
+fn class_level_creature_traits_follow_advancement_when_class_levels_absent() {
+    let records = vec![
+        record("CLASS", "Test Class", "Test Class", &[]),
+        record(
+            "CLASS",
+            "1",
+            "Test Class",
+            &[("VISION", "Darkvision (60')"), ("UDAM", "1d6")],
+        ),
+    ];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["class-level-traits".to_string()],
+        &records,
+    );
+    let draft = CharacterDraft {
+        advancement: vec![AdvancementFrame::single(1, "Test Class", 1, 0, 0)],
+        ..CharacterDraft::default()
+    };
+    let snapshot = Engine::new(pack).evaluate(&draft);
+    assert_eq!(snapshot.vision, vec!["Darkvision (60')"]);
+    assert_eq!(snapshot.unarmed_damage, vec!["1d6"]);
+}
+
+#[test]
+fn temp_bonus_applies_only_when_active_state_is_selected() {
+    let records = vec![record(
+        "RACE",
+        "Temp Race",
+        "Temp Race",
+        &[
+            ("TEMPBONUS", "PC|SAVE|Fortitude|2|TYPE=Morale"),
+            ("TEMPVALUE", "MIN=1|MAX=5|TITLE=Test"),
+        ],
+    )];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["temp-state".to_string()],
+        &records,
+    );
+
+    let inactive = Engine::new(pack.clone()).evaluate(&CharacterDraft {
+        race_id: "Temp Race".to_string(),
+        ..CharacterDraft::default()
+    });
+    assert_eq!(inactive.saves.get("Fortitude"), Some(&0));
+    assert!(inactive.active_states.is_empty());
+
+    let active = Engine::new(pack.clone()).evaluate(&CharacterDraft {
+        race_id: "Temp Race".to_string(),
+        active_states: vec!["Temp Race".to_string()],
+        ..CharacterDraft::default()
+    });
+    assert_eq!(active.saves.get("Fortitude"), Some(&2));
+    assert_eq!(active.active_states, vec!["Temp Race".to_string()]);
+
+    let race = pack
+        .entities
+        .iter()
+        .find(|entity| entity.id.key == "temp_race")
+        .expect("temp race entity");
+    assert!(
+        matches!(
+            race.effects
+                .first()
+                .and_then(|effect| effect.condition.as_ref()),
+            Some(pcgen_core::Predicate::ActiveState { .. })
+        ),
+        "TEMPBONUS should be gated by an ActiveState predicate"
+    );
+    let temporary_value = race.temporary_value.as_ref().expect("TEMPVALUE parsed");
+    assert_eq!(temporary_value.min, Some(1));
+    assert_eq!(temporary_value.max, Some(5));
+    assert_eq!(temporary_value.title.as_deref(), Some("Test"));
+}
+
+#[test]
+fn temp_bonus_from_spell_is_activated_by_state() {
+    let records = vec![record(
+        "SPELL",
+        "Bless",
+        "Bless",
+        &[("TEMPBONUS", "ANYPC|COMBAT|TOHIT|1|TYPE=Morale")],
+    )];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["spell-temp-state".to_string()],
+        &records,
+    );
+
+    let inactive = Engine::new(pack.clone()).evaluate(&CharacterDraft::default());
+    assert_eq!(inactive.attack_bonuses.get("COMBAT.TOHIT"), None);
+
+    let active = Engine::new(pack).evaluate(&CharacterDraft {
+        active_states: vec!["Bless".to_string()],
+        ..CharacterDraft::default()
+    });
+    assert_eq!(active.attack_bonuses.get("COMBAT.TOHIT"), Some(&1));
+}
+
+#[test]
+fn equipment_temp_bonus_requires_equipped_type_and_active_state() {
+    let records = vec![record(
+        "EQUIPMENT",
+        "Temp Sword",
+        "Temp Sword",
+        &[
+            ("TYPE", "Weapon"),
+            ("TEMPBONUS", "EQ|Weapon|WEAPON|TOHIT|1|TYPE=Enhancement"),
+        ],
+    )];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["equipment-temp-state".to_string()],
+        &records,
+    );
+
+    let active_not_equipped = Engine::new(pack.clone()).evaluate(&CharacterDraft {
+        active_states: vec!["Temp Sword".to_string()],
+        ..CharacterDraft::default()
+    });
+    assert_eq!(active_not_equipped.attack_bonuses.get("WEAPON.TOHIT"), None);
+
+    let active_equipped = Engine::new(pack).evaluate(&CharacterDraft {
+        equipment: vec!["Temp Sword".to_string()],
+        active_states: vec!["Temp Sword".to_string()],
+        ..CharacterDraft::default()
+    });
+    assert_eq!(active_equipped.attack_bonuses.get("WEAPON.TOHIT"), Some(&1));
+}
+
+#[test]
+fn precheckbase_gates_grants_by_class_base_save() {
+    // A class with a good Will save and a poor Fortitude save.
+    let records = vec![
+        record(
+            "CLASS",
+            "Cleric",
+            "Cleric",
+            &[
+                ("BAB", "medium"),
+                (
+                    "BONUS",
+                    "SAVE|BASE.Will|classlevel(\"APPLIEDAS=NONEPIC\")/2+2",
+                ),
+                (
+                    "BONUS",
+                    "SAVE|BASE.Fortitude|classlevel(\"APPLIEDAS=NONEPIC\")/3",
+                ),
+            ],
+        ),
+        record(
+            "RACE",
+            "Test Race",
+            "Test Race",
+            &[
+                ("BONUS", "VAR|WillGated|1|PRECHECKBASE:1,Will=2"),
+                ("BONUS", "VAR|FortGated|1|PRECHECKBASE:1,Fortitude=2"),
+            ],
+        ),
+    ];
+    let (pack, report) = lower_records(
+        Some("3e".to_string()),
+        vec!["precheckbase".to_string()],
+        &records,
+    );
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+
+    let draft = CharacterDraft {
+        race_id: "Test Race".to_string(),
+        class_levels: vec![DraftClassLevel {
+            class_id: "Cleric".to_string(),
+            level: 3,
+            hit_points_gained: 0,
+            hit_points_by_level: Vec::new(),
+            experience_gained: 0,
+        }],
+        ..CharacterDraft::default()
+    };
+    let snapshot = Engine::new(pack).evaluate(&draft);
+    // Will base save at level 3 is 3 (>= 2); Fortitude base save is 1 (< 2).
+    assert_eq!(snapshot.variables.get("WillGated").copied(), Some(1));
+    assert!(!snapshot.variables.contains_key("FortGated"));
+}

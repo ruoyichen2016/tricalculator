@@ -20,6 +20,20 @@ type SpellcastingMaps = (
     BTreeMap<String, u32>,
 );
 
+/// Aggregated creature traits merged from all active owner entities.
+#[derive(Debug, Default, PartialEq, Eq)]
+struct CreatureTraitAccumulator {
+    vision: Vec<String>,
+    damage_reduction: Vec<String>,
+    spell_resistance: Option<i32>,
+    natural_attacks: Vec<String>,
+    reach_feet: Option<i32>,
+    reach_mult: Option<i32>,
+    unarmed_damage: Vec<String>,
+    unarmed_mult: Option<i32>,
+    move_clone: Vec<String>,
+}
+
 #[derive(Debug, Clone)]
 pub struct Engine {
     pub pack: CompiledRulePack,
@@ -78,7 +92,8 @@ impl Engine {
             let ability = ability.to_ascii_lowercase();
             ability.contains("retain_dex") || ability.contains("uncanny_dodge")
         });
-        let (effect_ac, effect_touch, effect_flat) = ac_bonus_components(&effect_state.ac_bonuses);
+        let (effect_ac, effect_touch, effect_flat) =
+            ac_bonus_components(&effect_state.typed_bonuses);
         let armor_class = 10 + armor_bonus + shield_bonus + dex_bonus + size_modifier + effect_ac;
         let touch_ac = 10 + dex_mod + size_modifier + effect_touch;
         // Flat-footed loses a positive Dexterity bonus but still applies a
@@ -157,7 +172,7 @@ impl Engine {
                 .sum()
         };
 
-        let saves = if let Some(plan) = &gestalt {
+        let mut saves = if let Some(plan) = &gestalt {
             let mut saves = BTreeMap::new();
             for (kind, key) in [
                 (SaveKind::Fortitude, "Fortitude"),
@@ -240,6 +255,10 @@ impl Engine {
             saves.insert("Will".to_string(), will);
             saves
         };
+        for (save, total) in stacked_components(&effect_state.typed_bonuses, save_bonus_components)
+        {
+            *saves.entry(save).or_insert(0) += total;
+        }
 
         let base_attack_bonus = crate::bab::compute_bab(
             &self.pack,
@@ -248,12 +267,56 @@ impl Engine {
             &effect_state.external_modifiers,
         );
 
-        let skills = self.skills(draft, &stats, armor_check_penalty);
+        let mut skills = self.skills(draft, &stats, armor_check_penalty);
+        for (skill, total) in
+            stacked_components(&effect_state.typed_bonuses, skill_bonus_components)
+        {
+            // Apply typed skill bonuses.  Skills already tracked by the draft
+            // are updated in place; untrained-but-usable skills that only
+            // receive a typed bonus are materialized with their 0-rank base
+            // (ability modifier + armor check), unless they are trained-only.
+            if let Some(entry) = skills
+                .iter_mut()
+                .find(|(name, _)| name.eq_ignore_ascii_case(&skill))
+            {
+                *entry.1 += total;
+                continue;
+            }
+            if let Some(base) = self.untrained_skill_base(&skill, &stats, armor_check_penalty) {
+                skills.insert(skill.clone(), base + total);
+            }
+        }
+        let attack_bonuses = stacked_components(&effect_state.typed_bonuses, attack_bonus_targets);
         let (caster_levels, spell_dcs, spell_slots, known_limits, prepared_spells) =
             self.spellcasting(draft, &class_levels, &stats);
         let (power_points, manifester_levels) = self.psionics(&class_levels, &stats);
-        let (vision, damage_reduction, spell_resistance, natural_attacks) =
-            self.creature_traits(&draft.race_id, &effect_state);
+        let CreatureTraitAccumulator {
+            vision,
+            damage_reduction,
+            spell_resistance,
+            natural_attacks,
+            reach_feet,
+            reach_mult,
+            unarmed_damage,
+            unarmed_mult,
+            move_clone,
+        } = self.creature_traits(draft, &effect_state);
+        let movement = resolve_movement(&practiced_movement(draft, &effect_state), &move_clone);
+        let companions = self.companions(draft);
+        let mut spell_effects = Vec::new();
+        for (domain, spells) in &domain_spells {
+            for spell in spells {
+                spell_effects.push(format!(
+                    "domain:{}:level {}:{}",
+                    domain, spell.level, spell.name
+                ));
+            }
+        }
+        for (spell, count) in &prepared_spells {
+            spell_effects.push(format!("prepared:{}:x{}", spell, count));
+        }
+        spell_effects.sort();
+        spell_effects.dedup();
 
         let explanations = BTreeMap::from([
             (
@@ -292,6 +355,7 @@ impl Engine {
             flat_footed_ac,
             saves,
             skills,
+            attack_bonuses,
             caster_levels,
             spell_dcs,
             spell_slots,
@@ -306,9 +370,16 @@ impl Engine {
             damage_reduction,
             spell_resistance,
             natural_attacks,
+            reach_feet,
+            reach_mult,
+            unarmed_damage,
+            unarmed_mult,
+            movement,
+            companions,
             gestalt,
             faith_decisions,
             domain_spells,
+            spell_effects,
             variant_effects,
             explanations,
             diagnostics,
@@ -316,6 +387,12 @@ impl Engine {
             external_modifiers: effect_state.external_modifiers,
             active_abilities: effect_state.active_abilities.into_iter().collect(),
             choices: effect_state.choices,
+            active_states: {
+                let mut states = draft.active_states.clone();
+                states.sort();
+                states.dedup();
+                states
+            },
             unresolved_choices: effect_state.unresolved_choices,
             applied_effects: effect_state.applied_effects,
             provenance: pcgen_core::BuildProvenance::new(
@@ -331,51 +408,63 @@ impl Engine {
 
     fn creature_traits(
         &self,
-        race_id: &str,
+        draft: &CharacterDraft,
         effect_state: &crate::effects::EffectState,
-    ) -> (Vec<String>, Vec<String>, Option<i32>, Vec<String>) {
-        let mut vision = Vec::new();
-        let mut damage_reduction = Vec::new();
-        let mut spell_resistance: Option<i32> = None;
-        let mut natural_attacks = Vec::new();
+    ) -> CreatureTraitAccumulator {
+        let mut merged = CreatureTraitAccumulator::default();
+        let class_levels = effective_class_levels(draft);
 
-        if let Some(race) = self.race(race_id) {
-            merge_creature_traits(
-                &race.traits,
-                &mut vision,
-                &mut damage_reduction,
-                &mut spell_resistance,
-                &mut natural_attacks,
-            );
+        for entity in &self.pack.entities {
+            if !entity_is_active_for_traits(entity, draft, effect_state, &class_levels) {
+                continue;
+            }
+            merge_creature_traits(&entity.traits, &mut merged);
         }
-        for template_name in &effect_state.templates {
-            if let Some(template) = self.pack.templates.get(template_name).or_else(|| {
-                self.pack
-                    .templates
-                    .iter()
-                    .find(|(key, _)| {
-                        key.eq_ignore_ascii_case(template_name)
-                            || normalized_name(key) == normalized_name(template_name)
-                    })
-                    .map(|(_, template)| template)
-            }) {
-                merge_creature_traits(
-                    &template.traits,
-                    &mut vision,
-                    &mut damage_reduction,
-                    &mut spell_resistance,
-                    &mut natural_attacks,
-                );
+        for traits in self.equipmod_traits(draft) {
+            merge_creature_traits(&traits, &mut merged);
+        }
+
+        merged.vision.sort();
+        merged.vision.dedup();
+        merged.damage_reduction.sort();
+        merged.damage_reduction.dedup();
+        merged.natural_attacks.sort();
+        merged.natural_attacks.dedup();
+        merged.unarmed_damage.sort();
+        merged.unarmed_damage.dedup();
+        merged.move_clone.sort();
+        merged.move_clone.dedup();
+        merged
+    }
+
+    /// Creature traits contributed by equipment modifiers (`EQMOD`)
+    /// referenced by the character's equipped items.
+    fn equipmod_traits(&self, draft: &CharacterDraft) -> Vec<pcgen_core::CreatureTraits> {
+        let mut traits = Vec::new();
+        for item in &draft.equipment {
+            let key = item.trim().to_ascii_lowercase();
+            let Some(modifiers) = draft.equipment_modifiers.get(&key) else {
+                continue;
+            };
+            for modifier in modifiers {
+                if let Some(definition) = self.equipment_modifier(modifier) {
+                    if definition.traits != pcgen_core::CreatureTraits::default() {
+                        traits.push(definition.traits.clone());
+                    }
+                }
             }
         }
+        traits
+    }
 
-        vision.sort();
-        vision.dedup();
-        damage_reduction.sort();
-        damage_reduction.dedup();
-        natural_attacks.sort();
-        natural_attacks.dedup();
-        (vision, damage_reduction, spell_resistance, natural_attacks)
+    fn equipment_modifier(&self, key: &str) -> Option<&pcgen_core::EquipmentModifierDefinition> {
+        self.pack.equipment_modifiers.get(key).or_else(|| {
+            self.pack
+                .equipment_modifiers
+                .iter()
+                .find(|(candidate, _)| candidate.eq_ignore_ascii_case(key))
+                .map(|(_, definition)| definition)
+        })
     }
 
     /// Validate structural references and Gestalt policy constraints.
@@ -607,6 +696,43 @@ impl Engine {
         skills
     }
 
+    /// 0-rank base total for a skill that can be used untrained, or `None`
+    /// when the skill is unknown or trained-only.
+    fn untrained_skill_base(
+        &self,
+        skill: &str,
+        stats: &BTreeMap<String, i32>,
+        armor_check_penalty: i32,
+    ) -> Option<i32> {
+        let definition = self.skill(skill)?;
+        if definition.trained_only {
+            return None;
+        }
+        let ability_mod = definition
+            .key_stat
+            .as_deref()
+            .map(|key_stat| stat_modifier(stats.get(key_stat).copied().unwrap_or(10)))
+            .unwrap_or(0);
+        let armor_penalty = if definition.armor_check {
+            armor_check_penalty
+        } else {
+            0
+        };
+        Some(ability_mod + armor_penalty)
+    }
+
+    fn skill(&self, name: &str) -> Option<&pcgen_core::SkillDefinition> {
+        self.pack.skills.get(name).or_else(|| {
+            self.pack
+                .skills
+                .iter()
+                .find(|(key, skill)| {
+                    key.eq_ignore_ascii_case(name) || skill.name.eq_ignore_ascii_case(name)
+                })
+                .map(|(_, skill)| skill)
+        })
+    }
+
     fn spellcasting(
         &self,
         draft: &CharacterDraft,
@@ -624,6 +750,11 @@ impl Engine {
                 continue;
             };
             let _ = stat;
+            if class.is_psionic {
+                // Psionic classes are handled by `psionics`; keep them out of
+                // the arcane/divine caster-level map.
+                continue;
+            }
             let variant_advance = draft.advancement.iter().any(|frame| {
                 frame.lanes.iter().any(|lane| {
                     lane.class_id.eq_ignore_ascii_case(&class.id)
@@ -718,6 +849,76 @@ impl Engine {
         }
         (power_points, manifester_levels)
     }
+
+    /// Derive companion states from the master's companions and the typed
+    /// `FOLLOWER:` companion modifiers.
+    fn companions(&self, draft: &CharacterDraft) -> Vec<crate::snapshot::CompanionSnapshot> {
+        let mut models = Vec::new();
+        for companion in &draft.companions {
+            let mut model = crate::snapshot::CompanionSnapshot {
+                companion_type: companion.companion_type.clone(),
+                master_level: companion.master_level,
+                ..crate::snapshot::CompanionSnapshot::default()
+            };
+            for rows in self.pack.companion_mods.values() {
+                for definition in rows {
+                    if !definition
+                        .companion_type
+                        .eq_ignore_ascii_case(&companion.companion_type)
+                    {
+                        continue;
+                    }
+                    // Rows with `PRERACE`/`PRE*` select an alternative
+                    // companion or companion race.  Preserve them in the
+                    // rule pack, but do not apply them until the companion
+                    // selector can evaluate those conditions; applying all
+                    // rows blindly would over-count AnimalCompanion and
+                    // Familiar bonuses.
+                    if !definition.requirements.is_empty() {
+                        continue;
+                    }
+                    // PCGen uses `mastervar("X")` inside the SR formula; we resolve
+                    // it against the companion's master level.
+                    if let Some(raw) = &definition.spell_resistance {
+                        if let Some(value) = evaluate_companion_sr(
+                            raw,
+                            definition.master_level,
+                            companion.master_level,
+                        ) {
+                            model.spell_resistance = Some(
+                                model
+                                    .spell_resistance
+                                    .map_or(value, |current| current.max(value)),
+                            );
+                        }
+                    }
+                    if definition.master_level <= companion.master_level {
+                        model.hit_dice_bonus += definition.hit_dice_bonus;
+                        for ability in &definition.abilities {
+                            if !model.abilities.iter().any(|existing| existing == ability) {
+                                model.abilities.push(ability.clone());
+                            }
+                        }
+                    }
+                }
+            }
+            model.abilities.sort();
+            models.push(model);
+        }
+        models
+    }
+}
+
+/// Evaluate a companion `SR:` expression.
+///
+/// The RSRD data uses `mastervar("SpecialMountLVL")+5` and plain constants.
+/// `mastervar` is resolved to the companion's master level; the `row_level`
+/// argument is the row's own master level (used for `@{...}`-style guards).
+fn evaluate_companion_sr(raw: &str, _row_level: u32, master_level: u32) -> Option<i32> {
+    let mastervar = regex::Regex::new(r#"mastervar\s*\(\s*["']?[^"')]*["']?\s*\)"#).ok()?;
+    let normalized = mastervar.replace_all(raw, master_level.to_string());
+    let value = pcgen_formula::evaluate_f64(&normalized, &()).ok()?;
+    Some(value.floor() as i32)
 }
 
 impl pcgen_core::ClassProgressSource for Engine {
@@ -887,14 +1088,40 @@ pub fn lane_summary(lane: &pcgen_core::AdvancementLane) -> String {
 
 fn merge_creature_traits(
     traits: &pcgen_core::CreatureTraits,
-    vision: &mut Vec<String>,
-    damage_reduction: &mut Vec<String>,
-    spell_resistance: &mut Option<i32>,
-    natural_attacks: &mut Vec<String>,
+    merged: &mut CreatureTraitAccumulator,
 ) {
-    vision.extend(traits.vision.iter().cloned());
-    damage_reduction.extend(traits.damage_reduction.iter().cloned());
-    natural_attacks.extend(traits.natural_attacks.iter().cloned());
+    merged.vision.extend(traits.vision.iter().cloned());
+    merged
+        .damage_reduction
+        .extend(traits.damage_reduction.iter().cloned());
+    merged
+        .natural_attacks
+        .extend(traits.natural_attacks.iter().cloned());
+    merged
+        .unarmed_damage
+        .extend(traits.unarmed_damage.iter().cloned());
+    merged.move_clone.extend(traits.move_clone.iter().cloned());
+    if let Some(value) = traits.reach_feet {
+        merged.reach_feet = Some(
+            merged
+                .reach_feet
+                .map_or(value, |current| current.max(value)),
+        );
+    }
+    if let Some(value) = traits.reach_mult {
+        merged.reach_mult = Some(
+            merged
+                .reach_mult
+                .map_or(value, |current| current.max(value)),
+        );
+    }
+    if let Some(value) = traits.unarmed_mult {
+        merged.unarmed_mult = Some(
+            merged
+                .unarmed_mult
+                .map_or(value, |current| current.max(value)),
+        );
+    }
     if let Some(raw) = &traits.spell_resistance {
         let value = raw
             .chars()
@@ -903,8 +1130,54 @@ fn merge_creature_traits(
             .parse::<i32>()
             .ok();
         if let Some(value) = value {
-            *spell_resistance = Some(spell_resistance.map_or(value, |current| current.max(value)));
+            merged.spell_resistance = Some(
+                merged
+                    .spell_resistance
+                    .map_or(value, |current| current.max(value)),
+            );
         }
+    }
+}
+
+fn entity_is_active_for_traits(
+    entity: &pcgen_core::CompiledEntity,
+    draft: &CharacterDraft,
+    effect_state: &crate::effects::EffectState,
+    class_levels: &[DraftClassLevel],
+) -> bool {
+    match &entity.category {
+        pcgen_core::EntityCategory::Race => {
+            normalized_name(&entity.id.key) == normalized_name(&draft.race_id)
+                || normalized_name(&entity.name) == normalized_name(&draft.race_id)
+        }
+        pcgen_core::EntityCategory::Template => effect_state.templates.iter().any(|template| {
+            normalized_name(template) == normalized_name(&entity.id.key)
+                || normalized_name(template) == normalized_name(&entity.name)
+        }),
+        pcgen_core::EntityCategory::ClassLevel => {
+            entity
+                .id
+                .key
+                .split_once('#')
+                .is_some_and(|(class_id, level)| {
+                    crate::effects::class_level_is_active(
+                        class_levels,
+                        class_id,
+                        level.parse::<u32>().unwrap_or(0),
+                    )
+                })
+        }
+        pcgen_core::EntityCategory::Ability | pcgen_core::EntityCategory::Feat => {
+            crate::effects::ability_matches_draft(draft, entity)
+                || effect_state.active_abilities.iter().any(|ability| {
+                    ability.eq_ignore_ascii_case(&entity.id.key)
+                        || ability.eq_ignore_ascii_case(&entity.name)
+                })
+        }
+        pcgen_core::EntityCategory::Equipment => {
+            crate::effects::equipment_matches_draft(draft, entity)
+        }
+        _ => false,
     }
 }
 
@@ -912,43 +1185,200 @@ fn normalized_name(value: &str) -> String {
     value.trim().to_ascii_lowercase().replace(' ', "_")
 }
 
-fn ac_bonus_components(bonuses: &[crate::effects::AcBonus]) -> (i32, i32, i32) {
-    let mut typed: BTreeMap<String, i32> = BTreeMap::new();
-    let mut stacking: Vec<(String, i32)> = Vec::new();
+/// Base movement modes for the draft: race movement plus `MOVEADD` modifiers
+/// applied by the effect pipeline.
+fn practiced_movement(
+    draft: &CharacterDraft,
+    effect_state: &crate::effects::EffectState,
+) -> BTreeMap<String, u32> {
+    let mut movement: BTreeMap<String, u32> = effect_state.movement.clone();
+    for (target, value) in &effect_state.external_modifiers {
+        let upper = target.to_ascii_uppercase();
+        if let Some(mode) = upper.strip_prefix("MOVEADD.") {
+            let mode = mode.to_ascii_lowercase();
+            let current = movement.get(&mode).copied().unwrap_or(0) as i32;
+            if *value != 0 {
+                movement.insert(mode, (current + value).max(0) as u32);
+            }
+        } else if upper == "MOVEADD" {
+            let current = movement.get("walk").copied().unwrap_or(0) as i32;
+            movement.insert("walk".to_string(), (current + value).max(0) as u32);
+        }
+    }
+    let _ = draft;
+    movement
+}
+
+/// Apply PCGen `MOVECLONE:Source,Target,*N` entries.
+///
+/// Each entry clones the `Source` movement rate into `Target`, multiplied by
+/// `N` (default 1).  `*N` scaling is applied to the current source rate; a
+/// leading `+`/`-` offset style is not used by the RSRD data.
+fn resolve_movement(base: &BTreeMap<String, u32>, move_clone: &[String]) -> BTreeMap<String, u32> {
+    let mut movement = base.clone();
+    for entry in move_clone {
+        for part in entry.split('|') {
+            let fields: Vec<&str> = part.split(',').map(str::trim).collect();
+            if fields.len() < 2 {
+                continue;
+            }
+            let source = fields[0].to_ascii_lowercase();
+            let target = fields[1].to_ascii_lowercase();
+            let factor = fields
+                .get(2)
+                .and_then(|raw| raw.strip_prefix('*'))
+                .and_then(|raw| raw.parse::<f64>().ok())
+                .unwrap_or(1.0);
+            let Some(rate) = movement.get(&source).copied() else {
+                continue;
+            };
+            movement.insert(target, (f64::from(rate) * factor) as u32);
+        }
+    }
+    movement
+}
+
+fn save_bonus_components(bonus: &crate::effects::TypedBonus) -> Vec<String> {
+    let upper = bonus.target.to_ascii_uppercase();
+    if !upper.starts_with("SAVE") {
+        return Vec::new();
+    }
+    let body = bonus
+        .target
+        .split_once('.')
+        .map(|(_, body)| body)
+        .unwrap_or("");
+    body.split([',', '|'])
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .map(|part| {
+            let name = part.rsplit('.').next().unwrap_or(part).trim();
+            let mut chars = name.chars();
+            match chars.next() {
+                Some(first) => {
+                    first.to_ascii_uppercase().to_string() + &chars.as_str().to_ascii_lowercase()
+                }
+                None => String::new(),
+            }
+        })
+        .filter(|part| !part.is_empty())
+        .collect()
+}
+
+fn skill_bonus_components(bonus: &crate::effects::TypedBonus) -> Vec<String> {
+    let upper = bonus.target.to_ascii_uppercase();
+    if !upper.starts_with("SKILL") {
+        return Vec::new();
+    }
+    let body = bonus
+        .target
+        .split_once('.')
+        .map(|(_, body)| body)
+        .unwrap_or("");
+    body.split([',', '|'])
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
+fn attack_bonus_targets(bonus: &crate::effects::TypedBonus) -> Vec<String> {
+    let upper = bonus.target.to_ascii_uppercase();
+    if upper.contains("TOHIT")
+        || upper.starts_with("WEAPON")
+        || upper.starts_with("ATTACK")
+        || upper.starts_with("COMBAT.ATTACK")
+    {
+        vec![upper]
+    } else {
+        Vec::new()
+    }
+}
+
+fn bonus_stack_group(stack_key: Option<&str>, bonus_type: &str) -> (bool, String) {
+    if stack_key.is_some_and(|key| key.eq_ignore_ascii_case("stack")) {
+        return (true, format!("stack:{bonus_type}"));
+    }
+    if stack_key.is_some_and(|key| key.eq_ignore_ascii_case("nonstack")) {
+        return (false, format!("nonstack:{bonus_type}"));
+    }
+    if is_stacking_bonus_type(bonus_type) {
+        (true, format!("stack:{bonus_type}"))
+    } else {
+        (false, format!("nonstack:{bonus_type}"))
+    }
+}
+
+fn stacked_components<F>(
+    bonuses: &[crate::effects::TypedBonus],
+    mut components: F,
+) -> BTreeMap<String, i32>
+where
+    F: FnMut(&crate::effects::TypedBonus) -> Vec<String>,
+{
+    let mut groups: BTreeMap<(String, String), (i32, bool)> = BTreeMap::new();
     for bonus in bonuses {
         let bonus_type = bonus
             .bonus_type
             .as_deref()
             .unwrap_or("")
             .to_ascii_lowercase();
-        if is_stacking_bonus_type(&bonus_type) {
-            stacking.push((bonus_type, bonus.value));
+        let (stack, group_key) = bonus_stack_group(bonus.stack_key.as_deref(), &bonus_type);
+        for component in components(bonus) {
+            let entry = groups
+                .entry((component, group_key.clone()))
+                .or_insert((0, stack));
+            if stack {
+                entry.0 += bonus.value;
+            } else {
+                entry.0 = choose_non_stacking(entry.0, bonus.value);
+            }
+        }
+    }
+    let mut totals: BTreeMap<String, i32> = BTreeMap::new();
+    for ((component, _), (value, _)) in groups {
+        *totals.entry(component).or_insert(0) += value;
+    }
+    totals
+}
+
+fn ac_bonus_components(bonuses: &[crate::effects::TypedBonus]) -> (i32, i32, i32) {
+    let mut groups: BTreeMap<String, (String, i32)> = BTreeMap::new();
+    for bonus in bonuses {
+        let upper = bonus.target.to_ascii_uppercase();
+        if upper != "AC" && upper != "COMBAT.AC" {
+            continue;
+        }
+        let bonus_type = bonus
+            .bonus_type
+            .as_deref()
+            .unwrap_or("")
+            .to_ascii_lowercase();
+        let (stack, group_key) = bonus_stack_group(bonus.stack_key.as_deref(), &bonus_type);
+        let entry = groups
+            .entry(group_key)
+            .or_insert_with(|| (bonus_type.clone(), 0));
+        if stack {
+            entry.1 += bonus.value;
         } else {
-            typed
-                .entry(bonus_type)
-                .and_modify(|current| *current = choose_non_stacking(*current, bonus.value))
-                .or_insert(bonus.value);
+            entry.1 = choose_non_stacking(entry.1, bonus.value);
         }
     }
 
     let mut armor_class = 0;
     let mut touch_ac = 0;
     let mut flat_footed_ac = 0;
-    for (bonus_type, value) in typed.into_iter().chain(stacking) {
+    for (bonus_type, value) in groups.into_values() {
         if bonus_type.contains("armor")
             || bonus_type.contains("shield")
             || bonus_type.contains("natural")
         {
-            // Armor, shield and natural armor apply to normal/flat-footed AC,
-            // but not touch AC.
             armor_class += value;
             flat_footed_ac += value;
         } else if bonus_type.contains("dodge") {
-            // Dodge applies to normal/touch AC, but not flat-footed AC.
             armor_class += value;
             touch_ac += value;
         } else {
-            // Deflection, insight, luck, untyped, etc. apply to all three.
             armor_class += value;
             touch_ac += value;
             flat_footed_ac += value;

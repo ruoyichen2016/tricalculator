@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### P0.1 质量清偿 / 口径修正 / CompanionMod 数据保全（已完成）
+
+- `CHOOSE` 不再同时计入 `lowered_effects` 与 `legacy_pending`；新增
+  `pcgen-ir` lowering 回归测试，三个验收数据集的 `CHOOSE` pending 清零。
+- `XPCOST` 按 P4-DEC-2 移入 out-of-scope allowlist，不再计入
+  `semantic_pending`。
+- CompanionMod `FOLLOWER:` 行改为按 id 分组保存：DS-35E 真实数据的
+  108 行全部保留，不再被同 id 后续行覆盖；带 `PRERACE`/`PRE*` 的条件行
+  先原样保存，runtime 暂不盲目叠加，避免 AnimalCompanion / Familiar
+  加成重复计数。新增真实数据回归测试。
+- coverage gate 收紧：DS-3E / DS-35E / DS-PSI 的 unsupported pending
+  必须为 0；DS-35E unsupported allowlisted 精确允许 2 个 `PRETEXT`。
+- 重新冻结 coverage baseline；`TAG_WORKLIST` 按 P0 后 DS-3E 重新生成，
+  `TAG_TRIAGE` 标记为历史快照。
+- 真实数据：DS-3E 75 / 97.8%，DS-35E 192 / 97.7%，DS-PSI 35 / 97.2%；
+  unsupported pending 均为 0。测试 146→150。
+
 ### P0 工程收口（已完成）
 
 - 仓库初始化 `git` 并提交当前 117 测试基线；`.gitignore` 排除
@@ -21,6 +38,75 @@
 - 真实数据：DS-35E KIT pending 6,896→0，semantic completion
   45.5%→76.2%；DS-3E 67.6%→68.9%；测试 119→122。
 - broad oracle / archive differential 行为不变（KIT 不执行随机展开）。
+
+### 未训练技能展开 + 灵能/装备/职业/属性/信仰残留补齐（已完成）
+
+- 未训练技能展开：带 typed bonus 的可使用未训练技能以 0 级基础
+  （属性调整 + armor check）物化；trained-only 技能不物化。
+- `MOVECLONE` 消费：race/class/template 的移动克隆展开进
+  `CharacterSnapshot.movement`。
+- CompanionMod runtime：新增 `CompanionModDefinition` typed 模型与
+  `CharacterDraft.companions` / `CharacterSnapshot.companions`；
+  `FOLLOWER:` 行的 `SR`（`mastervar(...)`）、`HD`、abilities 派生。
+- P4-CLASS-1：`SKILLMULT` / `LEVELSPERFEAT` / `HITDIE` / `EXCLASS` /
+  `ADDLEVEL` / `EXCHANGELEVEL` typed 到 `ClassDefinition`；race `SKILLMULT` /
+  `XTRASKILLPTSPERLVL`。
+- P4-STAT-1：`SIZENUM` / `STATMOD` / `DEFINESTAT` typed 到
+  `SizeDefinition` / `StatDefinition` / race/template `stat_minimums`。
+- P4-FAITH：`VALIDFORDEITY` / `VALIDFORFOLLOWER` typed 到
+  `DeityDefinition` / `AlignmentDefinition`；`DEITYWEAP` 消费。
+- 真实数据：DS-3E 170 / 95.1%，DS-35E 388 / 95.5%，DS-PSI 66 / 94.8%；
+  broad oracle 23/23 100%。测试 146。
+
+### P4-PSI-1 灵能闭环 + P4-BONUS/EQP 残留（已完成）
+
+- `POWER`-style `SPELL:` 记录（`TYPE:Psionic`）不再计入普通 caster level；
+  `SpellDefinition.is_psionic` 作为权威标记，`import-report` 新增
+  `psionic_effects` 指标。
+- engine 灵能闭环：`power_points` / `manifester_levels` / 灵能 DC /
+  `spell_power_types` 输出；Psion、Psychic Warrior golden。
+- `PRECHECKBASE` base-save 谓词 lower + 求值。
+- `PREEQUIP*` primary / secondary / both 手部语义细分（基于武器 `WIELD`）。
+- EquipMod `DR`/`SR` 在装备项通过 `.pcg` `EQMOD=` 引用时汇入装备 trait
+  输出；`EquipmentModifierDefinition.traits` typed 化。
+- 新增 DS-PSI 验收数据集（`_rsrd_psionics.pcc`）进入 coverage gate。
+- 真实数据：DS-3E 318 / 91.1%，DS-35E 468 / 94.6%，DS-PSI 89 / 93.1%；
+  broad oracle 23/23 100%。测试 142。
+
+### P4-TEMP-1 active-state 模型（已完成）
+
+- `Predicate::ActiveState` + `CharacterDraft.active_states`：临时状态显式激活，
+  `TEMPBONUS` 不再作为静态 modifier 应用。
+- `TEMPBONUS` 统一 lower 为带 `ActiveState` 条件的 `Effect`：
+  `PC` / `ANYPC` 作用到角色，`EQ` 额外要求匹配装备类型。
+- `TEMPVALUE` 解析为 `TemporaryValue { min, max, title }`，保存在
+  `CompiledEntity.temporary_value`。
+- `Spell` / `Skill` 实体可按 active state 激活；`CharacterSnapshot` 新增
+  `active_states` 输出。
+- `PREITEM` 谓词接入 `Predicate::Equipped`，清零 TEMPBONUS 因 `!PREITEM`
+  条件产生的 unsupported。
+- 真实数据：DS-3E `TEMPBONUS`/`TEMPVALUE` pending 清零，整体 pending
+  331 / completion 90.8%；DS-35E 482 / 94.4%；broad oracle 23/23 100%。
+  测试 134。
+
+### 统一 typed bonus pipeline + 公式 stacking + creature trait owner 消费
+
+- `EffectState` 将 `AcBonus` 泛化为 `TypedBonus { target, value, bonus_type,
+  stack_key }`；新增 `STACK=` 解析；literal 与公式型 `BONUS` 都进入统一
+  stacking 层。
+- AC / saves / attack / skill 接入 typed stacking；
+  `CharacterSnapshot` 新增 `attack_bonuses`。
+- `CharacterSnapshot.spell_effects` 汇总领域法术与准备法术。
+- `CompiledEntity.traits` 捕获所有 record 的 creature trait；
+  `CompiledRulePack.creature_trait_records` 作为 metadata catalog；
+  Race / Template / active ClassLevel / Ability / Feat / Equipment 会汇入
+  snapshot 的 `vision` / `damage_reduction` / `spell_resistance` /
+  `natural_attacks` / `reach_feet` / `reach_mult` / `unarmed_damage` /
+  `unarmed_mult`。
+- EquipMod / CompanionMod / `MOVECLONE` 未进入 runtime 消费，继续保持
+  pending，等待 P4-EQP-1 / P4-RACE-1 处理。
+- 真实数据：DS-3E pending 520 / completion 85.7%；DS-35E pending 858 /
+  completion 90.2%；broad oracle 23/23 100%。测试 131。
 
 ### P4-BONUS/EQP 续作 + P4-SPELL-1 S2 + P4-RACE/TPL owner 归并（当前切片）
 

@@ -239,9 +239,9 @@ mod tests {
             EntityCategory::ClassLevel
         );
         assert_eq!(EntityCategory::from_pcgen("race").as_str(), "RACE");
-        let other = EntityCategory::from_pcgen("POWER");
-        assert_eq!(other, EntityCategory::Other("POWER".to_string()));
-        assert_eq!(other.as_str(), "POWER");
+        let other = EntityCategory::from_pcgen("UNKNOWN_CATEGORY");
+        assert_eq!(other, EntityCategory::Other("UNKNOWN_CATEGORY".to_string()));
+        assert_eq!(other.as_str(), "UNKNOWN_CATEGORY");
     }
 
     #[test]

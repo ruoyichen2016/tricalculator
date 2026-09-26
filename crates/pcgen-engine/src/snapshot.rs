@@ -6,6 +6,19 @@ use pcgen_core::{
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
+/// Derived state for one companion owned by the character.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct CompanionSnapshot {
+    pub companion_type: String,
+    pub master_level: u32,
+    #[serde(default)]
+    pub hit_dice_bonus: i32,
+    #[serde(default)]
+    pub spell_resistance: Option<i32>,
+    #[serde(default)]
+    pub abilities: Vec<String>,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct CharacterSnapshot {
     pub draft_id: String,
@@ -24,6 +37,10 @@ pub struct CharacterSnapshot {
     pub saves: BTreeMap<String, i32>,
     #[serde(default)]
     pub skills: BTreeMap<String, i32>,
+    /// Typed attack bonus totals keyed by canonical target (e.g.
+    /// `COMBAT.TOHIT`, `WEAPON.TOHIT`, `WEAPONPROF=Longbow.TOHIT`).
+    #[serde(default)]
+    pub attack_bonuses: BTreeMap<String, i32>,
     #[serde(default)]
     pub caster_levels: BTreeMap<String, i32>,
     #[serde(default)]
@@ -59,12 +76,34 @@ pub struct CharacterSnapshot {
     /// Natural attack entries from race + active templates (`NATURALATTACKS`).
     #[serde(default)]
     pub natural_attacks: Vec<String>,
+    /// Natural reach in feet (`REACH`).
+    #[serde(default)]
+    pub reach_feet: Option<i32>,
+    /// Reach multiplier (`REACHMULT`).
+    #[serde(default)]
+    pub reach_mult: Option<i32>,
+    /// Unarmed damage progression entries (`UDAM`).
+    #[serde(default)]
+    pub unarmed_damage: Vec<String>,
+    /// Unarmed damage multiplier (`UMULT`).
+    #[serde(default)]
+    pub unarmed_mult: Option<i32>,
+    /// Movement modes in feet (lower-cased mode -> rate), after race + active
+    /// `MOVECLONE` expansion.
+    #[serde(default)]
+    pub movement: BTreeMap<String, u32>,
+    /// Derived companion states (familiar / special mount / ...).
+    #[serde(default)]
+    pub companions: Vec<CompanionSnapshot>,
     #[serde(default)]
     pub gestalt: Option<GestaltPlan>,
     #[serde(default)]
     pub faith_decisions: Vec<FaithDecision>,
     #[serde(default)]
     pub domain_spells: BTreeMap<String, Vec<DomainSpell>>,
+    /// Character-facing spell effect summary: domain spells, prepared spells.
+    #[serde(default)]
+    pub spell_effects: Vec<String>,
     #[serde(default)]
     pub variant_effects: BTreeMap<String, Vec<String>>,
     #[serde(default)]
@@ -79,6 +118,9 @@ pub struct CharacterSnapshot {
     pub active_abilities: Vec<String>,
     #[serde(default)]
     pub choices: BTreeMap<String, String>,
+    /// Explicitly activated temporary states.
+    #[serde(default)]
+    pub active_states: Vec<String>,
     #[serde(default)]
     pub unresolved_choices: Vec<String>,
     #[serde(default)]

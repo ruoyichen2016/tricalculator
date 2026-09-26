@@ -143,6 +143,15 @@ pub struct TemplateDefinition {
     pub type_tags: Vec<String>,
     #[serde(default)]
     pub traits: CreatureTraits,
+    /// Hit-die override (PCGen `HITDIE:`).
+    #[serde(default)]
+    pub hit_die_override: Option<String>,
+    /// Additional HD/level adjustments (PCGen `ADDLEVEL:Class|n`).
+    #[serde(default)]
+    pub add_levels: BTreeMap<String, u32>,
+    /// Ability-score minimums (PCGen `DEFINESTAT:MINVALUE|STAT|n`).
+    #[serde(default)]
+    pub stat_minimums: BTreeMap<String, i32>,
 }
 
 impl TemplateDefinition {
@@ -152,6 +161,9 @@ impl TemplateDefinition {
             name: name.into(),
             type_tags: Vec::new(),
             traits: CreatureTraits::default(),
+            hit_die_override: None,
+            add_levels: BTreeMap::new(),
+            stat_minimums: BTreeMap::new(),
         }
     }
 }
@@ -182,6 +194,15 @@ pub struct RaceDefinition {
     /// Creature traits (reach, natural attacks, DR/SR/CR, vision, ...).
     #[serde(default)]
     pub traits: CreatureTraits,
+    /// Extra skill points per level (PCGen `XTRASKILLPTSPERLVL:`).
+    #[serde(default)]
+    pub extra_skill_points_per_level: Option<u32>,
+    /// Ability-score minimums (PCGen `DEFINESTAT:MINVALUE|STAT|n`).
+    #[serde(default)]
+    pub stat_minimums: BTreeMap<String, i32>,
+    /// Skill points multiplier at first level (PCGen `SKILLMULT:`).
+    #[serde(default)]
+    pub skill_multiplier: Option<u32>,
 }
 
 fn default_hands() -> u32 {
@@ -202,6 +223,9 @@ impl RaceDefinition {
             movement: BTreeMap::new(),
             templates: Vec::new(),
             traits: CreatureTraits::default(),
+            extra_skill_points_per_level: None,
+            stat_minimums: BTreeMap::new(),
+            skill_multiplier: None,
         }
     }
 }
@@ -279,6 +303,24 @@ pub struct ClassDefinition {
     /// Bonus known spells from specialty (PCGen `KNOWNSPELLSFROMSPECIALTY:`).
     #[serde(default)]
     pub known_spells_from_specialty: u32,
+    /// Skill points multiplier at first level (PCGen `SKILLMULT:`).
+    #[serde(default)]
+    pub skill_multiplier: Option<u32>,
+    /// Levels per feat (PCGen `LEVELSPERFEAT:`); `None` uses the game default.
+    #[serde(default)]
+    pub levels_per_feat: Option<u32>,
+    /// Hit-die override (PCGen `HITDIE:`), e.g. `12` or `d12`.
+    #[serde(default)]
+    pub hit_die_override: Option<String>,
+    /// Excluded class membership tag (PCGen `EXCLASS:`).
+    #[serde(default)]
+    pub excluded_class: Option<String>,
+    /// Exchange-level tag (PCGen `EXCHANGELEVEL:`).
+    #[serde(default)]
+    pub exchange_level: Option<String>,
+    /// Additional class levels (PCGen `ADDLEVEL:Class|n`).
+    #[serde(default)]
+    pub add_levels: BTreeMap<String, u32>,
 }
 
 impl ClassDefinition {
@@ -317,6 +359,12 @@ impl ClassDefinition {
             spell_levels: Vec::new(),
             prohibited_spells: Vec::new(),
             known_spells_from_specialty: 0,
+            skill_multiplier: None,
+            levels_per_feat: None,
+            hit_die_override: None,
+            excluded_class: None,
+            exchange_level: None,
+            add_levels: BTreeMap::new(),
         }
     }
 }
@@ -461,6 +509,12 @@ pub struct DeityDefinition {
     pub favored_weapon: Option<String>,
     #[serde(default)]
     pub pantheon: Option<String>,
+    /// Whether the deity is valid for deity selection (PCGen `VALIDFORDEITY:`).
+    #[serde(default)]
+    pub valid_for_deity: Option<bool>,
+    /// Whether the deity is valid for followers (PCGen `VALIDFORFOLLOWER:`).
+    #[serde(default)]
+    pub valid_for_follower: Option<bool>,
 }
 
 impl DeityDefinition {
@@ -472,6 +526,8 @@ impl DeityDefinition {
             domains: Vec::new(),
             favored_weapon: None,
             pantheon: None,
+            valid_for_deity: None,
+            valid_for_follower: None,
         }
     }
 }
@@ -533,6 +589,10 @@ pub struct EquipmentModifierDefinition {
     /// Charge range expression (PCGen `CHARGES:`), e.g. `1|50`.
     #[serde(default)]
     pub charges: Option<String>,
+    /// Creature traits granted while a modified item is equipped
+    /// (`DR` / `SR`, captured from the raw record).
+    #[serde(default)]
+    pub traits: CreatureTraits,
 }
 
 impl EquipmentModifierDefinition {
@@ -548,6 +608,7 @@ impl EquipmentModifierDefinition {
             item_types: Vec::new(),
             replaces: Vec::new(),
             charges: None,
+            traits: CreatureTraits::default(),
         }
     }
 }
@@ -680,6 +741,85 @@ pub struct KitDefinition {
     pub entries: Vec<KitEntry>,
 }
 
+/// Alignment metadata (PCGen `ALIGNMENT` records).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct AlignmentDefinition {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub valid_for_deity: Option<bool>,
+    #[serde(default)]
+    pub valid_for_follower: Option<bool>,
+}
+
+/// Size-category metadata (PCGen `SIZE` records).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct SizeDefinition {
+    pub id: String,
+    pub name: String,
+    /// Size number ordering, e.g. `050` for Medium (`SIZENUM:`).
+    #[serde(default)]
+    pub size_number: Option<String>,
+}
+
+/// Ability-score metadata (PCGen `STAT` records).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct StatDefinition {
+    pub id: String,
+    pub name: String,
+    /// Stat modifier formula (PCGen `STATMOD:`), e.g. `floor(SCORE/2)-5`.
+    #[serde(default)]
+    pub modifier_formula: Option<String>,
+}
+
+/// Declarative companion modifier (PCGen `FOLLOWER:` / `COMPANIONMOD`).
+///
+/// One record describes the companion state for a master class at or above a
+/// given level: bonus Hit Dice, spell resistance formula, granted abilities
+/// and stat/AC bonuses.  `id` is unique per `(type, level)` pair.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct CompanionModDefinition {
+    /// Stable id, e.g. `FamiliarLVL=11`.
+    pub id: String,
+    /// Companion type tag, e.g. `Familiar` or `Special Mount`.
+    #[serde(default)]
+    pub companion_type: String,
+    /// Master class/variable name triggering this row, e.g. `FamiliarLVL`.
+    #[serde(default)]
+    pub master_variable: String,
+    /// Minimum master level at which this row applies.
+    #[serde(default)]
+    pub master_level: u32,
+    /// Bonus Hit Dice granted (`HD:`).
+    #[serde(default)]
+    pub hit_dice_bonus: i32,
+    /// Spell resistance expression (`SR:`), preserved as written.
+    #[serde(default)]
+    pub spell_resistance: Option<String>,
+    /// CR / trait bonuses captured from the record.
+    #[serde(default)]
+    pub traits: CreatureTraits,
+    /// Granted abilities (`ABILITY:...|AUTOMATIC|...`).
+    #[serde(default)]
+    pub abilities: Vec<String>,
+    /// Raw `PRE*` requirements on the row, e.g. `PRERACE:1,Companion ~ Ape`.
+    /// Rows sharing the same id can be alternative companion selections rather
+    /// than cumulative modifiers; preserving the requirements prevents loss
+    /// until the runtime companion selector can evaluate them.
+    #[serde(default)]
+    pub requirements: Vec<String>,
+}
+
+impl CompanionModDefinition {
+    pub fn new(id: impl Into<String>, name: impl Into<String>) -> Self {
+        Self {
+            id: id.into(),
+            companion_type: name.into(),
+            ..Self::default()
+        }
+    }
+}
+
 /// All typed definitions produced by one import.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct TypedDefinitions {
@@ -694,5 +834,21 @@ pub struct TypedDefinitions {
     pub variants: BTreeMap<String, VariantDefinition>,
     pub kits: BTreeMap<String, KitDefinition>,
     pub templates: BTreeMap<String, TemplateDefinition>,
+    /// Creature-trait metadata captured from every record, including
+    /// Ability / ClassLevel / Equipment sources that are not yet modelled as
+    /// full typed definitions.
+    #[serde(default)]
+    pub creature_trait_records: BTreeMap<String, CreatureTraits>,
+    /// Companion rows grouped by their raw `FOLLOWER:` id.  Each key may
+    /// have multiple alternative/conditioned rows (e.g. one per animal
+    /// companion race), so values are lists rather than a single definition.
+    #[serde(default)]
+    pub companion_mods: BTreeMap<String, Vec<CompanionModDefinition>>,
+    #[serde(default)]
+    pub sizes: BTreeMap<String, SizeDefinition>,
+    #[serde(default)]
+    pub stats: BTreeMap<String, StatDefinition>,
+    #[serde(default)]
+    pub alignments: BTreeMap<String, AlignmentDefinition>,
     pub progressions: BTreeMap<String, ClassProgression>,
 }

@@ -15,6 +15,10 @@ use std::collections::{BTreeMap, BTreeSet};
 #[serde(rename_all = "snake_case")]
 pub enum Predicate {
     Always,
+    /// An explicit temporary state is active (PCGen `TEMPBONUS` source).
+    ActiveState {
+        states: Vec<String>,
+    },
     All(Vec<Predicate>),
     Any(Vec<Predicate>),
     Not(Box<Predicate>),
@@ -55,6 +59,12 @@ pub enum Predicate {
     /// Total base attack bonus at least `min` (PCGen `PRETOTALAB:N`).
     TotalBab {
         min: u32,
+    },
+    /// Base save bonus at least `min` for one save kind
+    /// (PCGen `PRECHECKBASE:1,Will=2`).
+    BaseSave {
+        save: String,
+        min: i32,
     },
     HasTag {
         tag: String,
@@ -397,6 +407,17 @@ pub enum StackPolicyKind {
     Lowest,
 }
 
+/// UI metadata for a `TEMPVALUE` range associated with a temporary effect.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TemporaryValue {
+    #[serde(default)]
+    pub min: Option<i32>,
+    #[serde(default)]
+    pub max: Option<i32>,
+    #[serde(default)]
+    pub title: Option<String>,
+}
+
 /// A lowered, runtime-friendly view of one imported entity.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CompiledEntity {
@@ -411,6 +432,13 @@ pub struct CompiledEntity {
     /// For `ABILITY` records, the pool they belong to (PCGen `CATEGORY:`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ability_category: Option<String>,
+    /// UI range metadata for `TEMPVALUE` on this record.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub temporary_value: Option<TemporaryValue>,
+    /// Creature traits captured from this record (reach, natural attacks,
+    /// DR/SR/CR, vision, unarmed damage, ...).
+    #[serde(default)]
+    pub traits: crate::domain::CreatureTraits,
 }
 
 /// Import/report totals.

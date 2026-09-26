@@ -127,9 +127,12 @@ fn demo_draft() -> CharacterDraft {
         skills: BTreeMap::new(),
         spells: Vec::new(),
         equipment: Vec::new(),
+        equipment_modifiers: BTreeMap::new(),
         abilities: Vec::new(),
         templates: Vec::new(),
+        active_states: Vec::new(),
         choices: BTreeMap::new(),
+        companions: Vec::new(),
     }
 }
 
@@ -212,7 +215,17 @@ fn main() -> Result<()> {
                     "variants": pack.variants.len(),
                     "kits": pack.kits.len(),
                     "templates": pack.templates.len(),
+                    "creature_trait_records": pack.creature_trait_records.len(),
+                    "companion_mods": pack
+                        .companion_mods
+                        .values()
+                        .map(|rows| rows.len())
+                        .sum::<usize>(),
+                    "sizes": pack.sizes.len(),
+                    "stats": pack.stats.len(),
+                    "alignments": pack.alignments.len(),
                     "spell_effects": report.spell_effects,
+                    "psionic_effects": report.psionic_effects,
                     "progressions": pack.progressions.len(),
                 });
                 println!("{}", serde_json::to_string_pretty(&value)?);
@@ -371,8 +384,11 @@ fn draft_from_pcg(draft: PcgDraft) -> CharacterDraft {
             })
             .collect(),
         equipment: draft.equipment,
+        equipment_modifiers: draft.equipment_modifiers,
         abilities: draft.abilities,
         templates: draft.templates,
+        active_states: Vec::new(),
         choices: BTreeMap::new(),
+        companions: Vec::new(),
     }
 }

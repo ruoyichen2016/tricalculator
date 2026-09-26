@@ -24,6 +24,17 @@ pub fn build_typed_definitions(records: &[RawRecord]) -> TypedDefinitions {
     let mut current_kit: Option<String> = None;
 
     for record in records {
+        let mut record_traits = pcgen_core::CreatureTraits::default();
+        parse_creature_traits(record, &mut record_traits);
+        if record_traits != pcgen_core::CreatureTraits::default() {
+            let key = format!(
+                "{}::{}::{}",
+                record.category.to_ascii_uppercase(),
+                record.key,
+                record.source.line
+            );
+            typed.creature_trait_records.insert(key, record_traits);
+        }
         match record.category.to_ascii_uppercase().as_str() {
             "CLASS" => {
                 if let Some(substitution) = record.name.strip_prefix("SUBSTITUTIONCLASS:") {
@@ -69,7 +80,10 @@ pub fn build_typed_definitions(records: &[RawRecord]) -> TypedDefinitions {
             }
             "SPELL" => {
                 let spell = parse_spell(record);
-                typed.spells.insert(spell.id.clone(), spell);
+                // Key typed spells by the same normalized key the lowering
+                // pass uses for `EntityId`, so `psionic_effects` can join the
+                // two views without duplicating normalization logic.
+                typed.spells.insert(entity_key(record), spell);
             }
             "EQUIPMENT" => {
                 let equipment = parse_equipment(record);
@@ -95,6 +109,53 @@ pub fn build_typed_definitions(records: &[RawRecord]) -> TypedDefinitions {
                 typed.domains.insert(domain.id.clone(), domain);
             }
             "KIT" => parse_kit_record(record, &mut current_kit, &mut typed.kits),
+            "ALIGNMENT" => {
+                typed.alignments.insert(
+                    record.key.clone(),
+                    pcgen_core::AlignmentDefinition {
+                        id: record.key.clone(),
+                        name: record.name.clone(),
+                        valid_for_deity: tag(record, "VALIDFORDEITY").map(parse_yes_no),
+                        valid_for_follower: tag(record, "VALIDFORFOLLOWER").map(parse_yes_no),
+                    },
+                );
+            }
+            "SIZE" => {
+                let mut size = pcgen_core::SizeDefinition {
+                    id: record.key.clone(),
+                    name: record.name.clone(),
+                    size_number: tag(record, "SIZENUM").map(str::to_string),
+                };
+                if !size.id.is_empty() {
+                    // `.MOD` rows (e.g. `M.MOD`) carry the SIZENUM; keep the
+                    // base key so lookups stay stable.
+                    if let Some(base) = size.id.strip_suffix(".MOD") {
+                        size.id = base.to_string();
+                    }
+                    typed.sizes.insert(size.id.clone(), size);
+                }
+            }
+            "STAT" => {
+                if let Some(key) = tag(record, "KEY") {
+                    typed.stats.insert(
+                        key.to_string(),
+                        pcgen_core::StatDefinition {
+                            id: key.to_string(),
+                            name: record.name.clone(),
+                            modifier_formula: tag(record, "STATMOD").map(str::to_string),
+                        },
+                    );
+                }
+            }
+            "COMPANIONMOD" => {
+                if let Some(companion) = parse_companion_mod(record) {
+                    typed
+                        .companion_mods
+                        .entry(companion.id.clone())
+                        .or_default()
+                        .push(companion);
+                }
+            }
             "TEMPLATE" => {
                 let template = parse_template(record);
                 typed.templates.insert(template.id.clone(), template);
@@ -160,6 +221,16 @@ fn merge_class(classes: &mut BTreeMap<String, ClassDefinition>, class: ClassDefi
     }
 }
 
+/// Normalized key matching `EntityId::from_pcgen` for raw records.
+pub(crate) fn entity_key(record: &RawRecord) -> String {
+    let raw = record.key.trim();
+    if raw.contains(':') || raw.contains('|') {
+        raw.to_string()
+    } else {
+        raw.to_ascii_lowercase().replace(' ', "_")
+    }
+}
+
 fn parse_race(record: &RawRecord) -> RaceDefinition {
     let mut race = RaceDefinition::new(record.key.clone(), record.name.clone());
     if let Some(size) = tag(record, "SIZE") {
@@ -200,6 +271,10 @@ fn parse_race(record: &RawRecord) -> RaceDefinition {
         }
     }
     race.favored_class = tag(record, "FAVOREDCLASS").map(str::to_string);
+    race.extra_skill_points_per_level =
+        tag(record, "XTRASKILLPTSPERLVL").and_then(|value| value.trim().parse().ok());
+    race.stat_minimums = parse_stat_minimums(record);
+    race.skill_multiplier = tag(record, "SKILLMULT").and_then(|value| value.trim().parse().ok());
     race.type_tags = type_tags(record);
     parse_creature_traits(record, &mut race.traits);
     for template in tags(record, "TEMPLATE") {
@@ -269,6 +344,22 @@ fn parse_class(record: &RawRecord) -> ClassDefinition {
                 .map(|skill| skill.trim().trim_start_matches("TYPE=").to_string())
                 .filter(|skill| !skill.is_empty()),
         );
+    }
+    class.skill_multiplier = tag(record, "SKILLMULT").and_then(|value| value.trim().parse().ok());
+    class.levels_per_feat =
+        tag(record, "LEVELSPERFEAT").and_then(|value| value.trim().parse().ok());
+    class.hit_die_override = tag(record, "HITDIE").map(normalize_hit_die);
+    class.excluded_class = tag(record, "EXCLASS").map(str::to_string);
+    class.exchange_level = tag(record, "EXCHANGELEVEL").map(str::to_string);
+    for add in tags(record, "ADDLEVEL") {
+        let mut parts = add.split('|').map(str::trim);
+        if let Some(class_name) = parts.next().filter(|name| !name.is_empty()) {
+            let levels = parts
+                .next()
+                .and_then(|value| value.parse::<u32>().ok())
+                .unwrap_or(1);
+            class.add_levels.insert(class_name.to_string(), levels);
+        }
     }
     class.prohibited_spells = tags(record, "PROHIBITSPELL").map(str::to_string).collect();
     class.known_spells_from_specialty = tag(record, "KNOWNSPELLSFROMSPECIALTY")
@@ -348,11 +439,52 @@ fn parse_class_level_row(class: &mut ClassDefinition, record: &RawRecord) {
 fn parse_template(record: &RawRecord) -> TemplateDefinition {
     let mut template = TemplateDefinition::new(record.key.clone(), record.name.clone());
     template.type_tags = type_tags(record);
+    template.hit_die_override = tag(record, "HITDIE").map(normalize_hit_die);
+    template.stat_minimums = parse_stat_minimums(record);
+    for add in tags(record, "ADDLEVEL") {
+        let mut parts = add.split('|').map(str::trim);
+        if let Some(class_name) = parts.next().filter(|name| !name.is_empty()) {
+            let levels = parts
+                .next()
+                .and_then(|value| value.parse::<u32>().ok())
+                .unwrap_or(1);
+            template.add_levels.insert(class_name.to_string(), levels);
+        }
+    }
     parse_creature_traits(record, &mut template.traits);
     template
 }
 
-fn parse_creature_traits(record: &RawRecord, traits: &mut pcgen_core::CreatureTraits) {
+/// Collect `DEFINESTAT:MINVALUE|STAT|n` entries into a stat-minimum map.
+fn parse_stat_minimums(record: &RawRecord) -> BTreeMap<String, i32> {
+    let mut minimums = BTreeMap::new();
+    for value in tags(record, "DEFINESTAT") {
+        let parts: Vec<&str> = value.split('|').map(str::trim).collect();
+        if parts.len() >= 3 && parts[0].eq_ignore_ascii_case("MINVALUE") {
+            if let Ok(min) = parts[2].parse::<i32>() {
+                minimums.insert(parts[1].to_ascii_uppercase(), min);
+            }
+        }
+    }
+    minimums
+}
+
+/// Parse a PCGen `YES`/`NO` style flag.
+fn parse_yes_no(value: &str) -> bool {
+    value.trim().eq_ignore_ascii_case("YES") || value.trim() == "1"
+}
+
+/// Normalize a `HITDIE:` value to `dN` form.
+fn normalize_hit_die(value: &str) -> String {
+    let value = value.trim();
+    if value.starts_with('d') || value.starts_with('D') {
+        format!("d{}", value.trim_start_matches(['d', 'D']))
+    } else {
+        format!("d{value}")
+    }
+}
+
+pub(crate) fn parse_creature_traits(record: &RawRecord, traits: &mut pcgen_core::CreatureTraits) {
     traits.reach_feet = tag(record, "REACH").and_then(|value| value.parse().ok());
     traits.reach_mult = tag(record, "REACHMULT").and_then(|value| value.parse().ok());
     traits.face = tag(record, "FACE").map(str::to_string);
@@ -369,6 +501,48 @@ fn parse_creature_traits(record: &RawRecord, traits: &mut pcgen_core::CreatureTr
         .map(str::to_string)
         .collect();
     traits.attack_cycle = tags(record, "ATTACKCYCLE").map(str::to_string).collect();
+}
+
+/// Parse a PCGen `FOLLOWER:` companion modifier row.
+fn parse_companion_mod(record: &RawRecord) -> Option<pcgen_core::CompanionModDefinition> {
+    let (prefix, body) = record.key.split_once(':')?;
+    if !prefix.eq_ignore_ascii_case("FOLLOWER") {
+        return None;
+    }
+    let (master_variable, master_level) = body.split_once('=')?;
+    let master_variable = master_variable.trim().to_string();
+    let master_level = master_level.trim().parse::<u32>().ok()?;
+    let mut companion = pcgen_core::CompanionModDefinition::new(
+        body.trim().to_string(),
+        tag(record, "TYPE").unwrap_or(&master_variable).to_string(),
+    );
+    companion.master_variable = master_variable;
+    companion.master_level = master_level;
+    companion.hit_dice_bonus = tag(record, "HD")
+        .and_then(|value| value.trim().parse::<i32>().ok())
+        .unwrap_or(0);
+    companion.spell_resistance = tag(record, "SR").map(str::to_string);
+    parse_creature_traits(record, &mut companion.traits);
+    for ability in tags(record, "ABILITY") {
+        let parts: Vec<&str> = ability.split('|').map(str::trim).collect();
+        if let Some(name) = parts.last().filter(|name| !name.is_empty()) {
+            if !name.to_ascii_uppercase().starts_with("TYPE=") {
+                companion.abilities.push((*name).to_string());
+            }
+        }
+    }
+    // Preserve row conditions.  Several FOLLOWER rows share the same
+    // `(type, level)` id but select different companion races via `PRERACE`;
+    // they must not overwrite each other.
+    for tag in &record.tags {
+        let upper = tag.name.to_ascii_uppercase();
+        if crate::tags::is_predicate_tag(&upper) {
+            companion
+                .requirements
+                .push(format!("{}:{}", tag.name, tag.value));
+        }
+    }
+    Some(companion)
 }
 
 const KIT_ENTRY_TARGETS: &[&str] = &[
@@ -582,6 +756,8 @@ fn parse_deity(record: &RawRecord) -> DeityDefinition {
     deity.alignment = tag(record, "ALIGN").map(str::to_string);
     deity.favored_weapon = tag(record, "DEITYWEAP").map(str::to_string);
     deity.pantheon = tag(record, "PANTHEON").map(str::to_string);
+    deity.valid_for_deity = tag(record, "VALIDFORDEITY").map(parse_yes_no);
+    deity.valid_for_follower = tag(record, "VALIDFORFOLLOWER").map(parse_yes_no);
     for domain in tags(record, "DOMAINS") {
         deity.domains.extend(
             domain
@@ -724,7 +900,10 @@ fn parse_variant(record: &RawRecord) -> Option<VariantDefinition> {
 }
 
 fn parse_equipment_modifier(record: &RawRecord) -> EquipmentModifierDefinition {
-    let mut modifier = EquipmentModifierDefinition::new(record.key.clone(), record.name.clone());
+    // PCGen equipmods often declare a stable `KEY:` (used by `.pcg`
+    // `EQMOD=` references); prefer it over the display key.
+    let key = tag(record, "KEY").unwrap_or(&record.key);
+    let mut modifier = EquipmentModifierDefinition::new(key.to_string(), record.name.clone());
     modifier.cost_gp = tag(record, "COST").and_then(parse_number).unwrap_or(0.0);
     modifier.weight_lb = tag(record, "WT").and_then(parse_number).unwrap_or(0.0);
     modifier.type_tags = type_tags(record);
@@ -741,6 +920,7 @@ fn parse_equipment_modifier(record: &RawRecord) -> EquipmentModifierDefinition {
             modifier.armor_bonus += parts[2].parse::<i32>().unwrap_or(0);
         }
     }
+    parse_creature_traits(record, &mut modifier.traits);
     modifier
 }
 
@@ -1020,7 +1200,7 @@ mod tests {
             &[("TYPE", "Psionic"), ("CLASSES", "Psion,Wilder=1")],
         );
         let typed = build_typed_definitions(&[spell]);
-        let spell = typed.spells.get("Mind Thrust").expect("spell");
+        let spell = typed.spells.get("mind_thrust").expect("spell");
         assert!(spell.is_psionic);
         assert_eq!(spell.class_levels.get("Psion"), Some(&1));
         assert_eq!(spell.class_levels.get("Wilder"), Some(&1));

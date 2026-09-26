@@ -12,6 +12,8 @@ fn compiled_entity_category_serializes_as_pcgen_string() {
         unsupported_tags: Vec::new(),
         source: "test.lst".to_string(),
         ability_category: None,
+        temporary_value: None,
+        traits: Default::default(),
     };
     let json = serde_json::to_string(&entity).expect("serialize");
     assert!(
@@ -35,6 +37,8 @@ fn unknown_category_survives_round_trip() {
         unsupported_tags: Vec::new(),
         source: "powers.lst".to_string(),
         ability_category: None,
+        temporary_value: None,
+        traits: Default::default(),
     };
     let json = serde_json::to_string(&entity).expect("serialize");
     assert!(json.contains("\"category\":\"POWER\""), "got: {json}");

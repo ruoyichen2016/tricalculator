@@ -47,13 +47,42 @@ pub struct CharacterDraft {
     pub spells: Vec<DraftSpell>,
     #[serde(default)]
     pub equipment: Vec<String>,
+    /// Equipment modifiers attached to equipped items, keyed by item name
+    /// (lower-cased).  Populated from `.pcg` `EQMOD=` customization data.
+    #[serde(default)]
+    pub equipment_modifiers: BTreeMap<String, Vec<String>>,
     #[serde(default)]
     pub abilities: Vec<(String, String)>,
     /// Applied creature templates (PCGen `TEMPLATE:` / `.pcg`).
     #[serde(default)]
     pub templates: Vec<String>,
+    /// Explicitly activated temporary states (PCGen `TEMPBONUS` sources).
+    #[serde(default)]
+    pub active_states: Vec<String>,
     #[serde(default)]
     pub choices: BTreeMap<String, String>,
+    /// Companions owned by the character, as `(type, master class level)`.
+    #[serde(default)]
+    pub companions: Vec<DraftCompanion>,
+}
+
+/// One companion owned by the master (familiar, special mount, ...).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DraftCompanion {
+    /// Companion type matching `CompanionModDefinition.companion_type`,
+    /// e.g. `Familiar` or `Special Mount`.
+    pub companion_type: String,
+    /// Master class/variable level used by `mastervar(...)` formulas.
+    pub master_level: u32,
+}
+
+impl DraftCompanion {
+    pub fn new(companion_type: impl Into<String>, master_level: u32) -> Self {
+        Self {
+            companion_type: companion_type.into(),
+            master_level,
+        }
+    }
 }
 
 impl Default for CharacterDraft {
@@ -70,9 +99,12 @@ impl Default for CharacterDraft {
             skills: BTreeMap::new(),
             spells: Vec::new(),
             equipment: Vec::new(),
+            equipment_modifiers: BTreeMap::new(),
             abilities: Vec::new(),
             templates: Vec::new(),
+            active_states: Vec::new(),
             choices: BTreeMap::new(),
+            companions: Vec::new(),
         }
     }
 }

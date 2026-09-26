@@ -36,6 +36,7 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
         skills: BTreeMap::new(),
         spells: Vec::new(),
         equipment: Vec::new(),
+        equipment_modifiers: BTreeMap::new(),
         abilities: Vec::new(),
         templates: Vec::new(),
         advancement: Vec::new(),
@@ -73,9 +74,14 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
             "SKILL" => parse_skill(&mut draft, value),
             "SPELLNAME" => parse_spell(&mut draft, value),
             "EQUIPNAME" | "EQUIPMENT" => {
-                if let Some(name) = split_pipe(value).first() {
-                    if !name.is_empty() {
-                        draft.equipment.push((*name).to_string());
+                let name = split_pipe(value).first().copied().unwrap_or_default();
+                if !name.is_empty() {
+                    draft.equipment.push(name.to_string());
+                    let modifiers = extract_equipmods(value);
+                    if !modifiers.is_empty() {
+                        draft
+                            .equipment_modifiers
+                            .insert(name.to_ascii_lowercase(), modifiers);
                     }
                 }
             }
@@ -329,6 +335,20 @@ fn split_pipe(value: &str) -> Vec<&str> {
     value.split('|').map(str::trim).collect()
 }
 
+/// Extract `EQMOD=` references from a `.pcg` `CUSTOMIZATION` payload.
+fn extract_equipmods(value: &str) -> Vec<String> {
+    let Some(start) = value.find("DATA:") else {
+        return Vec::new();
+    };
+    value[start + "DATA:".len()..]
+        .split('|')
+        .flat_map(|part| part.split(';'))
+        .filter_map(|part| part.trim().strip_prefix("EQMOD="))
+        .map(|part| part.trim().to_string())
+        .filter(|part| !part.is_empty())
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -375,6 +395,7 @@ GESTALTJSON:[{\"character_level\":1,\"lanes\":[{\"lane_id\":\"a\",\"class_id\":\
             skills: BTreeMap::new(),
             spells: Vec::new(),
             equipment: Vec::new(),
+            equipment_modifiers: BTreeMap::new(),
             abilities: Vec::new(),
             templates: Vec::new(),
             advancement: vec![AdvancementFrame::new(

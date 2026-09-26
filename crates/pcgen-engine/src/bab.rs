@@ -54,6 +54,25 @@ pub fn derive_prereq_bab(
     bab
 }
 
+/// Stable base save totals used by `PRECHECKBASE` during predicate
+/// evaluation: class progression base saves only (no ability modifiers, no
+/// conditional bonuses), matching PCGen's "base save" semantics.
+pub fn derive_base_saves(
+    pack: &CompiledRulePack,
+    draft: &CharacterDraft,
+) -> BTreeMap<SaveKind, i32> {
+    let mut totals = BTreeMap::new();
+    for entry in effective_class_levels(draft) {
+        let Some(progression) = find_progression(pack, &entry.class_id) else {
+            continue;
+        };
+        for kind in [SaveKind::Fortitude, SaveKind::Reflex, SaveKind::Will] {
+            *totals.entry(kind).or_insert(0) += progression.save(entry.level, kind);
+        }
+    }
+    totals
+}
+
 fn class_bab(
     pack: &CompiledRulePack,
     draft: &CharacterDraft,

@@ -1,7 +1,11 @@
-# Tag backlog triage（阶段 0）
+# Tag backlog triage（阶段 0 历史快照）
 
+> **状态：历史快照。** 本文件保留阶段 0 的 triage 结论与 owner 映射，表中的
+> pending 次数是当时值，不代表当前实现状态。当前数据以 `ROADMAP.md` 顶部和
+> `docs/TAG_WORKLIST.md` 为准。
+>
 > 数据：DS-3E `srdbasic.pcc`（回归代理）与 DS-35E `_rsrd_basics.pcc`（主验收）。
-> 口径：`legacy_pending + unsupported_pending`；本表覆盖当前全部 pending tag，
+> 口径：`legacy_pending + unsupported_pending`；本表覆盖当时全部 pending tag，
 > 目标是**消除无主 backlog**（见 ROADMAP P0 / 审查发现 P0-2）。
 
 ## 0. 结论

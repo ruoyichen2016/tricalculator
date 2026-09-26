@@ -38,7 +38,13 @@ DS35E = (
     DATA_ROOT
     / "data/35e/wizards_of_the_coast/rsrd/basics/_rsrd_basics.pcc"
 )
-DATASETS = {"ds-3e": REAL, "ds-35e": DS35E}
+# DS-PSI is the psionics acceptance dataset: it exercises POWER-style
+# `SPELL:` records with `TYPE:Psionic`, power points and manifester levels.
+DSPSI = (
+    DATA_ROOT
+    / "data/35e/wizards_of_the_coast/rsrd/psionics/_rsrd_psionics.pcc"
+)
+DATASETS = {"ds-3e": REAL, "ds-35e": DS35E, "ds-psi": DSPSI}
 COVERAGE_BASELINE = ROOT / "tests/fixtures/coverage/coverage_baseline.json"
 LOCK_PATH = ROOT / "scripts/testdata.lock.json"
 
@@ -113,7 +119,16 @@ def check(
     failures = 0
     print(f"{label}:")
     for field, (operator, expected) in thresholds.items():
-        actual = report["coverage"][field]
+        if field == "unsupported_pending":
+            # Derived counter: the CLI exposes only the per-tag buckets.
+            actual = sum(
+                int(value)
+                for value in report["coverage"]
+                .get("unsupported_pending_by_tag", {})
+                .values()
+            )
+        else:
+            actual = report["coverage"][field]
         if operator == ">=":
             ok = actual >= expected
         elif operator == "<=":
@@ -196,6 +211,7 @@ def coverage_metrics(report: dict) -> dict:
         "entities": coverage["entities"],
         "tag_occurrences": coverage["tag_occurrences"],
         "lowered_effects": lowered,
+        "psionic_effects": report.get("psionic_effects", 0),
         "legacy_tags": coverage["legacy_tags"],
         "legacy_allowlisted": la,
         "legacy_pending": lp,
@@ -246,9 +262,9 @@ def check_coverage_baseline(label: str, report: dict, entry: dict) -> int:
     )
 
     # 2) dataset must not shrink and lowering must not be lost
-    for name in ("entities", "tag_occurrences", "lowered_effects"):
-        actual = int(metrics[name])
-        floor = int(entry[name])
+    for name in ("entities", "tag_occurrences", "lowered_effects", "psionic_effects"):
+        actual = int(metrics.get(name, 0))
+        floor = int(entry.get(name, 0))
         ok = actual >= floor
         print(f"  {name:24} {actual:>8} >= {floor:<8} {'OK' if ok else 'FAIL'}")
         if not ok:
@@ -307,6 +323,7 @@ def build_coverage_baseline() -> dict:
             "entities": metrics["entities"],
             "tag_occurrences": metrics["tag_occurrences"],
             "lowered_effects": metrics["lowered_effects"],
+            "psionic_effects": metrics["psionic_effects"],
             "legacy_tags": metrics["legacy_tags"],
             "legacy_allowlisted": metrics["legacy_allowlisted"],
             "legacy_pending": metrics["legacy_pending"],
@@ -335,8 +352,8 @@ def coverage_entry_regressions(old: dict, new: dict) -> list[str]:
     by silently re-freezing a worse value.
     """
     regressions: list[str] = []
-    for name in ("entities", "tag_occurrences", "lowered_effects"):
-        if int(new[name]) < int(old.get(name, 0)):
+    for name in ("entities", "tag_occurrences", "lowered_effects", "psionic_effects"):
+        if int(new.get(name, 0)) < int(old.get(name, 0)):
             regressions.append(f"{name}: {old.get(name)} -> {new[name]}")
     if int(new["semantic_pending"]) > int(old.get("semantic_pending", 0)):
         regressions.append(
@@ -603,7 +620,8 @@ def main(argv: list[str] | None = None) -> int:
                 {
                     "entities": (">=", 3500),
                     "lowered_effects": (">=", 3000),
-                    "unsupported_tags": ("<=", 3),
+                    "unsupported_tags": ("==", 0),
+                    "unsupported_pending": ("==", 0),
                     "tag_occurrences": (">=", 20000),
                     "known_tag_occurrences": (">=", 18000),
                     "formula_effects": (">=", 700),
@@ -670,7 +688,8 @@ def main(argv: list[str] | None = None) -> int:
                     "entities": (">=", 15000),
                     "tag_occurrences": (">=", 70000),
                     "lowered_effects": (">=", 7700),
-                    "unsupported_tags": ("<=", 110),
+                    "unsupported_tags": ("<=", 2),
+                    "unsupported_pending": ("==", 0),
                 },
                 typed={"spell_effects": (">=", 30)},
                 zero_tags=[
@@ -688,6 +707,28 @@ def main(argv: list[str] | None = None) -> int:
         )
     else:
         stats.skip("real 35e RSRD basics", f"missing {DS35E}")
+
+    if DSPSI.exists():
+        stats.add(
+            "real 35e RSRD psionics",
+            check(
+                "real 35e RSRD psionics",
+                run_report(DSPSI),
+                {
+                    "entities": (">=", 1500),
+                    "lowered_effects": (">=", 1100),
+                    "unsupported_tags": ("==", 0),
+                    "unsupported_pending": ("==", 0),
+                },
+                typed={
+                    "classes": (">=", 20),
+                    "spells": (">=", 250),
+                    "psionic_effects": (">=", 40),
+                },
+            ),
+        )
+    else:
+        stats.skip("real 35e RSRD psionics", f"missing {DSPSI}")
 
     if COVERAGE_BASELINE.exists():
         baseline_data = json.loads(COVERAGE_BASELINE.read_text(encoding="utf-8"))

@@ -24,10 +24,11 @@ pub mod vocab;
 pub use advancement::{AdvancementFrame, AdvancementLane, LaneId};
 pub use algorithms::{strongly_connected_components, topological_sort};
 pub use domain::{
-    AttackProgression, CastingType, ClassDefinition, ClassProgression, CreatureTraits,
-    DeityDefinition, DomainDefinition, DomainSpell, EquipmentDefinition,
-    EquipmentModifierDefinition, KitDefinition, KitEntry, RaceDefinition, SaveProgression,
-    SkillDefinition, SpellDefinition, SpellPowerType, TemplateDefinition, TypedDefinitions,
+    AlignmentDefinition, AttackProgression, CastingType, ClassDefinition, ClassProgression,
+    CompanionModDefinition, CreatureTraits, DeityDefinition, DomainDefinition, DomainSpell,
+    EquipmentDefinition, EquipmentModifierDefinition, KitDefinition, KitEntry, RaceDefinition,
+    SaveProgression, SizeDefinition, SkillDefinition, SpellDefinition, SpellPowerType,
+    StatDefinition, TemplateDefinition, TypedDefinitions,
 };
 pub use faith::{evaluate_faith, FaithDecision};
 pub use fingerprint::{
@@ -45,7 +46,8 @@ pub use rational::{Rational, RationalError};
 pub use rules::{
     normalize_size, size_at_least, size_at_most, size_rank, BonusTypePolicy, CategoryCoverage,
     CompiledEntity, Contribution, Effect, EffectAction, EffectPhase, Explanation, Modifier,
-    ModifierOperation, Predicate, Provenance, RuleCoverage, StackPolicyKind, SIZE_ORDER,
+    ModifierOperation, Predicate, Provenance, RuleCoverage, StackPolicyKind, TemporaryValue,
+    SIZE_ORDER,
 };
 pub use tagclass::{
     bucket_for_unsupported, classify as classify_tag, is_allowlisted, TagBucket, TagClass,

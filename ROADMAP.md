@@ -8,14 +8,20 @@
 ## 当前状态（最近验证：固定数据 + 全量门禁）
 
 - 工作区：7 crate（core / formula / ir / import / engine / output / cli）。
-- 测试：`cargo test --workspace` **127 passed**。
+- 测试：`cargo test --workspace` **150 passed**。
 - DS-3E（回归代理，`srdbasic.pcc`）：3,779 entities，23,723 tag occurrences，
-  lowered 3,111；legacy pending 583；unsupported 0；
-  **semantic completion 84.2%**。
+  lowered 3,267；legacy pending 75；unsupported 0；
+  **semantic completion 97.8%**。
 - DS-35E（主验收，`_rsrd_basics.pcc`）：15,741 entities，
-  lowered 7,859；legacy pending 1,038；unsupported pending 0
-  （仅 2 个 `PRETEXT` allowlisted）；**semantic completion 88.3%**。
-- 门禁 `scripts/coverage_gate.py`：**12 pass / 0 fail / 0 skip**（严格模式，含双数据集 coverage 基线与 DS-35E 阈值）。
+  lowered 8,196；legacy pending 192；unsupported pending 0
+  （仅 2 个 `PRETEXT` allowlisted）；**semantic completion 97.7%**。
+- DS-PSI（灵能验收，`_rsrd_psionics.pcc`）：1,570 entities，
+  lowered 1,195；legacy pending 35；unsupported pending 0；
+  `psionic_effects` 50；**semantic completion 97.2%**。
+- P0 口径清偿：`CHOOSE` 已经 lowering，不再重复计入 legacy pending；
+  `XPCOST` 按 P4-DEC-2 移入 out-of-scope allowlist；三个数据集的
+  `unsupported_pending` 均被门禁显式要求为 0。
+- 门禁 `scripts/coverage_gate.py`：**14 pass / 0 fail / 0 skip**（严格模式，含三数据集 coverage 基线与 DS-35E 阈值）。
 - broad per-case oracle：23 cohort（**23 computed = 23 java-compared +
   0 known-diverging**，0 data-missing），23 个 java-gated case；
   `final_stats` / `bab` / `hit_points` / `initiative` / `armor_class` /
@@ -42,6 +48,18 @@
       初始提交 + `.gitignore`；broad oracle `--write-baseline` Java 一致率
       下降时拒写（需 `--accept-diff` 才可显式接受）
 - [x] 清理已完成阶段的状态头（P1/P2/P3）
+
+### P0.1 质量清偿 / 口径修正（已完成）
+
+- [x] `CHOOSE` 不再同时计入 `lowered_effects` 与 `legacy_pending`；新增 lowering
+      回归测试，pending 只保留真正未 lower 的 tag。
+- [x] `XPCOST` 依据 P4-DEC-2 移入 out-of-scope allowlist，不再计入
+      `semantic_pending`。
+- [x] CompanionMod `FOLLOWER:` 行改为按 id 分组保存，真实 RSRD 108 行不再
+      被覆盖；带 `PRERACE`/`PRE*` 的条件行先保留、不在 runtime 盲目叠加。
+- [x] coverage gate 收紧：三个数据集 unsupported pending 必须为 0；
+      DS-35E 的 unsupported allowlisted 精确允许为 2（`PRETEXT`）。
+- [x] `TAG_WORKLIST` 按 P0 后的 DS-3E 重新生成；`TAG_TRIAGE` 标记为历史快照。
 
 ## P1：可追溯性与门禁闭环（已完成）
 
@@ -239,12 +257,17 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
 
 #### P4-BONUS-1 + P4-EQP-1 合并验收：BONUS 残余 / G1 stacking / G2 装备
 
-- **状态**：残余 `BONUS` unsupported 已清零；`BASEITEM` / `CONTAINS` /
-  `SLOTS` / `CHARGES` 已 typed 并消费；AC 加值已接入 same-type non-stacking /
-  dodge/circumstance/untyped stacking；装备 `EquipSlot`、冲突诊断、slot order
-  排序已进入 engine，archive `equipment_slot_sort` 意图已有对应测试。
-  DS-3E/DS-35E unsupported pending 均为 0；broad oracle 23/23 100%。
-  剩余：saves/attack/skill 的完整通用 stacking 与更细的 `PREEQUIP*` 槽位状态。
+- **状态**：残余 `BONUS` unsupported 已清零；AC / saves / attack / skill
+  已接入统一 `TypedBonus` 管线（bonus type / stack key / target 分类）；
+  装备 `EquipSlot`、冲突诊断、slot order 排序已进入 engine；
+  `CharacterSnapshot` 新增 `attack_bonuses`；literal 与公式型 `BONUS` 均
+  进入 typed pipeline；broad oracle 23/23 100%。
+  装备 pending 仍集中在 alternate weapon profile / proficiency 类 tag：
+  DS-35E 65 次（`ALTCRIT*` / `ALTDAMAGE` / `ALTEQMOD` / `ALTTYPE` /
+  `ARMORTYPE` / `BASEQTY` / `CHANGEPROF` / `WEAPONBONUS`），DS-3E 30 次。
+  `PREEQUIP*`、EquipMod `DR`/`SR`、`.pcg EQMOD=`、`PRECHECKBASE` 已完成。
+  CompanionMod 真实数据行已不再覆盖丢失，但条件行选择与 BONUS/KIT 消费
+  仍属 P4-COMP-1 后续。
 - **目标**：清零残余 BONUS 与装备类 pending legacy；在 IR/engine 层恢复
   archive `bonus.rs` 的 typed stacking policy（G1），并把装备槽位、冲突、
   顺序、装备加成 typed 化（G2）；两者必须走同一条 modifier/AC 管线。
@@ -265,6 +288,15 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
 
 #### P4-PSI-1 灵能语义闭环
 
+- **状态**：已完成首版。`POWER`-style `SPELL:` 记录（`TYPE:Psionic`）进入
+  `SpellDefinition.is_psionic`；`import-report` 新增 `psionic_effects` 指标；
+  engine 输出 `power_points` / `manifester_levels` / `spell_dcs` /
+  `spell_power_types`，并保持灵能职业不出现在 `caster_levels`；
+  `PRECHECKBASE` 已 lower（base save 谓词）。
+  验收数据集 DS-PSI（`_rsrd_psionics.pcc`）纳入 coverage gate：
+  1,570 entities，1,195 lowered，`psionic_effects` 50，completion 97.2%。
+  新增 `tests/psionics.rs`（Psion / Psychic Warrior）+ 临时态概念测试；
+  第三灵能职业 golden 与 known powers snapshot 仍待 P4-PSI-2。
 - **目标**：补齐 `PRODUCT_SCOPE.md` 的灵能条目：威力、显能者等级、灵能点、
   威力 DC、已知威力。
 - **指标**：至少 3 个灵能职业的 power points / manifester level / DC 有 golden；
@@ -300,9 +332,10 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
 - **状态**：S1 已完成。`DOMAINS` / `SPELLLEVEL` / `PROHIBITSPELL` /
   `ADDSPELLLEVEL` / `KNOWNSPELLSFROMSPECIALTY` / `SPELLBOOK` 已 typed 或
   消费，`PRESPELL` / `PRESPELLSCHOOL` 已 lower，两个数据集这些 tag 均清零。
-  S2 已加入 `spell_effects` 指标与 golden 测试：DS-3E 16、DS-35E 41。
+  S2 已加入 `spell_effects` 指标与 golden 测试：DS-3E 16、DS-35E 41；
+  `CharacterSnapshot.spell_effects` 汇总领域法术与准备法术结果。
   预研见 [`docs/P4_SPELL1_PRERESEARCH.md`](docs/P4_SPELL1_PRERESEARCH.md)。
-  完整 spell effect 执行（如领域/专精法术效果进入 snapshot）仍可继续扩展。
+  更完整的法术效果数值应用仍可继续扩展。
 - **目标**：建立 spell effect 模型，将 spell 定义降低为可执行 `Effect`，
   并在 `import-report` 新增 `spell_effects` 指标。
 - **指标**：`spell_effects > 0` 并冻结基线；
@@ -403,25 +436,36 @@ P4-PRE-5 额外清理 legacy_pending（不改变 unsupported 路径）：
   - **门禁**：`pcgen-ir/tests/kit_import.rs`、`tagclass` 单测、
     `coverage_gate.py` 双数据集、broad oracle 不变。
   - **完成定义**：`kits` typed count 进入 import-report；coverage baseline 重冻结。
-- **P4-TEMP-1 临时状态**（`TEMPBONUS`/`TEMPVALUE`，DS-35E 376 次）：
-  active-state 模型（Rage 等），不是静态 snapshot。
+- **P4-TEMP-1 临时状态（已完成）**（`TEMPBONUS`/`TEMPVALUE`，DS-35E 376 次）：
+  已建立 active-state 模型。`TEMPBONUS` lower 为带 `Predicate::ActiveState`
+  条件的 `Effect`；`TEMPVALUE` 解析为 `TemporaryValue` 元数据；
+  `CharacterDraft.active_states` / `CharacterSnapshot.active_states` 已接入。
+  两个数据集 `TEMPBONUS`/`TEMPVALUE` pending 清零。`EQ` 作用域使用
+  `Predicate::Equipped` 近似装备类型约束；`%CHOICE` 目前仍按 0 处理，
+  留待后续临时值选择 UI 接入。
 - **P4-RACE-1 种族 / 生物特征**（`RACESUBTYPE`/`REACH`/`NATURALATTACKS`/
   `UDAM`/`DR`/`SR`/`CR`/`VISION` 等，DS-35E 838 次）。
   已完成 Halfling 种族 trait / `.MOD` ability 默认链、`CreatureTraits`
   typed 化（Race/Template 的 reach / natural attacks / DR/SR/CR / vision 等）。
-  剩余出现在 Ability / ClassLevel / Equipment 上的 creature-trait tag
-  仍按 owner 分别归入 P4-CLASS-1 / P4-EQP-1 或后续 runtime。
-- **P4-CLASS-1 职业 / 进阶**（`SKILLMULT`/`LEVELSPERFEAT`/`HITDIE`/`EXCLASS`
-  等，DS-35E 29 次）。
-- **P4-STAT-1 属性 / 尺寸**（`DEFINESTAT`/`STATMOD`/`SIZENUM`，DS-35E 46 次）。
+  Ability / ClassLevel / Equipment 上的同名 trait 已捕获为 metadata，其中
+  active owner entity 会汇入 snapshot；EquipMod / CompanionMod /
+  `MOVECLONE` 仍为 pending，等待 P4-EQP-1 / P4-RACE-1 后续实现。
+- **P4-CLASS-1 职业 / 进阶（typed 完成，runtime 待补）**：
+  `SKILLMULT`/`LEVELSPERFEAT`/`HITDIE`/`EXCLASS`/`ADDLEVEL`/`EXCHANGELEVEL`
+  已进入 typed `ClassDefinition`，但首级技能点、专长进度、HP 等消费仍归
+  P4-CLASS-2。
+- **P4-STAT-1 属性 / 尺寸（typed 完成，runtime 待补）**：
+  `DEFINESTAT`/`STATMOD`/`SIZENUM` 已 typed，属性下限/公式/排序消费归
+  P4-STAT-2。
 - **P4-PRE-6 谓词补齐（部分完成）**：已完成 `PRESIZEEQ`/`PRESIZEGTEQ`/
   `PRESIZELT`/`PRESIZELTEQ`/`PRESIZEGT`（DS-35E 58 次）与 `PRETEXT` 改判
   allowlist；`PRETEMPLATE`/`PREMOVE` 已在 P4-PRE-4 落地；剩余
   `!PRESUBCLASS`/`PRELANG`/`PREWEAPONPROF` 需要新运行时状态，分别并入
   P4-CLASS-1 / P4-RACE-1 / P4-EQP-1；`PRESPELL`/`PRESPELLSCHOOL` 并入
   P4-SPELL-1。
-- **P4-FAITH 信仰小项**（`DEITYWEAP`/`VALIDFORDEITY`/`VALIDFORFOLLOWER`，
-  DS-35E 5 次）。
+- **P4-FAITH 信仰小项（typed 完成，runtime 待补）**：
+  `DEITYWEAP` 已消费；`VALIDFORDEITY`/`VALIDFORFOLLOWER` 已 typed，信仰
+  校验消费归 P4-FAITH-2。
 
 ### P4-G DS-35E unsupported owner 表（已清零）
 
@@ -449,7 +493,11 @@ DS-35E unsupported 阈值收紧到 0。
 Race/Template 上的 `VISION` / `DR` / `SR` / `NATURALATTACKS` / `REACH` /
 `RACESUBTYPE` / `UDAM` / `UMULT` 等已 typed 化，并进入 `CharacterSnapshot`
 的 `vision` / `damage_reduction` / `spell_resistance` / `natural_attacks`。
-剩余同名 tag 出现在 Ability / ClassLevel / Equipment 等 category，按 owner 归并：
+剩余同名 tag 出现在 Ability / ClassLevel / Equipment 等 category，已统一
+captured 到 `CompiledRulePack.creature_trait_records`；其中 active
+ClassLevel / Ability / Feat / Equipment 已汇入 snapshot；`MOVECLONE` 与
+EquipMod `DR`/`SR` 已有 runtime 消费。CompanionMod 的 `FOLLOWER:` 行已按
+id 分组保存，但 `PRERACE`/`KIT`/`BONUS` 条件行选择仍待 P4-COMP-1：
 
 | category | tags / 次数 | owner | 处理方式 |
 |---|---|---|---|
@@ -457,10 +505,11 @@ Race/Template 上的 `VISION` / `DR` / `SR` / `NATURALATTACKS` / `REACH` /
 | ClassLevel | `UDAM` 20、`UMULT` 1 | P4-CLASS-1 | 职业进阶表能力，进入 class feature / unarmed damage 模型 |
 | Equipment | `REACHMULT` 7、`SR` 5、`DR` 3 | P4-EQP-1 | 装备特殊能力，接入装备 trait 输出 |
 | EquipMod | `DR` 4、`SR` 6 | P4-EQP-1 | 装备 modifier 特殊能力 |
-| CompanionMod | `SR` 4 | P4-RACE-1 | companion trait |
+| CompanionMod | `SR` 4 | P4-COMP-1 | 行级条件选择 + HD/SR/ABILITY/BONUS/KIT 消费 |
 
-> 产品输出范围已冻结：Race/Template 的视觉、DR、SR、natural attacks 进入
-> `CharacterSnapshot`；其余 category 的 trait 由对应 owner 任务逐步汇入同一字段。
+> 产品输出范围已冻结：Race/Template 的视觉、DR、SR、natural attacks、reach、
+> unarmed damage 进入 `CharacterSnapshot`；其余 category 的 trait 已保存为
+> typed metadata，active owner entity 会汇入 snapshot，未实现消费的仍为 pending。
 
 ### P4 推荐执行顺序
 
@@ -477,12 +526,12 @@ Race/Template 上的 `VISION` / `DR` / `SR` / `NATURALATTACKS` / `REACH` /
 | ~~0c~~ | ~~P4-ENG-1~~ | ✅ 已完成：class/level 激活 + 默认 BAB=0 + modifier 归一化；BAB 21/21 |
 | ~~0d~~ | ~~P4-KIT-0~~ | ✅ 设计 spike 完成：声明式导入优先，随机展开单独立项 |
 | ~~1~~ | ~~P4-KIT-1~~ | ✅ 完成：KIT pending 6,896→0；DS-35E completion 45.5%→76.2% |
-| 2 | P4-BONUS-1 + P4-EQP-1 第二阶段 | ✅ BONUS/装备 pending 清零、AC stacking、EquipSlot/冲突/排序；剩余 saves/attack/skill 通用 stacking |
-| 3 | P4-SPELL-1 | ✅ S1 typed/coverage + S2 `spell_effects` 指标/golden；完整法术执行可继续扩展 |
+| 2 | P4-BONUS-1 + P4-EQP-1 第二阶段 | ✅ 统一 `TypedBonus`、EquipSlot/冲突/排序、PREEQUIP、EquipMod DR/SR；剩余 alternate weapon profile / proficiency tag，P4-COMP-1 companion selector |
+| 3 | P4-SPELL-1 | ✅ S1 typed/coverage + S2 `spell_effects` 指标/golden + snapshot 汇总；法术数值执行可继续扩展 |
 | ~~4~~ | ~~P4-DATA-1~~ | ✅ 完成：known_diverging 0；23/23 Java exact |
-| 4b | P4-RACE-1 / P4-TPL-1 | ✅ Race/Template typed + snapshot traits + owner 表；Ability/ClassLevel/Equipment 剩余 trait 按 owner 推进 |
-| 5 | P4-TEMP-1 / P4-PSI-1 | active-state 与灵能闭环；可与第 2–4 项并行 |
-| 6 | P4-CLASS-1 / P4-STAT-1 / P4-FAITH | triage 派生小项；清 `!PRESUBCLASS` 等 unsupported |
+| 4b | P4-RACE-1 / P4-TPL-1 / P4-COMP-1 | ✅ Race/Template typed + active owner trait 汇入 snapshot；MOVECLONE 与 EquipMod DR/SR 已消费；CompanionMod 行已保全，条件 selector 待 P4-COMP-1 |
+| 5 | P4-TEMP-1 / P4-PSI-1 | ✅ P4-TEMP-1 active-state；P4-PSI-1 首版完成，第三灵能职业与 known powers 待补 |
+| 6 | P4-CLASS-1 / P4-STAT-1 / P4-FAITH | typed 导入完成；runtime 消费拆为 P4-CLASS-2 / P4-STAT-2 / P4-FAITH-2 |
 | 7 | P4-DEC-2 / DEC-4 | G3 dropped、G4 归档 |
 
 > 每个任务合并前必须同时满足：`cargo test --workspace`、

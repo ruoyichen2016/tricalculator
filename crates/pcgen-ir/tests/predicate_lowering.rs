@@ -396,3 +396,42 @@ fn pretemplate_tolerates_trailing_bracket_in_data() {
         Predicate::TemplateCount { names, min_count: 1 } if names.contains("vampire")
     ));
 }
+
+#[test]
+fn precheckbase_lowers_to_base_save() {
+    let records = vec![record(
+        "FEAT",
+        "Mental Resistance",
+        &[("PRECHECKBASE", "1,Will=2")],
+    )];
+    let (_, report) = lower_records(
+        Some("35e".to_string()),
+        vec!["precheckbase".to_string()],
+        &records,
+    );
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+}
+
+#[test]
+fn choose_is_lowered_once_and_not_reported_as_legacy() {
+    // `CHOOSE` has always been lowered to `EffectAction::Choose`, but it was
+    // also counted as a legacy pending tag.  Ensure it only contributes to
+    // the lowered/choose metrics.
+    let record = record("ABILITY", "Skill Focus", &[("CHOOSE", "SKILL|Climb")]);
+    let (pack, report) = lower_records(
+        Some("3e".to_string()),
+        vec!["choose".to_string()],
+        &[record],
+    );
+    assert!(pack.entities[0]
+        .effects
+        .iter()
+        .any(|effect| matches!(effect.action, pcgen_core::EffectAction::Choose { .. })));
+    assert_eq!(report.coverage.choose_effects, 1);
+    assert_eq!(report.coverage.legacy_by_tag.get("CHOOSE"), None);
+    assert_eq!(report.coverage.legacy_pending_by_tag.get("CHOOSE"), None);
+}
