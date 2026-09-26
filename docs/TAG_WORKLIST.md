@@ -1,7 +1,7 @@
 # Tag 迁移工作清单
 
 > 由固定数据上的真实 3e SRD（`srdbasic.pcc`）生成。
-> 最近更新：阶段 3 后。选择类 `ABILITYLIST` / `POOL` / `STACK` / `CHOICE` pending 已清零。
+> 最近更新：P4 全量关闭后。legacy pending 与 unsupported pending 均为 0。
 
 ## 0. 口径
 
@@ -9,13 +9,13 @@
 
 ```text
 lowered_effects     3267
-legacy_tags         1285
+legacy_tags         1284
   ├─ allowlisted    1284
-  └─ pending        1
+  └─ pending        0
 unsupported_tags    0
   ├─ allowlisted    0
   └─ pending        0
-semantic_pending    1
+semantic_pending    0
 semantic_completion 100.0%
 ```
 
@@ -23,11 +23,9 @@ semantic_completion 100.0%
 
 无。三个验收数据集的 unsupported pending 均为 0。
 
-## 2. pending legacy（1 tag，1 次）
+## 2. pending legacy（0 tag，0 次）
 
-| count | tag |
-|---:|---|
-| 1 | `ATTACKCYCLE` |
+无。DS-3E/DS-35E/DS-PSI 的 legacy pending 均为 0。
 
 ## 3. allowlisted（47 tag，1284 次）
 
@@ -102,4 +100,4 @@ semantic_completion 100.0%
   （legacy_tags 2,902→2,773，semantic_completion 65.4%→67.2%）
 - monster class `classlevel()` BAB 公式修复（`classlevel()` 空括号）
 
-累计：`legacy_tags` 4289 → 1285，`unsupported` 337 → 0，`semantic_completion` 46.8% → 100.0%。
+累计：`legacy_tags` 4289 → 1284，`unsupported` 337 → 0，`semantic_completion` 46.8% → 100.0%。

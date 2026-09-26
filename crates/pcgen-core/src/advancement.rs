@@ -68,6 +68,9 @@ pub struct AdvancementLane {
     /// Optional substitution-level identifier applied to this lane.
     #[serde(default)]
     pub substitution_level: Option<String>,
+    /// Optional subclass / specialty selection applied to this lane.
+    #[serde(default)]
+    pub subclass: Option<String>,
     /// Deity bound to this divine lane, if any.
     #[serde(default)]
     pub deity: Option<String>,
@@ -93,6 +96,7 @@ impl AdvancementLane {
             advances: Vec::new(),
             archetype: None,
             substitution_level: None,
+            subclass: None,
             deity: None,
             domains: Vec::new(),
         }
@@ -110,6 +114,11 @@ impl AdvancementLane {
 
     pub fn with_substitution_level(mut self, substitution_level: impl Into<String>) -> Self {
         self.substitution_level = Some(substitution_level.into());
+        self
+    }
+
+    pub fn with_subclass(mut self, subclass: impl Into<String>) -> Self {
+        self.subclass = Some(subclass.into());
         self
     }
 

@@ -31,6 +31,16 @@ pub struct CompanionSnapshot {
     pub traits: CreatureTraits,
 }
 
+/// One ability category's pool usage.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AbilityPoolUsage {
+    pub pool: i32,
+    pub spent: i32,
+    pub remaining: i32,
+    #[serde(default)]
+    pub selected: Vec<String>,
+}
+
 /// Runtime-visible class interaction metadata (`EXCLASS` / `EXCHANGELEVEL`).
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClassInteraction {
@@ -111,9 +121,15 @@ pub struct CharacterSnapshot {
     /// `POOL` points keyed by ability-category id, resolved from variables.
     #[serde(default)]
     pub ability_pools: BTreeMap<String, i32>,
+    /// Pool spending per ability category.
+    #[serde(default)]
+    pub ability_pool_usage: BTreeMap<String, AbilityPoolUsage>,
     /// Ability ids marked repeatable via `STACK` / `MULT`.
     #[serde(default)]
     pub repeatable_abilities: Vec<String>,
+    /// Known languages, sorted.
+    #[serde(default)]
+    pub languages: Vec<String>,
     /// Subclass `CHOICE:` expressions keyed by class id.
     #[serde(default)]
     pub class_choices: BTreeMap<String, String>,
@@ -141,6 +157,9 @@ pub struct CharacterSnapshot {
     /// Unarmed damage multiplier (`UMULT`).
     #[serde(default)]
     pub unarmed_mult: Option<i32>,
+    /// Iterative attack cycle entries (`ATTACKCYCLE`).
+    #[serde(default)]
+    pub attack_cycle: Vec<String>,
     /// Movement modes in feet (lower-cased mode -> rate), after race + active
     /// `MOVECLONE` expansion.
     #[serde(default)]

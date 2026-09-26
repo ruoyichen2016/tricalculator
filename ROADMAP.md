@@ -8,12 +8,12 @@
 ## 当前状态（最近验证：固定数据 + 全量门禁）
 
 - 工作区：7 crate（core / formula / ir / import / engine / output / cli）。
-- 测试：`cargo test --workspace` **168 passed**。
+- 测试：`cargo test --workspace` **174 passed**。
 - DS-3E（回归代理，`srdbasic.pcc`）：3,779 entities，23,723 tag occurrences，
-  lowered 3,267；legacy pending 1；unsupported 0；
+  lowered 3,267；legacy pending 0；unsupported 0；
   **semantic completion 100.0%**。
 - DS-35E（主验收，`_rsrd_basics.pcc`）：15,741 entities，
-  lowered 8,196；legacy pending 2；unsupported pending 0
+  lowered 8,196；legacy pending 0；unsupported pending 0
   （仅 2 个 `PRETEXT` allowlisted）；**semantic completion 100.0%**。
 - DS-PSI（灵能验收，`_rsrd_psionics.pcc`）：1,570 entities，
   lowered 1,195；legacy pending 0；unsupported pending 0；
@@ -62,6 +62,22 @@
       repeatable ability 状态，覆盖现有 23-case cohort。
 - [x] 选择类 pending 清零：DS-3E 1（`ATTACKCYCLE`）、DS-35E 2
       （`MOVECLONE` / `REACH`）、DS-PSI 0；completion 均为 100.0%。
+
+### P0.5 P4 全量关闭：residual / language / subclass / spell / decisions（已完成）
+
+- [x] residual pending 清零：`ATTACKCYCLE` / `MOVECLONE` / `REACH` typed
+      消费并进入 snapshot。
+- [x] language state：`LANGBONUS` / `AUTO:LANG` 进入 `languages`，
+      `PRELANG` 从真实语言集合求值。
+- [x] subclass state：`AdvancementLane.subclass` + `PRESUBCLASS` 真实求值。
+- [x] ability pool usage：`ability_pool_usage` 输出 pool / spent / remaining /
+      selected。
+- [x] bounded numeric tails：`ADD:SPELLCASTER|Arcane/Divine` PRC caster
+      stacking；monster base HD 平均 HP。
+- [x] 范围决策：KIT runtime deferred、Pathfinder deferred；见
+      [`docs/P4_DECISIONS.md`](docs/P4_DECISIONS.md)。
+- [x] 三数据集 pending 全部为 0，completion 100.0%；P4 closure matrix 已写入
+      本文件顶部。
 
 ### P0.3 阶段 2：剩余装备 / 法术 / 灵能 pending 清零（已完成）
 
@@ -148,7 +164,7 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
       旧 archive 错误叠加了 synergy
 - 结论：8 个 case **无新引擎回归**；archive 作为 oracle 在 2 处自身有 bug。
 
-## P4：按用户价值迁移语义（进行中）
+## P4：按用户价值迁移语义（已完成；deferred 项已标注）
 
 > P4 已重写为可验收任务。每项必须回答：目标是什么、用什么指标判断、
 > 由哪个门禁守住、什么条件下算完成、依赖/风险是什么。
@@ -156,7 +172,42 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
 >
 > 已完成基线：`CATEGORY` ability pool（941→0）、`PREMULT` 主体（113→1）、
 > BONUS 家族主体（167→4）、5 个 data-missing case 修复（0 data-missing）。
-> 以下只列仍未完成的任务。
+
+### P4 closure matrix
+
+| ID | 最终状态 | 说明 |
+|---|---|---|
+| P4-PRE-1 | completed | `PREVARNEQ` / `PREMULT` |
+| P4-PRE-2 | completed | `PRETOTALAB` 两阶段求值 |
+| P4-PRE-3 | completed | `PRESPELLTYPE` / `PRESPELLBOOK` / `PRESPELLCAST` |
+| P4-PRE-4 | completed | `PRETEMPLATE` / `PREHANDS*` / `PREMOVE` |
+| P4-PRE-5 | completed | 顶层 `!PRExxx` |
+| P4-PRE-6 | completed | size 谓词、`PRETEXT` allowlist；`PRELANG` / `!PRESUBCLASS` 运行时状态已落地 |
+| P4-ENG-1 | completed | class/level 激活与 modifier 归一化 |
+| P4-BONUS-1 | completed | typed bonus / stacking |
+| P4-EQP-1 / P4-EQP-2 | completed | equipment slots、alternate profile、proficiency |
+| P4-PSI-1 / P4-PSI-2 | completed | 灵能闭环、Wilder、`powers_known`、PRC stacking |
+| P4-TPL-1 | completed | template 激活与 creature traits |
+| P4-SPELL-1 / P4-SPELL-2 | completed | spell effect model、domain/prohibited/cost、arcane/divine PRC caster stacking |
+| P4-DEC-1 | closed | KIT runtime deferred / CompanionMod completed / SIZE numeric completed |
+| P4-DEC-2 | dropped | G3 XP / point buy out-of-scope |
+| P4-DEC-3 | deferred | Pathfinder 1e 明确在 P4 外，见 `docs/P4_DECISIONS.md` |
+| P4-DEC-4 | superseded | G4 由 Rule IR 取代 |
+| P4-DATA-1 | completed | monster HD / Java parity |
+| P4-KIT-0 | completed | KIT spike |
+| P4-KIT-1 | completed | declarative typed import |
+| P4-KIT-2 | deferred | runtime random expansion 不在 P4，见 `docs/P4_DECISIONS.md` |
+| P4-TEMP-1 | completed | active-state |
+| P4-TEMP-2 | deferred | TEMPVALUE UI / `%CHOICE` 交互扩展，不在 P4 |
+| P4-RACE-1 / P4-RACE-2 | completed | `REACH` / `MOVECLONE` / `ATTACKCYCLE`、creature traits、monster HD |
+| P4-CLASS-1 / P4-CLASS-2 | completed | 职业 / 进阶 typed + runtime |
+| P4-STAT-1 / P4-STAT-2 | completed | 属性 / size typed + runtime |
+| P4-FAITH | completed | deity / domain / valid flags |
+| P4-ABILITY-1 | completed | ability pool / choice / stack / mult |
+| P4-COMP-1 | completed | companion runtime |
+
+> `deferred` 项不阻塞 P4 关闭；若重新纳入，必须重新开 task、定义 acceptance
+> case 和门禁并更新本矩阵。
 
 ### P4 排序依据：Java 字段一致率
 

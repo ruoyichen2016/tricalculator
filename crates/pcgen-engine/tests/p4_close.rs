@@ -1,0 +1,255 @@
+//! Final P4 closure: residual traits, language/subclass state, pools and
+//! bounded numeric tails.
+
+use pcgen_core::{AdvancementFrame, AdvancementLane};
+use pcgen_engine::{CharacterDraft, DraftClassLevel, Engine};
+use pcgen_ir::{lower_records, RawRecord, RawTag, SourceRef};
+
+fn record_key(category: &str, key: &str, name: &str, tags: &[(&str, &str)]) -> RawRecord {
+    let source = SourceRef::new("/tmp/p4-close.lst", 1, "p4.pcc");
+    RawRecord {
+        category: category.to_string(),
+        key: key.to_string(),
+        name: name.to_string(),
+        tags: tags
+            .iter()
+            .map(|(name, value)| RawTag {
+                name: (*name).to_string(),
+                value: (*value).to_string(),
+                source: source.clone(),
+            })
+            .collect(),
+        source,
+        raw: String::new(),
+    }
+}
+
+fn record(category: &str, name: &str, tags: &[(&str, &str)]) -> RawRecord {
+    record_key(category, name, name, tags)
+}
+
+#[test]
+fn residual_trait_tags_are_consumed_and_visible() {
+    let records = vec![record(
+        "RACE",
+        "Dragon",
+        &[
+            ("SIZE", "L"),
+            ("MOVE", "Walk,30"),
+            ("REACH", "10"),
+            ("MOVECLONE", "Walk,Fly,*2"),
+            ("ATTACKCYCLE", "BAB,+5"),
+        ],
+    )];
+    let (pack, report) = lower_records(
+        Some("3e".to_string()),
+        vec!["p4-residual".to_string()],
+        &records,
+    );
+    for tag in ["REACH", "MOVECLONE", "ATTACKCYCLE"] {
+        assert!(
+            !report.coverage.legacy_pending_by_tag.contains_key(tag)
+                && !report.coverage.unsupported_pending_by_tag.contains_key(tag),
+            "{tag} should be consumed"
+        );
+    }
+    let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Dragon".to_string(),
+        ..CharacterDraft::default()
+    });
+    assert_eq!(snapshot.reach_feet, Some(10));
+    assert_eq!(snapshot.movement.get("fly"), Some(&60));
+    assert!(snapshot.attack_cycle.iter().any(|cycle| cycle == "BAB,+5"));
+}
+
+#[test]
+fn language_state_feeds_prelang() {
+    let records = vec![record(
+        "RACE",
+        "Polyglot",
+        &[
+            ("SIZE", "M"),
+            ("LANGBONUS", "Dwarven,Elven"),
+            ("AUTO", "LANG|Common"),
+            ("BONUS", "VAR|SpeaksElven|1|PRELANG:1,Elven"),
+        ],
+    )];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["p4-language".to_string()],
+        &records,
+    );
+    let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Polyglot".to_string(),
+        ..CharacterDraft::default()
+    });
+    assert!(snapshot
+        .languages
+        .iter()
+        .any(|language| language == "common"));
+    assert!(snapshot
+        .languages
+        .iter()
+        .any(|language| language == "dwarven"));
+    assert_eq!(snapshot.variables.get("SpeaksElven"), Some(&1));
+}
+
+#[test]
+fn subclass_state_feeds_presubclass() {
+    let records = vec![record(
+        "RACE",
+        "Specialist",
+        &[
+            ("SIZE", "M"),
+            ("BONUS", "VAR|IsAbjurer|1|PRESUBCLASS:1,Abjurer"),
+        ],
+    )];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["p4-subclass".to_string()],
+        &records,
+    );
+    let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Specialist".to_string(),
+        advancement: vec![AdvancementFrame::new(
+            1,
+            vec![AdvancementLane::new("a", "Wizard", 1, 4, 0).with_subclass("Abjurer")],
+        )],
+        ..CharacterDraft::default()
+    });
+    assert_eq!(snapshot.variables.get("IsAbjurer"), Some(&1));
+}
+
+#[test]
+fn ability_pool_usage_tracks_selected_members() {
+    let records = vec![
+        record("RACE", "Human", &[("SIZE", "M")]),
+        record(
+            "ABILITYCATEGORY",
+            "Skill Pool",
+            &[
+                ("CATEGORY", "FEAT"),
+                ("POOL", "SkillPool"),
+                ("ABILITYLIST", "Skill Focus|Weapon Focus"),
+            ],
+        ),
+        record(
+            "RACE",
+            "Human",
+            &[("DEFINE", "SkillPool|0"), ("BONUS", "VAR|SkillPool|3")],
+        ),
+    ];
+    // Two Human records intentionally exercise patch-free merge; the last one
+    // does not overwrite the first in `lower_records` coverage and pool logic.
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["p4-pool".to_string()],
+        &records,
+    );
+    let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Human".to_string(),
+        abilities: vec![
+            ("FEAT".to_string(), "Skill Focus".to_string()),
+            ("FEAT".to_string(), "Weapon Focus".to_string()),
+        ],
+        ..CharacterDraft::default()
+    });
+    let usage = snapshot
+        .ability_pool_usage
+        .get("skill_pool")
+        .expect("pool usage");
+    assert_eq!(usage.pool, 3);
+    assert_eq!(usage.spent, 2);
+    assert_eq!(usage.remaining, 1);
+    assert_eq!(usage.selected.len(), 2);
+}
+
+#[test]
+fn arcane_prestige_class_stacks_caster_level() {
+    let records = vec![
+        record("RACE", "Human", &[("SIZE", "M")]),
+        record(
+            "CLASS",
+            "Wizard",
+            &[
+                ("HD", "4"),
+                ("SPELLSTAT", "INT"),
+                ("MEMORIZE", "YES"),
+                ("BAB", "HALF"),
+                ("FACT", "SpellType|Arcane"),
+            ],
+        ),
+        record(
+            "CLASS",
+            "PRC Caster",
+            &[
+                ("HD", "4"),
+                ("SPELLSTAT", "INT"),
+                ("MEMORIZE", "YES"),
+                ("BAB", "HALF"),
+                ("TYPE", "PC.Prestige"),
+            ],
+        ),
+        record_key("CLASS", "PRC Caster", "1", &[("ADD", "SPELLCASTER|Arcane")]),
+        record_key("CLASS", "PRC Caster", "2", &[("ADD", "SPELLCASTER|Arcane")]),
+        record_key("CLASS", "PRC Caster", "3", &[("ADD", "SPELLCASTER|Arcane")]),
+    ];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["p4-caster".to_string()],
+        &records,
+    );
+    let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Human".to_string(),
+        stats: [("INT".to_string(), 18)].into_iter().collect(),
+        class_levels: vec![
+            DraftClassLevel {
+                class_id: "Wizard".to_string(),
+                level: 5,
+                hit_points_gained: 0,
+                hit_points_by_level: Vec::new(),
+                experience_gained: 0,
+            },
+            DraftClassLevel {
+                class_id: "PRC Caster".to_string(),
+                level: 3,
+                hit_points_gained: 0,
+                hit_points_by_level: Vec::new(),
+                experience_gained: 0,
+            },
+        ],
+        ..CharacterDraft::default()
+    });
+    assert_eq!(snapshot.caster_levels.get("Wizard"), Some(&8));
+    assert!(!snapshot.caster_levels.contains_key("PRC Caster"));
+}
+
+#[test]
+fn monster_hd_uses_base_hit_die_average() {
+    let records = vec![
+        record("RACE", "Human", &[("SIZE", "M")]),
+        record(
+            "CLASS",
+            "Animal",
+            &[("HD", "8"), ("TYPE", "Monster"), ("BAB", "MEDIUM")],
+        ),
+    ];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["p4-monster-hd".to_string()],
+        &records,
+    );
+    let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Human".to_string(),
+        class_levels: vec![DraftClassLevel {
+            class_id: "Animal".to_string(),
+            level: 2,
+            hit_points_gained: 0,
+            hit_points_by_level: Vec::new(),
+            experience_gained: 0,
+        }],
+        ..CharacterDraft::default()
+    });
+    // d8 average is 5 per level, CON 10 has no modifier.
+    assert_eq!(snapshot.hit_points, 10);
+}

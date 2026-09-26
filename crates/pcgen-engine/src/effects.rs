@@ -87,6 +87,8 @@ pub struct EffectState {
     pub equipped_both: BTreeSet<String>,
     /// Known weapon proficiencies (lower-cased), when derivable.
     pub weapon_proficiencies: BTreeSet<String>,
+    /// Known languages (lower-cased).
+    pub languages: BTreeSet<String>,
     /// Character domains (lower-cased).
     pub domains: BTreeSet<String>,
     /// Total Hit Dice for `PREHD`.
@@ -184,6 +186,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         .iter()
         .map(|(_, key)| normalized(key))
         .collect();
+    let mut languages: BTreeSet<String> = BTreeSet::new();
     for &index in &initial {
         if let Some(entity) = pack.entities.get(index) {
             for bonus in &entity.metadata.weapon_bonus {
@@ -192,6 +195,9 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
             for (from, to) in &entity.metadata.changed_proficiencies {
                 weapon_proficiencies.insert(normalized(from));
                 weapon_proficiencies.insert(normalized(to));
+            }
+            for language in &entity.metadata.language_bonus {
+                languages.insert(normalized(language));
             }
         }
     }
@@ -235,6 +241,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         equipped_secondary,
         equipped_both,
         weapon_proficiencies,
+        languages,
         domains,
         hit_dice: draft.total_level(),
         ..EffectState::default()
@@ -463,6 +470,10 @@ fn apply_action(
             };
             if resolved.entity_type.eq_ignore_ascii_case("weaponprof") {
                 seed_weapon_bonus(pack, &mut state.weapon_proficiencies, &resolved.key);
+            } else if resolved.entity_type.eq_ignore_ascii_case("lang")
+                || resolved.entity_type.eq_ignore_ascii_case("language")
+            {
+                state.languages.insert(normalized(&resolved.key));
             }
             if let Some(target) = find_entity(pack, &resolved) {
                 if !grant_allowed(&pack.entities[target], draft, state) {
@@ -487,6 +498,12 @@ fn apply_action(
             if category.eq_ignore_ascii_case("WEAPONPROF") {
                 for value in parts {
                     seed_weapon_bonus(pack, &mut state.weapon_proficiencies, value);
+                }
+            } else if category.eq_ignore_ascii_case("LANG")
+                || category.eq_ignore_ascii_case("LANGBONUS")
+            {
+                for value in parts {
+                    state.languages.insert(normalized(value));
                 }
             }
         }
@@ -1062,16 +1079,17 @@ fn predicate_holds(
                 .iter()
                 .flat_map(|frame| frame.lanes.iter())
                 .any(|lane| {
-                    lane.substitution_level
+                    lane.subclass
                         .as_deref()
+                        .or(lane.substitution_level.as_deref())
                         .is_some_and(|subclass| subclass.eq_ignore_ascii_case(name))
                 })
         }),
         Predicate::Language { names } => names.iter().any(|name| {
-            draft
-                .abilities
+            state
+                .languages
                 .iter()
-                .any(|(_, ability)| ability.eq_ignore_ascii_case(name))
+                .any(|language| language == &normalized(name))
         }),
         Predicate::SpellSchoolLevel { entries } => entries.iter().all(|(school, level)| {
             draft.spells.iter().any(|spell| {

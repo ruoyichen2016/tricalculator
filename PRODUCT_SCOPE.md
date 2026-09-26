@@ -18,7 +18,8 @@
 - 迁移期保留 lowered / legacy / unsupported 统计。
 - 数据集覆盖：3.0 SRD 与 3.5e RSRD 均在范围内；DS-3E 作回归代理，
   DS-35E 作主验收（见 `docs/TESTING.md` 第 7 节）。
-- KIT / COMPANIONMOD 定义导入与统计（in scope，计入 DS-35E 分母）。
+- KIT / COMPANIONMOD 声明式定义导入与统计（in scope，计入 DS-35E 分母）；
+  KIT 运行时随机展开（P4-KIT-2）deferred，见 `docs/P4_DECISIONS.md`。
 - 怪物记录（含 monster HD、natural attacks 等）计入范围与覆盖分母。
 
 ## 非目标

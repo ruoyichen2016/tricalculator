@@ -552,7 +552,11 @@ fn lower_define(tag: &crate::source::RawTag) -> Option<Effect> {
 fn lower_grant(record: &RawRecord, tag: &crate::source::RawTag) -> Option<Effect> {
     let parts: Vec<&str> = tag.value.split('|').map(str::trim).collect();
     let first = *parts.first()?;
-    if first.eq_ignore_ascii_case("WEAPONPROF") || first.eq_ignore_ascii_case("ARMORPROF") {
+    if first.eq_ignore_ascii_case("WEAPONPROF")
+        || first.eq_ignore_ascii_case("ARMORPROF")
+        || first.eq_ignore_ascii_case("LANG")
+        || first.eq_ignore_ascii_case("LANGBONUS")
+    {
         let body = parts
             .iter()
             .skip(1)
@@ -1408,6 +1412,7 @@ fn parse_entity_metadata(record: &RawRecord) -> pcgen_core::EntityMetadata {
             "PROHIBITCOST" => metadata.prohibited_cost = value.parse::<i32>().ok(),
             "DONOTADD" => extend_metadata_list(&mut metadata.do_not_add, value),
             "VARIANTS" => extend_metadata_list(&mut metadata.spell_variants, value),
+            "LANGBONUS" => extend_metadata_list(&mut metadata.language_bonus, value),
             _ => {}
         }
     }
@@ -1449,6 +1454,9 @@ fn consumed_legacy_tag(category: &str, tag_name: &str) -> bool {
             | "ABILITYLIST"
             | "POOL"
             | "CHOICE"
+            | "ATTACKCYCLE"
+            | "MOVECLONE"
+            | "REACH"
     ) {
         return true;
     }

@@ -37,6 +37,7 @@ struct CreatureTraitAccumulator {
     reach_mult: Option<i32>,
     unarmed_damage: Vec<String>,
     unarmed_mult: Option<i32>,
+    attack_cycle: Vec<String>,
     move_clone: Vec<String>,
 }
 
@@ -54,6 +55,53 @@ impl Engine {
     pub fn with_progressions(mut self, progressions: BTreeMap<String, ClassProgress>) -> Self {
         self.pack.progressions = progressions;
         self
+    }
+
+    fn ability_pool_usage(
+        &self,
+        draft: &CharacterDraft,
+        pools: &BTreeMap<String, i32>,
+    ) -> BTreeMap<String, crate::snapshot::AbilityPoolUsage> {
+        let mut usage = BTreeMap::new();
+        for (category_id, category) in &self.pack.ability_categories {
+            let Some(pool) = pools.get(category_id).copied() else {
+                continue;
+            };
+            let mut selected: Vec<String> = draft
+                .abilities
+                .iter()
+                .filter_map(|(_, key)| {
+                    let key_norm = normalized_name(key);
+                    let explicit = category
+                        .ability_list
+                        .iter()
+                        .any(|member| normalized_name(member) == key_norm);
+                    let inferred = category.ability_list.is_empty()
+                        && self.pack.abilities.values().any(|ability| {
+                            (ability.id == key_norm || normalized_name(&ability.name) == key_norm)
+                                && ability.category.as_deref().is_some_and(|ability_category| {
+                                    category.category.as_deref().is_some_and(|pool_category| {
+                                        ability_category.eq_ignore_ascii_case(pool_category)
+                                    })
+                                })
+                        });
+                    (explicit || inferred).then_some(key.clone())
+                })
+                .collect();
+            selected.sort();
+            selected.dedup();
+            let spent = selected.len() as i32;
+            usage.insert(
+                category_id.clone(),
+                crate::snapshot::AbilityPoolUsage {
+                    pool,
+                    spent,
+                    remaining: (pool - spent).max(0),
+                    selected,
+                },
+            );
+        }
+        usage
     }
 
     /// Ability-score modifiers for all core stats, honouring typed `STATMOD`
@@ -440,6 +488,7 @@ impl Engine {
                 })
             })
             .collect();
+        let ability_pool_usage = self.ability_pool_usage(draft, &ability_pools);
         let mut repeatable_abilities: Vec<String> = self
             .pack
             .abilities
@@ -449,6 +498,9 @@ impl Engine {
             .collect();
         repeatable_abilities.sort();
         repeatable_abilities.dedup();
+        let mut languages: Vec<String> = effect_state.languages.iter().cloned().collect();
+        languages.sort();
+        languages.dedup();
         let class_choices: BTreeMap<String, String> = self
             .pack
             .classes
@@ -469,6 +521,7 @@ impl Engine {
             reach_mult,
             unarmed_damage,
             unarmed_mult,
+            attack_cycle,
             move_clone,
         } = self.creature_traits(draft, &effect_state);
         let movement = resolve_movement(&practiced_movement(draft, &effect_state), &move_clone);
@@ -524,7 +577,9 @@ impl Engine {
             prohibited_costs,
             ability_lists,
             ability_pools,
+            ability_pool_usage,
             repeatable_abilities,
+            languages,
             class_choices,
             initiative: dex_mod,
             armor_class,
@@ -554,6 +609,7 @@ impl Engine {
             reach_mult,
             unarmed_damage,
             unarmed_mult,
+            attack_cycle,
             movement,
             companions,
             gestalt,
@@ -612,6 +668,8 @@ impl Engine {
         merged.natural_attacks.dedup();
         merged.unarmed_damage.sort();
         merged.unarmed_damage.dedup();
+        merged.attack_cycle.sort();
+        merged.attack_cycle.dedup();
         merged.move_clone.sort();
         merged.move_clone.dedup();
         merged
@@ -978,19 +1036,77 @@ impl Engine {
         let mut caster_levels = BTreeMap::new();
         let mut spell_slots = BTreeMap::new();
         let mut known_limits = BTreeMap::new();
+
+        // PRC `ADD:SPELLCASTER|Arcane/Divine` levels stack onto an existing
+        // base casting track instead of creating a separate track.
+        let mut advanced_arcane = 0u32;
+        let mut advanced_divine = 0u32;
+        let mut advanced_any = 0u32;
         for entry in class_levels {
             let Some(class) = self.class(&entry.class_id) else {
                 continue;
             };
-            let Some(stat) = class.spellcasting_ability.as_deref() else {
+            let advance_count = class
+                .level_spellcaster_advance
+                .keys()
+                .filter(|level| **level <= entry.level)
+                .count() as u32;
+            let mut arcane = false;
+            let mut divine = false;
+            let mut any = false;
+            for value in class.level_spellcaster_advance.values().flatten() {
+                let upper = value.to_ascii_uppercase();
+                if upper.contains("PSIONIC") {
+                    continue;
+                }
+                arcane |= upper.contains("ARCANE");
+                divine |= upper.contains("DIVINE");
+                any |= upper.contains("SPELLCASTER");
+            }
+            if arcane {
+                advanced_arcane += advance_count;
+            } else if divine {
+                advanced_divine += advance_count;
+            } else if any {
+                advanced_any += advance_count;
+            }
+        }
+        let mut any_applied = false;
+
+        for entry in class_levels {
+            let Some(class) = self.class(&entry.class_id) else {
                 continue;
             };
-            let _ = stat;
-            if class.is_psionic {
+            if class.spellcasting_ability.is_none() || class.is_psionic {
                 // Psionic classes are handled by `psionics`; keep them out of
                 // the arcane/divine caster-level map.
                 continue;
             }
+            let advances_caster = class
+                .level_spellcaster_advance
+                .values()
+                .flatten()
+                .any(|value| {
+                    let upper = value.to_ascii_uppercase();
+                    !upper.contains("PSIONIC")
+                        && (upper.contains("ARCANE")
+                            || upper.contains("DIVINE")
+                            || upper.contains("SPELLCASTER"))
+                });
+            if class.is_prestige && advances_caster {
+                continue;
+            }
+            let power_advance = match class.spell_power {
+                pcgen_core::SpellPowerType::Arcane => advanced_arcane,
+                pcgen_core::SpellPowerType::Divine => advanced_divine,
+                _ => 0,
+            };
+            let any_advance = if !any_applied && power_advance == 0 {
+                any_applied = true;
+                advanced_any
+            } else {
+                0
+            };
             let variant_advance = draft.advancement.iter().any(|frame| {
                 frame.lanes.iter().any(|lane| {
                     lane.class_id.eq_ignore_ascii_case(&class.id)
@@ -999,16 +1115,15 @@ impl Engine {
                             .is_some_and(|variant| variant.spellcaster_advance)
                 })
             });
-            caster_levels.insert(
-                class.id.clone(),
-                entry.level as i32 + i32::from(variant_advance),
-            );
-            if let Some(slots) = class.spell_slots.get(&entry.level) {
+            let effective_level =
+                entry.level + power_advance + any_advance + u32::from(variant_advance);
+            caster_levels.insert(class.id.clone(), effective_level as i32);
+            if let Some(slots) = class.spell_slots.get(&effective_level) {
                 for (level, count) in slots.iter().enumerate() {
                     spell_slots.insert(format!("{}|{}", class.id, level), *count);
                 }
             }
-            if let Some(known) = class.spells_known.get(&entry.level) {
+            if let Some(known) = class.spells_known.get(&effective_level) {
                 for (level, count) in known.iter().enumerate() {
                     known_limits.insert(format!("{}|{}", class.id, level), *count);
                 }
@@ -1153,12 +1268,17 @@ impl Engine {
             let raw = entry.hit_points_gained + con_mod * entry.level as i32;
             return raw.max(entry.level as i32);
         }
-        if let Some(die) = self.hit_die_override(draft, &entry.class_id) {
+        let die = self.hit_die_override(draft, &entry.class_id).or_else(|| {
+            self.class(&entry.class_id)
+                .filter(|class| class.is_monster)
+                .and_then(|class| parse_hit_die(&class.hit_die))
+        });
+        if let Some(die) = die {
             let per_level = (die / 2 + 1 + con_mod).max(1);
             return per_level * entry.level as i32;
         }
         // Preserve the legacy zero-HD / zero-rolls behavior for classes
-        // without an explicit HITDIE override.
+        // without an explicit HITDIE override or monster hit die.
         (con_mod * entry.level as i32).max(0)
     }
 
@@ -1381,6 +1501,9 @@ fn merge_companion_traits(
     merged
         .unarmed_damage
         .extend(traits.unarmed_damage.iter().cloned());
+    merged
+        .attack_cycle
+        .extend(traits.attack_cycle.iter().cloned());
     merged.move_clone.extend(traits.move_clone.iter().cloned());
     if let Some(value) = traits.reach_feet {
         merged.reach_feet = Some(
@@ -1678,6 +1801,9 @@ fn merge_creature_traits(
     merged
         .unarmed_damage
         .extend(traits.unarmed_damage.iter().cloned());
+    merged
+        .attack_cycle
+        .extend(traits.attack_cycle.iter().cloned());
     merged.move_clone.extend(traits.move_clone.iter().cloned());
     if let Some(value) = traits.reach_feet {
         merged.reach_feet = Some(

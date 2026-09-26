@@ -670,6 +670,9 @@ def main(argv: list[str] | None = None) -> int:
                     "POOL",
                     "STACK",
                     "CHOICE",
+                    "ATTACKCYCLE",
+                    "MOVECLONE",
+                    "REACH",
                 ],
             ),
         )
@@ -737,6 +740,9 @@ def main(argv: list[str] | None = None) -> int:
                     "POOL",
                     "STACK",
                     "CHOICE",
+                    "ATTACKCYCLE",
+                    "MOVECLONE",
+                    "REACH",
                 ],
             ),
         )
@@ -773,6 +779,9 @@ def main(argv: list[str] | None = None) -> int:
                     "POOL",
                     "STACK",
                     "CHOICE",
+                    "ATTACKCYCLE",
+                    "MOVECLONE",
+                    "REACH",
                 ],
                 typed={
                     "classes": (">=", 20),

@@ -453,6 +453,9 @@ pub struct EntityMetadata {
     /// Spell `VARIANTS` entries.
     #[serde(default)]
     pub spell_variants: Vec<String>,
+    /// Bonus language choices (`LANGBONUS`).
+    #[serde(default)]
+    pub language_bonus: Vec<String>,
 }
 
 /// UI metadata for a `TEMPVALUE` range associated with a temporary effect.

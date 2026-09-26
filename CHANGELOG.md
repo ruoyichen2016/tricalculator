@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### P4 全量关闭（已完成）
+
+- residual pending 清零：`ATTACKCYCLE` / `MOVECLONE` / `REACH` typed 消费并
+  进入 `CharacterSnapshot`。
+- language state：`LANGBONUS` / `AUTO:LANG` 进入 `languages`，`PRELANG`
+  从实际语言集合求值。
+- subclass state：`AdvancementLane.subclass` + `PRESUBCLASS` 真实求值。
+- `ability_pool_usage` 输出 pool / spent / remaining / selected。
+- bounded numeric tails：`ADD:SPELLCASTER|Arcane/Divine` PRC caster
+  stacking；monster HD 无显式 HP 时使用基础 hit die 平均。
+- 范围决策：`docs/P4_DECISIONS.md` 记录 KIT runtime deferred、
+  Pathfinder deferred、G3 dropped、G4 superseded。
+- ROADMAP 新增 P4 closure matrix；三数据集 pending 全部为 0，
+  completion 100.0%；测试 168→174。
+
 ### 阶段 3：能力池 / 选择语义闭环（已完成）
 
 - 新增 `AbilityDefinition` / `AbilityCategoryDefinition` typed 模型。
