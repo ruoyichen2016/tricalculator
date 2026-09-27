@@ -9,8 +9,9 @@
 - CLI 转换把 choices / class_subclasses 传入 `CharacterDraft`。
 - engine `apply_choose` 支持按 source entity 上下文解析 `draft.choices`。
 - `PRESUBCLASS` 支持 `class_subclasses`。
-- curated PCG 的 `unresolved_choices` 大幅减少；broad Java 字段未回退。
-- 测试 174→177。
+- `TEMPLATESAPPLIED` 内嵌 `APPLIEDTO` 进入 choices；`CLASS|ALL` / `CLASS|PC` 动态 class list 解析。
+- curated PCG 的 `unresolved_choices` 已归零；broad Java 字段未回退。
+- 测试 174→178。
 
 ### P4 全量关闭（已完成）
 

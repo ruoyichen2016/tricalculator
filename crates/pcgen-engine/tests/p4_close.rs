@@ -321,3 +321,53 @@ fn class_subclasses_map_feeds_presubclass() {
     });
     assert_eq!(snapshot.variables.get("IsTelepath"), Some(&1));
 }
+
+#[test]
+fn class_choice_filters_resolve_dynamic_class_lists() {
+    let records = vec![
+        record(
+            "RACE",
+            "Chooser Race",
+            &[
+                ("SIZE", "M"),
+                ("CHOOSE", "CLASS|ALL"),
+                ("CHOOSE", "CLASS|PC"),
+            ],
+        ),
+        record("CLASS", "Fighter", &[("HD", "10"), ("BAB", "GOOD")]),
+        record(
+            "CLASS",
+            "Wizard",
+            &[
+                ("HD", "4"),
+                ("SPELLSTAT", "INT"),
+                ("MEMORIZE", "YES"),
+                ("FACT", "SpellType|Arcane"),
+            ],
+        ),
+    ];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["p5-class-filter".to_string()],
+        &records,
+    );
+    let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Chooser Race".to_string(),
+        class_levels: vec![DraftClassLevel {
+            class_id: "Fighter".to_string(),
+            level: 1,
+            hit_points_gained: 0,
+            hit_points_by_level: Vec::new(),
+            experience_gained: 0,
+        }],
+        ..CharacterDraft::default()
+    });
+    assert_eq!(
+        snapshot.choices.get("CLASS|ALL").map(String::as_str),
+        Some("Fighter,Wizard")
+    );
+    assert_eq!(
+        snapshot.choices.get("CLASS|PC").map(String::as_str),
+        Some("Fighter")
+    );
+}

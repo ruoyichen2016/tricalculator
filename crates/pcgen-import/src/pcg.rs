@@ -109,13 +109,18 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
                 }
             }
             "TEMPLATESAPPLIED" => {
-                for name in extract_template_names(value) {
+                for (name, applied) in extract_template_choices(value) {
                     if !draft
                         .templates
                         .iter()
                         .any(|existing| existing.eq_ignore_ascii_case(&name))
                     {
-                        draft.templates.push(name);
+                        draft.templates.push(name.clone());
+                    }
+                    if let Some(applied) = applied {
+                        if !applied.is_empty() {
+                            draft.choices.insert(name, applied);
+                        }
                     }
                 }
             }
@@ -228,19 +233,31 @@ pub fn save_pcg_draft_file(path: impl AsRef<Path>, draft: &PcgDraft) -> Result<(
     Ok(())
 }
 
-fn extract_template_names(value: &str) -> Vec<String> {
-    let mut names = Vec::new();
+fn extract_template_choices(value: &str) -> Vec<(String, Option<String>)> {
+    let mut result = Vec::new();
     let mut rest = value;
-    while let Some(position) = rest.find("NAME:") {
-        let after = &rest[position + "NAME:".len()..];
-        let end = after.find([']', '|', '[']).unwrap_or(after.len());
-        let name = after[..end].trim();
-        if !name.is_empty() && !names.iter().any(|existing: &String| existing == name) {
-            names.push(name.to_string());
+    while let Some(name_start) = rest.find("NAME:") {
+        let after = &rest[name_start + "NAME:".len()..];
+        let name_end = after.find([']', '|', '[']).unwrap_or(after.len());
+        let name = after[..name_end].trim();
+        if name.is_empty() {
+            rest = &after[name_end..];
+            continue;
         }
-        rest = &after[end..];
+        let segment_end = after.find('[').unwrap_or(after.len());
+        let segment = &after[..segment_end];
+        let applied = segment
+            .find("APPLIEDTO:")
+            .map(|position| {
+                let after = &segment[position + "APPLIEDTO:".len()..];
+                let end = after.find([']', '|', '[']).unwrap_or(after.len());
+                after[..end].trim().to_string()
+            })
+            .filter(|value| !value.is_empty());
+        result.push((name.to_string(), applied));
+        rest = &after[name_end..];
     }
-    names
+    result
 }
 
 fn parse_class(draft: &mut PcgDraft, value: &str) {

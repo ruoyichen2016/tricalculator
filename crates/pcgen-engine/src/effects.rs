@@ -508,7 +508,7 @@ fn apply_action(
             }
         }
         EffectAction::Choose { spec } => {
-            apply_choose(spec, draft, state, source_entity);
+            apply_choose(spec, draft, state, source_entity, pack);
         }
     }
 }
@@ -518,6 +518,7 @@ fn apply_choose(
     draft: &CharacterDraft,
     state: &mut EffectState,
     source_entity: Option<&pcgen_core::EntityId>,
+    pack: &CompiledRulePack,
 ) {
     let spec = spec.trim();
     if let Some(choice) = draft.choices.get(spec).cloned().or_else(|| {
@@ -547,6 +548,10 @@ fn apply_choose(
         state.choices.insert(spec.to_string(), String::new());
         return;
     }
+    if let Some(candidate) = resolve_dynamic_choice(spec, draft, pack) {
+        state.choices.insert(spec.to_string(), candidate);
+        return;
+    }
     if let Some(candidate) = concrete_choice_candidate(spec) {
         state.choices.insert(spec.to_string(), candidate);
         return;
@@ -555,6 +560,73 @@ fn apply_choose(
     state
         .diagnostics
         .push(format!("unresolved choice `{spec}`"));
+}
+
+fn resolve_dynamic_choice(
+    spec: &str,
+    draft: &CharacterDraft,
+    pack: &CompiledRulePack,
+) -> Option<String> {
+    let upper = spec.trim().to_ascii_uppercase();
+    if !upper.starts_with("CLASS|") {
+        return None;
+    }
+    let filters: Vec<String> = spec
+        .split('|')
+        .skip(1)
+        .flat_map(|part| part.split(','))
+        .map(|part| part.trim().to_ascii_uppercase())
+        .filter(|part| !part.is_empty())
+        .collect();
+    let all_classes = filters.iter().any(|filter| filter == "ALL");
+    let mut candidates: Vec<String> = if all_classes {
+        pack.classes
+            .values()
+            .map(|class| class.id.clone())
+            .collect()
+    } else {
+        draft
+            .class_levels
+            .iter()
+            .map(|entry| entry.class_id.clone())
+            .chain(
+                draft
+                    .advancement
+                    .iter()
+                    .flat_map(|frame| frame.lanes.iter().map(|lane| lane.class_id.clone())),
+            )
+            .collect()
+    };
+    candidates.sort();
+    candidates.dedup();
+    candidates.retain(|class_id| {
+        let Some(class) = pack.classes.get(class_id) else {
+            return false;
+        };
+        filters.iter().all(|filter| match filter.as_str() {
+            "ALL" | "PC" | "ANY" => true,
+            "SPELLCASTER" => class.spellcasting_ability.is_some(),
+            "SPELLCASTER.ARCANE" | "SPELLTYPE=ARCANE" => {
+                matches!(class.spell_power, pcgen_core::SpellPowerType::Arcane)
+            }
+            "SPELLCASTER.DIVINE" | "SPELLTYPE=DIVINE" => {
+                matches!(class.spell_power, pcgen_core::SpellPowerType::Divine)
+            }
+            "SPELLCASTER.PSIONIC" | "SPELLTYPE=PSIONIC" => {
+                matches!(class.spell_power, pcgen_core::SpellPowerType::Psionic)
+            }
+            "TYPE=BASE" | "TYPE.BASE" => !class.is_prestige,
+            "TYPE=PRESTIGE" | "TYPE.PRESTIGE" => class.is_prestige,
+            "TYPE=MONSTER" | "TYPE.MONSTER" => class.is_monster,
+            "TYPE=PSIONIC" | "TYPE.PSIONIC" => class.is_psionic,
+            _ => true,
+        })
+    });
+    if candidates.is_empty() {
+        None
+    } else {
+        Some(candidates.join(","))
+    }
 }
 
 fn concrete_choice_candidate(spec: &str) -> Option<String> {

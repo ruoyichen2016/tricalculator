@@ -8,7 +8,7 @@
 ## 当前状态（最近验证：固定数据 + 全量门禁）
 
 - 工作区：7 crate（core / formula / ir / import / engine / output / cli）。
-- 测试：`cargo test --workspace` **177 passed**。
+- 测试：`cargo test --workspace` **178 passed**。
 - DS-3E（回归代理，`srdbasic.pcc`）：3,779 entities，23,723 tag occurrences，
   lowered 3,267；legacy pending 0；unsupported 0；
   **semantic completion 100.0%**。
@@ -216,7 +216,7 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
 - CLI `draft_from_pcg()` 将 choices / class_subclasses 传入 `CharacterDraft`；
 - engine `apply_choose` 支持按 source entity 上下文查找 `draft.choices`；
 - `PRESUBCLASS` 支持 `class_subclasses`；
-- curated CSV 中 `unresolved_choices` 已从多例收缩到仅剩 Charlie `CLASS|ALL`。
+- `TEMPLATESAPPLIED` 内嵌 `APPLIEDTO` 进入 choices；`CLASS|ALL` / `CLASS|PC` 动态 class list 解析；curated cohort 已无 unresolved choices。
 
 ### P4 排序依据：Java 字段一致率
 

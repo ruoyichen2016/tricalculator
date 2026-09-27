@@ -1485,6 +1485,7 @@
           "salient_divine_ability": 0
         },
         "choices": {
+          "class|all": "PreReq Class",
           "weaponproficiency|!pc[type=exotic]": "Bob Two Hand Blade",
           "weaponproficiency|pc": "Suns Weapon Of Choice"
         },
@@ -1870,9 +1871,7 @@
           "weapon_specialization",
           "weapon_specialization_sf"
         ],
-        "unresolved_choices": [
-          "CLASS|ALL"
-        ]
+        "unresolved_choices": []
       },
       "java_agreement": {
         "armor_class": true,
