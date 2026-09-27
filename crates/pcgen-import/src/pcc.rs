@@ -94,7 +94,13 @@ impl PccFile {
                     if value.is_empty() {
                         continue;
                     }
-                    let resolved_path = resolve_path(&path, value);
+                    // PCGen data-file entries may carry inline `|PRE...`
+                    // conditions; only the path portion is resolved here.
+                    let path_value = value.split('|').next().unwrap_or(value).trim();
+                    if path_value.is_empty() {
+                        continue;
+                    }
+                    let resolved_path = resolve_path(&path, path_value);
                     file.data_files.push(PccDataFile {
                         category: tag,
                         raw: value.to_string(),
@@ -106,11 +112,11 @@ impl PccFile {
             }
         }
 
-        if file.campaign.is_none() {
+        if file.campaign.is_none() && file.key.is_none() {
             return Err(PccError::Parse {
                 path: path.clone(),
                 line: 0,
-                message: "missing CAMPAIGN tag".to_string(),
+                message: "missing CAMPAIGN and KEY tags".to_string(),
             });
         }
         Ok(file)
@@ -300,7 +306,8 @@ fn resolve_existing(path: &Path) -> Result<PathBuf, PccError> {
 }
 
 fn resolve_path(base: &Path, raw: &str) -> PathBuf {
-    let raw = raw.trim();
+    let raw = raw.trim().replace('\\', "/");
+    let raw = raw.as_str();
     if let Some(data_relative) = raw.strip_prefix("@/") {
         return resolve_data_root_path(base, data_relative);
     }
@@ -384,6 +391,41 @@ fn is_data_category(tag: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parse_key_only_support_pcc() {
+        let text = "\
+KEY:support ~ dwarf race
+RACE:dwarf_races.lst
+";
+        let file = PccFile::parse_str("/tmp/race/_race.pcc", text).unwrap();
+        assert!(file.campaign.is_none());
+        assert_eq!(file.key.as_deref(), Some("support ~ dwarf race"));
+        assert_eq!(file.data_files.len(), 1);
+    }
+
+    #[test]
+    fn parse_windows_style_include_and_conditioned_data_file() {
+        let text = "\
+CAMPAIGN:Pathfinder Test
+KEY:pathfinder-test
+PCC:@\\pathfinder\\paizo\\_core.pcc
+CLASS:data/classes.lst|PRECAMPAIGN:1,BOOKTYPE=Core Rules
+";
+        let file = PccFile::parse_str("/tmp/test.pcc", text).unwrap();
+        assert_eq!(
+            file.includes[0].resolved_path,
+            PathBuf::from("/tmp/pathfinder/paizo/_core.pcc")
+        );
+        assert_eq!(file.data_files.len(), 1);
+        assert_eq!(
+            file.data_files[0].resolved_path,
+            PathBuf::from("/tmp/data/classes.lst")
+        );
+        assert!(file.data_files[0]
+            .raw
+            .contains("PRECAMPAIGN:1,BOOKTYPE=Core Rules"));
+    }
 
     #[test]
     fn parse_minimal_pcc() {

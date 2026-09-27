@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### P5-3 Pathfinder 试运行与导入兼容修复（已完成）
+
+- `.pcc` include 路径支持 `\` → `/` 归一化。
+- 允许只有 `KEY:` 的 support `.pcc`。
+- 数据文件条目支持 `|PRECAMPAIGN:...` 条件，路径只取 `|` 前部分。
+- Pathfinder Core Rulebook 可完成 import-report 与基础 recalculate；
+- Pathfinder 继续 deferred，不进入正式 coverage / acceptance gate。
+- 测试 181→183。
+
 ### P5-2 PCG 选择元数据与能力池诊断（已完成）
 
 - `CLASSABILITIESLEVEL` 的 `ADD:[...|CHOICE:...]` 进入 `PcgDraft.choices`。

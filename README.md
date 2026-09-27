@@ -17,6 +17,7 @@ PCGen-Rust 是围绕统一 Rule IR、`CharacterDraft` / `CharacterSnapshot`
 - [`docs/P4_TEMP1_DESIGN.md`](docs/P4_TEMP1_DESIGN.md)
 - [`docs/P4_PSI1_DESIGN.md`](docs/P4_PSI1_DESIGN.md)
 - [`docs/P4_DECISIONS.md`](docs/P4_DECISIONS.md)
+- [`docs/P5_PATHFINDER_TRIAL.md`](docs/P5_PATHFINDER_TRIAL.md)
 
 ## 工作区
 
@@ -164,7 +165,7 @@ commit 并执行字段级差分）两个 job。细节见 [`docs/TESTING.md`](doc
   curated PCG 已无 unresolved choices；
 - P5-2：`CLASSABILITIESLEVEL` 内嵌 `ADD:...CHOICE`、`SPECIALTIES`、
   `.pcg DEITY` / `DOMAIN` 进入 draft / divine tracks；能力池超支写入 diagnostics；
-- 181 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
+- 183 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
 
 真实 PCGen 数据解析与完整角色计算正在按 [`MIGRATION.md`](MIGRATION.md) 从
 archive 迁移。
