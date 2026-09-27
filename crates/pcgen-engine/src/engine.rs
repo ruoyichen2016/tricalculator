@@ -604,6 +604,7 @@ impl Engine {
             repeatable_abilities,
             languages,
             class_choices,
+            deity_domains: draft.deity_domains.clone(),
             initiative: dex_mod,
             armor_class,
             armor_bonus,
@@ -763,6 +764,19 @@ impl Engine {
         let mut diagnostics = Vec::new();
         for track in &collect_divine_tracks(draft) {
             if let Some(deity) = &track.deity {
+                if !draft.deity_domains.is_empty() {
+                    for domain in &track.domains {
+                        if !draft
+                            .deity_domains
+                            .iter()
+                            .any(|known| known.eq_ignore_ascii_case(domain))
+                        {
+                            diagnostics.push(format!(
+                                "domain `{domain}` is not granted by deity `{deity}`"
+                            ));
+                        }
+                    }
+                }
                 match self.deity(deity) {
                     Some(definition) => {
                         if definition.valid_for_deity == Some(false) {
@@ -772,10 +786,14 @@ impl Engine {
                         if definition.valid_for_follower == Some(false) {
                             diagnostics.push(format!("deity `{deity}` is not valid for followers"));
                         }
+                        let catalog: Vec<String> = if draft.deity_domains.is_empty() {
+                            definition.domains.clone()
+                        } else {
+                            draft.deity_domains.clone()
+                        };
                         for domain in &track.domains {
-                            if !definition.domains.is_empty()
-                                && !definition
-                                    .domains
+                            if !catalog.is_empty()
+                                && !catalog
                                     .iter()
                                     .any(|known| known.eq_ignore_ascii_case(domain))
                             {

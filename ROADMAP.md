@@ -8,7 +8,7 @@
 ## 当前状态（最近验证：固定数据 + 全量门禁）
 
 - 工作区：7 crate（core / formula / ir / import / engine / output / cli）。
-- 测试：`cargo test --workspace` **185 passed**。
+- 测试：`cargo test --workspace` **190 passed**。
 - DS-3E（回归代理，`srdbasic.pcc`）：3,779 entities，23,723 tag occurrences，
   lowered 3,267；legacy pending 0；unsupported 0；
   **semantic completion 100.0%**。
@@ -217,6 +217,16 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
 - engine `apply_choose` 支持按 source entity 上下文查找 `draft.choices`；
 - `PRESUBCLASS` 支持 `class_subclasses`；
 - `TEMPLATESAPPLIED` 内嵌 `APPLIEDTO` 进入 choices；`CLASS|ALL` / `CLASS|PC` 动态 class list 解析；curated cohort 已无 unresolved choices。
+
+### P5-5 PCG 选择元数据补强（已完成）
+
+- `CHOSENTEMPLATE:[NAME:...]` 嵌套选择：chosen template 名称与 choice 均被保留。
+- `DEITYDOMAINS:[DOMAIN:...]` 与选定 `DOMAIN:` 分离：catalog 进入
+  `deity_domains`，选定 domain 仍进入 `domains`。
+- 信仰校验使用 `.pcg` catalog 验证选定 domain。
+- `CharacterSnapshot.choice_bindings` / `deity_domains` 可断言。
+- broad cohort 中 cleric / specialist / template-choice case 的
+  choice_state 已更新并冻结。
 
 ### P5-4 Choice Binding 与能力池计数（已完成）
 

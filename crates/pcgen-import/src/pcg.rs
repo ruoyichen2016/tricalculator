@@ -44,6 +44,7 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
         class_subclasses: BTreeMap::new(),
         deity: None,
         domains: Vec::new(),
+        deity_domains: Vec::new(),
     };
     let mut class_hp: BTreeMap<(String, u32), i32> = BTreeMap::new();
 
@@ -111,6 +112,7 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
                 }
             }
             "TEMPLATESAPPLIED" => {
+                let chosen_templates = extract_chosen_templates(value);
                 for (name, applied) in extract_template_choices(value) {
                     if !draft
                         .templates
@@ -123,6 +125,21 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
                         if !applied.is_empty() {
                             draft.choices.insert(name, applied);
                         }
+                    } else if name.to_ascii_lowercase().contains("template choose")
+                        && !draft.choices.contains_key(&name)
+                    {
+                        if let Some(chosen) = chosen_templates.first() {
+                            draft.choices.insert(name.clone(), chosen.clone());
+                        }
+                    }
+                }
+                for chosen in chosen_templates {
+                    if !draft
+                        .templates
+                        .iter()
+                        .any(|existing| existing.eq_ignore_ascii_case(&chosen))
+                    {
+                        draft.templates.push(chosen);
                     }
                 }
             }
@@ -130,6 +147,15 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
                 let name = split_pipe(value).first().copied().unwrap_or_default();
                 if !name.is_empty() {
                     draft.deity = Some(name.to_string());
+                }
+                for domain in extract_deity_domains(value) {
+                    if !draft
+                        .deity_domains
+                        .iter()
+                        .any(|existing| existing == &domain)
+                    {
+                        draft.deity_domains.push(domain);
+                    }
                 }
             }
             "DOMAIN" => {
@@ -174,7 +200,20 @@ pub fn write_pcg_draft_string(draft: &PcgDraft) -> Result<String, PcgDraftError>
         writeln!(out, "STAT:{stat}|SCORE:{score}").ok();
     }
     if let Some(deity) = &draft.deity {
-        writeln!(out, "DEITY:{deity}").ok();
+        let catalog = if draft.deity_domains.is_empty() {
+            String::new()
+        } else {
+            format!(
+                "|DEITYDOMAINS:[{}]",
+                draft
+                    .deity_domains
+                    .iter()
+                    .map(|domain| format!("DOMAIN:{domain}"))
+                    .collect::<Vec<_>>()
+                    .join("|")
+            )
+        };
+        writeln!(out, "DEITY:{deity}{catalog}").ok();
     }
     for domain in &draft.domains {
         writeln!(out, "DOMAIN:{domain}").ok();
@@ -264,8 +303,33 @@ fn extract_template_choices(value: &str) -> Vec<(String, Option<String>)> {
             rest = &after[name_end..];
             continue;
         }
-        let segment_end = after.find('[').unwrap_or(after.len());
-        let segment = &after[..segment_end];
+        // Find the top-level segment for this NAME: stop at the next `NAME:`
+        // that is not nested inside a `CHOSENTEMPLATE:[...]` block, or at a
+        // closing `]` that ends this template entry.
+        let segment_start = &after[name_end..];
+        let mut depth: i32 = 0;
+        let mut cursor = 0usize;
+        let bytes = segment_start.as_bytes();
+        let mut segment_end = segment_start.len();
+        while cursor < bytes.len() {
+            match bytes[cursor] {
+                b'[' => depth += 1,
+                b']' => {
+                    if depth == 0 {
+                        segment_end = cursor;
+                        break;
+                    }
+                    depth -= 1;
+                }
+                _ => {}
+            }
+            if segment_start[cursor..].starts_with("NAME:") && depth == 0 {
+                segment_end = cursor;
+                break;
+            }
+            cursor += 1;
+        }
+        let segment = &segment_start[..segment_end];
         let applied = segment
             .find("APPLIEDTO:")
             .map(|position| {
@@ -275,9 +339,47 @@ fn extract_template_choices(value: &str) -> Vec<(String, Option<String>)> {
             })
             .filter(|value| !value.is_empty());
         result.push((name.to_string(), applied));
-        rest = &after[name_end..];
+        rest = &segment_start[segment_end..];
     }
     result
+}
+
+fn extract_deity_domains(value: &str) -> Vec<String> {
+    let mut domains = Vec::new();
+    let Some(start) = value.find("DEITYDOMAINS:[") else {
+        return domains;
+    };
+    let after = &value[start + "DEITYDOMAINS:[".len()..];
+    let end = after.find(']').unwrap_or(after.len());
+    for part in after[..end].split('|') {
+        if let Some(domain) = part.trim().strip_prefix("DOMAIN:") {
+            let domain = domain.trim();
+            if !domain.is_empty() && !domains.iter().any(|existing| existing == domain) {
+                domains.push(domain.to_string());
+            }
+        }
+    }
+    domains
+}
+
+fn extract_chosen_templates(value: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut rest = value;
+    while let Some(start) = rest.find("CHOSENTEMPLATE:") {
+        let after = &rest[start + "CHOSENTEMPLATE:".len()..];
+        let end = after.find(']').map(|end| end + 1).unwrap_or(after.len());
+        let block = &after[..end];
+        if let Some(name_start) = block.find("NAME:") {
+            let name_after = &block[name_start + "NAME:".len()..];
+            let name_end = name_after.find([']', '|', '[']).unwrap_or(name_after.len());
+            let name = name_after[..name_end].trim();
+            if !name.is_empty() && !names.iter().any(|existing| existing == name) {
+                names.push(name.to_string());
+            }
+        }
+        rest = &after[end..];
+    }
+    names
 }
 
 fn parse_class(draft: &mut PcgDraft, value: &str) {
@@ -587,5 +689,36 @@ GESTALTJSON:[{\"character_level\":1,\"lanes\":[{\"lane_id\":\"a\",\"class_id\":\
             draft.choices.get("SPELLCASTER:Arcane").map(String::as_str),
             Some("Sorcerer")
         );
+    }
+    #[test]
+    fn parses_nested_chosen_templates() {
+        let text = "CHARACTERNAME:Nested\nTEMPLATESAPPLIED:[NAME:Half Dragon|CHOSENTEMPLATE:[NAME:Half Dragon Wings ~ Normal]|CHOSENTEMPLATE:[NAME:Bite ~ Claw (Huge)]]\n";
+        let draft = parse_pcg_draft_str(text).unwrap();
+        assert!(draft
+            .templates
+            .iter()
+            .any(|name| name == "Half Dragon Wings ~ Normal"));
+        assert!(draft
+            .templates
+            .iter()
+            .any(|name| name == "Bite ~ Claw (Huge)"));
+    }
+
+    #[test]
+    fn chosen_template_choice_is_preserved() {
+        let text = "CHARACTERNAME:Nested Choice\nTEMPLATESAPPLIED:[NAME:A Template with TEMPLATE CHOOSE|CHOSENTEMPLATE:[NAME:A Template added with Add Choice]]\n";
+        let draft = parse_pcg_draft_str(text).unwrap();
+        assert!(draft
+            .choices
+            .get("A Template with TEMPLATE CHOOSE")
+            .is_some_and(|value| value == "A Template added with Add Choice"));
+    }
+    #[test]
+    fn separates_deity_domain_catalog_from_selected_domains() {
+        let text = "CHARACTERNAME:Cleric Test\nDEITY:Haela Brightaxe|DEITYDOMAINS:[DOMAIN:Chaos|DOMAIN:Good|DOMAIN:Luck|DOMAIN:War]|DEITYALIGN:LG\nDOMAIN:Chaos\nDOMAIN:Luck\n";
+        let draft = parse_pcg_draft_str(text).unwrap();
+        assert_eq!(draft.deity.as_deref(), Some("Haela Brightaxe"));
+        assert_eq!(draft.domains, vec!["Chaos", "Luck"]);
+        assert_eq!(draft.deity_domains, vec!["Chaos", "Good", "Luck", "War"]);
     }
 }

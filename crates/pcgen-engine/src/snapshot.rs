@@ -135,6 +135,9 @@ pub struct CharacterSnapshot {
     /// Subclass `CHOICE:` expressions keyed by class id.
     #[serde(default)]
     pub class_choices: BTreeMap<String, String>,
+    /// Deity-allowed domain catalog (`DEITYDOMAINS`), validation only.
+    #[serde(default)]
+    pub deity_domains: Vec<String>,
     /// Creature vision modes from race + active templates (`VISION`).
     #[serde(default)]
     pub vision: Vec<String>,

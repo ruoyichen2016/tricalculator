@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### P5-5 PCG 选择元数据补强（已完成）
+
+- `CHOSENTEMPLATE:[NAME:...]` 嵌套模板选择解析；chosen template 进入
+  `templates` 与 `choices`。
+- `DEITYDOMAINS:[DOMAIN:...]` catalog 与选定 `DOMAIN:` 行分离，分别进入
+  `deity_domains` 与 `domains`。
+- 信仰校验使用 `.pcg` domain catalog。
+- `CharacterSnapshot.choice_bindings` / `deity_domains` 输出。
+- 测试 185→190。
+
 ### P5-4 Choice Binding 与能力池计数（已完成）
 
 - `EffectState.choice_bindings` 将 choice 绑定到发起 `CHOOSE` 的实体。

@@ -73,6 +73,9 @@ pub struct CharacterDraft {
     /// Top-level domains for non-gestalt `.pcg` drafts.
     #[serde(default)]
     pub domains: Vec<String>,
+    /// Deity-allowed domain catalog (`DEITYDOMAINS`), validation only.
+    #[serde(default)]
+    pub deity_domains: Vec<String>,
 }
 
 /// One companion owned by the master (familiar, special mount, ...).
@@ -127,6 +130,7 @@ impl Default for CharacterDraft {
             class_subclasses: BTreeMap::new(),
             deity: None,
             domains: Vec::new(),
+            deity_domains: Vec::new(),
         }
     }
 }

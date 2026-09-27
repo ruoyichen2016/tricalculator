@@ -557,3 +557,93 @@ fn overspent_ability_pool_is_diagnosed() {
         .iter()
         .any(|diagnostic| diagnostic.contains("overspent")));
 }
+
+#[test]
+fn nested_chosen_template_is_activated_in_snapshot() {
+    let records = vec![
+        record("RACE", "Human", &[("SIZE", "M")]),
+        record("TEMPLATE", "Base Template", &[("CHOOSE", "TEMPLATE|ALL")]),
+        record(
+            "TEMPLATE",
+            "Nested Template",
+            &[("BONUS", "VAR|NestedChosen|1")],
+        ),
+    ];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["p5-nested-template".to_string()],
+        &records,
+    );
+    let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Human".to_string(),
+        templates: vec!["Base Template".to_string(), "Nested Template".to_string()],
+        choices: [("Base Template".to_string(), "Nested Template".to_string())]
+            .into_iter()
+            .collect(),
+        ..CharacterDraft::default()
+    });
+    assert_eq!(snapshot.variables.get("NestedChosen"), Some(&1));
+}
+
+#[test]
+fn selected_domain_is_validated_against_deity_domain_catalog() {
+    let records = vec![
+        record("RACE", "Human", &[("SIZE", "M")]),
+        record(
+            "CLASS",
+            "Cleric",
+            &[("HD", "8"), ("BAB", "MEDIUM"), ("SPELLSTAT", "WIS")],
+        ),
+        record(
+            "DOMAIN",
+            "Luck",
+            &[("SPELLLEVEL", "DOMAIN|Luck=1|True Strike")],
+        ),
+        record(
+            "DOMAIN",
+            "Chaos",
+            &[("SPELLLEVEL", "DOMAIN|Chaos=1|Protection from Law")],
+        ),
+    ];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["p5-deity-catalog".to_string()],
+        &records,
+    );
+    // Deity is unknown, but the `.pcg` catalog says only Chaos/Luck are allowed.
+    let allowed = Engine::new(pack.clone()).evaluate(&CharacterDraft {
+        race_id: "Human".to_string(),
+        class_levels: vec![DraftClassLevel {
+            class_id: "Cleric".to_string(),
+            level: 1,
+            hit_points_gained: 0,
+            hit_points_by_level: Vec::new(),
+            experience_gained: 0,
+        }],
+        deity: Some("Haela Brightaxe".to_string()),
+        domains: vec!["Chaos".to_string(), "Luck".to_string()],
+        deity_domains: vec!["Chaos".to_string(), "Luck".to_string()],
+        ..CharacterDraft::default()
+    });
+    assert!(allowed.domain_spells.contains_key("Chaos"));
+    assert!(allowed.domain_spells.contains_key("Luck"));
+
+    let denied = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Human".to_string(),
+        class_levels: vec![DraftClassLevel {
+            class_id: "Cleric".to_string(),
+            level: 1,
+            hit_points_gained: 0,
+            hit_points_by_level: Vec::new(),
+            experience_gained: 0,
+        }],
+        deity: Some("Haela Brightaxe".to_string()),
+        domains: vec!["Luck".to_string()],
+        deity_domains: vec!["Chaos".to_string()],
+        ..CharacterDraft::default()
+    });
+    assert!(denied
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("is not granted by deity")));
+}

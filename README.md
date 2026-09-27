@@ -167,7 +167,9 @@ commit 并执行字段级差分）两个 job。细节见 [`docs/TESTING.md`](doc
   `.pcg DEITY` / `DOMAIN` 进入 draft / divine tracks；能力池超支写入 diagnostics；
 - P5-4：choice 绑定到 source entity，`%CHOICE%` / `%LIST%` 精确替换；
   `ability_pool_usage.selection_counts` 计数重复选择并诊断非法 MULT；
-- 185 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
+- P5-5：`CHOSENTEMPLATE` 嵌套选择、`DEITYDOMAINS` catalog 与选定 domain
+  分离、信仰 domain 校验、cleric/specialist/template case 选择基线；
+- 190 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
 
 真实 PCGen 数据解析与完整角色计算正在按 [`MIGRATION.md`](MIGRATION.md) 从
 archive 迁移。

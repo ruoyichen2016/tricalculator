@@ -138,6 +138,7 @@ fn demo_draft() -> CharacterDraft {
         class_subclasses: BTreeMap::new(),
         deity: None,
         domains: Vec::new(),
+        deity_domains: Vec::new(),
     }
 }
 
@@ -400,5 +401,6 @@ fn draft_from_pcg(draft: PcgDraft) -> CharacterDraft {
         class_subclasses: draft.class_subclasses,
         deity: draft.deity,
         domains: draft.domains,
+        deity_domains: draft.deity_domains,
     }
 }

@@ -72,4 +72,7 @@ pub struct PcgDraft {
     /// Selected domains (`.pcg DOMAIN` lines).
     #[serde(default)]
     pub domains: Vec<String>,
+    /// Deity-allowed domain catalog from `DEITYDOMAINS:[DOMAIN:...]`.
+    #[serde(default)]
+    pub deity_domains: Vec<String>,
 }
