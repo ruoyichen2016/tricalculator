@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### P5-14 KIT runtime 决策启动 + Pathfinder 立项评估（已完成）
+
+- 新增 `docs/P5_KIT_RUNTIME_DESIGN.md`：冻结 KIT runtime 启动条件；
+  实现维持 deferred。
+- 新增 `docs/P5_PATHFINDER_ASSESSMENT.md`：Pathfinder 1e 评估完成，
+  结论为 deferred / 不立项。
+
+### P5-13 Web GUI 导出与提示（已完成）
+
+- 新增 `POST /api/export`，返回可回写 `.pcg` 文本、
+  `unresolved_choices` 与 `ability_pool_usage`。
+- 页面新增 Export `.pcg` 按钮、导出文本面板、unresolved choice 提示、
+  pool 剩余额度进度条。
+- web smoke 测试 6→7；总测试 203→204。
+
 ### P5-12 Web GUI 增强（已完成）
 
 - 新增 `GET /api/curated`，读取 broad cohort 作为 curated case 列表。

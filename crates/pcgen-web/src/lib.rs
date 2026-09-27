@@ -100,6 +100,26 @@ pub struct ApiError {
     pub error: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct ExportRequest {
+    pub pcc: String,
+    pub pcg: String,
+    #[serde(default)]
+    pub overrides: DraftOverrides,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ExportResponse {
+    /// Lossless `.pcg` text produced from the draft after overrides.
+    pub pcg: String,
+    /// Unresolved choices still present after evaluation.
+    pub unresolved_choices: Vec<String>,
+    /// Ability pool usage, so the UI can highlight remaining budget.
+    pub ability_pool_usage: serde_json::Value,
+    /// Diagnostics produced by the evaluation.
+    pub diagnostics: Vec<String>,
+}
+
 /// Build the axum router for the Web API.
 pub fn app(config: WebConfig) -> Router {
     let state = AppState {
@@ -110,6 +130,7 @@ pub fn app(config: WebConfig) -> Router {
         .route("/api/health", get(health))
         .route("/api/curated", get(curated))
         .route("/api/recalculate", post(recalculate))
+        .route("/api/export", post(export))
         .with_state(state)
 }
 
@@ -206,6 +227,81 @@ async fn recalculate(
             }),
         )
             .into_response(),
+    }
+}
+
+async fn export(
+    State(state): State<AppState>,
+    Json(request): Json<ExportRequest>,
+) -> impl IntoResponse {
+    match run_export(&state.config, &request) {
+        Ok(response) => (StatusCode::OK, Json(response)).into_response(),
+        Err(error) => (
+            StatusCode::BAD_REQUEST,
+            Json(ApiError {
+                error: error.to_string(),
+            }),
+        )
+            .into_response(),
+    }
+}
+
+fn run_export(config: &WebConfig, request: &ExportRequest) -> anyhow::Result<ExportResponse> {
+    let pcc = resolve_path(&config.data_root, &request.pcc);
+    let pcg = resolve_path(&config.data_root, &request.pcg);
+    let (pack, _report) = compile_pcc(&pcc)?;
+    let mut draft = draft_from_pcg(parse_pcg_draft_file(&pcg)?);
+    apply_overrides(&mut draft, &request.overrides);
+    let snapshot = Engine::new(pack).evaluate(&draft);
+    let exported = pcg_from_draft(&draft);
+    Ok(ExportResponse {
+        pcg: pcgen_import::write_pcg_draft_string(&exported)?,
+        unresolved_choices: snapshot.unresolved_choices.clone(),
+        ability_pool_usage: serde_json::to_value(&snapshot.ability_pool_usage)?,
+        diagnostics: snapshot.diagnostics.clone(),
+    })
+}
+
+/// Convert an engine draft back into the `.pcg` compatibility type.
+pub fn pcg_from_draft(draft: &CharacterDraft) -> PcgDraft {
+    PcgDraft {
+        name: draft.name.clone(),
+        race_id: draft.race_id.clone(),
+        campaign: draft.campaign.clone(),
+        alignment: draft.alignment.clone(),
+        stats: draft.stats.clone(),
+        class_levels: draft
+            .class_levels
+            .iter()
+            .map(|entry| pcgen_import::PcgClassLevel {
+                class_id: entry.class_id.clone(),
+                level: entry.level,
+                hit_points_gained: entry.hit_points_gained,
+                hit_points_by_level: entry.hit_points_by_level.clone(),
+                experience_gained: entry.experience_gained,
+            })
+            .collect(),
+        skills: draft.skills.clone(),
+        spells: draft
+            .spells
+            .iter()
+            .map(|spell| pcgen_import::PcgSpell {
+                name: spell.name.clone(),
+                level: spell.level,
+                class_id: spell.class_id.clone(),
+                times_memorized: spell.times_memorized,
+            })
+            .collect(),
+        equipment: draft.equipment.clone(),
+        equipment_modifiers: draft.equipment_modifiers.clone(),
+        abilities: draft.abilities.clone(),
+        templates: draft.templates.clone(),
+        advancement: draft.advancement.clone(),
+        choices: draft.choices.clone(),
+        class_subclasses: draft.class_subclasses.clone(),
+        deity: draft.deity.clone(),
+        domains: draft.domains.clone(),
+        deity_domains: draft.deity_domains.clone(),
     }
 }
 

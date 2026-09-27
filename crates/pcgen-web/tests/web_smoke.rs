@@ -123,3 +123,26 @@ async fn recalculate_mini_campaign_returns_snapshot() {
     assert!(value["snapshot"]["total_level"].is_number());
     assert!(value["html"].as_str().unwrap().contains("<!doctype html>"));
 }
+
+#[tokio::test]
+async fn export_returns_lossless_pcg() {
+    let request = Request::builder()
+        .method("POST")
+        .uri("/api/export")
+        .header("content-type", "application/json")
+        .body(Body::from(
+            r#"{"pcc":"campaign-mini/mini.pcc","pcg":"campaign-mini/mini_character.pcg"}"#,
+        ))
+        .unwrap();
+    let response = app(mini_config()).oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let pcg = value["pcg"].as_str().unwrap();
+    assert!(pcg.contains("CHARACTERNAME:"));
+    // Round-trip: the exported text parses again.
+    let round = pcgen_import::parse_pcg_draft_str(pcg).unwrap();
+    assert!(!round.name.is_empty());
+}

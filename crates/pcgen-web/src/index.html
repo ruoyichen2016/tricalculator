@@ -68,9 +68,13 @@
     <p id="stateList"></p>
   </fieldset>
 
-  <button type="submit">Recalculate</button>
+  <div class="row">
+    <button type="submit">Recalculate</button>
+    <button type="button" id="exportBtn">Export .pcg</button>
+  </div>
 </form>
 <p id="status"></p>
+<p id="unresolvedBadge"></p>
 
 <div class="grid">
   <div class="card">
@@ -79,7 +83,10 @@
   </div>
   <div class="card">
     <h2>Choices / Pools</h2>
+    <div id="poolBars"></div>
     <pre id="choices"></pre>
+    <h2>Exported .pcg</h2>
+    <pre id="exportedPcg"></pre>
     <h2>Diagnostics</h2>
     <pre id="diagnostics"></pre>
   </div>
@@ -156,6 +163,69 @@ document.getElementById('addAbility').onclick = () => {
   renderTables();
 };
 
+document.getElementById('exportBtn').onclick = async () => {
+  statusEl.className = '';
+  statusEl.textContent = 'Exporting…';
+  try {
+    const response = await fetch('/api/export', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        pcc: pccEl.value,
+        pcg: pcgEl.value,
+        overrides: {
+          choices: Object.fromEntries(choices),
+          abilities,
+          active_states: [...states],
+        },
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      statusEl.className = 'error';
+      statusEl.textContent = data.error || 'export failed';
+      return;
+    }
+    statusEl.textContent = 'Exported';
+    document.getElementById('exportedPcg').textContent = data.pcg;
+    renderUnresolved(data.unresolved_choices);
+    renderPoolBars(data.ability_pool_usage);
+  } catch (error) {
+    statusEl.className = 'error';
+    statusEl.textContent = String(error);
+  }
+};
+
+function renderUnresolved(list) {
+  const badge = document.getElementById('unresolvedBadge');
+  if (!list || list.length === 0) {
+    badge.textContent = 'No unresolved choices.';
+    badge.className = '';
+    return;
+  }
+  badge.className = 'error';
+  badge.textContent = `Unresolved choices (${list.length}): ${list.join(' | ')}`;
+}
+
+function renderPoolBars(usage) {
+  const container = document.getElementById('poolBars');
+  container.innerHTML = '';
+  for (const [id, pool] of Object.entries(usage || {})) {
+    const total = pool.pool || 0;
+    const spent = pool.spent || 0;
+    const pct = total > 0 ? Math.min(100, Math.round((spent / total) * 100)) : (spent > 0 ? 100 : 0);
+    const over = spent > total;
+    const bar = document.createElement('div');
+    bar.style.margin = '0.25rem 0';
+    bar.innerHTML = `
+      <div style="font-size:0.85rem">${id}: ${spent}/${total}${over ? ' (overspent)' : ''}</div>
+      <div style="background:#eee;border-radius:4px;height:10px;overflow:hidden">
+        <div style="height:10px;width:${pct}%;background:${over ? '#b00020' : '#4c6ef5'}"></div>
+      </div>`;
+    container.appendChild(bar);
+  }
+}
+
 document.getElementById('addState').onclick = () => {
   const state = document.getElementById('stateInput').value.trim();
   if (!state) return;
@@ -227,6 +297,8 @@ form.addEventListener('submit', async (event) => {
     }, null, 2);
     diagnosticsEl.textContent = data.diagnostics.join('\n');
     sheetEl.srcdoc = data.html;
+    renderUnresolved(data.unresolved_choices);
+    renderPoolBars(data.ability_pool_usage);
   } catch (error) {
     statusEl.className = 'error';
     statusEl.textContent = String(error);

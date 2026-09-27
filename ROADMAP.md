@@ -218,6 +218,22 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
 - `PRESUBCLASS` 支持 `class_subclasses`；
 - `TEMPLATESAPPLIED` 内嵌 `APPLIEDTO` 进入 choices；`CLASS|ALL` / `CLASS|PC` 动态 class list 解析；curated cohort 已无 unresolved choices。
 
+### P5-14 KIT runtime 决策启动 + Pathfinder 立项评估（已完成）
+
+- `docs/P5_KIT_RUNTIME_DESIGN.md`：冻结 KIT runtime 启动条件
+  （确定性 RNG、语义规范、Java 对照、独立门禁）；实现仍 deferred。
+- `docs/P5_PATHFINDER_ASSESSMENT.md`：评估完成，结论为
+  **deferred / 不立项**，并列出重新评估条件。
+- 两项均不阻塞当前 3e/3.5e 交付。
+
+### P5-13 Web GUI 导出与提示（已完成）
+
+- `POST /api/export`：draft overrides 后导出可回写 `.pcg`，返回
+  `unresolved_choices` 与 `ability_pool_usage`。
+- 页面新增：Export `.pcg` 按钮、导出文本面板、unresolved choice 红色提示、
+  pool 剩余额度进度条（超支红色）。
+- web smoke 测试 6→7。
+
 ### P5-12 Web GUI 增强（已完成）
 
 - `/api/curated`：从 broad cohort 读取 curated case，支持

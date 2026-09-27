@@ -18,6 +18,8 @@ PCGen-Rust 是围绕统一 Rule IR、`CharacterDraft` / `CharacterSnapshot`
 - [`docs/P4_PSI1_DESIGN.md`](docs/P4_PSI1_DESIGN.md)
 - [`docs/P4_DECISIONS.md`](docs/P4_DECISIONS.md)
 - [`docs/P5_PATHFINDER_TRIAL.md`](docs/P5_PATHFINDER_TRIAL.md)
+- [`docs/P5_PATHFINDER_ASSESSMENT.md`](docs/P5_PATHFINDER_ASSESSMENT.md)
+- [`docs/P5_KIT_RUNTIME_DESIGN.md`](docs/P5_KIT_RUNTIME_DESIGN.md)
 
 ## 工作区
 
@@ -64,6 +66,7 @@ GET  /api/health
 GET  /api/curated      # curated cohort 列表 + repeatable abilities
 POST /api/recalculate  # { "pcc", "pcg", "overrides": { choices, abilities,
                        #   active_states, class_subclasses, deity, domains } }
+POST /api/export       # 同上入参，返回可回写 .pcg 文本 + unresolved + pool usage
 ```
 
 页面功能：curated PCG 下拉列表、choice 覆盖、ability pool 编辑、
