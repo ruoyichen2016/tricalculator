@@ -218,6 +218,17 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
 - `PRESUBCLASS` 支持 `class_subclasses`；
 - `TEMPLATESAPPLIED` 内嵌 `APPLIEDTO` 进入 choices；`CLASS|ALL` / `CLASS|PC` 动态 class list 解析；curated cohort 已无 unresolved choices。
 
+### P5-11 本地 Web GUI（已完成）
+
+- 新增 `pcgen-web` crate（axum + tokio）：`/`、`/api/health`、
+  `/api/recalculate`。
+- 页面展示 snapshot JSON、choices / unresolved_choices /
+  ability_pool_usage、diagnostics 与 HTML 角色卡。
+- `pcgen-web` 复用 `pcgen-import` + `pcgen-engine` + `pcgen-output`，
+  不侵入 engine / output 架构。
+- 新增 `crates/pcgen-web/tests/web_smoke.rs` 并接入 CI no-data 与
+  `scripts/check.sh`。
+
 ### P5-8 / P5-9 P5-10 收尾（已完成）
 
 - **P5-8**：spell numeric v2：`applied_spell_effects` 折叠进 AC / saves /

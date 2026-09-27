@@ -44,6 +44,9 @@ jobs:
       - name: Mini import smoke
         run: ./target/debug/pcgen import-report tests/fixtures/campaign-mini/mini.pcc
 
+      - name: Web API smoke (no data)
+        run: cargo test -p pcgen-web
+
       - name: No-data coverage gate (skips real-data gates explicitly)
         run: python3 scripts/coverage_gate.py --allow-skip
 

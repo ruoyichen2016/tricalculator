@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### P5-11 本地 Web GUI（已完成）
+
+- 新增 `pcgen-web` crate：axum 本地服务，`GET /`、`GET /api/health`、
+  `POST /api/recalculate`。
+- 页面展示 snapshot JSON / choices / unresolved_choices /
+  ability_pool_usage / diagnostics / HTML 角色卡。
+- Web API 复用 CLI 侧 `draft_from_pcg` 语义，保持 CLI 与 Web 一致。
+- 新增 web smoke 测试（4 个）并接入 CI no-data 与 `scripts/check.sh`。
+- 测试 197→201。
+
 ### P5-8 / P5-9 / P5-10 收尾（已完成）
 
 - spell numeric v2：prepared buff 的 AC / save / stat / skill / attack

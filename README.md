@@ -30,6 +30,7 @@ PCGen-Rust 是围绕统一 Rule IR、`CharacterDraft` / `CharacterSnapshot`
 | `pcgen-engine` | `CharacterDraft → Engine → CharacterSnapshot`（只依赖 `pcgen-ir`） |
 | `pcgen-output` | Snapshot text/json 渲染 |
 | `pcgen-cli` | `pcgen` 命令行 |
+| `pcgen-web` | 本地 HTTP API + 简单 Web 页面（axum） |
 
 ## 构建与测试
 
@@ -46,6 +47,21 @@ python3 scripts/coverage_gate.py --allow-skip
 bash scripts/fetch_testdata.sh      # 固定 commit，写入 <workspace>/raw/pcgen-master
 bash scripts/check_testdata.sh      # 校验必需文件与 blob hash
 python3 scripts/coverage_gate.py    # 严格模式：跳过真实数据门禁即失败
+```
+
+本地 Web GUI（无需外部数据即可启动服务）：
+
+```bash
+cargo run -p pcgen-web -- --data-root ../raw/pcgen-master
+# 浏览器打开 http://127.0.0.1:8787
+```
+
+API：
+
+```text
+GET  /                 # 简单页面
+GET  /api/health
+POST /api/recalculate  # { "pcc": "...", "pcg": "..." }
 ```
 
 一键开发检查（数据缺失时会明确切换到 no-data smoke）：
