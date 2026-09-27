@@ -489,6 +489,14 @@ impl Engine {
             })
             .collect();
         let ability_pool_usage = self.ability_pool_usage(draft, &ability_pools);
+        for (category_id, usage) in &ability_pool_usage {
+            if usage.spent > usage.pool {
+                diagnostics.push(format!(
+                    "ability pool `{}` overspent: spent {} of {}",
+                    category_id, usage.spent, usage.pool
+                ));
+            }
+        }
         let mut repeatable_abilities: Vec<String> = self
             .pack
             .abilities
@@ -2210,6 +2218,20 @@ fn collect_divine_tracks(draft: &CharacterDraft) -> Vec<DivineTrack> {
                 });
             }
         }
+    }
+    if tracks.is_empty() && (draft.deity.is_some() || !draft.domains.is_empty()) {
+        let class_id = draft
+            .class_levels
+            .first()
+            .map(|entry| entry.class_id.clone())
+            .unwrap_or_else(|| "Divine".to_string());
+        tracks.push(DivineTrack {
+            lane_id: LaneId::new("divine"),
+            class_id,
+            class_level: draft.total_level(),
+            deity: draft.deity.clone(),
+            domains: draft.domains.clone(),
+        });
     }
     tracks
 }

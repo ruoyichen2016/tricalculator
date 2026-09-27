@@ -67,6 +67,12 @@ pub struct CharacterDraft {
     /// Selected subclass per class id, used by `PRESUBCLASS`.
     #[serde(default)]
     pub class_subclasses: BTreeMap<String, String>,
+    /// Top-level deity for non-gestalt `.pcg` drafts.
+    #[serde(default)]
+    pub deity: Option<String>,
+    /// Top-level domains for non-gestalt `.pcg` drafts.
+    #[serde(default)]
+    pub domains: Vec<String>,
 }
 
 /// One companion owned by the master (familiar, special mount, ...).
@@ -119,6 +125,8 @@ impl Default for CharacterDraft {
             choices: BTreeMap::new(),
             companions: Vec::new(),
             class_subclasses: BTreeMap::new(),
+            deity: None,
+            domains: Vec::new(),
         }
     }
 }

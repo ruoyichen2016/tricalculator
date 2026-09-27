@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### P5-2 PCG 选择元数据与能力池诊断（已完成）
+
+- `CLASSABILITIESLEVEL` 的 `ADD:[...|CHOICE:...]` 进入 `PcgDraft.choices`。
+- `SPECIALTIES:[SPECIALTY:...]` 进入 `PcgDraft.class_subclasses`。
+- `.pcg DEITY` / `DOMAIN` 进入 `CharacterDraft.deity` / `domains`，并在
+  class-level 非 gestalt draft 中生成 `DivineTrack`，进入 `faith_decisions`
+  与 `domain_spells`。
+- ability pool 超支写入 diagnostics，`ability_pool_usage.selected` 保留
+  实际选中能力。
+- 测试 178→181。
+
 ### P5-1 `.pcg` choice / subclass ingestion（已完成）
 
 - `.pcg` `CLASS:...+SUBCLASS:...` 进入 `PcgDraft.class_subclasses`。

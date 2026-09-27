@@ -162,7 +162,9 @@ commit 并执行字段级差分）两个 job。细节见 [`docs/TESTING.md`](doc
 - P5-1：`.pcg` `APPLIEDTO` / `SUBCLASS` 进入 `draft.choices` / `class_subclasses`，
   engine 按 source entity 解析 `CHOOSE`，支持 `CLASS|ALL` / `CLASS|PC`，
   curated PCG 已无 unresolved choices；
-- 178 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
+- P5-2：`CLASSABILITIESLEVEL` 内嵌 `ADD:...CHOICE`、`SPECIALTIES`、
+  `.pcg DEITY` / `DOMAIN` 进入 draft / divine tracks；能力池超支写入 diagnostics；
+- 181 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
 
 真实 PCGen 数据解析与完整角色计算正在按 [`MIGRATION.md`](MIGRATION.md) 从
 archive 迁移。

@@ -136,6 +136,8 @@ fn demo_draft() -> CharacterDraft {
         choices: BTreeMap::new(),
         companions: Vec::new(),
         class_subclasses: BTreeMap::new(),
+        deity: None,
+        domains: Vec::new(),
     }
 }
 
@@ -396,5 +398,7 @@ fn draft_from_pcg(draft: PcgDraft) -> CharacterDraft {
         choices: draft.choices,
         companions: Vec::new(),
         class_subclasses: draft.class_subclasses,
+        deity: draft.deity,
+        domains: draft.domains,
     }
 }

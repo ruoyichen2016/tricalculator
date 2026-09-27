@@ -42,6 +42,8 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
         advancement: Vec::new(),
         choices: BTreeMap::new(),
         class_subclasses: BTreeMap::new(),
+        deity: None,
+        domains: Vec::new(),
     };
     let mut class_hp: BTreeMap<(String, u32), i32> = BTreeMap::new();
 
@@ -72,7 +74,7 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
                 }
             }
             "CLASS" => parse_class(&mut draft, value),
-            "CLASSABILITIESLEVEL" => parse_class_abilities(&mut class_hp, value),
+            "CLASSABILITIESLEVEL" => parse_class_abilities(&mut class_hp, &mut draft, value),
             "SKILL" => parse_skill(&mut draft, value),
             "SPELLNAME" => parse_spell(&mut draft, value),
             "EQUIPNAME" | "EQUIPMENT" => {
@@ -124,6 +126,18 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
                     }
                 }
             }
+            "DEITY" => {
+                let name = split_pipe(value).first().copied().unwrap_or_default();
+                if !name.is_empty() {
+                    draft.deity = Some(name.to_string());
+                }
+            }
+            "DOMAIN" => {
+                let name = split_pipe(value).first().copied().unwrap_or_default();
+                if !name.is_empty() && !draft.domains.iter().any(|domain| domain == name) {
+                    draft.domains.push(name.to_string());
+                }
+            }
             "GESTALTJSON" => draft.advancement = serde_json::from_str(value)?,
             _ => {}
         }
@@ -158,6 +172,12 @@ pub fn write_pcg_draft_string(draft: &PcgDraft) -> Result<String, PcgDraftError>
     writeln!(out, "GAMEMODE:{}", draft.campaign).ok();
     for (stat, score) in &draft.stats {
         writeln!(out, "STAT:{stat}|SCORE:{score}").ok();
+    }
+    if let Some(deity) = &draft.deity {
+        writeln!(out, "DEITY:{deity}").ok();
+    }
+    for domain in &draft.domains {
+        writeln!(out, "DOMAIN:{domain}").ok();
     }
     for class in &draft.class_levels {
         match draft.class_subclasses.get(&class.class_id) {
@@ -294,7 +314,33 @@ fn parse_class(draft: &mut PcgDraft, value: &str) {
     }
 }
 
-fn parse_class_abilities(class_hp: &mut BTreeMap<(String, u32), i32>, value: &str) {
+fn extract_add_choices(value: &str) -> Vec<(String, String)> {
+    let mut result = Vec::new();
+    let mut rest = value;
+    while let Some(start) = rest.find("ADD:[") {
+        let after = &rest[start + "ADD:[".len()..];
+        let end = after.find(']').unwrap_or(after.len());
+        let add = &after[..end];
+        let key = add.split('|').next().unwrap_or("ADD").trim().to_string();
+        if let Some(choice) = add
+            .split('|')
+            .find_map(|part| part.trim().strip_prefix("CHOICE:"))
+        {
+            let choice = choice.trim();
+            if !key.is_empty() && !choice.is_empty() {
+                result.push((key, choice.to_string()));
+            }
+        }
+        rest = &after[end..];
+    }
+    result
+}
+
+fn parse_class_abilities(
+    class_hp: &mut BTreeMap<(String, u32), i32>,
+    draft: &mut PcgDraft,
+    value: &str,
+) {
     let parts = split_pipe(value);
     let Some(first) = parts.first().copied() else {
         return;
@@ -313,7 +359,27 @@ fn parse_class_abilities(class_hp: &mut BTreeMap<(String, u32), i32>, value: &st
         .find_map(|part| part.strip_prefix("HITPOINTS:"))
         .and_then(|hp| hp.parse::<i32>().ok())
     {
-        *class_hp.entry((class_id, level)).or_insert(0) += hit_points;
+        *class_hp.entry((class_id.clone(), level)).or_insert(0) += hit_points;
+    }
+    for (key, choice) in extract_add_choices(value) {
+        draft.choices.insert(key, choice);
+    }
+    for part in &parts {
+        if let Some(specialties) = part.strip_prefix("SPECIALTIES:") {
+            for specialty in specialties.split('|') {
+                let specialty = specialty
+                    .trim()
+                    .trim_start_matches("[SPECIALTY:")
+                    .trim_end_matches(']')
+                    .trim();
+                if !specialty.is_empty() {
+                    draft
+                        .class_subclasses
+                        .entry(class_id.clone())
+                        .or_insert_with(|| specialty.to_string());
+                }
+            }
+        }
     }
 }
 
@@ -503,6 +569,23 @@ GESTALTJSON:[{\"character_level\":1,\"lanes\":[{\"lane_id\":\"a\",\"class_id\":\
         assert_eq!(
             draft.choices.get("Expanded Knowledge").map(String::as_str),
             Some("Animal Affinity")
+        );
+    }
+    #[test]
+    fn parses_classabilities_choices_specialties_and_divine_selections() {
+        let text = "CHARACTERNAME:Divine Test\nCLASS:Cleric|LEVEL:1\n\
+                    CLASSABILITIESLEVEL:Cleric=1|HITPOINTS:8|SPECIALTIES:[SPECIALTY:Healing]|ADD:[SPELLCASTER:Arcane|CHOICE:Sorcerer]\n\
+                    DEITY:Pelor\nDOMAIN:Sun\nDOMAIN:Healing\n";
+        let draft = parse_pcg_draft_str(text).unwrap();
+        assert_eq!(draft.deity.as_deref(), Some("Pelor"));
+        assert_eq!(draft.domains, vec!["Sun", "Healing"]);
+        assert_eq!(
+            draft.class_subclasses.get("cleric").map(String::as_str),
+            Some("Healing")
+        );
+        assert_eq!(
+            draft.choices.get("SPELLCASTER:Arcane").map(String::as_str),
+            Some("Sorcerer")
         );
     }
 }

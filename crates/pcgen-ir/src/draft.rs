@@ -66,4 +66,10 @@ pub struct PcgDraft {
     /// Selected subclass per class id (`CLASS:...+SUBCLASS:...`).
     #[serde(default)]
     pub class_subclasses: BTreeMap<String, String>,
+    /// Selected deity (`.pcg DEITY`).
+    #[serde(default)]
+    pub deity: Option<String>,
+    /// Selected domains (`.pcg DOMAIN` lines).
+    #[serde(default)]
+    pub domains: Vec<String>,
 }

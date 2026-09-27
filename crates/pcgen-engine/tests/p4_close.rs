@@ -371,3 +371,85 @@ fn class_choice_filters_resolve_dynamic_class_lists() {
         Some("Fighter")
     );
 }
+
+#[test]
+fn pcg_deity_domains_feed_divine_tracks() {
+    let records = vec![
+        record("RACE", "Human", &[("SIZE", "M")]),
+        record(
+            "CLASS",
+            "Cleric",
+            &[("HD", "8"), ("BAB", "MEDIUM"), ("SPELLSTAT", "WIS")],
+        ),
+        record(
+            "DEITY",
+            "Pelor",
+            &[("ALIGN", "NG"), ("DOMAINS", "Sun|Healing")],
+        ),
+        record("DOMAIN", "Sun", &[("SPELLLEVEL", "DOMAIN|Sun=1|Light")]),
+        record(
+            "DOMAIN",
+            "Healing",
+            &[("SPELLLEVEL", "DOMAIN|Healing=1|Cure Light Wounds")],
+        ),
+    ];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["p5-divine".to_string()],
+        &records,
+    );
+    let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Human".to_string(),
+        class_levels: vec![DraftClassLevel {
+            class_id: "Cleric".to_string(),
+            level: 1,
+            hit_points_gained: 0,
+            hit_points_by_level: Vec::new(),
+            experience_gained: 0,
+        }],
+        deity: Some("Pelor".to_string()),
+        domains: vec!["Sun".to_string(), "Healing".to_string()],
+        ..CharacterDraft::default()
+    });
+    assert_eq!(snapshot.faith_decisions.len(), 1);
+    assert!(snapshot.domain_spells.contains_key("Sun"));
+    assert!(snapshot.domain_spells.contains_key("Healing"));
+}
+
+#[test]
+fn overspent_ability_pool_is_diagnosed() {
+    let records = vec![
+        record("RACE", "Human", &[("SIZE", "M")]),
+        record(
+            "RACE",
+            "Human",
+            &[("DEFINE", "TinyPool|0"), ("BONUS", "VAR|TinyPool|1")],
+        ),
+        record(
+            "ABILITYCATEGORY",
+            "Tiny Pool",
+            &[
+                ("CATEGORY", "FEAT"),
+                ("POOL", "TinyPool"),
+                ("ABILITYLIST", "Skill Focus|Weapon Focus"),
+            ],
+        ),
+    ];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["p5-overspend".to_string()],
+        &records,
+    );
+    let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Human".to_string(),
+        abilities: vec![
+            ("FEAT".to_string(), "Skill Focus".to_string()),
+            ("FEAT".to_string(), "Weapon Focus".to_string()),
+        ],
+        ..CharacterDraft::default()
+    });
+    assert!(snapshot
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("overspent")));
+}
