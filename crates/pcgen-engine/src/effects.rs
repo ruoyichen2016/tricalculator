@@ -28,6 +28,7 @@ struct PendingFormula {
     expression: String,
     bonus_type: Option<String>,
     stack_key: Option<String>,
+    source_key: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -45,6 +46,8 @@ pub struct EffectState {
     pub typed_bonuses: Vec<TypedBonus>,
     pub active_abilities: BTreeSet<String>,
     pub choices: BTreeMap<String, String>,
+    /// Choice values bound to the entity that owned the `CHOOSE`.
+    pub choice_bindings: BTreeMap<String, Vec<String>>,
     pub unresolved_choices: Vec<String>,
     pub diagnostics: Vec<String>,
     pub applied_effects: usize,
@@ -362,7 +365,12 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         let mut remaining = Vec::new();
         let mut progress = false;
         for pending in variable_formulas.drain(..) {
-            let normalized = normalize_formula(&pending.expression, draft, &state);
+            let normalized = normalize_formula(
+                &pending.expression,
+                draft,
+                &state,
+                pending.source_key.as_deref(),
+            );
             match pcgen_formula::evaluate(&normalized, &state) {
                 Ok(value) => {
                     add_formula_target(&mut state, &pending, formula_to_i32(&value));
@@ -385,7 +393,12 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
     }
 
     for pending in effect_formulas {
-        let normalized = normalize_formula(&pending.expression, draft, &state);
+        let normalized = normalize_formula(
+            &pending.expression,
+            draft,
+            &state,
+            pending.source_key.as_deref(),
+        );
         match pcgen_formula::evaluate(&normalized, &state) {
             Ok(value) => add_formula_target(&mut state, &pending, formula_to_i32(&value)),
             Err(_) => state.diagnostics.push(format!(
@@ -460,12 +473,14 @@ fn apply_action(
                     expression: expression.clone(),
                     bonus_type: bonus_type.clone(),
                     stack_key: stack_key.clone(),
+                    source_key: source_entity.map(|entity| normalized(&entity.key)),
                 });
             }
         }
         EffectAction::Grant { entity } => {
+            let source_key = source_entity.map(|entity| normalized(&entity.key));
             let resolved = EntityId {
-                key: resolve_placeholders(&entity.key, state),
+                key: resolve_placeholders(&entity.key, state, source_key.as_deref()),
                 ..entity.clone()
             };
             if resolved.entity_type.eq_ignore_ascii_case("weaponprof") {
@@ -528,7 +543,7 @@ fn apply_choose(
             .find(|(key, _)| key.eq_ignore_ascii_case(spec))
             .map(|(_, value)| value.clone())
     }) {
-        state.choices.insert(spec.to_string(), choice);
+        record_choice(state, spec, choice, source_entity);
         return;
     }
     if let Some(entity) = source_entity {
@@ -540,26 +555,42 @@ fn apply_choose(
                 || candidate.ends_with(&format!("::{wanted}")))
             .then_some(value.clone())
         }) {
-            state.choices.insert(spec.to_string(), choice);
+            record_choice(state, spec, choice, source_entity);
             return;
         }
     }
     if spec.eq_ignore_ascii_case("NOCHOICE") {
-        state.choices.insert(spec.to_string(), String::new());
+        record_choice(state, spec, String::new(), source_entity);
         return;
     }
     if let Some(candidate) = resolve_dynamic_choice(spec, draft, pack) {
-        state.choices.insert(spec.to_string(), candidate);
+        record_choice(state, spec, candidate, source_entity);
         return;
     }
     if let Some(candidate) = concrete_choice_candidate(spec) {
-        state.choices.insert(spec.to_string(), candidate);
+        record_choice(state, spec, candidate, source_entity);
         return;
     }
     state.unresolved_choices.push(spec.to_string());
     state
         .diagnostics
         .push(format!("unresolved choice `{spec}`"));
+}
+
+fn record_choice(
+    state: &mut EffectState,
+    spec: &str,
+    choice: String,
+    source_entity: Option<&pcgen_core::EntityId>,
+) {
+    state.choices.insert(spec.to_string(), choice.clone());
+    if let Some(entity) = source_entity {
+        state
+            .choice_bindings
+            .entry(normalized(&entity.key))
+            .or_default()
+            .push(choice);
+    }
 }
 
 fn resolve_dynamic_choice(
@@ -1264,7 +1295,7 @@ fn resolve_variables(
             continue;
         }
         let expression = definitions.get(name).cloned().unwrap_or_default();
-        let normalized = normalize_formula(&expression, draft, state);
+        let normalized = normalize_formula(&expression, draft, state, None);
         match pcgen_formula::evaluate(&normalized, state) {
             Ok(value) => {
                 state.variables.insert(name.clone(), formula_to_i32(&value));
@@ -1301,7 +1332,12 @@ fn dependency_expression(expression: &str) -> String {
     normalized.replace("%CHOICE%", "0").replace("%LIST%", "0")
 }
 
-fn normalize_formula(expression: &str, draft: &CharacterDraft, state: &EffectState) -> String {
+fn normalize_formula(
+    expression: &str,
+    draft: &CharacterDraft,
+    state: &EffectState,
+    source_key: Option<&str>,
+) -> String {
     let mut normalized = expression.to_string();
     let classlevel = Regex::new(r#"classlevel\s*\(\s*["']?([^"')]+)["']?\s*\)"#).unwrap();
     normalized = classlevel
@@ -1329,16 +1365,35 @@ fn normalize_formula(expression: &str, draft: &CharacterDraft, state: &EffectSta
     normalized = total_level
         .replace_all(&normalized, draft.total_level().to_string())
         .to_string();
-    // `CL` is the class level of the source class.  Without source-context
-    // propagation we can resolve it unambiguously when the character has a
-    // single class; multiclass ability formulas remain deferred.
     if draft.class_levels.len() == 1 {
         let class_level = Regex::new(r"\bCL\b").unwrap();
         normalized = class_level
             .replace_all(&normalized, draft.class_levels[0].level.to_string())
             .to_string();
     }
-    normalized = normalized.replace("%CHOICE%", "0").replace("%LIST%", "0");
+    let bound = source_key
+        .and_then(|key| state.choice_bindings.get(key))
+        .filter(|values| !values.is_empty());
+    if let Some(first) = bound
+        .and_then(|values| values.first().cloned())
+        .or_else(|| state.choices.values().next().cloned())
+    {
+        normalized = normalized
+            .replace("%CHOICE%", &first)
+            .replace("%choice%", &first);
+    }
+    if let Some(list) = bound.map(|values| values.join(",")).or_else(|| {
+        (!state.choices.is_empty()).then(|| {
+            state
+                .choices
+                .values()
+                .cloned()
+                .collect::<Vec<_>>()
+                .join(",")
+        })
+    }) {
+        normalized = normalized.replace("%LIST%", &list).replace("%list%", &list);
+    }
     normalized
 }
 
@@ -1381,14 +1436,22 @@ fn normalized(value: &str) -> String {
     value.trim().to_ascii_lowercase().replace(' ', "_")
 }
 
-fn resolve_placeholders(value: &str, state: &EffectState) -> String {
-    let first = state.choices.values().next().cloned().unwrap_or_default();
-    let list = state
-        .choices
-        .values()
-        .cloned()
-        .collect::<Vec<_>>()
-        .join(",");
+fn resolve_placeholders(value: &str, state: &EffectState, source_key: Option<&str>) -> String {
+    let bound = source_key
+        .and_then(|key| state.choice_bindings.get(key))
+        .filter(|values| !values.is_empty());
+    let first = bound
+        .and_then(|values| values.first().cloned())
+        .or_else(|| state.choices.values().next().cloned())
+        .unwrap_or_default();
+    let list = bound.map(|values| values.join(",")).unwrap_or_else(|| {
+        state
+            .choices
+            .values()
+            .cloned()
+            .collect::<Vec<_>>()
+            .join(",")
+    });
     value
         .replace("%CHOICE%", &first)
         .replace("%choice%", &first)

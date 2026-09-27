@@ -165,7 +165,9 @@ commit 并执行字段级差分）两个 job。细节见 [`docs/TESTING.md`](doc
   curated PCG 已无 unresolved choices；
 - P5-2：`CLASSABILITIESLEVEL` 内嵌 `ADD:...CHOICE`、`SPECIALTIES`、
   `.pcg DEITY` / `DOMAIN` 进入 draft / divine tracks；能力池超支写入 diagnostics；
-- 183 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
+- P5-4：choice 绑定到 source entity，`%CHOICE%` / `%LIST%` 精确替换；
+  `ability_pool_usage.selection_counts` 计数重复选择并诊断非法 MULT；
+- 185 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
 
 真实 PCGen 数据解析与完整角色计算正在按 [`MIGRATION.md`](MIGRATION.md) 从
 archive 迁移。

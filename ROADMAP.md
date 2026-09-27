@@ -8,7 +8,7 @@
 ## 当前状态（最近验证：固定数据 + 全量门禁）
 
 - 工作区：7 crate（core / formula / ir / import / engine / output / cli）。
-- 测试：`cargo test --workspace` **183 passed**。
+- 测试：`cargo test --workspace` **185 passed**。
 - DS-3E（回归代理，`srdbasic.pcc`）：3,779 entities，23,723 tag occurrences，
   lowered 3,267；legacy pending 0；unsupported 0；
   **semantic completion 100.0%**。
@@ -217,6 +217,15 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
 - engine `apply_choose` 支持按 source entity 上下文查找 `draft.choices`；
 - `PRESUBCLASS` 支持 `class_subclasses`；
 - `TEMPLATESAPPLIED` 内嵌 `APPLIEDTO` 进入 choices；`CLASS|ALL` / `CLASS|PC` 动态 class list 解析；curated cohort 已无 unresolved choices。
+
+### P5-4 Choice Binding 与能力池计数（已完成）
+
+- `EffectState.choice_bindings`：choice 绑定到发起 `CHOOSE` 的 source entity。
+- `%CHOICE%` / `%LIST%` 优先使用 source-bound choice，不再取全局第一个。
+- Formula normalization 同样使用 source-bound choice。
+- `ability_pool_usage.selection_counts` 记录重复选择次数；
+  `spent` 变为真实计数总和。
+- 重复选择但没有 `MULT` 的能力写入 diagnostics。
 
 ### P5-3 Pathfinder 试运行（已完成，仍 deferred）
 

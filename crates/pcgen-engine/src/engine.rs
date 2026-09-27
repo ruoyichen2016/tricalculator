@@ -67,30 +67,29 @@ impl Engine {
             let Some(pool) = pools.get(category_id).copied() else {
                 continue;
             };
-            let mut selected: Vec<String> = draft
-                .abilities
-                .iter()
-                .filter_map(|(_, key)| {
-                    let key_norm = normalized_name(key);
-                    let explicit = category
-                        .ability_list
-                        .iter()
-                        .any(|member| normalized_name(member) == key_norm);
-                    let inferred = category.ability_list.is_empty()
-                        && self.pack.abilities.values().any(|ability| {
-                            (ability.id == key_norm || normalized_name(&ability.name) == key_norm)
-                                && ability.category.as_deref().is_some_and(|ability_category| {
-                                    category.category.as_deref().is_some_and(|pool_category| {
-                                        ability_category.eq_ignore_ascii_case(pool_category)
-                                    })
+            let mut selection_counts: BTreeMap<String, u32> = BTreeMap::new();
+            for (_, key) in &draft.abilities {
+                let key_norm = normalized_name(key);
+                let explicit = category
+                    .ability_list
+                    .iter()
+                    .any(|member| normalized_name(member) == key_norm);
+                let inferred = category.ability_list.is_empty()
+                    && self.pack.abilities.values().any(|ability| {
+                        (ability.id == key_norm || normalized_name(&ability.name) == key_norm)
+                            && ability.category.as_deref().is_some_and(|ability_category| {
+                                category.category.as_deref().is_some_and(|pool_category| {
+                                    ability_category.eq_ignore_ascii_case(pool_category)
                                 })
-                        });
-                    (explicit || inferred).then_some(key.clone())
-                })
-                .collect();
+                            })
+                    });
+                if explicit || inferred {
+                    *selection_counts.entry(key.clone()).or_insert(0) += 1;
+                }
+            }
+            let mut selected: Vec<String> = selection_counts.keys().cloned().collect();
             selected.sort();
-            selected.dedup();
-            let spent = selected.len() as i32;
+            let spent = selection_counts.values().sum::<u32>() as i32;
             usage.insert(
                 category_id.clone(),
                 crate::snapshot::AbilityPoolUsage {
@@ -98,6 +97,7 @@ impl Engine {
                     spent,
                     remaining: (pool - spent).max(0),
                     selected,
+                    selection_counts,
                 },
             );
         }
@@ -496,6 +496,21 @@ impl Engine {
                     category_id, usage.spent, usage.pool
                 ));
             }
+            for (ability, count) in &usage.selection_counts {
+                if *count > 1 {
+                    let multi = self
+                        .pack
+                        .abilities
+                        .get(&normalized_name(ability))
+                        .and_then(|definition| definition.multi)
+                        .unwrap_or(false);
+                    if !multi {
+                        diagnostics.push(format!(
+                            "ability `{ability}` selected {count} times without MULT"
+                        ));
+                    }
+                }
+            }
         }
         let mut repeatable_abilities: Vec<String> = self
             .pack
@@ -631,6 +646,7 @@ impl Engine {
             external_modifiers: effect_state.external_modifiers,
             active_abilities: effect_state.active_abilities.into_iter().collect(),
             choices: effect_state.choices,
+            choice_bindings: effect_state.choice_bindings,
             active_states: {
                 let mut states = draft.active_states.clone();
                 states.sort();

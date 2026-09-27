@@ -39,6 +39,8 @@ pub struct AbilityPoolUsage {
     pub remaining: i32,
     #[serde(default)]
     pub selected: Vec<String>,
+    #[serde(default)]
+    pub selection_counts: BTreeMap<String, u32>,
 }
 
 /// Runtime-visible class interaction metadata (`EXCLASS` / `EXCHANGELEVEL`).
@@ -190,6 +192,9 @@ pub struct CharacterSnapshot {
     pub active_abilities: Vec<String>,
     #[serde(default)]
     pub choices: BTreeMap<String, String>,
+    /// Choice values bound to the entity that owned the `CHOOSE`.
+    #[serde(default)]
+    pub choice_bindings: BTreeMap<String, Vec<String>>,
     /// Explicitly activated temporary states.
     #[serde(default)]
     pub active_states: Vec<String>,

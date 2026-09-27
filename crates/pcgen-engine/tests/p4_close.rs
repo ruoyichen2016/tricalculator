@@ -162,6 +162,51 @@ fn ability_pool_usage_tracks_selected_members() {
     assert_eq!(usage.spent, 2);
     assert_eq!(usage.remaining, 1);
     assert_eq!(usage.selected.len(), 2);
+    assert_eq!(usage.selection_counts.get("Skill Focus"), Some(&1));
+    assert_eq!(usage.selection_counts.get("Weapon Focus"), Some(&1));
+}
+
+#[test]
+fn duplicate_selection_without_mult_is_diagnosed() {
+    let records = vec![
+        record("RACE", "Human", &[("SIZE", "M")]),
+        record(
+            "RACE",
+            "Human",
+            &[("DEFINE", "TinyPool|0"), ("BONUS", "VAR|TinyPool|3")],
+        ),
+        record(
+            "ABILITYCATEGORY",
+            "Tiny Pool",
+            &[
+                ("CATEGORY", "FEAT"),
+                ("POOL", "TinyPool"),
+                ("ABILITYLIST", "Skill Focus"),
+            ],
+        ),
+        record(
+            "ABILITY",
+            "Skill Focus",
+            &[("CATEGORY", "FEAT"), ("MULT", "NO")],
+        ),
+    ];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["p5-mult".to_string()],
+        &records,
+    );
+    let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Human".to_string(),
+        abilities: vec![
+            ("FEAT".to_string(), "Skill Focus".to_string()),
+            ("FEAT".to_string(), "Skill Focus".to_string()),
+        ],
+        ..CharacterDraft::default()
+    });
+    assert!(snapshot
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("without MULT")));
 }
 
 #[test]
@@ -414,6 +459,65 @@ fn pcg_deity_domains_feed_divine_tracks() {
     assert_eq!(snapshot.faith_decisions.len(), 1);
     assert!(snapshot.domain_spells.contains_key("Sun"));
     assert!(snapshot.domain_spells.contains_key("Healing"));
+}
+
+#[test]
+fn placeholder_choice_binds_to_source_entity() {
+    let records = vec![
+        record("RACE", "Human", &[("SIZE", "M")]),
+        record(
+            "ABILITY",
+            "Alpha Chooser",
+            &[
+                ("CATEGORY", "FEAT"),
+                ("CHOOSE", "SKILL|LIST"),
+                ("BONUS", "VAR|PickedAlpha|1"),
+                ("DESC", "%CHOICE%"),
+            ],
+        ),
+        record(
+            "ABILITY",
+            "Beta Chooser",
+            &[
+                ("CATEGORY", "FEAT"),
+                ("CHOOSE", "SKILL|LIST"),
+                ("BONUS", "VAR|PickedBeta|1"),
+                ("DESC", "%CHOICE%"),
+            ],
+        ),
+        record(
+            "RACE",
+            "Two Choosers",
+            &[
+                ("SIZE", "M"),
+                ("ABILITY", "FEAT|AUTOMATIC|Alpha Chooser"),
+                ("ABILITY", "FEAT|AUTOMATIC|Beta Chooser"),
+            ],
+        ),
+    ];
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["p5-binding".to_string()],
+        &records,
+    );
+    let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Two Choosers".to_string(),
+        choices: [
+            ("Alpha Chooser".to_string(), "Climb".to_string()),
+            ("Beta Chooser".to_string(), "Jump".to_string()),
+        ]
+        .into_iter()
+        .collect(),
+        ..CharacterDraft::default()
+    });
+    assert_eq!(
+        snapshot.choice_bindings.get("alpha_chooser"),
+        Some(&vec!["Climb".to_string()])
+    );
+    assert_eq!(
+        snapshot.choice_bindings.get("beta_chooser"),
+        Some(&vec!["Jump".to_string()])
+    );
 }
 
 #[test]

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### P5-4 Choice Binding 与能力池计数（已完成）
+
+- `EffectState.choice_bindings` 将 choice 绑定到发起 `CHOOSE` 的实体。
+- `%CHOICE%` / `%LIST%` 与公式归一化优先使用 source-bound choice。
+- `ability_pool_usage.selection_counts` 记录重复选择；`spent` 为真实计数。
+- 重复选择但缺少 `MULT` 的能力写入 diagnostics。
+- 测试 183→185。
+
 ### P5-3 Pathfinder 试运行与导入兼容修复（已完成）
 
 - `.pcc` include 路径支持 `\` → `/` 归一化。
