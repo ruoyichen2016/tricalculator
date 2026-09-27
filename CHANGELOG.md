@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### P5-6 / P5-7 真实角色正确性基线与 spell numeric（已完成）
+
+- broad `choice_state` 增加 `choice_bindings` / `ability_pool_usage` /
+  `domain_spells` / `deity_domains` 基线。
+- `CharacterSnapshot.applied_spell_effects` 输出 prepared / domain spell 的
+  AC / save / stat / skill `BONUS`。
+- 新增 `p5_runtime.rs` 断言真实角色选择、能力池、领域法术与法术数值效果。
+- 测试 190→193。
+
 ### P5-5 PCG 选择元数据补强（已完成）
 
 - `CHOSENTEMPLATE:[NAME:...]` 嵌套模板选择解析；chosen template 进入

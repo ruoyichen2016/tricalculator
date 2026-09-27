@@ -77,10 +77,30 @@ def choice_state(summary: dict) -> dict:
     }
     return {
         "choices": choices,
+        "choice_bindings": {
+            normalize_key(key): sorted(set(values))
+            for key, values in sorted(summary.get("choice_bindings", {}).items())
+        },
         "unresolved_choices": unresolved,
         "ability_pools": ability_pools,
+        "ability_pool_usage": {
+            normalize_key(key): {
+                "pool": int(value.get("pool", 0)),
+                "spent": int(value.get("spent", 0)),
+                "remaining": int(value.get("remaining", 0)),
+                "selection_counts": dict(
+                    sorted((normalize_key(k), int(v)) for k, v in value.get("selection_counts", {}).items())
+                ),
+            }
+            for key, value in sorted(summary.get("ability_pool_usage", {}).items())
+        },
         "ability_lists": ability_lists,
         "repeatable_abilities": repeatable,
+        "domain_spells": {
+            normalize_key(key): sorted(spell.get("name", "") for spell in spells)
+            for key, spells in sorted(summary.get("domain_spells", {}).items())
+        },
+        "deity_domains": sorted(summary.get("deity_domains", [])),
     }
 
 

@@ -44,10 +44,73 @@
           "weapon": [],
           "words_of_power": []
         },
+        "ability_pool_usage": {
+          "atest": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "exotic_weapon_choice": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {
+              "exotic_weapon_proficiency": 1
+            },
+            "spent": 1
+          },
+          "salient_divine_ability": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
         "ability_pools": {
           "atest": 0,
           "exotic_weapon_choice": 0,
           "salient_divine_ability": 0
+        },
+        "choice_bindings": {
+          "alice_~_armor_prof": [
+            "Heavy,Leather"
+          ],
+          "alice_~_class_skill": [
+            "Test Skill Chooser_1,Test Skill Chooser_2"
+          ],
+          "alice_~_cross_class_test": [
+            "Exclusing Skill_2"
+          ],
+          "alice_~_equipment": [
+            "Cool Sword"
+          ],
+          "alice_~_language": [
+            "MonKee Language"
+          ],
+          "alice_~_shield_prof": [
+            "Light"
+          ],
+          "alice_~_weapon_prof": [
+            "Bob Racial Weapon"
+          ],
+          "exotic_weapon_proficiency": [
+            "Jim Long Blade"
+          ],
+          "global_~_choose_cskill": [
+            "PLEASE MAKE APPROPRIATE SELECTION,Ability Skill 2,Ability Skill 3"
+          ],
+          "test_choose_armorprof": [
+            "Leather"
+          ],
+          "test_choose_deity_pantheon_elf": [
+            "Elf Deity"
+          ],
+          "test_choose_weapon_focus_ability": [
+            "Suns Weapon Of Choice,Tentacles of the Fey"
+          ],
+          "weapon_focus": [
+            "Suns Weapon Of Choice,Tentacles of the Fey"
+          ]
         },
         "choices": {
           "armorproficiency|all": "Heavy,Leather",
@@ -62,6 +125,19 @@
           "weaponproficiency|!pc[type=exotic]": "Jim Long Blade",
           "weaponproficiency|all": "Bob Racial Weapon",
           "weaponproficiency|pc": "Suns Weapon Of Choice,Tentacles of the Fey"
+        },
+        "deity_domains": [
+          "Bar Ball",
+          "Domain Add Feat",
+          "Domain Test Skill",
+          "Domain Test Skill List",
+          "Dungeon Crawl",
+          "Foo Ball",
+          "Test Spells Domain"
+        ],
+        "domain_spells": {
+          "domain_add_feat": [],
+          "test_spells_domain": []
         },
         "repeatable_abilities": [
           "+2_to_perform_dance",
@@ -704,13 +780,42 @@
           "wizard_feat": [],
           "wizard_prohibited_school": []
         },
+        "ability_pool_usage": {
+          "favored_enemy": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "favored_enemy_bonus": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "open_minded_skill": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "salient_divine_ability": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
         "ability_pools": {
           "favored_enemy": 0,
           "favored_enemy_bonus": 0,
           "open_minded_skill": 0,
           "salient_divine_ability": 0
         },
+        "choice_bindings": {},
         "choices": {},
+        "deity_domains": [],
+        "domain_spells": {},
         "repeatable_abilities": [
           "+1_bonus_feat",
           "+1_skill_bonus",
@@ -1003,10 +1108,55 @@
           "weapon": [],
           "words_of_power": []
         },
+        "ability_pool_usage": {
+          "atest": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {
+              "bob_test_~_bonus_var_in_a_chooser": 1,
+              "grant_template_chosen": 1
+            },
+            "spent": 2
+          },
+          "exotic_weapon_choice": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {
+              "exotic_weapon_proficiency": 1
+            },
+            "spent": 1
+          },
+          "salient_divine_ability": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
         "ability_pools": {
           "atest": 0,
           "exotic_weapon_choice": 0,
           "salient_divine_ability": 0
+        },
+        "choice_bindings": {
+          "bob_test_feat_choose_spelllevel_arcane": [
+            "CLASS.MonKee;LEVEL.1"
+          ],
+          "bob_test_feat_choose_spells_monkee": [
+            "Identify"
+          ],
+          "bob_test_~_bonus_var_in_a_chooser": [
+            ",,"
+          ],
+          "exotic_weapon_proficiency": [
+            "Uber Sword"
+          ],
+          "grant_template_chosen": [
+            ""
+          ],
+          "weapon_focus": [
+            "Uber Sword,Suns Weapon Of Choice"
+          ]
         },
         "choices": {
           "nochoice": ",,",
@@ -1015,6 +1165,23 @@
           "template|all": "",
           "weaponproficiency|!pc[type=exotic]": "Uber Sword",
           "weaponproficiency|pc": "Uber Sword,Suns Weapon Of Choice"
+        },
+        "deity_domains": [
+          "Bar Ball",
+          "Domain Add Feat",
+          "Domain Test Skill",
+          "Domain Test Skill List",
+          "Dungeon Crawl",
+          "Foo Ball",
+          "Test Spells Domain"
+        ],
+        "domain_spells": {
+          "bar_ball": [
+            "Fireball",
+            "Identify"
+          ],
+          "domain_test_skill": [],
+          "domain_test_skill_list": []
         },
         "repeatable_abilities": [
           "+2_to_perform_dance",
@@ -1479,16 +1646,51 @@
           "weapon": [],
           "words_of_power": []
         },
+        "ability_pool_usage": {
+          "atest": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "exotic_weapon_choice": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {
+              "exotic_weapon_proficiency": 1
+            },
+            "spent": 1
+          },
+          "salient_divine_ability": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
         "ability_pools": {
           "atest": 0,
           "exotic_weapon_choice": 0,
           "salient_divine_ability": 0
+        },
+        "choice_bindings": {
+          "charlie_~_template": [
+            "PreReq Class"
+          ],
+          "exotic_weapon_proficiency": [
+            "Bob Two Hand Blade"
+          ],
+          "weapon_focus": [
+            "Suns Weapon Of Choice"
+          ]
         },
         "choices": {
           "class|all": "PreReq Class",
           "weaponproficiency|!pc[type=exotic]": "Bob Two Hand Blade",
           "weaponproficiency|pc": "Suns Weapon Of Choice"
         },
+        "deity_domains": [],
+        "domain_spells": {},
         "repeatable_abilities": [
           "+2_to_perform_dance",
           "a-test_choose_class_base",
@@ -2130,13 +2332,54 @@
           "wizard_feat": [],
           "wizard_prohibited_school": []
         },
+        "ability_pool_usage": {
+          "favored_enemy": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {
+              "cleave": 1,
+              "improved_bull_rush": 1,
+              "power_attack": 1
+            },
+            "spent": 3
+          },
+          "favored_enemy_bonus": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {
+              "cleave": 1,
+              "improved_bull_rush": 1,
+              "power_attack": 1
+            },
+            "spent": 3
+          },
+          "open_minded_skill": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {
+              "cleave": 1,
+              "improved_bull_rush": 1,
+              "power_attack": 1
+            },
+            "spent": 3
+          },
+          "salient_divine_ability": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
         "ability_pools": {
           "favored_enemy": 0,
           "favored_enemy_bonus": 0,
           "open_minded_skill": 0,
           "salient_divine_ability": 0
         },
+        "choice_bindings": {},
         "choices": {},
+        "deity_domains": [],
+        "domain_spells": {},
         "repeatable_abilities": [
           "+1_bonus_feat",
           "+1_skill_bonus",
@@ -2429,15 +2672,45 @@
           "weapon": [],
           "words_of_power": []
         },
+        "ability_pool_usage": {
+          "atest": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "exotic_weapon_choice": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "salient_divine_ability": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
         "ability_pools": {
           "atest": 0,
           "exotic_weapon_choice": 0,
           "salient_divine_ability": 0
         },
+        "choice_bindings": {
+          "choose_feat_selection": [
+            "ChooseSelection_NoStackNoChoiceFeat,ChooseSelection_Naturally Something (comment),ChooseSelection_NoStackChoiceFeat(Ride),ChooseSelection_NoChooseFeat"
+          ],
+          "directapplication_stacknochoicefeat": [
+            ""
+          ]
+        },
         "choices": {
           "abilityselection|feat|type=chooseselection_testthing": "ChooseSelection_NoStackNoChoiceFeat,ChooseSelection_Naturally Something (comment),ChooseSelection_NoStackChoiceFeat(Ride),ChooseSelection_NoChooseFeat",
           "nochoice": ""
         },
+        "deity_domains": [],
+        "domain_spells": {},
         "repeatable_abilities": [
           "+2_to_perform_dance",
           "a-test_choose_class_base",
@@ -2901,15 +3174,45 @@
           "weapon": [],
           "words_of_power": []
         },
+        "ability_pool_usage": {
+          "atest": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "exotic_weapon_choice": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "salient_divine_ability": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
         "ability_pools": {
           "atest": 0,
           "exotic_weapon_choice": 0,
           "salient_divine_ability": 0
         },
+        "choice_bindings": {
+          "choose_feat_selection": [
+            "ChooseSelection_StackNoChoiceFeat,ChooseSelection_StackChoiceFeat(Ride),ChooseSelection_NoStackChoiceFeat(Tumble)"
+          ],
+          "directapplication_stacknochoicefeat": [
+            ""
+          ]
+        },
         "choices": {
           "abilityselection|feat|type=chooseselection_testthing": "ChooseSelection_StackNoChoiceFeat,ChooseSelection_StackChoiceFeat(Ride),ChooseSelection_NoStackChoiceFeat(Tumble)",
           "nochoice": ""
         },
+        "deity_domains": [],
+        "domain_spells": {},
         "repeatable_abilities": [
           "+2_to_perform_dance",
           "a-test_choose_class_base",
@@ -3373,14 +3676,41 @@
           "weapon": [],
           "words_of_power": []
         },
+        "ability_pool_usage": {
+          "atest": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "exotic_weapon_choice": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "salient_divine_ability": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
         "ability_pools": {
           "atest": 0,
           "exotic_weapon_choice": 0,
           "salient_divine_ability": 0
         },
+        "choice_bindings": {
+          "choose_feat_selection": [
+            "ChooseSelection_NoStackChoiceFeat(Ride),ChooseSelection_NoStackChoiceFeat(Ride),ChooseSelection_NoStackChoiceFeat(Tumble),ChooseSelection_StackNoChoiceFeat,ChooseSelection_StackNoChoiceFeat"
+          ]
+        },
         "choices": {
           "abilityselection|feat|type=chooseselection_testthing": "ChooseSelection_NoStackChoiceFeat(Ride),ChooseSelection_NoStackChoiceFeat(Ride),ChooseSelection_NoStackChoiceFeat(Tumble),ChooseSelection_StackNoChoiceFeat,ChooseSelection_StackNoChoiceFeat"
         },
+        "deity_domains": [],
+        "domain_spells": {},
         "repeatable_abilities": [
           "+2_to_perform_dance",
           "a-test_choose_class_base",
@@ -3844,12 +4174,35 @@
           "weapon": [],
           "words_of_power": []
         },
+        "ability_pool_usage": {
+          "atest": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "exotic_weapon_choice": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "salient_divine_ability": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
         "ability_pools": {
           "atest": 0,
           "exotic_weapon_choice": 0,
           "salient_divine_ability": 0
         },
+        "choice_bindings": {},
         "choices": {},
+        "deity_domains": [],
+        "domain_spells": {},
         "repeatable_abilities": [
           "+2_to_perform_dance",
           "a-test_choose_class_base",
@@ -4313,12 +4666,35 @@
           "weapon": [],
           "words_of_power": []
         },
+        "ability_pool_usage": {
+          "atest": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "exotic_weapon_choice": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "salient_divine_ability": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
         "ability_pools": {
           "atest": 0,
           "exotic_weapon_choice": 0,
           "salient_divine_ability": 0
         },
+        "choice_bindings": {},
         "choices": {},
+        "deity_domains": [],
+        "domain_spells": {},
         "repeatable_abilities": [
           "+2_to_perform_dance",
           "a-test_choose_class_base",
@@ -4782,15 +5158,47 @@
           "weapon": [],
           "words_of_power": []
         },
+        "ability_pool_usage": {
+          "atest": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {
+              "grant_template_chosen": 1
+            },
+            "spent": 1
+          },
+          "exotic_weapon_choice": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "salient_divine_ability": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
         "ability_pools": {
           "atest": 0,
           "exotic_weapon_choice": 0,
           "salient_divine_ability": 0
         },
+        "choice_bindings": {
+          "grant_template_chosen": [
+            "Template-71"
+          ],
+          "targetedability_~_weaponprof": [
+            "Bob Long Blade,Bob Short Blade"
+          ]
+        },
         "choices": {
           "template|all": "Template-71",
           "weaponproficiency|any": "Bob Long Blade,Bob Short Blade"
         },
+        "deity_domains": [],
+        "domain_spells": {},
         "repeatable_abilities": [
           "+2_to_perform_dance",
           "a-test_choose_class_base",
@@ -5254,15 +5662,50 @@
           "weapon": [],
           "words_of_power": []
         },
+        "ability_pool_usage": {
+          "atest": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {
+              "test-66a": 1
+            },
+            "spent": 1
+          },
+          "exotic_weapon_choice": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "salient_divine_ability": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
         "ability_pools": {
           "atest": 0,
           "exotic_weapon_choice": 0,
           "salient_divine_ability": 0
         },
+        "choice_bindings": {
+          "test63a": [
+            "One,Two"
+          ],
+          "test63b": [
+            "One"
+          ],
+          "test63c": [
+            ""
+          ]
+        },
         "choices": {
           "nochoice": "",
           "string|one|two": "One"
         },
+        "deity_domains": [],
+        "domain_spells": {},
         "repeatable_abilities": [
           "+2_to_perform_dance",
           "a-test_choose_class_base",
@@ -5904,13 +6347,48 @@
           "wizard_feat": [],
           "wizard_prohibited_school": []
         },
+        "ability_pool_usage": {
+          "favored_enemy": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {
+              "combat_reflexes": 1
+            },
+            "spent": 1
+          },
+          "favored_enemy_bonus": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {
+              "combat_reflexes": 1
+            },
+            "spent": 1
+          },
+          "open_minded_skill": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {
+              "combat_reflexes": 1
+            },
+            "spent": 1
+          },
+          "salient_divine_ability": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
         "ability_pools": {
           "favored_enemy": 0,
           "favored_enemy_bonus": 0,
           "open_minded_skill": 0,
           "salient_divine_ability": 0
         },
+        "choice_bindings": {},
         "choices": {},
+        "deity_domains": [],
+        "domain_spells": {},
         "repeatable_abilities": [
           "+1_bonus_feat",
           "+1_skill_bonus",
@@ -6203,15 +6681,48 @@
           "weapon": [],
           "words_of_power": []
         },
+        "ability_pool_usage": {
+          "atest": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "exotic_weapon_choice": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "salient_divine_ability": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
         "ability_pools": {
           "atest": 0,
           "exotic_weapon_choice": 0,
           "salient_divine_ability": 0
         },
+        "choice_bindings": {
+          "toughness": [
+            ""
+          ],
+          "toughness_b": [
+            ""
+          ],
+          "weapon_focus": [
+            "Simple Weapon Three,Simple Weapon Four,Simple Weapon Four,Simple Weapon One,Simple Weapon Two"
+          ]
+        },
         "choices": {
           "nochoice": "",
           "weaponproficiency|pc": "Simple Weapon Three,Simple Weapon Four,Simple Weapon Four,Simple Weapon One,Simple Weapon Two"
         },
+        "deity_domains": [],
+        "domain_spells": {},
         "repeatable_abilities": [
           "+2_to_perform_dance",
           "a-test_choose_class_base",
@@ -6675,10 +7186,58 @@
           "weapon": [],
           "words_of_power": []
         },
+        "ability_pool_usage": {
+          "atest": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {
+              "test-66a": 1
+            },
+            "spent": 1
+          },
+          "exotic_weapon_choice": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "salient_divine_ability": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
         "ability_pools": {
           "atest": 0,
           "exotic_weapon_choice": 0,
           "salient_divine_ability": 0
+        },
+        "choice_bindings": {
+          "test-57-ability-2": [
+            ""
+          ],
+          "test-57-ability-4": [
+            ""
+          ],
+          "test-57-ability-6": [
+            ""
+          ],
+          "test-57-ability-7": [
+            "Ability-57-4a"
+          ],
+          "test-57_apply_a3_featselector": [
+            "Test-57 Apply A3 LangGrant(Elven)"
+          ],
+          "test-57_apply_a5_featselector": [
+            "Test-57 Apply A5 LangGrant(English)"
+          ],
+          "test-57_apply_a6": [
+            ",,"
+          ],
+          "test-57_apply_a8_myselectablefeat": [
+            "Dodge"
+          ]
         },
         "choices": {
           "abilityselection|feat|type=foo": "Dodge",
@@ -6686,6 +7245,8 @@
           "ability|special_ability|ability-57-4a|ability-57-4b": "Ability-57-4a",
           "nochoice": ""
         },
+        "deity_domains": [],
+        "domain_spells": {},
         "repeatable_abilities": [
           "+2_to_perform_dance",
           "a-test_choose_class_base",
@@ -7327,15 +7888,48 @@
           "wizard_feat": [],
           "wizard_prohibited_school": []
         },
+        "ability_pool_usage": {
+          "favored_enemy": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "favored_enemy_bonus": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "open_minded_skill": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "salient_divine_ability": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
         "ability_pools": {
           "favored_enemy": 0,
           "favored_enemy_bonus": 0,
           "open_minded_skill": 0,
           "salient_divine_ability": 0
         },
+        "choice_bindings": {
+          "expanded_knowledge": [
+            "Animal Affinity"
+          ]
+        },
         "choices": {
           "spells|spelltype=psionic[known=no]": "Animal Affinity"
         },
+        "deity_domains": [],
+        "domain_spells": {},
         "repeatable_abilities": [
           "+1_bonus_feat",
           "+1_skill_bonus",
@@ -7642,8 +8236,35 @@
           ],
           "wizard_feat": []
         },
+        "ability_pool_usage": {},
         "ability_pools": {},
+        "choice_bindings": {},
         "choices": {},
+        "deity_domains": [
+          "Air",
+          "Animal",
+          "Chaos",
+          "Death",
+          "Destruction",
+          "Earth",
+          "Evil",
+          "Fire",
+          "Good",
+          "Healing",
+          "Knowledge",
+          "Law",
+          "Luck",
+          "Magic",
+          "Plant",
+          "Protection",
+          "Strength",
+          "Sun",
+          "Travel",
+          "Trickery",
+          "War",
+          "Water"
+        ],
+        "domain_spells": {},
         "repeatable_abilities": [
           "+1_bonus_feat",
           "+1_skill_bonus",
@@ -7781,10 +8402,18 @@
           ],
           "wizard_feat": []
         },
+        "ability_pool_usage": {},
         "ability_pools": {},
+        "choice_bindings": {
+          "skill_focus": [
+            "Climb"
+          ]
+        },
         "choices": {
           "skill|type=charisma|type=constitution|type=dexterity|type=intelligence|type=strength|type=wisdom": "Climb"
         },
+        "deity_domains": [],
+        "domain_spells": {},
         "repeatable_abilities": [
           "+1_bonus_feat",
           "+1_skill_bonus",
@@ -7922,10 +8551,67 @@
           ],
           "wizard_feat": []
         },
+        "ability_pool_usage": {},
         "ability_pools": {},
+        "choice_bindings": {
+          "elf_weapon_choice": [
+            "Longsword"
+          ],
+          "extra_turning": [
+            "TurnUndead"
+          ]
+        },
         "choices": {
           "nochoice": "TurnUndead",
           "weaponproficiency|longsword|rapier": "Longsword"
+        },
+        "deity_domains": [
+          "Air",
+          "Animal",
+          "Chaos",
+          "Death",
+          "Destruction",
+          "Earth",
+          "Evil",
+          "Fire",
+          "Good",
+          "Healing",
+          "Knowledge",
+          "Law",
+          "Luck",
+          "Magic",
+          "Plant",
+          "Protection",
+          "Strength",
+          "Sun",
+          "Travel",
+          "Trickery",
+          "War",
+          "Water"
+        ],
+        "domain_spells": {
+          "law": [
+            "Calm Emotions",
+            "Dictum",
+            "Dispel Chaos",
+            "Hold Monster",
+            "Magic Circle against Chaos",
+            "Order's Wrath",
+            "Protection from Chaos",
+            "Shield of Law",
+            "Summon Monster IX"
+          ],
+          "protection": [
+            "Antimagic Field",
+            "Mind Blank",
+            "Prismatic Sphere",
+            "Protection from Elements",
+            "Repulsion",
+            "Sanctuary",
+            "Shield Other",
+            "Spell Immunity",
+            "Spell Resistance"
+          ]
         },
         "repeatable_abilities": [
           "+1_bonus_feat",
@@ -8064,8 +8750,12 @@
           ],
           "wizard_feat": []
         },
+        "ability_pool_usage": {},
         "ability_pools": {},
+        "choice_bindings": {},
         "choices": {},
+        "deity_domains": [],
+        "domain_spells": {},
         "repeatable_abilities": [
           "+1_bonus_feat",
           "+1_skill_bonus",
@@ -8203,8 +8893,12 @@
           ],
           "wizard_feat": []
         },
+        "ability_pool_usage": {},
         "ability_pools": {},
+        "choice_bindings": {},
         "choices": {},
+        "deity_domains": [],
+        "domain_spells": {},
         "repeatable_abilities": [
           "+1_bonus_feat",
           "+1_skill_bonus",
@@ -8342,8 +9036,35 @@
           ],
           "wizard_feat": []
         },
+        "ability_pool_usage": {},
         "ability_pools": {},
+        "choice_bindings": {},
         "choices": {},
+        "deity_domains": [
+          "Air",
+          "Animal",
+          "Chaos",
+          "Death",
+          "Destruction",
+          "Earth",
+          "Evil",
+          "Fire",
+          "Good",
+          "Healing",
+          "Knowledge",
+          "Law",
+          "Luck",
+          "Magic",
+          "Plant",
+          "Protection",
+          "Strength",
+          "Sun",
+          "Travel",
+          "Trickery",
+          "War",
+          "Water"
+        ],
+        "domain_spells": {},
         "repeatable_abilities": [
           "+1_bonus_feat",
           "+1_skill_bonus",
@@ -8481,8 +9202,12 @@
           ],
           "wizard_feat": []
         },
+        "ability_pool_usage": {},
         "ability_pools": {},
+        "choice_bindings": {},
         "choices": {},
+        "deity_domains": [],
+        "domain_spells": {},
         "repeatable_abilities": [
           "+1_bonus_feat",
           "+1_skill_bonus",

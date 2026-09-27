@@ -169,7 +169,11 @@ commit 并执行字段级差分）两个 job。细节见 [`docs/TESTING.md`](doc
   `ability_pool_usage.selection_counts` 计数重复选择并诊断非法 MULT；
 - P5-5：`CHOSENTEMPLATE` 嵌套选择、`DEITYDOMAINS` catalog 与选定 domain
   分离、信仰 domain 校验、cleric/specialist/template case 选择基线；
-- 190 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
+- P5-6：broad `choice_state` 覆盖 choice_bindings / ability_pool_usage /
+  domain_spells / deity_domains；
+- P5-7：prepared/domain spell 的 AC/save/stat/skill `BONUS` 进入
+  `applied_spell_effects`；
+- 193 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
 
 真实 PCGen 数据解析与完整角色计算正在按 [`MIGRATION.md`](MIGRATION.md) 从
 archive 迁移。

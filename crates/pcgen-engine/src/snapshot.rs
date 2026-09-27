@@ -43,6 +43,16 @@ pub struct AbilityPoolUsage {
     pub selection_counts: BTreeMap<String, u32>,
 }
 
+/// One numeric spell effect that was applied to a character value.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SpellEffectApplication {
+    pub spell: String,
+    #[serde(default)]
+    pub class_id: Option<String>,
+    pub target: String,
+    pub value: i32,
+}
+
 /// Runtime-visible class interaction metadata (`EXCLASS` / `EXCHANGELEVEL`).
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClassInteraction {
@@ -181,6 +191,10 @@ pub struct CharacterSnapshot {
     /// Character-facing spell effect summary: domain spells, prepared spells.
     #[serde(default)]
     pub spell_effects: Vec<String>,
+    /// Numeric spell effects that were applied to AC / saves / stats /
+    /// skills, keyed by `"<target>:<spell>"`.
+    #[serde(default)]
+    pub applied_spell_effects: BTreeMap<String, Vec<SpellEffectApplication>>,
     #[serde(default)]
     pub variant_effects: BTreeMap<String, Vec<String>>,
     #[serde(default)]

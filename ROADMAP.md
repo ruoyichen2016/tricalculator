@@ -8,7 +8,7 @@
 ## 当前状态（最近验证：固定数据 + 全量门禁）
 
 - 工作区：7 crate（core / formula / ir / import / engine / output / cli）。
-- 测试：`cargo test --workspace` **190 passed**。
+- 测试：`cargo test --workspace` **193 passed**。
 - DS-3E（回归代理，`srdbasic.pcc`）：3,779 entities，23,723 tag occurrences，
   lowered 3,267；legacy pending 0；unsupported 0；
   **semantic completion 100.0%**。
@@ -217,6 +217,17 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
 - engine `apply_choose` 支持按 source entity 上下文查找 `draft.choices`；
 - `PRESUBCLASS` 支持 `class_subclasses`；
 - `TEMPLATESAPPLIED` 内嵌 `APPLIEDTO` 进入 choices；`CLASS|ALL` / `CLASS|PC` 动态 class list 解析；curated cohort 已无 unresolved choices。
+
+### P5-6 / P5-7 真实角色正确性基线与 spell numeric（已完成）
+
+- **P5-6**：`choice_state` baseline 扩展为
+  `choices` / `choice_bindings` / `ability_pools` / `ability_pool_usage` /
+  `ability_lists` / `repeatable_abilities` / `domain_spells` /
+  `deity_domains`；curated cohort 的 choice/pool/domain 状态可断言。
+- **P5-7**：spell numeric v1：已准备法术与领域法术的
+  `BONUS:COMBAT|AC` / `BONUS:SAVE` / `BONUS:STAT` / `BONUS:SKILL`
+  进入 `CharacterSnapshot.applied_spell_effects`。
+- 三数据集 pending 保持 0，completion 100.0%；broad / archive 全绿。
 
 ### P5-5 PCG 选择元数据补强（已完成）
 

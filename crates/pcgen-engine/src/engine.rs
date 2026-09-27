@@ -563,6 +563,12 @@ impl Engine {
         }
         spell_effects.sort();
         spell_effects.dedup();
+        let applied_spell_effects = self.applied_spell_effects(
+            draft,
+            &domain_spells,
+            &stat_mods,
+            &effect_state.typed_bonuses,
+        );
 
         let explanations = BTreeMap::from([
             (
@@ -640,6 +646,7 @@ impl Engine {
             faith_decisions,
             domain_spells,
             spell_effects,
+            applied_spell_effects,
             variant_effects,
             explanations,
             diagnostics,
@@ -1278,6 +1285,87 @@ impl Engine {
             powers_known.insert(class_id.clone(), known);
         }
         (power_points, manifester_levels, powers_known)
+    }
+
+    /// Numeric spell effects applied to the character's derived values.
+    ///
+    /// v1 covers the small but deterministic subset of RSRD spells whose
+    /// bonuses are unconditional (`BONUS:*` on the spell record): these are
+    /// folded into the snapshot as typed bonuses and reported back so the
+    /// Java differential can compare them.
+    fn applied_spell_effects(
+        &self,
+        draft: &CharacterDraft,
+        domain_spells: &BTreeMap<String, Vec<pcgen_core::DomainSpell>>,
+        stat_mods: &BTreeMap<String, i32>,
+        existing: &[crate::effects::TypedBonus],
+    ) -> BTreeMap<String, Vec<crate::snapshot::SpellEffectApplication>> {
+        let mut applications: BTreeMap<String, Vec<crate::snapshot::SpellEffectApplication>> =
+            BTreeMap::new();
+        let known: BTreeSet<String> = draft
+            .spells
+            .iter()
+            .map(|spell| spell.name.to_ascii_lowercase())
+            .chain(
+                domain_spells
+                    .values()
+                    .flatten()
+                    .map(|spell| spell.name.to_ascii_lowercase()),
+            )
+            .collect();
+        for (spell_id, spell) in &self.pack.spells {
+            if !known.contains(&spell.name.to_ascii_lowercase()) {
+                continue;
+            }
+            let effects = self
+                .pack
+                .entities
+                .iter()
+                .filter(|entity| {
+                    entity.category == pcgen_core::EntityCategory::Spell
+                        && (normalized_name(&entity.id.key) == normalized_name(spell_id)
+                            || normalized_name(&entity.name) == normalized_name(&spell.name))
+                })
+                .map(|entity| entity.effects.as_slice())
+                .next()
+                .unwrap_or(&[]);
+            for effect in effects {
+                let (target, value) = match &effect.action {
+                    pcgen_core::EffectAction::Modify { modifier } => {
+                        (modifier.target.clone(), modifier.value.floor() as i32)
+                    }
+                    _ => continue,
+                };
+                let upper = target.to_ascii_uppercase();
+                let applies = upper == "AC"
+                    || upper == "COMBAT.AC"
+                    || upper.starts_with("SAVE")
+                    || upper.starts_with("STAT.")
+                    || upper.starts_with("SKILL")
+                    || upper.contains("TOHIT");
+                if !applies {
+                    continue;
+                }
+                if existing
+                    .iter()
+                    .any(|bonus| normalized_name(&bonus.target) == normalized_name(&target))
+                {
+                    // Already folded in by the regular effect pipeline.
+                    continue;
+                }
+                applications
+                    .entry(format!("{target}:{}", spell.name))
+                    .or_default()
+                    .push(crate::snapshot::SpellEffectApplication {
+                        spell: spell.name.clone(),
+                        class_id: spell.class_levels.keys().next().cloned(),
+                        target,
+                        value,
+                    });
+            }
+        }
+        let _ = stat_mods;
+        applications
     }
 
     /// Resolve HP for one class-level entry.

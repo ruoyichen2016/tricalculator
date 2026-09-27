@@ -115,9 +115,11 @@ python3 scripts/snapshot_diff_archive.py --strict
   （含已知差异），任何字段变化都会失败；
 - cohort 中标记 `java_gated_fields` 的 case，还必须与 Java csheet 精确一致；
 - 每个 computed case 额外冻结 Rust-only `choice_state`：
-  `choices` / `unresolved_choices` / `ability_pools` / `ability_lists` /
-  `repeatable_abilities`，用于覆盖能力池与选择语义；Java csheet 不直接暴露
-  这些字段，因此它们只做 baseline 非回归，不参与 `java_gated_fields` 一致率；
+  `choices` / `choice_bindings` / `unresolved_choices` / `ability_pools` /
+  `ability_pool_usage` / `ability_lists` / `repeatable_abilities` /
+  `domain_spells` / `deity_domains`，用于覆盖能力池、选择与领域语义；
+  Java csheet 不直接暴露这些字段，因此它们只做 baseline 非回归，不参与
+  `java_gated_fields` 一致率；
 - cohort 中标记 `expectation = computed_diverging` 的 case 必须能计算，但不要求
   与 Java 一致（数值仍冻结在 baseline，用于捕捉漂移）；它们不计入 java 一致率分母。
 
