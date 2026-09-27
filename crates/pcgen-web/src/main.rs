@@ -8,14 +8,22 @@ use std::path::PathBuf;
 fn config_from_args() -> WebConfig {
     let mut args = std::env::args().skip(1);
     let mut data_root = PathBuf::from(".");
+    let mut cohort_root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
     while let Some(arg) = args.next() {
         if arg == "--data-root" {
             if let Some(value) = args.next() {
                 data_root = PathBuf::from(value);
             }
+        } else if arg == "--cohort-root" {
+            if let Some(value) = args.next() {
+                cohort_root = PathBuf::from(value);
+            }
         }
     }
-    WebConfig { data_root }
+    WebConfig {
+        data_root,
+        cohort_root,
+    }
 }
 
 #[tokio::main]

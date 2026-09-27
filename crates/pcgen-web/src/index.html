@@ -4,30 +4,70 @@
 <meta charset="utf-8">
 <title>PCGen-Rust Web</title>
 <style>
-  body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 70rem; }
+  :root { color-scheme: light; }
+  body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 80rem; }
   h1 { margin-bottom: 0.25rem; }
-  form { display: grid; gap: 0.5rem; max-width: 40rem; margin: 1rem 0 1.5rem; }
+  form { display: grid; gap: 0.5rem; max-width: 46rem; margin: 1rem 0 1.5rem; }
   label { font-weight: 600; }
-  input { padding: 0.35rem; font: inherit; }
+  input, select { padding: 0.35rem; font: inherit; }
   button { padding: 0.45rem 0.9rem; font: inherit; cursor: pointer; }
   pre { background: #f5f5f5; padding: 0.75rem; overflow: auto; max-height: 22rem; }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
   .card { border: 1px solid #ddd; padding: 1rem; border-radius: 6px; }
   .error { color: #b00020; font-weight: 600; }
+  .row { display: flex; gap: 0.5rem; align-items: center; }
+  .row input { flex: 1; }
   iframe { width: 100%; height: 30rem; border: 1px solid #ddd; border-radius: 6px; }
+  table { border-collapse: collapse; width: 100%; }
+  td { padding: 0.2rem 0.4rem; border-bottom: 1px solid #eee; vertical-align: top; }
+  .pill { background: #eef; border-radius: 999px; padding: 0.05rem 0.5rem; margin-right: 0.25rem; font-size: 0.85rem; }
 </style>
 </head>
 <body>
 <h1>PCGen-Rust Web</h1>
-<p>Local API: <code>POST /api/recalculate</code> with <code>{ "pcc": "...", "pcg": "..." }</code>.</p>
+<p>Local API: <code>POST /api/recalculate</code>, <code>GET /api/curated</code>.</p>
 
 <form id="form">
-  <label for="pcc">Campaign (.pcc path relative to data root)</label>
+  <label for="case">Curated case</label>
+  <select id="case"><option value="">— custom —</option></select>
+
+  <label for="pcc">Campaign (.pcc, relative to data root)</label>
   <input id="pcc" name="pcc" size="70"
          value="data/35e/wizards_of_the_coast/rsrd/basics/_rsrd_basics.pcc">
-  <label for="pcg">Character (.pcg path relative to data root)</label>
+  <label for="pcg">Character (.pcg, relative to data root)</label>
   <input id="pcg" name="pcg" size="70"
          value="code/testsuite/PCGfiles/35e_Bard.pcg">
+
+  <fieldset>
+    <legend>Choice overrides</legend>
+    <div class="row">
+      <input id="choiceKey" placeholder="choice key (e.g. Expanded Knowledge)">
+      <input id="choiceValue" placeholder="value (e.g. Animal Affinity)">
+      <button type="button" id="addChoice">Add</button>
+    </div>
+    <table id="choiceTable"></table>
+  </fieldset>
+
+  <fieldset>
+    <legend>Ability selections (pool editor)</legend>
+    <div class="row">
+      <input id="abilityCategory" placeholder="category (e.g. FEAT)">
+      <input id="abilityKey" placeholder="ability key (e.g. Skill Focus)">
+      <button type="button" id="addAbility">Add</button>
+    </div>
+    <table id="abilityTable"></table>
+    <p id="poolHint"></p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Active states</legend>
+    <div class="row">
+      <input id="stateInput" placeholder="e.g. Rage">
+      <button type="button" id="addState">Add</button>
+    </div>
+    <p id="stateList"></p>
+  </fieldset>
+
   <button type="submit">Recalculate</button>
 </form>
 <p id="status"></p>
@@ -50,16 +90,110 @@
 
 <script>
 const form = document.getElementById('form');
-const status = document.getElementById('status');
+const caseSelect = document.getElementById('case');
+const pccEl = document.getElementById('pcc');
+const pcgEl = document.getElementById('pcg');
+const statusEl = document.getElementById('status');
 const snapshotEl = document.getElementById('snapshot');
 const choicesEl = document.getElementById('choices');
 const diagnosticsEl = document.getElementById('diagnostics');
 const sheetEl = document.getElementById('sheet');
+const poolHint = document.getElementById('poolHint');
+
+const choices = new Map();
+const abilities = [];
+const states = new Set();
+
+function renderTables() {
+  const choiceTable = document.getElementById('choiceTable');
+  choiceTable.innerHTML = '';
+  for (const [key, value] of choices) {
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${key}</td><td>${value}</td>`;
+    const remove = document.createElement('button');
+    remove.textContent = 'Remove';
+    remove.type = 'button';
+    remove.onclick = () => { choices.delete(key); renderTables(); };
+    const cell = document.createElement('td');
+    cell.appendChild(remove);
+    row.appendChild(cell);
+    choiceTable.appendChild(row);
+  }
+  const abilityTable = document.getElementById('abilityTable');
+  abilityTable.innerHTML = '';
+  abilities.forEach(([category, key], index) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${category}</td><td>${key}</td>`;
+    const remove = document.createElement('button');
+    remove.textContent = 'Remove';
+    remove.type = 'button';
+    remove.onclick = () => { abilities.splice(index, 1); renderTables(); };
+    const cell = document.createElement('td');
+    cell.appendChild(remove);
+    row.appendChild(cell);
+    abilityTable.appendChild(row);
+  });
+  document.getElementById('stateList').innerHTML =
+    [...states].map((state) => `<span class="pill">${state}</span>`).join('');
+}
+
+document.getElementById('addChoice').onclick = () => {
+  const key = document.getElementById('choiceKey').value.trim();
+  const value = document.getElementById('choiceValue').value.trim();
+  if (!key) return;
+  choices.set(key, value);
+  document.getElementById('choiceKey').value = '';
+  document.getElementById('choiceValue').value = '';
+  renderTables();
+};
+
+document.getElementById('addAbility').onclick = () => {
+  const category = document.getElementById('abilityCategory').value.trim() || 'Ability';
+  const key = document.getElementById('abilityKey').value.trim();
+  if (!key) return;
+  abilities.push([category, key]);
+  document.getElementById('abilityKey').value = '';
+  renderTables();
+};
+
+document.getElementById('addState').onclick = () => {
+  const state = document.getElementById('stateInput').value.trim();
+  if (!state) return;
+  states.add(state);
+  document.getElementById('stateInput').value = '';
+  renderTables();
+};
+
+async function loadCurated() {
+  try {
+    const response = await fetch('/api/curated');
+    if (!response.ok) return;
+    const data = await response.json();
+    for (const item of data.cases || []) {
+      const option = document.createElement('option');
+      option.value = JSON.stringify({ pcc: item.pcc, pcg: item.pcg });
+      option.textContent = item.label;
+      caseSelect.appendChild(option);
+    }
+    if (data.repeatable_abilities?.length) {
+      poolHint.textContent = `Repeatable abilities: ${data.repeatable_abilities.slice(0, 12).join(', ')}`;
+    }
+  } catch (error) {
+    console.warn('curated list unavailable', error);
+  }
+}
+
+caseSelect.onchange = () => {
+  if (!caseSelect.value) return;
+  const selected = JSON.parse(caseSelect.value);
+  pccEl.value = selected.pcc;
+  pcgEl.value = selected.pcg;
+};
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
-  status.className = '';
-  status.textContent = 'Running…';
+  statusEl.className = '';
+  statusEl.textContent = 'Running…';
   snapshotEl.textContent = '';
   choicesEl.textContent = '';
   diagnosticsEl.textContent = '';
@@ -69,17 +203,22 @@ form.addEventListener('submit', async (event) => {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        pcc: document.getElementById('pcc').value,
-        pcg: document.getElementById('pcg').value,
+        pcc: pccEl.value,
+        pcg: pcgEl.value,
+        overrides: {
+          choices: Object.fromEntries(choices),
+          abilities,
+          active_states: [...states],
+        },
       }),
     });
     const data = await response.json();
     if (!response.ok) {
-      status.className = 'error';
-      status.textContent = data.error || 'request failed';
+      statusEl.className = 'error';
+      statusEl.textContent = data.error || 'request failed';
       return;
     }
-    status.textContent = 'OK';
+    statusEl.textContent = 'OK';
     snapshotEl.textContent = JSON.stringify(data.snapshot, null, 2);
     choicesEl.textContent = JSON.stringify({
       choices: data.choices,
@@ -89,10 +228,13 @@ form.addEventListener('submit', async (event) => {
     diagnosticsEl.textContent = data.diagnostics.join('\n');
     sheetEl.srcdoc = data.html;
   } catch (error) {
-    status.className = 'error';
-    status.textContent = String(error);
+    statusEl.className = 'error';
+    statusEl.textContent = String(error);
   }
 });
+
+renderTables();
+loadCurated();
 </script>
 </body>
 </html>

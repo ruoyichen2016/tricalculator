@@ -10,6 +10,7 @@ fn mini_config() -> WebConfig {
         data_root: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("../..")
             .join("tests/fixtures"),
+        cohort_root: std::path::PathBuf::from("."),
     }
 }
 
@@ -51,6 +52,56 @@ async fn recalculate_missing_campaign_is_bad_request() {
         .unwrap();
     let response = app(mini_config()).oneshot(request).await.unwrap();
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn curated_endpoint_lists_cases() {
+    let data_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .join("../../raw/pcgen-master");
+    let response = app(WebConfig {
+        data_root,
+        cohort_root: std::path::PathBuf::from("."),
+    })
+    .oneshot(
+        Request::builder()
+            .uri("/api/curated")
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await
+    .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert!(value["cases"]
+        .as_array()
+        .is_some_and(|cases| !cases.is_empty()));
+}
+
+#[tokio::test]
+async fn recalculate_applies_choice_overrides() {
+    let request = Request::builder()
+        .method("POST")
+        .uri("/api/recalculate")
+        .header("content-type", "application/json")
+        .body(Body::from(
+            r#"{
+                "pcc":"campaign-mini/mini.pcc",
+                "pcg":"campaign-mini/mini_character.pcg",
+                "overrides":{"choices":{"Test Choice":"Climb"}}
+            }"#,
+        ))
+        .unwrap();
+    let response = app(mini_config()).oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert!(value["snapshot"]["choices"].is_object());
 }
 
 #[tokio::test]

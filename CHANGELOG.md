@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### P5-12 Web GUI 增强（已完成）
+
+- 新增 `GET /api/curated`，读取 broad cohort 作为 curated case 列表。
+- `--cohort-root` 与 `--data-root` 分离，cohort 在仓库、数据在只读快照。
+- `POST /api/recalculate` 支持 `overrides`：choices、abilities、
+  active_states、class_subclasses、deity、domains。
+- 页面新增 curated 下拉、choice 覆盖、ability pool 编辑、active state 输入。
+- web smoke 测试 4→6；总测试 201→203。
+
 ### P5-11 本地 Web GUI（已完成）
 
 - 新增 `pcgen-web` crate：axum 本地服务，`GET /`、`GET /api/health`、

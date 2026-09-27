@@ -218,6 +218,16 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
 - `PRESUBCLASS` 支持 `class_subclasses`；
 - `TEMPLATESAPPLIED` 内嵌 `APPLIEDTO` 进入 choices；`CLASS|ALL` / `CLASS|PC` 动态 class list 解析；curated cohort 已无 unresolved choices。
 
+### P5-12 Web GUI 增强（已完成）
+
+- `/api/curated`：从 broad cohort 读取 curated case，支持
+  `--cohort-root` 与 `--data-root` 分离。
+- `POST /api/recalculate` 支持 `overrides`：
+  `choices` / `abilities` / `active_states` / `class_subclasses` /
+  `deity` / `domains`，用于 choice 覆盖与 ability pool 编辑。
+- 页面新增 curated 下拉、choice 覆盖表、ability 选择表、active state 输入。
+- web smoke 测试 4→6。
+
 ### P5-11 本地 Web GUI（已完成）
 
 - 新增 `pcgen-web` crate（axum + tokio）：`/`、`/api/health`、

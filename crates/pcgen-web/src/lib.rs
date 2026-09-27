@@ -23,12 +23,17 @@ use std::sync::Arc;
 pub struct WebConfig {
     /// Root directory used to resolve relative `.pcc` / `.pcg` paths.
     pub data_root: PathBuf,
+    /// Root directory holding `tests/fixtures/differential/broad_cohort.json`.
+    /// Defaults to the workspace root so the curated list works while
+    /// `data_root` points at the read-only PCGen snapshot.
+    pub cohort_root: PathBuf,
 }
 
 impl Default for WebConfig {
     fn default() -> Self {
         Self {
             data_root: PathBuf::from("."),
+            cohort_root: PathBuf::from("."),
         }
     }
 }
@@ -42,9 +47,42 @@ struct AppState {
 pub struct RecalculateRequest {
     pub pcc: String,
     pub pcg: String,
-    /// Optional list of curated PCGs the UI can pass through unchanged.
+    /// Optional draft overrides applied after `.pcg` parsing.
     #[serde(default)]
-    pub curated: bool,
+    pub overrides: DraftOverrides,
+}
+
+/// Draft fields the Web UI may override after `.pcg` parsing.
+#[derive(Debug, Default, Clone, Deserialize)]
+pub struct DraftOverrides {
+    #[serde(default)]
+    pub choices: std::collections::BTreeMap<String, String>,
+    #[serde(default)]
+    pub abilities: Vec<(String, String)>,
+    #[serde(default)]
+    pub active_states: Vec<String>,
+    #[serde(default)]
+    pub class_subclasses: std::collections::BTreeMap<String, String>,
+    #[serde(default)]
+    pub deity: Option<String>,
+    #[serde(default)]
+    pub domains: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CuratedCase {
+    pub label: String,
+    pub pcc: String,
+    pub pcg: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CuratedResponse {
+    pub cases: Vec<CuratedCase>,
+    /// Ability ids flagged `MULT` / `STACK`, offered by the pool editor.
+    pub repeatable_abilities: Vec<String>,
+    /// Subclass choices captured from the campaign, keyed by class id.
+    pub class_choices: std::collections::BTreeMap<String, String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -70,6 +108,7 @@ pub fn app(config: WebConfig) -> Router {
     Router::new()
         .route("/", get(index))
         .route("/api/health", get(health))
+        .route("/api/curated", get(curated))
         .route("/api/recalculate", post(recalculate))
         .with_state(state)
 }
@@ -80,6 +119,78 @@ async fn index() -> Html<&'static str> {
 
 async fn health() -> Json<serde_json::Value> {
     Json(serde_json::json!({"status": "ok"}))
+}
+
+/// Curated case list.  When the data root contains the PCGen test suite the
+/// standard cohort is offered; otherwise a small built-in list is used.
+async fn curated(State(state): State<AppState>) -> Json<CuratedResponse> {
+    let (cases, repeatable, class_choices) =
+        curated_cases(&state.config.data_root, &state.config.cohort_root);
+    Json(CuratedResponse {
+        cases,
+        repeatable_abilities: repeatable,
+        class_choices,
+    })
+}
+
+fn curated_cases(
+    data_root: &Path,
+    cohort_root: &Path,
+) -> (
+    Vec<CuratedCase>,
+    Vec<String>,
+    std::collections::BTreeMap<String, String>,
+) {
+    let cohort = cohort_root
+        .join("tests")
+        .join("fixtures")
+        .join("differential")
+        .join("broad_cohort.json");
+    if let Ok(text) = std::fs::read_to_string(&cohort) {
+        if let Ok(value) = serde_json::from_str::<serde_json::Value>(&text) {
+            let mut cases = Vec::new();
+            if let Some(map) = value.get("cases").and_then(|cases| cases.as_object()) {
+                for (label, case) in map {
+                    let pcc = case.get("pcc").and_then(|value| value.as_str());
+                    let pcg = case.get("pcg").and_then(|value| value.as_str());
+                    if let (Some(pcc), Some(pcg)) = (pcc, pcg) {
+                        cases.push(CuratedCase {
+                            label: label.clone(),
+                            pcc: relativize(data_root, pcc),
+                            pcg: relativize(data_root, pcg),
+                        });
+                    }
+                }
+            }
+            cases.sort_by(|left, right| left.label.cmp(&right.label));
+            if !cases.is_empty() {
+                return (cases, Vec::new(), std::collections::BTreeMap::new());
+            }
+        }
+    }
+    (
+        vec![
+            CuratedCase {
+                label: "35e Bard".to_string(),
+                pcc: "data/35e/wizards_of_the_coast/rsrd/basics/_rsrd_basics.pcc".to_string(),
+                pcg: "code/testsuite/PCGfiles/35e_Bard.pcg".to_string(),
+            },
+            CuratedCase {
+                label: "3e FigFae".to_string(),
+                pcc: "data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc".to_string(),
+                pcg: "code/testsuite/PCGfiles/3e_FigFae.pcg".to_string(),
+            },
+        ],
+        Vec::new(),
+        std::collections::BTreeMap::new(),
+    )
+}
+
+fn relativize(root: &Path, path: &str) -> String {
+    let path = Path::new(path);
+    path.strip_prefix(root)
+        .map(|relative| relative.to_string_lossy().replace('\\', "/"))
+        .unwrap_or_else(|_| path.to_string_lossy().to_string())
 }
 
 async fn recalculate(
@@ -105,7 +216,8 @@ fn run_recalculate(
     let pcc = resolve_path(&config.data_root, &request.pcc);
     let pcg = resolve_path(&config.data_root, &request.pcg);
     let (pack, _report) = compile_pcc(&pcc)?;
-    let draft = draft_from_pcg(parse_pcg_draft_file(&pcg)?);
+    let mut draft = draft_from_pcg(parse_pcg_draft_file(&pcg)?);
+    apply_overrides(&mut draft, &request.overrides);
     let snapshot = Engine::new(pack).evaluate(&draft);
     let snapshot_json: serde_json::Value = serde_json::from_str(&render_json(&snapshot)?)?;
     let choices = serde_json::to_value(&snapshot.choices)?;
@@ -126,6 +238,53 @@ fn resolve_path(root: &Path, value: &str) -> PathBuf {
         path.to_path_buf()
     } else {
         root.join(path)
+    }
+}
+
+/// Apply Web UI overrides on top of a parsed `.pcg` draft.
+pub fn apply_overrides(draft: &mut CharacterDraft, overrides: &DraftOverrides) {
+    for (key, value) in &overrides.choices {
+        draft.choices.insert(key.clone(), value.clone());
+    }
+    for (category, key) in &overrides.abilities {
+        if !draft
+            .abilities
+            .iter()
+            .any(|(existing_category, existing_key)| {
+                existing_category.eq_ignore_ascii_case(category)
+                    && existing_key.eq_ignore_ascii_case(key)
+            })
+        {
+            draft.abilities.push((category.clone(), key.clone()));
+        }
+    }
+    for state in &overrides.active_states {
+        if !draft
+            .active_states
+            .iter()
+            .any(|existing| existing.eq_ignore_ascii_case(state))
+        {
+            draft.active_states.push(state.clone());
+        }
+    }
+    for (class_id, subclass) in &overrides.class_subclasses {
+        draft
+            .class_subclasses
+            .insert(class_id.clone(), subclass.clone());
+    }
+    if let Some(deity) = &overrides.deity {
+        if !deity.trim().is_empty() {
+            draft.deity = Some(deity.clone());
+        }
+    }
+    for domain in &overrides.domains {
+        if !draft
+            .domains
+            .iter()
+            .any(|existing| existing.eq_ignore_ascii_case(domain))
+        {
+            draft.domains.push(domain.clone());
+        }
     }
 }
 

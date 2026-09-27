@@ -52,7 +52,7 @@ python3 scripts/coverage_gate.py    # 严格模式：跳过真实数据门禁即
 本地 Web GUI（无需外部数据即可启动服务）：
 
 ```bash
-cargo run -p pcgen-web -- --data-root ../raw/pcgen-master
+cargo run -p pcgen-web -- --data-root ../raw/pcgen-master --cohort-root .
 # 浏览器打开 http://127.0.0.1:8787
 ```
 
@@ -61,8 +61,14 @@ API：
 ```text
 GET  /                 # 简单页面
 GET  /api/health
-POST /api/recalculate  # { "pcc": "...", "pcg": "..." }
+GET  /api/curated      # curated cohort 列表 + repeatable abilities
+POST /api/recalculate  # { "pcc", "pcg", "overrides": { choices, abilities,
+                       #   active_states, class_subclasses, deity, domains } }
 ```
+
+页面功能：curated PCG 下拉列表、choice 覆盖、ability pool 编辑、
+active state 输入，并展示 snapshot / choices / pools / diagnostics /
+HTML 角色卡。
 
 一键开发检查（数据缺失时会明确切换到 no-data smoke）：
 
