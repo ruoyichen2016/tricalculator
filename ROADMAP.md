@@ -8,7 +8,7 @@
 ## 当前状态（最近验证：固定数据 + 全量门禁）
 
 - 工作区：7 crate（core / formula / ir / import / engine / output / cli）。
-- 测试：`cargo test --workspace` **193 passed**。
+- 测试：`cargo test --workspace` **197 passed**。
 - DS-3E（回归代理，`srdbasic.pcc`）：3,779 entities，23,723 tag occurrences，
   lowered 3,267；legacy pending 0；unsupported 0；
   **semantic completion 100.0%**。
@@ -217,6 +217,16 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
 - engine `apply_choose` 支持按 source entity 上下文查找 `draft.choices`；
 - `PRESUBCLASS` 支持 `class_subclasses`；
 - `TEMPLATESAPPLIED` 内嵌 `APPLIEDTO` 进入 choices；`CLASS|ALL` / `CLASS|PC` 动态 class list 解析；curated cohort 已无 unresolved choices。
+
+### P5-8 / P5-9 P5-10 收尾（已完成）
+
+- **P5-8**：spell numeric v2：`applied_spell_effects` 折叠进 AC / saves /
+  stats / skills / attack 数值；`prepare/memorized` 与 buff allowlist
+  双重门控，避免误把已知法术当激活 buff。
+- **P5-9**：curated PCG 的 choice / pool / domain 状态进入 broad
+  `choice_state` baseline；真实数据 Java 字段保持 23/23。
+- **P5-10**：`docs/P4_DECISIONS.md` 明确 KIT runtime / TEMPVALUE UI /
+  Pathfinder 均为 deferred；不启动，不阻塞当前核心路线。
 
 ### P5-6 / P5-7 真实角色正确性基线与 spell numeric（已完成）
 

@@ -8,6 +8,10 @@ ROADMAP 中的历史描述保留为背景，但状态以本文件与 ROADMAP 顶
 
 ### KIT / STARTPACK
 
+- **P5-10 复审结论：维持 deferred。**
+  - 当前主业务是重算已有 `.pcg` 角色，KIT runtime 不参与；
+  - 启动需要固定 RNG seed、表语义、Java/PCGen 对照 fixture 与独立门禁；
+  - 不启动不会阻塞 spell numeric / choice / pool 等 P5 工作。
 - **P4 内范围**：声明的 KIT / STARTPACK typed import 与统计。
   - 已由 `P4-KIT-1` 完成。
   - coverage gate 保留 KIT typed counts。
@@ -40,6 +44,10 @@ ROADMAP 中的历史描述保留为背景，但状态以本文件与 ROADMAP 顶
 
 ## P4-DEC-3 Pathfinder 1e
 
+- **P5-10 复审结论：维持 deferred。**
+  - 已完成技术试运行，见 `docs/P5_PATHFINDER_TRIAL.md`；
+  - Pathfinder 专属 CMB/CMD、caster 公式、archetype/traits 仍缺失；
+  - 继续放在正式 scope 之外。
 - **状态：deferred / P4 外。**
 - 当前 P4 只覆盖 D&D 3.0 / 3.5e RSRD。
 - 重新纳入前置条件：
@@ -48,6 +56,13 @@ ROADMAP 中的历史描述保留为背景，但状态以本文件与 ROADMAP 顶
   3. 新增 profile smoke 与 coverage 门禁；
   4. 重新评估 Pathfinder 特有如 CMB/CMD、traits、archetypes 等模型成本。
 - 在满足上述条件前，不阻塞 P4 关闭。
+
+## P5-10 TEMPVALUE UI
+
+- **状态：维持 deferred。**
+- `TEMPBONUS` / `TEMPVALUE` 已 typed 化，active-state 模型可用；
+- `%CHOICE` 在 TEMPVALUE 选择值上的接入属于 UI / 交互扩展；
+- 不阻塞当前 spell numeric / choice / pool 工作。
 
 ## P4-DEC-4 G4：旧 DataStore
 

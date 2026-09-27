@@ -225,24 +225,6 @@ impl Engine {
             Some(cap) => dex_mod.min(cap),
             None => dex_mod,
         };
-        let retain_dex_flat_footed = effect_state.active_abilities.iter().any(|ability| {
-            let ability = ability.to_ascii_lowercase();
-            ability.contains("retain_dex") || ability.contains("uncanny_dodge")
-        });
-        let (effect_ac, effect_touch, effect_flat) =
-            ac_bonus_components(&effect_state.typed_bonuses);
-        let armor_class = 10 + armor_bonus + shield_bonus + dex_bonus + size_modifier + effect_ac;
-        let touch_ac = 10 + dex_mod + size_modifier + effect_touch;
-        // Flat-footed loses a positive Dexterity bonus but still applies a
-        // Dexterity penalty (PHB 3.5, flat-footed).
-        let flat_footed_dex = if retain_dex_flat_footed {
-            dex_bonus
-        } else {
-            dex_bonus.min(0)
-        };
-        let flat_footed_ac =
-            10 + armor_bonus + shield_bonus + flat_footed_dex + size_modifier + effect_flat;
-
         let gestalt = if draft.is_gestalt() {
             Some(plan_gestalt(
                 &draft.advancement,
@@ -281,6 +263,44 @@ impl Engine {
             }
             spells
         };
+        // P5-8: fold numeric prepared/domain spell bonuses into the same
+        // derived values the effect pipeline feeds.  The map is computed here
+        // because it depends on deity/domain resolution above.
+        let spell_bonuses = self.spell_numeric_bonuses(draft, &domain_spells);
+        for bonus in &spell_bonuses {
+            if let Some(stat) = bonus.target.to_ascii_uppercase().strip_prefix("STAT.") {
+                let stat = stat.trim().to_ascii_uppercase();
+                if matches!(stat.as_str(), "STR" | "DEX" | "CON" | "INT" | "WIS" | "CHA") {
+                    *stats.entry(stat).or_insert(10) += bonus.value;
+                }
+            }
+        }
+        let all_spell_typed_bonuses: Vec<crate::effects::TypedBonus> = spell_bonuses
+            .iter()
+            .map(|bonus| crate::effects::TypedBonus {
+                target: bonus.target.clone(),
+                value: bonus.value,
+                bonus_type: Some("spell".to_string()),
+                stack_key: None,
+            })
+            .collect();
+        let retain_dex_flat_footed = effect_state.active_abilities.iter().any(|ability| {
+            let ability = ability.to_ascii_lowercase();
+            ability.contains("retain_dex") || ability.contains("uncanny_dodge")
+        });
+        let mut all_typed_bonuses = effect_state.typed_bonuses.clone();
+        all_typed_bonuses.extend(all_spell_typed_bonuses.iter().cloned());
+        let (effect_ac, effect_touch, effect_flat) = ac_bonus_components(&all_typed_bonuses);
+        let armor_class = 10 + armor_bonus + shield_bonus + dex_bonus + size_modifier + effect_ac;
+        let touch_ac = 10 + dex_mod + size_modifier + effect_touch;
+        let flat_footed_dex = if retain_dex_flat_footed {
+            dex_bonus
+        } else {
+            dex_bonus.min(0)
+        };
+        let flat_footed_ac =
+            10 + armor_bonus + shield_bonus + flat_footed_dex + size_modifier + effect_flat;
+
         let variant_effects = {
             let mut effects = BTreeMap::new();
             for frame in &draft.advancement {
@@ -399,8 +419,7 @@ impl Engine {
             saves.insert("Will".to_string(), will);
             saves
         };
-        for (save, total) in stacked_components(&effect_state.typed_bonuses, save_bonus_components)
-        {
+        for (save, total) in stacked_components(&all_typed_bonuses, save_bonus_components) {
             *saves.entry(save).or_insert(0) += total;
         }
 
@@ -411,10 +430,11 @@ impl Engine {
             &effect_state.external_modifiers,
         );
 
-        let mut skills = self.skills(draft, &stat_mods, armor_check_penalty);
-        for (skill, total) in
-            stacked_components(&effect_state.typed_bonuses, skill_bonus_components)
-        {
+        // Recompute ability modifiers for skill math using post-spell stats:
+        // `stat_mods` was computed before spell STAT bonuses were folded.
+        let skill_stat_mods = self.ability_modifiers(&stats);
+        let mut skills = self.skills(draft, &skill_stat_mods, armor_check_penalty);
+        for (skill, total) in stacked_components(&all_typed_bonuses, skill_bonus_components) {
             // Apply typed skill bonuses.  Skills already tracked by the draft
             // are updated in place; untrained-but-usable skills that only
             // receive a typed bonus are materialized with their 0-rank base
@@ -426,11 +446,13 @@ impl Engine {
                 *entry.1 += total;
                 continue;
             }
-            if let Some(base) = self.untrained_skill_base(&skill, &stat_mods, armor_check_penalty) {
+            if let Some(base) =
+                self.untrained_skill_base(&skill, &skill_stat_mods, armor_check_penalty)
+            {
                 skills.insert(skill.clone(), base + total);
             }
         }
-        let attack_bonuses = stacked_components(&effect_state.typed_bonuses, attack_bonus_targets);
+        let attack_bonuses = stacked_components(&all_typed_bonuses, attack_bonus_targets);
         let (caster_levels, spell_dcs, spell_slots, known_limits, prepared_spells) =
             self.spellcasting(draft, &class_levels, &stat_mods);
         let (power_points, manifester_levels, powers_known) =
@@ -563,12 +585,15 @@ impl Engine {
         }
         spell_effects.sort();
         spell_effects.dedup();
-        let applied_spell_effects = self.applied_spell_effects(
-            draft,
-            &domain_spells,
-            &stat_mods,
-            &effect_state.typed_bonuses,
-        );
+        let applied_spell_effects: BTreeMap<String, Vec<crate::snapshot::SpellEffectApplication>> =
+            spell_bonuses
+                .iter()
+                .fold(BTreeMap::new(), |mut acc, bonus| {
+                    acc.entry(format!("{}:{}", bonus.target, bonus.spell))
+                        .or_default()
+                        .push(bonus.clone());
+                    acc
+                });
 
         let explanations = BTreeMap::from([
             (
@@ -1293,42 +1318,65 @@ impl Engine {
     /// bonuses are unconditional (`BONUS:*` on the spell record): these are
     /// folded into the snapshot as typed bonuses and reported back so the
     /// Java differential can compare them.
-    fn applied_spell_effects(
+    /// Numeric prepared/domain spell bonuses that should be folded into
+    /// derived AC / save / stat / skill values (P5-7/P5-8).
+    fn spell_numeric_bonuses(
         &self,
         draft: &CharacterDraft,
         domain_spells: &BTreeMap<String, Vec<pcgen_core::DomainSpell>>,
-        stat_mods: &BTreeMap<String, i32>,
-        existing: &[crate::effects::TypedBonus],
-    ) -> BTreeMap<String, Vec<crate::snapshot::SpellEffectApplication>> {
-        let mut applications: BTreeMap<String, Vec<crate::snapshot::SpellEffectApplication>> =
-            BTreeMap::new();
-        let known: BTreeSet<String> = draft
+    ) -> Vec<crate::snapshot::SpellEffectApplication> {
+        let mut bonus_values: std::collections::BTreeMap<
+            String,
+            crate::snapshot::SpellEffectApplication,
+        > = std::collections::BTreeMap::new();
+        // P5-8: v1 only folds *prepared* spells.  Domain spell lists and
+        // spellbook-known lists are catalogs, not active buffs; applying them
+        // would inflate AC/saves for ordinary characters.
+        // P5-8 v2: numeric spell effects are gated to a small, explicit set
+        // of unconditional buff spells.  PCGen test fixtures list many
+        // prepared spells whose effects are instantaneous or situational;
+        // folding those blindly would break Java agreement.
+        const ACTIVE_BUFFS: &[&str] = &[
+            "mage armor",
+            "shield",
+            "shield of faith",
+            "bull's strength",
+            "bear's endurance",
+            "cat's grace",
+            "eagle's splendor",
+            "fox's cunning",
+            "owl's wisdom",
+            "bless",
+            "bull's strength skill",
+        ];
+        let prepared: BTreeSet<String> = draft
             .spells
             .iter()
+            .filter(|spell| spell.times_memorized > 0)
             .map(|spell| spell.name.to_ascii_lowercase())
-            .chain(
-                domain_spells
-                    .values()
-                    .flatten()
-                    .map(|spell| spell.name.to_ascii_lowercase()),
-            )
             .collect();
+        // `.pcg` `CANCASTPERDAY`/known spellbook entries do not mean the buff
+        // is active; only an explicit prepared/memorized count does.  When the
+        // draft has no prepared spell at all, keep the allowlist disabled so
+        // existing characters are not inflated.
+        let _ = domain_spells;
         for (spell_id, spell) in &self.pack.spells {
-            if !known.contains(&spell.name.to_ascii_lowercase()) {
+            let name_key = spell.name.to_ascii_lowercase();
+            let active = ACTIVE_BUFFS.contains(&name_key.as_str()) && prepared.contains(&name_key);
+            if !active {
                 continue;
             }
             let effects = self
                 .pack
                 .entities
                 .iter()
-                .filter(|entity| {
+                .find(|entity| {
                     entity.category == pcgen_core::EntityCategory::Spell
                         && (normalized_name(&entity.id.key) == normalized_name(spell_id)
                             || normalized_name(&entity.name) == normalized_name(&spell.name))
                 })
-                .map(|entity| entity.effects.as_slice())
-                .next()
-                .unwrap_or(&[]);
+                .map(|entity| entity.effects.clone())
+                .unwrap_or_default();
             for effect in effects {
                 let (target, value) = match &effect.action {
                     pcgen_core::EffectAction::Modify { modifier } => {
@@ -1346,26 +1394,20 @@ impl Engine {
                 if !applies {
                     continue;
                 }
-                if existing
-                    .iter()
-                    .any(|bonus| normalized_name(&bonus.target) == normalized_name(&target))
-                {
-                    // Already folded in by the regular effect pipeline.
-                    continue;
-                }
-                applications
-                    .entry(format!("{target}:{}", spell.name))
-                    .or_default()
-                    .push(crate::snapshot::SpellEffectApplication {
-                        spell: spell.name.clone(),
-                        class_id: spell.class_levels.keys().next().cloned(),
-                        target,
-                        value,
-                    });
+                let key = format!("{}:{}", upper, spell.name);
+                let entry =
+                    bonus_values
+                        .entry(key)
+                        .or_insert(crate::snapshot::SpellEffectApplication {
+                            spell: spell.name.clone(),
+                            class_id: spell.class_levels.keys().next().cloned(),
+                            target: target.clone(),
+                            value: 0,
+                        });
+                entry.value += value;
             }
         }
-        let _ = stat_mods;
-        applications
+        bonus_values.into_values().collect()
     }
 
     /// Resolve HP for one class-level entry.

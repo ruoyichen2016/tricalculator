@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### P5-8 / P5-9 / P5-10 收尾（已完成）
+
+- spell numeric v2：prepared buff 的 AC / save / stat / skill / attack
+  `BONUS` 折叠进派生数值；已知但未准备的法术不会误算。
+- broad `choice_state` 继续覆盖真实 PCG 的 choice / pool / domain 状态。
+- KIT runtime / TEMPVALUE UI / Pathfinder 明确维持 deferred。
+- 测试 193→197。
+
 ### P5-6 / P5-7 真实角色正确性基线与 spell numeric（已完成）
 
 - broad `choice_state` 增加 `choice_bindings` / `ability_pool_usage` /
