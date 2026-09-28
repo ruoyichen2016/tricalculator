@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### P7 设计 spike：SystemProfile + SaveEnvelope（已完成，未实现）
+
+- 新增 `docs/P7_PROFILE_SAVE_ENVELOPE_SPIKE.md`，抽取 Tri20 的
+  `SystemProfile` 与 `SaveEnvelope` 思路；不复制 Tri20 代码或 crate。
+- 定义 `CompiledPackHeader.profile` / `GameSystemProfile` /
+  `NativeSaveEnvelope` 的字段、迁移策略与分阶段验收。
+- 明确 3.0/3.5e 第一阶段行为不变；MSRD / PF1 需产品确认后走独立 profile gate。
+
 ### Sprint 2 方案 A：primary / extended cohort 拆分（已完成）
 
 - `broad_cohort.json` 只保留 3.0/3.5e 25 case；MSRD 2 case 移入

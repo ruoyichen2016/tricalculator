@@ -10,8 +10,11 @@
       - primary 25 case 全部可比字段 100%，0 owned known gaps。
       - extended 2 MSRD case 保留 7 条 owned known gaps，单独报告。
       - commit: `feat: split primary and extended broad cohorts`。
-- [ ] **L2 Tri20 设计抽取 spike**：产出 `SystemProfile` + `SaveEnvelope`
+- [x] **L2 Tri20 设计抽取 spike**：产出 `SystemProfile` + `SaveEnvelope`
       设计文档，不搬 Tri20 代码。
+      - 产出 `docs/P7_PROFILE_SAVE_ENVELOPE_SPIKE.md`。
+      - 挂接现有 `CompiledPackHeader` / `rules_fingerprint` / `CharacterDraft`。
+      - check.sh 全绿；无代码行为变化。
 - [ ] **L3 Sprint 3 覆盖深度**：建立 `docs/COHORT_MATRIX.md`，扩展
       Java-gated 字段（技能总额 / 法术 DC / prepared / caster level /
       攻击加值 / 装备 AC 分量），并修复暴露的 engine 分歧。
@@ -28,6 +31,6 @@
 ## 当前状态
 
 - 最近更新：L1 门禁全绿（coverage gate 15/15，archive differential 通过）。
-- L1：已完成，待本轮 commit。
-- L2：下一轮起点。
-- L3：未开始。
+- L1：已完成（commit 见 git log）。
+- L2：已完成，待本轮 commit。
+- L3：下一轮起点。

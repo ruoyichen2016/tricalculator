@@ -21,6 +21,7 @@ PCGen-Rust 是围绕统一 Rule IR、`CharacterDraft` / `CharacterSnapshot`
 - [`docs/P5_PATHFINDER_ASSESSMENT.md`](docs/P5_PATHFINDER_ASSESSMENT.md)
 - [`docs/P5_KIT_RUNTIME_DESIGN.md`](docs/P5_KIT_RUNTIME_DESIGN.md)
 - [`docs/P6_HTM_CSHEET.md`](docs/P6_HTM_CSHEET.md)
+- [`docs/P7_PROFILE_SAVE_ENVELOPE_SPIKE.md`](docs/P7_PROFILE_SAVE_ENVELOPE_SPIKE.md)
 
 ## 工作区
 

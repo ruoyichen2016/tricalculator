@@ -262,6 +262,18 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
 - full-data CI 增补 extended cohort path smoke 与 visibility report。
 - 主 cohort 可比字段恢复 **100%**；MSRD 差异只在 extended 报告中可见。
 
+### P7 设计 spike：SystemProfile + SaveEnvelope（已完成，未实现）
+
+- 新增 [`docs/P7_PROFILE_SAVE_ENVELOPE_SPIKE.md`](docs/P7_PROFILE_SAVE_ENVELOPE_SPIKE.md)：
+  从 Tri20 抽取 `SystemProfile` 与 `SaveEnvelope` 设计，不搬代码。
+- `SystemProfile` 计划挂到 `CompiledPackHeader.profile`，覆盖
+  `D20_30 / D20_35 / PF1 / MSRD` profile flags，并纳入
+  `rules_fingerprint`；第一阶段保证 3.0/3.5e 行为不变。
+- `NativeSaveEnvelope` 计划先在 CLI/Web 应用边界落地，保存
+  `CharacterDraft` + schema + profile + fingerprint + data_ref；
+  `.pcg` 继续作为兼容导入/导出格式。
+- MSRD / PF1 profile 策略必须等产品确认后，以独立 cohort + 独立 gate 推进。
+
 ### P6-1a HTM csheet 解析与 cohort 扩展（已完成）
 
 - 新增 `scripts/htm_csheet.py`：从 PCGen `.htm` csheet 抽取
