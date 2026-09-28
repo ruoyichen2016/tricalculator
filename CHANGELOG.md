@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### P6-1c Web 选择提示与导出下载（已完成）
+
+- `GET /api/curated` 返回 `ability_candidates`（ability category 成员与可重复能力），
+  页面提供候选 datalist。
+- `POST /api/recalculate` / `POST /api/export` 返回 `unresolved_hints`，
+  页面展示 unresolved choice 的 kind、候选与提示。
+- 新增 Download `.pcg` 按钮；web smoke 测试 7→9，总测试 205→207。
+
+### P6-1b HTM 变体与 XML cohort 扩展（已完成）
+
+- HTM extractor 支持 `-cmb` / `-cmp`，含 touch / flat-footed AC。
+- `35e_L7-3` 使用 `-cmb` sheet 并升级为全字段 Java-gated。
+- 新增 `msrd_Elwood` / `msrd_Ilyana` XML case。
+- 差异以 `known_gaps` 显式记录。
+- broad cohort 25→27；新增 `scripts/test_htm_csheet.py` 并接入 full-data CI。
+
 ### P6-1a HTM csheet 解析与 cohort 扩展（已完成）
 
 - 新增 `scripts/htm_csheet.py`，支持 `.htm` csheet 差分。

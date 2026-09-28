@@ -146,3 +146,46 @@ async fn export_returns_lossless_pcg() {
     let round = pcgen_import::parse_pcg_draft_str(pcg).unwrap();
     assert!(!round.name.is_empty());
 }
+
+#[tokio::test]
+async fn curated_response_includes_ability_candidates() {
+    let data_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .join("../../raw/pcgen-master");
+    let response = app(WebConfig {
+        data_root,
+        cohort_root: std::path::PathBuf::from("."),
+    })
+    .oneshot(
+        Request::builder()
+            .uri("/api/curated")
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await
+    .unwrap();
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert!(value["ability_candidates"].is_object());
+}
+
+#[tokio::test]
+async fn recalculate_reports_unresolved_hints() {
+    let request = Request::builder()
+        .method("POST")
+        .uri("/api/recalculate")
+        .header("content-type", "application/json")
+        .body(Body::from(
+            r#"{"pcc":"campaign-mini/mini.pcc","pcg":"campaign-mini/mini_character.pcg"}"#,
+        ))
+        .unwrap();
+    let response = app(mini_config()).oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert!(value["unresolved_hints"].is_array());
+}

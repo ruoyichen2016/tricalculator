@@ -54,10 +54,48 @@ def _save_total(text: str, marker: str) -> int | None:
     return int(match.group(1)) if match else None
 
 
+_JS_CHECK_RE = re.compile(
+    r'new Check\("([^"]+)",\s*"[^"]*",\s*\+?(-?\d+)'
+)
+
+
+def _js_values(text: str) -> dict:
+    """Extract fields from the JavaScript `-cmb` sheet variant."""
+    values: dict = {}
+    checks = {name.lower(): int(total) for name, total in _JS_CHECK_RE.findall(text)}
+    if checks:
+        values["save_fortitude"] = checks.get("fortitude")
+        values["save_reflex"] = checks.get("reflex")
+        values["save_will"] = checks.get("willpower", checks.get("will"))
+    # `new ATK("Melee","+13/+8","+9/+4", ...)`: third value is base attack.
+    atk = re.search(r'new ATK\("Melee",\s*"[^"]*",\s*"([+-]?\d+)', text)
+    if atk:
+        values["bab"] = int(atk.group(1))
+    # `new ACObject(nFlat, nTouch, nTotal, nBase, nArmor, nShield, ...)`.
+    ac = re.search(r'new ACObject\((-?\d+),(-?\d+),(-?\d+)', text)
+    if ac:
+        values["flat_footed_ac"] = int(ac.group(1))
+        values["touch_ac"] = int(ac.group(2))
+        values["armor_class"] = int(ac.group(3))
+    # `var Init = new InitObject(+3,+0)`: first value is the total.
+    init = re.search(r'new InitObject\(\+?(-?\d+)', text)
+    if init:
+        values["initiative"] = int(init.group(1))
+    # Hit points still appear as a plain number near the HP label.
+    return values
+
+
 def parse_htm_csheet(path: str | Path) -> dict:
-    """Extract comparable fields from a PCGen HTML csheet."""
+    """Extract comparable fields from a PCGen HTML csheet.
+
+    Two sheet variants exist:
+
+    * `-std` / `-cmp`: server-rendered tables with labelled numeric cells;
+    * `-cmb`: JavaScript-driven sheet that carries the values in `CheckArr` /
+      `ATKArr` constructor calls.
+    """
     text = Path(path).read_text(errors="ignore")
-    return {
+    values = {
         "hit_points": _bold_number_after(text, "Hit Points"),
         "armor_class": _bold_number_after(text, "Armour Class"),
         "touch_ac": None,
@@ -68,3 +106,8 @@ def parse_htm_csheet(path: str | Path) -> dict:
         "save_reflex": _save_total(text, "Reflex"),
         "save_will": _save_total(text, "Will"),
     }
+    js = _js_values(text)
+    for key, value in js.items():
+        if values.get(key) is None:
+            values[key] = value
+    return values

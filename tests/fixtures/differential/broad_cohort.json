@@ -440,6 +440,8 @@
         "hit_points",
         "initiative",
         "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
         "save_fortitude",
         "save_reflex",
         "save_will"
@@ -447,7 +449,7 @@
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
       "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_L7-3(fighter-cleric-dwarf).pcg",
-      "htm": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_L7-3(fighter-cleric-dwarf-std).htm",
+      "htm": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_L7-3(fighter-cleric-dwarf-cmb).htm",
       "java_sheet": "htm"
     },
     "35e_L10(fighter-human)": {
@@ -466,6 +468,45 @@
       "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_L10(fighter-human).pcg",
       "htm": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_L10(fighter-human-std).htm",
       "java_sheet": "htm"
+    },
+    "msrd_Elwood": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "hit_points",
+        "bab",
+        "initiative",
+        "save_fortitude",
+        "save_will"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/modern/wizards_of_the_coast/msrd/basics/msrd_basics.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/msrd_Elwood.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/msrd_Elwood.xml",
+      "known_gaps": [
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac",
+        "save_reflex"
+      ]
+    },
+    "msrd_Ilyana": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "hit_points",
+        "bab",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/modern/wizards_of_the_coast/msrd/basics/msrd_basics.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/msrd_Ilyana.pcg",
+      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/msrd_Ilyana.xml",
+      "known_gaps": [
+        "armor_class",
+        "touch_ac",
+        "flat_footed_ac"
+      ]
     }
   },
   "cohort_date": "2026-09-18",
@@ -474,10 +515,10 @@
   "description": "All PCG/XML pairs in the pinned PCGen test suite that map to a data set. Each case declares an `expectation` (computed / data_missing / base_only) so the agreement denominator is fixed. `data_missing_limit` caps how many cases may be skipped for missing data. `java_gated_fields` must match the Java csheet exactly; the rest are frozen in broad_baseline.json.",
   "expectation_summary": {
     "base_only": 0,
-    "computed": 25,
+    "computed": 27,
     "computed_diverging": 0,
     "data_missing": 0,
-    "must_compute": 25
+    "must_compute": 27
   },
   "known_data_gaps": {},
   "name": "pcgen-testsuite-broad",

@@ -83,6 +83,24 @@ pub struct CuratedResponse {
     pub repeatable_abilities: Vec<String>,
     /// Subclass choices captured from the campaign, keyed by class id.
     pub class_choices: std::collections::BTreeMap<String, String>,
+    /// Ability-category membership and pool metadata, for the pool editor.
+    pub ability_candidates: std::collections::BTreeMap<String, AbilityCandidates>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AbilityCandidates {
+    pub pool: Option<String>,
+    pub category: Option<String>,
+    pub members: Vec<String>,
+    pub repeatable: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct UnresolvedChoiceHint {
+    pub spec: String,
+    pub kind: String,
+    pub options: Vec<String>,
+    pub hint: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -90,6 +108,7 @@ pub struct RecalculateResponse {
     pub snapshot: serde_json::Value,
     pub choices: serde_json::Value,
     pub unresolved_choices: Vec<String>,
+    pub unresolved_hints: Vec<UnresolvedChoiceHint>,
     pub ability_pool_usage: serde_json::Value,
     pub diagnostics: Vec<String>,
     pub html: String,
@@ -114,6 +133,7 @@ pub struct ExportResponse {
     pub pcg: String,
     /// Unresolved choices still present after evaluation.
     pub unresolved_choices: Vec<String>,
+    pub unresolved_hints: Vec<UnresolvedChoiceHint>,
     /// Ability pool usage, so the UI can highlight remaining budget.
     pub ability_pool_usage: serde_json::Value,
     /// Diagnostics produced by the evaluation.
@@ -142,26 +162,27 @@ async fn health() -> Json<serde_json::Value> {
     Json(serde_json::json!({"status": "ok"}))
 }
 
+/// Curated catalogue assembled from the checked-in cohort or built-in defaults.
+struct CuratedCatalog {
+    cases: Vec<CuratedCase>,
+    repeatable_abilities: Vec<String>,
+    class_choices: std::collections::BTreeMap<String, String>,
+    ability_candidates: std::collections::BTreeMap<String, AbilityCandidates>,
+}
+
 /// Curated case list.  When the data root contains the PCGen test suite the
 /// standard cohort is offered; otherwise a small built-in list is used.
 async fn curated(State(state): State<AppState>) -> Json<CuratedResponse> {
-    let (cases, repeatable, class_choices) =
-        curated_cases(&state.config.data_root, &state.config.cohort_root);
+    let catalog = curated_cases(&state.config.data_root, &state.config.cohort_root);
     Json(CuratedResponse {
-        cases,
-        repeatable_abilities: repeatable,
-        class_choices,
+        cases: catalog.cases,
+        repeatable_abilities: catalog.repeatable_abilities,
+        class_choices: catalog.class_choices,
+        ability_candidates: catalog.ability_candidates,
     })
 }
 
-fn curated_cases(
-    data_root: &Path,
-    cohort_root: &Path,
-) -> (
-    Vec<CuratedCase>,
-    Vec<String>,
-    std::collections::BTreeMap<String, String>,
-) {
+fn curated_cases(data_root: &Path, cohort_root: &Path) -> CuratedCatalog {
     let cohort = cohort_root
         .join("tests")
         .join("fixtures")
@@ -185,12 +206,18 @@ fn curated_cases(
             }
             cases.sort_by(|left, right| left.label.cmp(&right.label));
             if !cases.is_empty() {
-                return (cases, Vec::new(), std::collections::BTreeMap::new());
+                let (repeatable, candidates) = campaign_candidates(data_root, &cases);
+                return CuratedCatalog {
+                    cases,
+                    repeatable_abilities: repeatable,
+                    class_choices: std::collections::BTreeMap::new(),
+                    ability_candidates: candidates,
+                };
             }
         }
     }
-    (
-        vec![
+    CuratedCatalog {
+        cases: vec![
             CuratedCase {
                 label: "35e Bard".to_string(),
                 pcc: "data/35e/wizards_of_the_coast/rsrd/basics/_rsrd_basics.pcc".to_string(),
@@ -202,9 +229,74 @@ fn curated_cases(
                 pcg: "code/testsuite/PCGfiles/3e_FigFae.pcg".to_string(),
             },
         ],
-        Vec::new(),
-        std::collections::BTreeMap::new(),
-    )
+        repeatable_abilities: Vec::new(),
+        class_choices: std::collections::BTreeMap::new(),
+        ability_candidates: std::collections::BTreeMap::new(),
+    }
+}
+
+/// Best-effort ability-category candidates for the first curated campaign.
+fn campaign_candidates(
+    data_root: &Path,
+    cases: &[CuratedCase],
+) -> (
+    Vec<String>,
+    std::collections::BTreeMap<String, AbilityCandidates>,
+) {
+    let mut candidates = std::collections::BTreeMap::new();
+    let Some(case) = cases.first() else {
+        return (Vec::new(), candidates);
+    };
+    let Ok((pack, _)) = compile_pcc(resolve_path(data_root, &case.pcc)) else {
+        return (Vec::new(), candidates);
+    };
+    let mut repeatable_set = std::collections::BTreeSet::new();
+    for (id, ability) in &pack.abilities {
+        if ability.stack == Some(true) || ability.multi == Some(true) {
+            repeatable_set.insert(id.clone());
+        }
+    }
+    let mut repeatable: Vec<String> = repeatable_set.iter().cloned().collect();
+    repeatable.sort();
+    for (id, category) in &pack.ability_categories {
+        let members: Vec<String> = if category.ability_list.is_empty() {
+            pack.abilities
+                .values()
+                .filter(|ability| {
+                    ability.category.as_deref().is_some_and(|ability_category| {
+                        category.category.as_deref().is_some_and(|pool_category| {
+                            ability_category.eq_ignore_ascii_case(pool_category)
+                        })
+                    })
+                })
+                .map(|ability| ability.name.clone())
+                .collect()
+        } else {
+            category.ability_list.clone()
+        };
+        let mut members = members;
+        members.sort();
+        members.dedup();
+        members.truncate(60);
+        let repeatable_members: Vec<String> = members
+            .iter()
+            .filter(|name| {
+                let key = name.trim().to_ascii_lowercase().replace(' ', "_");
+                repeatable_set.contains(&key)
+            })
+            .cloned()
+            .collect();
+        candidates.insert(
+            id.clone(),
+            AbilityCandidates {
+                pool: category.pool.clone(),
+                category: category.category.clone(),
+                members,
+                repeatable: repeatable_members,
+            },
+        );
+    }
+    (repeatable, candidates)
 }
 
 fn relativize(root: &Path, path: &str) -> String {
@@ -252,11 +344,14 @@ fn run_export(config: &WebConfig, request: &ExportRequest) -> anyhow::Result<Exp
     let (pack, _report) = compile_pcc(&pcc)?;
     let mut draft = draft_from_pcg(parse_pcg_draft_file(&pcg)?);
     apply_overrides(&mut draft, &request.overrides);
-    let snapshot = Engine::new(pack).evaluate(&draft);
+    let snapshot = Engine::new(pack.clone()).evaluate(&draft);
     let exported = pcg_from_draft(&draft);
+    let unresolved_choices = snapshot.unresolved_choices.clone();
+    let hints = unresolved_hints(&draft, &unresolved_choices, &pack);
     Ok(ExportResponse {
         pcg: pcgen_import::write_pcg_draft_string(&exported)?,
-        unresolved_choices: snapshot.unresolved_choices.clone(),
+        unresolved_choices,
+        unresolved_hints: hints,
         ability_pool_usage: serde_json::to_value(&snapshot.ability_pool_usage)?,
         diagnostics: snapshot.diagnostics.clone(),
     })
@@ -316,18 +411,94 @@ fn run_recalculate(
     let (pack, _report) = compile_pcc(&pcc)?;
     let mut draft = draft_from_pcg(parse_pcg_draft_file(&pcg)?);
     apply_overrides(&mut draft, &request.overrides);
-    let snapshot = Engine::new(pack).evaluate(&draft);
+    let snapshot = Engine::new(pack.clone()).evaluate(&draft);
     let snapshot_json: serde_json::Value = serde_json::from_str(&render_json(&snapshot)?)?;
     let choices = serde_json::to_value(&snapshot.choices)?;
     let ability_pool_usage = serde_json::to_value(&snapshot.ability_pool_usage)?;
+    let unresolved_choices = snapshot.unresolved_choices.clone();
+    let hints = unresolved_hints(&draft, &unresolved_choices, &pack);
     Ok(RecalculateResponse {
         snapshot: snapshot_json,
         choices,
-        unresolved_choices: snapshot.unresolved_choices.clone(),
+        unresolved_choices,
+        unresolved_hints: hints,
         ability_pool_usage,
         diagnostics: snapshot.diagnostics.clone(),
         html: render_html(&snapshot),
     })
+}
+
+/// Explain each unresolved choice with its kind, candidates and a hint.
+fn unresolved_hints(
+    draft: &CharacterDraft,
+    unresolved: &[String],
+    pack: &pcgen_import::CompiledRulePack,
+) -> Vec<UnresolvedChoiceHint> {
+    unresolved
+        .iter()
+        .map(|spec| {
+            let kind = spec
+                .split('|')
+                .next()
+                .unwrap_or(spec)
+                .trim()
+                .to_ascii_uppercase();
+            let options: Vec<String> = match kind.as_str() {
+                "SKILL" => draft
+                    .skills
+                    .keys()
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .into_iter()
+                    .chain(pack.skills.values().map(|skill| skill.name.clone()))
+                    .collect(),
+                "CLASS" => pack
+                    .classes
+                    .values()
+                    .map(|class| class.name.clone())
+                    .collect(),
+                "SCHOOL" => pack
+                    .spells
+                    .values()
+                    .map(|spell| spell.school.clone())
+                    .filter(|school| !school.is_empty())
+                    .collect(),
+                "DOMAIN" => pack
+                    .domains
+                    .values()
+                    .map(|domain| domain.name.clone())
+                    .collect(),
+                "SPELLS" | "SPELL" => pack
+                    .spells
+                    .values()
+                    .map(|spell| spell.name.clone())
+                    .collect(),
+                "ABILITY" | "FEAT" => pack
+                    .abilities
+                    .values()
+                    .map(|ability| ability.name.clone())
+                    .collect(),
+                _ => Vec::new(),
+            };
+            let mut options = options;
+            options.sort();
+            options.dedup();
+            let hint = if options.is_empty() {
+                format!("provide draft.choices[\"{spec}\"]; no built-in candidate list for {kind}")
+            } else {
+                format!(
+                    "provide draft.choices[\"{spec}\"]; {} candidate(s) available",
+                    options.len()
+                )
+            };
+            UnresolvedChoiceHint {
+                spec: spec.clone(),
+                kind,
+                options: options.into_iter().take(200).collect(),
+                hint,
+            }
+        })
+        .collect()
 }
 
 fn resolve_path(root: &Path, value: &str) -> PathBuf {

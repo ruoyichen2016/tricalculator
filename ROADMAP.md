@@ -8,7 +8,7 @@
 ## 当前状态（最近验证：固定数据 + 全量门禁）
 
 - 工作区：7 crate（core / formula / ir / import / engine / output / cli）。
-- 测试：`cargo test --workspace` **205 passed**。
+- 测试：`cargo test --workspace` **207 passed**。
 - DS-3E（回归代理，`srdbasic.pcc`）：3,779 entities，23,723 tag occurrences，
   lowered 3,267；legacy pending 0；unsupported 0；
   **semantic completion 100.0%**。
@@ -22,7 +22,7 @@
   `XPCOST` 按 P4-DEC-2 移入 out-of-scope allowlist；三个数据集的
   `unsupported_pending` 均被门禁显式要求为 0。
 - 门禁 `scripts/coverage_gate.py`：**14 pass / 0 fail / 0 skip**（严格模式，含三数据集 coverage 基线与 DS-35E 阈值）。
-- broad per-case oracle：25 cohort（**25 computed = 25 java-compared +
+- broad per-case oracle：27 cohort（**27 computed = 27 java-compared +
   0 known-diverging**，0 data-missing），23 个 java-gated case；
   `final_stats` / `bab` / `hit_points` / `initiative` / `armor_class` /
   `touch_ac` / `flat_footed_ac` / `save_*` 全部 **23/23（100%）**。
@@ -217,6 +217,22 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
 - engine `apply_choose` 支持按 source entity 上下文查找 `draft.choices`；
 - `PRESUBCLASS` 支持 `class_subclasses`；
 - `TEMPLATESAPPLIED` 内嵌 `APPLIEDTO` 进入 choices；`CLASS|ALL` / `CLASS|PC` 动态 class list 解析；curated cohort 已无 unresolved choices。
+
+### P6-1b HTM 变体与 XML cohort 扩展（已完成）
+
+- HTM extractor 支持 `-cmb`（JavaScript CheckArr/ATKArr/ACObject/InitObject）
+  与 `-cmp` 变体，含 touch / flat-footed AC。
+- `35e_L7-3` 升级为 `-cmb` 全字段 Java-gated（HP/BAB/init/AC/touch/flat/saves）。
+- 新增 XML case：`msrd_Elwood`、`msrd_Ilyana`（MSRD Modern 数据集）。
+- 已知缺口以 `known_gaps` 显式记录，不伪装成通过。
+- broad cohort 25→27；`scripts/test_htm_csheet.py` 固化抽取结果。
+
+### P6-1c Web 选择提示与导出下载（已完成）
+
+- `/api/curated` 返回 `ability_candidates`，页面用 datalist 提供候选。
+- `/api/recalculate` / `/api/export` 返回 `unresolved_hints`，页面显示
+  unresolved choice 的 kind、候选与提示。
+- 新增 Download `.pcg`；web smoke 7→9，总测试 205→207。
 
 ### P6-1a HTM csheet 解析与 cohort 扩展（已完成）
 

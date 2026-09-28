@@ -52,7 +52,8 @@
     <legend>Ability selections (pool editor)</legend>
     <div class="row">
       <input id="abilityCategory" placeholder="category (e.g. FEAT)">
-      <input id="abilityKey" placeholder="ability key (e.g. Skill Focus)">
+      <input id="abilityKey" placeholder="ability key (e.g. Skill Focus)" list="abilityCandidates">
+      <datalist id="abilityCandidates"></datalist>
       <button type="button" id="addAbility">Add</button>
     </div>
     <table id="abilityTable"></table>
@@ -71,6 +72,7 @@
   <div class="row">
     <button type="submit">Recalculate</button>
     <button type="button" id="exportBtn">Export .pcg</button>
+    <button type="button" id="downloadBtn">Download .pcg</button>
   </div>
 </form>
 <p id="status"></p>
@@ -163,6 +165,23 @@ document.getElementById('addAbility').onclick = () => {
   renderTables();
 };
 
+let lastExportPcg = '';
+
+document.getElementById('downloadBtn').onclick = () => {
+  if (!lastExportPcg) {
+    statusEl.className = 'error';
+    statusEl.textContent = 'Export first';
+    return;
+  }
+  const blob = new Blob([lastExportPcg], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (document.getElementById('pcg').value.split('/').pop() || 'character.pcg');
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
 document.getElementById('exportBtn').onclick = async () => {
   statusEl.className = '';
   statusEl.textContent = 'Exporting…';
@@ -187,8 +206,9 @@ document.getElementById('exportBtn').onclick = async () => {
       return;
     }
     statusEl.textContent = 'Exported';
+    lastExportPcg = data.pcg;
     document.getElementById('exportedPcg').textContent = data.pcg;
-    renderUnresolved(data.unresolved_choices);
+    renderUnresolved(data.unresolved_choices, data.unresolved_hints);
     renderPoolBars(data.ability_pool_usage);
   } catch (error) {
     statusEl.className = 'error';
@@ -196,7 +216,7 @@ document.getElementById('exportBtn').onclick = async () => {
   }
 };
 
-function renderUnresolved(list) {
+function renderUnresolved(list, hints) {
   const badge = document.getElementById('unresolvedBadge');
   if (!list || list.length === 0) {
     badge.textContent = 'No unresolved choices.';
@@ -204,7 +224,13 @@ function renderUnresolved(list) {
     return;
   }
   badge.className = 'error';
-  badge.textContent = `Unresolved choices (${list.length}): ${list.join(' | ')}`;
+  const details = (hints || []).map((hint) =>
+    `<div><strong>${hint.spec}</strong> (${hint.kind}) — ${hint.hint}` +
+    (hint.options && hint.options.length
+      ? `<br><small>candidates: ${hint.options.slice(0, 12).join(', ')}</small>`
+      : '') +
+    '</div>').join('');
+  badge.innerHTML = `Unresolved choices (${list.length})<br>${details}`;
 }
 
 function renderPoolBars(usage) {
@@ -244,6 +270,18 @@ async function loadCurated() {
       option.value = JSON.stringify({ pcc: item.pcc, pcg: item.pcg });
       option.textContent = item.label;
       caseSelect.appendChild(option);
+    }
+    const datalist = document.getElementById('abilityCandidates');
+    const seen = new Set();
+    for (const candidates of Object.values(data.ability_candidates || {})) {
+      for (const member of candidates.members || []) {
+        if (!seen.has(member)) {
+          seen.add(member);
+          const option = document.createElement('option');
+          option.value = member;
+          datalist.appendChild(option);
+        }
+      }
     }
     if (data.repeatable_abilities?.length) {
       poolHint.textContent = `Repeatable abilities: ${data.repeatable_abilities.slice(0, 12).join(', ')}`;

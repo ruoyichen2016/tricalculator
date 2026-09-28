@@ -470,7 +470,11 @@ def run_check(cohort: dict) -> tuple[dict, list[str]]:
 
 
 def baseline_agreements(baseline: dict) -> dict[str, tuple[int, int]]:
-    """Aggregate per-field Java agreement across a baseline's cases."""
+    """Aggregate per-field Java agreement across a baseline's cases.
+
+    Only fields that were actually comparable are counted; fields the Java
+    sheet does not expose are absent from `java_agreement`.
+    """
     totals: dict[str, list[int]] = {}
     for case in baseline.get("cases", {}).values():
         for field, ok in (case.get("java_agreement") or {}).items():

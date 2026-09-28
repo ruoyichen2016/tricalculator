@@ -56,6 +56,20 @@ EQUIPNAME:+2 scale mail|...|CUSTOMIZATION:[BASEITEM:Scale Mail|DATA:...EQMOD=MWO
 | 35e_L7-3 | 21 | 21 |
 | 35e_L10 | 28 | 28 |
 
+## 4b. 变体支持（P6-1b）
+
+| 变体 | 支持 | 说明 |
+|---|---|---|
+| `-std` | ✅ | 服务端渲染表格 |
+| `-cmp` | ✅ | 与 `-std` 同结构 |
+| `-cmb` | ✅ | JavaScript `CheckArr` / `ATKArr` / `ACObject` / `InitObject` |
+
+`-cmb` 额外提供 touch / flat-footed AC，因此 `35e_L7-3` 使用
+`-cmb` 做全字段 Java-gated。
+
+`msrd_Elwood` / `msrd_Ilyana` 的 AC / reflex 差异记录在 cohort 的
+`known_gaps` 字段，避免伪装成通过。
+
 ## 5. 当前边界
 
 - HTM 不提供属性、技能、法术字段；
