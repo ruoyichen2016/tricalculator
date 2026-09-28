@@ -21,16 +21,15 @@
 - P0 口径清偿：`CHOOSE` 已经 lowering，不再重复计入 legacy pending；
   `XPCOST` 按 P4-DEC-2 移入 out-of-scope allowlist；三个数据集的
   `unsupported_pending` 均被门禁显式要求为 0。
-- 门禁 `scripts/coverage_gate.py`：**14 pass / 0 fail / 0 skip**（严格模式，含三数据集 coverage 基线与 DS-35E 阈值）。
-- broad per-case oracle：27 cohort（**27 computed = 27 case-gated +
-  0 known-diverging**，0 data-missing），27 个 case 均声明 `java_gated_fields`。
+- 门禁 `scripts/coverage_gate.py`：**15 pass / 0 fail / 0 skip**（严格模式，含三数据集 coverage 基线、DS-35E 阈值与 primary cohort scope 守卫）。
+- broad primary cohort：25 case（**25 computed = 25 case-gated +
+  0 known-diverging**，0 data-missing），全部声明 `java_gated_fields`。
   字段级正确性（`broad_oracle.py --report`，仅 Java sheet 实际暴露字段）：
-  `final_stats` / `bab` / `hit_points` / `initiative` / `save_fortitude` /
-  `save_will` **100%**；`save_reflex` 26/27、`armor_class` 25/27、
-  `touch_ac` 24/26、`flat_footed_ac` 24/26。全部差异是
-  `msrd_Elwood` / `msrd_Ilyana` 的 owned `known_gaps`
-  （Sprint 2 决定 MSRD 范围）；HTM 未暴露字段计入 `java_missing`，
-  不进入 all-field 分母。
+  `final_stats` 23/23、`touch_ac` 24/24、`flat_footed_ac` 24/24，其余
+  25/25，**全部 100%**；HTM 未暴露的 final stats / touch / flat 计入
+  `java_missing`，不进入 all-field 分母。
+- extended cohort（`broad_cohort_extended.json`）：MSRD 2 case 作为
+  out-of-scope visibility，带 7 条 owned `known_gaps`，不参与主验收。
 - curated Java differential：9/9。
 
 ## P0：口径冻结（阶段 0，已完成）
@@ -251,6 +250,17 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
   gap（新增需 `--write-baseline --accept-known-gaps`）。
 - 新增 `--check-paths`；full-data CI 增加迁移数据目录 smoke。
 - baseline schema 2→3。
+
+### Sprint 2 方案 A：primary / extended cohort 拆分（已完成）
+
+- `broad_cohort.json` 仅保留 3.0/3.5e 25 case；MSRD 2 case 移入
+  `broad_cohort_extended.json`。
+- `broad_oracle.py` 新增 `--cohort` / `--baseline`；primary baseline 25 case
+  无 `known_gaps`，extended baseline 2 case 保留 owned gaps。
+- `coverage_gate.py` 增加 primary scope 守卫：主 cohort 出现非
+  `3e_` / `35e_` case 直接失败。
+- full-data CI 增补 extended cohort path smoke 与 visibility report。
+- 主 cohort 可比字段恢复 **100%**；MSRD 差异只在 extended 报告中可见。
 
 ### P6-1a HTM csheet 解析与 cohort 扩展（已完成）
 

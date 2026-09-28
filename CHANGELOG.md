@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Sprint 2 方案 A：primary / extended cohort 拆分（已完成）
+
+- `broad_cohort.json` 只保留 3.0/3.5e 25 case；MSRD 2 case 移入
+  `broad_cohort_extended.json` 与 `broad_baseline_extended.json`。
+- `broad_oracle.py` 支持 `--cohort` / `--baseline`，主/扩展 cohort 各自
+  冻结 baseline 与报告。
+- `coverage_gate.py` 增加主 cohort scope 守卫，非 `3e_` / `35e_` case
+  不能进入主门禁。
+- full-data CI 增加 extended cohort path smoke 与 visibility report。
+- 主 cohort 全部 Java 可比字段恢复 100%；MSRD 差异只在 extended
+  visibility 中保留。
+
 ### Sprint 1 门禁可信度与可移植性（已完成）
 
 - cohort 数据路径改为相对 data root；`broad_oracle` 支持

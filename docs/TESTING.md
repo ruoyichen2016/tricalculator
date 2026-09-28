@@ -177,6 +177,27 @@ python3 scripts/broad_oracle.py --report               # all-field / gated 报�
 升级数据版本时，`broad_cohort.json` 的 `data_ref` 必须与 `testdata.lock.json`
 一致，否则 `--check` 会直接失败提示重新生成 baseline。
 
+### 6.4 primary / extended cohort
+
+- `broad_cohort.json` 是产品主验收 cohort：只允许 `3e_` / `35e_` case；
+  默认 `--check` 和 `coverage_gate.py` 都使用它。
+- `broad_cohort_extended.json` 是 out-of-scope profile 的 visibility cohort
+  （当前为 MSRD）；用 `--cohort` / `--baseline` 单独报告或检查，不进入主门禁。
+- `coverage_gate.py` 会拒绝主 cohort 中出现非 `3e_` / `35e_` case。
+
+```bash
+# 主 cohort（默认）
+python3 scripts/broad_oracle.py --check --json
+python3 scripts/broad_oracle.py --report
+
+# extended cohort：只做 visibility 或独立检查
+python3 scripts/broad_oracle.py --report \
+  --cohort tests/fixtures/differential/broad_cohort_extended.json
+python3 scripts/broad_oracle.py --check --json \
+  --cohort tests/fixtures/differential/broad_cohort_extended.json \
+  --baseline tests/fixtures/differential/broad_baseline_extended.json
+```
+
 ## 7. tag 直方图与工作清单
 
 `import-report` 现在输出 `coverage.unsupported_by_tag` / `legacy_by_tag`：

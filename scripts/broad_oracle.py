@@ -30,6 +30,12 @@ Usage:
     scripts/broad_oracle.py --check --json          # structured gate summary
     scripts/broad_oracle.py --report                # all-field / gated report
     scripts/broad_oracle.py --report --json         # structured report
+
+The default cohort/baseline are the primary 3.0/3.5e pair.  Out-of-scope
+profiles use their own files, e.g.:
+
+    scripts/broad_oracle.py --report \
+        --cohort tests/fixtures/differential/broad_cohort_extended.json
 """
 
 from __future__ import annotations
@@ -135,8 +141,8 @@ def normalize_key(value: str) -> str:
     return value.trim().lower().replace(" ", "_") if hasattr(value, "trim") else str(value).strip().lower().replace(" ", "_")
 
 
-def load_cohort() -> dict:
-    return json.loads(COHORT_PATH.read_text(encoding="utf-8"))
+def load_cohort(path: Path | None = None) -> dict:
+    return json.loads((path or COHORT_PATH).read_text(encoding="utf-8"))
 
 
 import htm_csheet  # type: ignore  # noqa: E402
@@ -443,9 +449,11 @@ def _expected_payload(cohort: dict) -> dict:
     }
 
 
-def run_check(cohort: dict) -> tuple[dict, list[str]]:
+def run_check(
+    cohort: dict, baseline_path: Path | None = None
+) -> tuple[dict, list[str]]:
     """Run the per-case check once and return (structured summary, failures)."""
-    baseline = json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
+    baseline = json.loads((baseline_path or BASELINE_PATH).read_text(encoding="utf-8"))
     expected = _expected_payload(cohort)
     payload: dict = {
         "mode": "check",
@@ -717,6 +725,18 @@ def main(argv: list[str] | None = None) -> int:
         help="resolve every cohort path under the active data root and exit",
     )
     parser.add_argument(
+        "--cohort",
+        type=Path,
+        default=COHORT_PATH,
+        help="cohort JSON path (default: primary broad cohort)",
+    )
+    parser.add_argument(
+        "--baseline",
+        type=Path,
+        default=BASELINE_PATH,
+        help="baseline JSON path for --check / --write-baseline",
+    )
+    parser.add_argument(
         "--json",
         action="store_true",
         help="emit a machine-readable JSON summary on stdout",
@@ -741,10 +761,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    cohort = load_cohort()
+    cohort = load_cohort(args.cohort)
     base = data_root()
     if not args.json:
         print(f"cohort: {cohort['name']} ({len(cohort['cases'])} cases)")
+        print(f"cohort_path: {args.cohort}")
         print(f"data_ref: {cohort['data_ref']}")
         print(f"data_root: {base}")
 
@@ -786,8 +807,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.write_baseline:
         baseline = build_baseline(cohort)
         old_baseline = None
-        if BASELINE_PATH.exists():
-            old_baseline = json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
+        if args.baseline.exists():
+            old_baseline = json.loads(args.baseline.read_text(encoding="utf-8"))
         if old_baseline is not None:
             new_gaps = added_known_gap_fields(old_baseline, baseline)
             if not args.accept_diff:
@@ -810,7 +831,7 @@ def main(argv: list[str] | None = None) -> int:
                     "an owner and a reviewable issue."
                 )
                 return 1
-        BASELINE_PATH.write_text(
+        args.baseline.write_text(
             json.dumps(baseline, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
         computed = sum(
@@ -819,7 +840,7 @@ def main(argv: list[str] | None = None) -> int:
         payload = {
             "mode": "write-baseline",
             "ok": True,
-            "baseline": str(BASELINE_PATH),
+            "baseline": str(args.baseline),
             "cases": len(baseline["cases"]),
             "computed": computed,
         }
@@ -827,7 +848,7 @@ def main(argv: list[str] | None = None) -> int:
             _print_json(payload)
         else:
             print(
-                f"wrote {BASELINE_PATH} "
+                f"wrote {args.baseline} "
                 f"({payload['cases']} cases, {payload['computed']} computed)"
             )
         return 0
@@ -918,7 +939,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1 if errors else 0
 
     # --check (default)
-    payload, failures = run_check(cohort)
+    payload, failures = run_check(cohort, args.baseline)
     if args.json:
         _print_json(payload)
     elif failures:

@@ -79,6 +79,9 @@ jobs:
           ln -sfn "$GITHUB_WORKSPACE/../raw/pcgen-master" "$RUNNER_TEMP/pcgen-data-relocated"
           PCGEN_TESTDATA_DIR="$RUNNER_TEMP/pcgen-data-relocated" \
             python3 scripts/broad_oracle.py --check-paths
+          PCGEN_TESTDATA_DIR="$RUNNER_TEMP/pcgen-data-relocated" \
+            python3 scripts/broad_oracle.py --check-paths \
+              --cohort tests/fixtures/differential/broad_cohort_extended.json
 
       - name: HTM csheet extractor checks
         run: python3 scripts/test_htm_csheet.py
@@ -91,6 +94,11 @@ jobs:
 
       - name: Full coverage gate (fails on skip; includes broad oracle once)
         run: python3 scripts/coverage_gate.py
+
+      - name: Extended cohort visibility (out of product scope)
+        run: |
+          python3 scripts/broad_oracle.py --report \
+            --cohort tests/fixtures/differential/broad_cohort_extended.json
 
       - name: Build archive oracle binary
         run: |

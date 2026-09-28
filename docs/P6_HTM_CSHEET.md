@@ -67,8 +67,10 @@ EQUIPNAME:+2 scale mail|...|CUSTOMIZATION:[BASEITEM:Scale Mail|DATA:...EQMOD=MWO
 `-cmb` 额外提供 touch / flat-footed AC，因此 `35e_L7-3` 使用
 `-cmb` 做全字段 Java-gated。
 
-`msrd_Elwood` / `msrd_Ilyana` 的 AC / reflex 差异记录在 cohort 的
-`known_gaps`，每条都是 `{field, owner, issue}`，并由门禁强制：
+`msrd_Elwood` / `msrd_Ilyana` 的 AC / reflex 差异记录在
+`broad_cohort_extended.json` 的 `known_gaps`，每条都是
+`{field, owner, issue}`，并由 extended 报告/独立检查约束；它们不进入
+主 cohort 的 Java-gated 分母。约束为：
 
 - 与 `java_gated_fields` 互斥；
 - 两者并集必须覆盖 Java sheet 实际暴露的字段；

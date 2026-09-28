@@ -819,6 +819,25 @@ def main(argv: list[str] | None = None) -> int:
     broad = ROOT / "scripts" / "broad_oracle.py"
     cohort = ROOT / "tests/fixtures/differential/broad_cohort.json"
     baseline = ROOT / "tests/fixtures/differential/broad_baseline.json"
+
+    # The default cohort is the 3.0/3.5e product boundary.  Out-of-scope
+    # profiles (d20 Modern / MSRD, Pathfinder) must live in their own
+    # extended cohort so they cannot dilute or hide the primary gate.
+    if cohort.exists():
+        primary_payload = json.loads(cohort.read_text(encoding="utf-8"))
+        extended = sorted(
+            stem
+            for stem in primary_payload.get("cases", {})
+            if not stem.startswith(("3e_", "35e_"))
+        )
+        if extended:
+            stats.add("primary cohort excludes extended cases", 1)
+            print(f"  primary cohort contains non-3e/3.5e cases: {extended}")
+        else:
+            stats.add("primary cohort excludes extended cases", 0)
+    else:
+        stats.skip("primary cohort excludes extended cases", f"missing {cohort}")
+
     if DATA_ROOT.exists() and cohort.exists() and baseline.exists():
         env = os.environ.copy()
         if CARGO_HOME.exists():
