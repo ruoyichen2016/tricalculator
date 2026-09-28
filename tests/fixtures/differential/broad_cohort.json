@@ -15,9 +15,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Alice.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Alice.xml"
+      "pcc": "data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "code/testsuite/PCGfiles/35e_Alice.pcg",
+      "xml": "code/testsuite/csheets/35e_Alice.xml"
     },
     "35e_Bard": {
       "expectation": "computed",
@@ -34,9 +34,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Bard.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Bard.xml"
+      "pcc": "data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
+      "pcg": "code/testsuite/PCGfiles/35e_Bard.pcg",
+      "xml": "code/testsuite/csheets/35e_Bard.xml"
     },
     "35e_Bob": {
       "expectation": "computed",
@@ -53,9 +53,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Bob.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Bob.xml"
+      "pcc": "data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "code/testsuite/PCGfiles/35e_Bob.pcg",
+      "xml": "code/testsuite/csheets/35e_Bob.xml"
     },
     "35e_Charlie": {
       "expectation": "computed",
@@ -72,9 +72,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Charlie.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Charlie.xml"
+      "pcc": "data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "code/testsuite/PCGfiles/35e_Charlie.pcg",
+      "xml": "code/testsuite/csheets/35e_Charlie.xml"
     },
     "35e_CloudGiantHalfDragon": {
       "expectation": "computed",
@@ -91,9 +91,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_CloudGiantHalfDragon.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_CloudGiantHalfDragon.xml"
+      "pcc": "data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
+      "pcg": "code/testsuite/PCGfiles/35e_CloudGiantHalfDragon.pcg",
+      "xml": "code/testsuite/csheets/35e_CloudGiantHalfDragon.xml"
     },
     "35e_Dave": {
       "expectation": "computed",
@@ -110,9 +110,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Dave.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Dave.xml"
+      "pcc": "data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "code/testsuite/PCGfiles/35e_Dave.pcg",
+      "xml": "code/testsuite/csheets/35e_Dave.xml"
     },
     "35e_Eve": {
       "expectation": "computed",
@@ -129,9 +129,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Eve.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Eve.xml"
+      "pcc": "data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "code/testsuite/PCGfiles/35e_Eve.pcg",
+      "xml": "code/testsuite/csheets/35e_Eve.xml"
     },
     "35e_Fran": {
       "expectation": "computed",
@@ -148,9 +148,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Fran.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Fran.xml"
+      "pcc": "data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "code/testsuite/PCGfiles/35e_Fran.pcg",
+      "xml": "code/testsuite/csheets/35e_Fran.xml"
     },
     "35e_Gordon": {
       "expectation": "computed",
@@ -167,9 +167,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Gordon.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Gordon.xml"
+      "pcc": "data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "code/testsuite/PCGfiles/35e_Gordon.pcg",
+      "xml": "code/testsuite/csheets/35e_Gordon.xml"
     },
     "35e_Harold": {
       "expectation": "computed",
@@ -186,9 +186,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Harold.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Harold.xml"
+      "pcc": "data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "code/testsuite/PCGfiles/35e_Harold.pcg",
+      "xml": "code/testsuite/csheets/35e_Harold.xml"
     },
     "35e_Ivan": {
       "expectation": "computed",
@@ -205,9 +205,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Ivan.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Ivan.xml"
+      "pcc": "data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "code/testsuite/PCGfiles/35e_Ivan.pcg",
+      "xml": "code/testsuite/csheets/35e_Ivan.xml"
     },
     "35e_Jango": {
       "expectation": "computed",
@@ -224,9 +224,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Jango.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Jango.xml"
+      "pcc": "data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "code/testsuite/PCGfiles/35e_Jango.pcg",
+      "xml": "code/testsuite/csheets/35e_Jango.xml"
     },
     "35e_JimDop": {
       "expectation": "computed",
@@ -243,9 +243,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_JimDop.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_JimDop.xml"
+      "pcc": "data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
+      "pcg": "code/testsuite/PCGfiles/35e_JimDop.pcg",
+      "xml": "code/testsuite/csheets/35e_JimDop.xml"
     },
     "35e_Lauren": {
       "expectation": "computed",
@@ -262,9 +262,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Lauren.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Lauren.xml"
+      "pcc": "data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "code/testsuite/PCGfiles/35e_Lauren.pcg",
+      "xml": "code/testsuite/csheets/35e_Lauren.xml"
     },
     "35e_Mallory": {
       "expectation": "computed",
@@ -281,9 +281,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Mallory.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Mallory.xml"
+      "pcc": "data/zen_test/pcgen_test_advanced/pcgen_test_advanced.pcc",
+      "pcg": "code/testsuite/PCGfiles/35e_Mallory.pcg",
+      "xml": "code/testsuite/csheets/35e_Mallory.xml"
     },
     "35e_Quasvin": {
       "expectation": "computed",
@@ -300,9 +300,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_Quasvin.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_Quasvin.xml"
+      "pcc": "data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
+      "pcg": "code/testsuite/PCGfiles/35e_Quasvin.pcg",
+      "xml": "code/testsuite/csheets/35e_Quasvin.xml"
     },
     "3e_BarJack": {
       "expectation": "computed",
@@ -319,9 +319,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/3e_BarJack.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/3e_BarJack.xml"
+      "pcc": "data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
+      "pcg": "code/testsuite/PCGfiles/3e_BarJack.pcg",
+      "xml": "code/testsuite/csheets/3e_BarJack.xml"
     },
     "3e_BrdJoe": {
       "expectation": "computed",
@@ -338,9 +338,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/3e_BrdJoe.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/3e_BrdJoe.xml"
+      "pcc": "data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
+      "pcg": "code/testsuite/PCGfiles/3e_BrdJoe.pcg",
+      "xml": "code/testsuite/csheets/3e_BrdJoe.xml"
     },
     "3e_CleElf": {
       "expectation": "computed",
@@ -357,9 +357,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/3e_CleElf.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/3e_CleElf.xml"
+      "pcc": "data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
+      "pcg": "code/testsuite/PCGfiles/3e_CleElf.pcg",
+      "xml": "code/testsuite/csheets/3e_CleElf.xml"
     },
     "3e_FigFae": {
       "expectation": "computed",
@@ -376,9 +376,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/3e_FigFae.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/3e_FigFae.xml"
+      "pcc": "data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
+      "pcg": "code/testsuite/PCGfiles/3e_FigFae.pcg",
+      "xml": "code/testsuite/csheets/3e_FigFae.xml"
     },
     "3e_MonKee": {
       "expectation": "computed",
@@ -391,12 +391,13 @@
         "flat_footed_ac",
         "save_fortitude",
         "save_reflex",
-        "save_will"
+        "save_will",
+        "hit_points"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/3e_MonKee.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/3e_MonKee.xml"
+      "pcc": "data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
+      "pcg": "code/testsuite/PCGfiles/3e_MonKee.pcg",
+      "xml": "code/testsuite/csheets/3e_MonKee.xml"
     },
     "3e_SWizSam": {
       "expectation": "computed",
@@ -407,12 +408,15 @@
         "hit_points",
         "armor_class",
         "touch_ac",
-        "flat_footed_ac"
+        "flat_footed_ac",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/3e_SWizSam.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/3e_SWizSam.xml"
+      "pcc": "data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
+      "pcg": "code/testsuite/PCGfiles/3e_SWizSam.pcg",
+      "xml": "code/testsuite/csheets/3e_SWizSam.xml"
     },
     "3e_WizShar": {
       "expectation": "computed",
@@ -429,9 +433,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/3e_WizShar.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/3e_WizShar.xml"
+      "pcc": "data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
+      "pcg": "code/testsuite/PCGfiles/3e_WizShar.pcg",
+      "xml": "code/testsuite/csheets/3e_WizShar.xml"
     },
     "35e_L7-3(fighter-cleric-dwarf)": {
       "expectation": "computed",
@@ -447,9 +451,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_L7-3(fighter-cleric-dwarf).pcg",
-      "htm": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_L7-3(fighter-cleric-dwarf-cmb).htm",
+      "pcc": "data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
+      "pcg": "code/testsuite/PCGfiles/35e_L7-3(fighter-cleric-dwarf).pcg",
+      "htm": "code/testsuite/csheets/35e_L7-3(fighter-cleric-dwarf-cmb).htm",
       "java_sheet": "htm"
     },
     "35e_L10(fighter-human)": {
@@ -464,9 +468,9 @@
         "save_will"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_L10(fighter-human).pcg",
-      "htm": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_L10(fighter-human-std).htm",
+      "pcc": "data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
+      "pcg": "code/testsuite/PCGfiles/35e_L10(fighter-human).pcg",
+      "htm": "code/testsuite/csheets/35e_L10(fighter-human-std).htm",
       "java_sheet": "htm"
     },
     "msrd_Elwood": {
@@ -476,17 +480,34 @@
         "bab",
         "initiative",
         "save_fortitude",
-        "save_will"
+        "save_will",
+        "final_stats"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/modern/wizards_of_the_coast/msrd/basics/msrd_basics.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/msrd_Elwood.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/msrd_Elwood.xml",
+      "pcc": "data/modern/wizards_of_the_coast/msrd/basics/msrd_basics.pcc",
+      "pcg": "code/testsuite/PCGfiles/msrd_Elwood.pcg",
+      "xml": "code/testsuite/csheets/msrd_Elwood.xml",
       "known_gaps": [
-        "armor_class",
-        "touch_ac",
-        "flat_footed_ac",
-        "save_reflex"
+        {
+          "field": "armor_class",
+          "owner": "Sprint2-MSRD",
+          "issue": "d20 Modern class defense bonus not modeled"
+        },
+        {
+          "field": "touch_ac",
+          "owner": "Sprint2-MSRD",
+          "issue": "d20 Modern class defense bonus not modeled"
+        },
+        {
+          "field": "flat_footed_ac",
+          "owner": "Sprint2-MSRD",
+          "issue": "d20 Modern class defense bonus not modeled"
+        },
+        {
+          "field": "save_reflex",
+          "owner": "Sprint2-MSRD",
+          "issue": "MSRD Fast hero reflex progression not modeled"
+        }
       ]
     },
     "msrd_Ilyana": {
@@ -496,23 +517,37 @@
         "bab",
         "save_fortitude",
         "save_reflex",
-        "save_will"
+        "save_will",
+        "final_stats",
+        "initiative"
       ],
       "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
-      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/modern/wizards_of_the_coast/msrd/basics/msrd_basics.pcc",
-      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/msrd_Ilyana.pcg",
-      "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/msrd_Ilyana.xml",
+      "pcc": "data/modern/wizards_of_the_coast/msrd/basics/msrd_basics.pcc",
+      "pcg": "code/testsuite/PCGfiles/msrd_Ilyana.pcg",
+      "xml": "code/testsuite/csheets/msrd_Ilyana.xml",
       "known_gaps": [
-        "armor_class",
-        "touch_ac",
-        "flat_footed_ac"
+        {
+          "field": "armor_class",
+          "owner": "Sprint2-MSRD",
+          "issue": "d20 Modern class defense bonus not modeled"
+        },
+        {
+          "field": "touch_ac",
+          "owner": "Sprint2-MSRD",
+          "issue": "d20 Modern class defense bonus not modeled"
+        },
+        {
+          "field": "flat_footed_ac",
+          "owner": "Sprint2-MSRD",
+          "issue": "d20 Modern class defense bonus not modeled"
+        }
       ]
     }
   },
   "cohort_date": "2026-09-18",
   "data_missing_limit": 0,
   "data_ref": "f91bd03f2dbe1145d5526b52aa3e48fcd0f2fc8d",
-  "description": "All PCG/XML pairs in the pinned PCGen test suite that map to a data set. Each case declares an `expectation` (computed / data_missing / base_only) so the agreement denominator is fixed. `data_missing_limit` caps how many cases may be skipped for missing data. `java_gated_fields` must match the Java csheet exactly; the rest are frozen in broad_baseline.json.",
+  "description": "All PCG/XML pairs in the pinned PCGen test suite that map to a data set. Paths are relative to the data root (PCGEN_TESTDATA_DIR or <workspace>/raw/pcgen-master); java_root is provenance only. Each case declares an expectation so the agreement denominator is fixed. java_gated_fields must match the Java sheet exactly; every other Java-exposed field must be an owned known_gaps entry ({field, owner, issue}); the two sets must be disjoint and cover the exposed fields. Remaining observed values are frozen in broad_baseline.json.",
   "expectation_summary": {
     "base_only": 0,
     "computed": 27,
@@ -522,5 +557,5 @@
   },
   "known_data_gaps": {},
   "name": "pcgen-testsuite-broad",
-  "schema_version": 2
+  "schema_version": 3
 }

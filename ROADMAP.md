@@ -22,10 +22,15 @@
   `XPCOST` 按 P4-DEC-2 移入 out-of-scope allowlist；三个数据集的
   `unsupported_pending` 均被门禁显式要求为 0。
 - 门禁 `scripts/coverage_gate.py`：**14 pass / 0 fail / 0 skip**（严格模式，含三数据集 coverage 基线与 DS-35E 阈值）。
-- broad per-case oracle：27 cohort（**27 computed = 27 java-compared +
-  0 known-diverging**，0 data-missing），23 个 java-gated case；
-  `final_stats` / `bab` / `hit_points` / `initiative` / `armor_class` /
-  `touch_ac` / `flat_footed_ac` / `save_*` 全部 **23/23（100%）**。
+- broad per-case oracle：27 cohort（**27 computed = 27 case-gated +
+  0 known-diverging**，0 data-missing），27 个 case 均声明 `java_gated_fields`。
+  字段级正确性（`broad_oracle.py --report`，仅 Java sheet 实际暴露字段）：
+  `final_stats` / `bab` / `hit_points` / `initiative` / `save_fortitude` /
+  `save_will` **100%**；`save_reflex` 26/27、`armor_class` 25/27、
+  `touch_ac` 24/26、`flat_footed_ac` 24/26。全部差异是
+  `msrd_Elwood` / `msrd_Ilyana` 的 owned `known_gaps`
+  （Sprint 2 决定 MSRD 范围）；HTM 未暴露字段计入 `java_missing`，
+  不进入 all-field 分母。
 - curated Java differential：9/9。
 
 ## P0：口径冻结（阶段 0，已完成）
@@ -234,6 +239,19 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
   unresolved choice 的 kind、候选与提示。
 - 新增 Download `.pcg`；web smoke 7→9，总测试 205→207。
 
+### Sprint 1 门禁可信度与可移植性（已完成）
+
+- cohort 的 `pcc` / `pcg` / `xml` / `htm` 改为相对 data root；
+  `broad_oracle` 用 `PCGEN_TESTDATA_DIR` 或 `ROOT.parent/raw/pcgen-master`
+  解析；`java_root` 仅保留为 provenance。
+- `--report` 拆成 `all_field` / `gated` / `java_missing` 三张表；
+  HTM 不暴露 final stats / touch / flat 不再被误报为分歧。
+- `known_gaps` 改为 `{field, owner, issue}` 并进入门禁：与
+  `java_gated_fields` 互斥、并集必须覆盖 Java 暴露字段、默认拒绝新增
+  gap（新增需 `--write-baseline --accept-known-gaps`）。
+- 新增 `--check-paths`；full-data CI 增加迁移数据目录 smoke。
+- baseline schema 2→3。
+
 ### P6-1a HTM csheet 解析与 cohort 扩展（已完成）
 
 - 新增 `scripts/htm_csheet.py`：从 PCGen `.htm` csheet 抽取
@@ -348,6 +366,9 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
 数据来自 `python3 scripts/broad_oracle.py --report --json`。
 口径：cohort 中 21 个 Java-compared case；2 个 `computed_diverging`
 不计入一致率分母。
+
+> 历史快照：下表记录 P4 关闭时的 23-case 口径。当前 27-case 双口径见本文件
+> 顶部「当前状态」，不要再据此判断现在的字段一致率。
 
 | Java 字段 | 一致率 | 主要候选 P4 项 |
 |---|---:|---|

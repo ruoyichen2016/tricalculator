@@ -844,9 +844,9 @@ def main(argv: list[str] | None = None) -> int:
             print(
                 "  broad oracle: "
                 f"{actual['computed']} computed = "
-                f"{actual['java_compared']} java-compared + "
+                f"{actual['java_compared']} case-gated + "
                 f"{actual['known_diverging']} known-diverging "
-                f"({actual['java_gated']} java-gated, "
+                f"({actual['known_gaps']} owned known gaps, "
                 f"{actual['data_missing']} data-missing)"
             )
             # The computed denominator must not shrink below the declared

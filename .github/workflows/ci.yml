@@ -74,6 +74,12 @@ jobs:
       - name: Verify pinned test data
         run: bash scripts/check_testdata.sh
 
+      - name: Relocated data-root path resolution
+        run: |
+          ln -sfn "$GITHUB_WORKSPACE/../raw/pcgen-master" "$RUNNER_TEMP/pcgen-data-relocated"
+          PCGEN_TESTDATA_DIR="$RUNNER_TEMP/pcgen-data-relocated" \
+            python3 scripts/broad_oracle.py --check-paths
+
       - name: HTM csheet extractor checks
         run: python3 scripts/test_htm_csheet.py
 

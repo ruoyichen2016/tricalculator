@@ -68,7 +68,16 @@ EQUIPNAME:+2 scale mail|...|CUSTOMIZATION:[BASEITEM:Scale Mail|DATA:...EQMOD=MWO
 `-cmb` 做全字段 Java-gated。
 
 `msrd_Elwood` / `msrd_Ilyana` 的 AC / reflex 差异记录在 cohort 的
-`known_gaps` 字段，避免伪装成通过。
+`known_gaps`，每条都是 `{field, owner, issue}`，并由门禁强制：
+
+- 与 `java_gated_fields` 互斥；
+- 两者并集必须覆盖 Java sheet 实际暴露的字段；
+- 默认拒绝新增 gap，必须用 `--write-baseline --accept-known-gaps` 显式接受；
+- `--report` 的 `all_field` 会把它计入一致率，`gated` 不计入，
+  因此差异不会伪装成通过，也不会消失在报告里。
+
+HTM sheet 不含 `final_stats` / touch / flat 时，这些字段进入
+`java_missing`，不从 all-field 分母扣除，不再被误报为分歧。
 
 ## 5. 当前边界
 

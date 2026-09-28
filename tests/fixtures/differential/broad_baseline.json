@@ -535,6 +535,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 14,
@@ -1041,6 +1042,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 11,
@@ -1579,6 +1581,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 17,
@@ -2087,6 +2090,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 54,
@@ -2605,6 +2609,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 28,
@@ -3107,6 +3112,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 8,
@@ -3609,6 +3615,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 10,
@@ -4107,6 +4114,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 29,
@@ -4599,6 +4607,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 10,
@@ -5091,6 +5100,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 10,
@@ -5595,6 +5605,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 10,
@@ -6102,6 +6113,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 10,
@@ -6614,6 +6626,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 22,
@@ -7122,6 +7135,7 @@
         "save_reflex": true,
         "save_will": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 28,
@@ -7655,6 +7669,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 21,
@@ -8160,6 +8175,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 6,
@@ -8684,6 +8700,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 10,
@@ -9196,6 +9213,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 15,
@@ -9362,6 +9380,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 19,
@@ -9511,6 +9530,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 11,
@@ -9710,6 +9730,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 18,
@@ -9853,6 +9874,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 13,
@@ -9996,6 +10018,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 12,
@@ -10162,6 +10185,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 12,
@@ -10305,6 +10329,7 @@
         "save_will": true,
         "touch_ac": true
       },
+      "known_gaps": [],
       "status": "computed",
       "values": {
         "armor_class": 12,
@@ -10484,6 +10509,28 @@
         "save_will": true,
         "touch_ac": false
       },
+      "known_gaps": [
+        {
+          "field": "armor_class",
+          "issue": "d20 Modern class defense bonus not modeled",
+          "owner": "Sprint2-MSRD"
+        },
+        {
+          "field": "flat_footed_ac",
+          "issue": "d20 Modern class defense bonus not modeled",
+          "owner": "Sprint2-MSRD"
+        },
+        {
+          "field": "save_reflex",
+          "issue": "MSRD Fast hero reflex progression not modeled",
+          "owner": "Sprint2-MSRD"
+        },
+        {
+          "field": "touch_ac",
+          "issue": "d20 Modern class defense bonus not modeled",
+          "owner": "Sprint2-MSRD"
+        }
+      ],
       "status": "computed",
       "values": {
         "armor_class": 13,
@@ -10659,6 +10706,23 @@
         "save_will": true,
         "touch_ac": false
       },
+      "known_gaps": [
+        {
+          "field": "armor_class",
+          "issue": "d20 Modern class defense bonus not modeled",
+          "owner": "Sprint2-MSRD"
+        },
+        {
+          "field": "flat_footed_ac",
+          "issue": "d20 Modern class defense bonus not modeled",
+          "owner": "Sprint2-MSRD"
+        },
+        {
+          "field": "touch_ac",
+          "issue": "d20 Modern class defense bonus not modeled",
+          "owner": "Sprint2-MSRD"
+        }
+      ],
       "status": "computed",
       "values": {
         "armor_class": 11,
@@ -10686,5 +10750,5 @@
   "cohort": "pcgen-testsuite-broad",
   "data_ref": "f91bd03f2dbe1145d5526b52aa3e48fcd0f2fc8d",
   "generated_by": "scripts/broad_oracle.py --write-baseline",
-  "schema_version": 2
+  "schema_version": 3
 }

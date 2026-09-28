@@ -107,34 +107,61 @@ python3 scripts/snapshot_diff_archive.py --strict
 ## 6. broad oracle
 
 `scripts/differential_java_pcgen_all.py` 是可见性报告（恒退出 0）。
-`scripts/broad_oracle.py` 把它升级为真正的 per-case 门禁：
+`scripts/broad_oracle.py` 把它升级为真正的 per-case 门禁。
 
-- `tests/fixtures/differential/broad_cohort.json` 固定 cohort（case 列表 +
-  `java_gated_fields`）与 `data_ref`；
-- `tests/fixtures/differential/broad_baseline.json` 冻结当前观测值
-  （含已知差异），任何字段变化都会失败；
-- cohort 中标记 `java_gated_fields` 的 case，还必须与 Java csheet 精确一致；
-- 每个 computed case 额外冻结 Rust-only `choice_state`：
-  `choices` / `choice_bindings` / `unresolved_choices` / `ability_pools` /
-  `ability_pool_usage` / `ability_lists` / `repeatable_abilities` /
-  `domain_spells` / `deity_domains`，用于覆盖能力池、选择与领域语义；
-  Java csheet 不直接暴露这些字段，因此它们只做 baseline 非回归，不参与
-  `java_gated_fields` 一致率；
+### 6.1 数据根与路径
+
+- 默认数据根为 `<workspace>/raw/pcgen-master`；`PCGEN_TESTDATA_DIR` 可覆盖。
+- `broad_cohort.json` 内的 `pcc` / `pcg` / `xml` / `htm` 都是相对数据根的路径；
+  `java_root` 仅作 provenance，不参与解析。
+- `python3 scripts/broad_oracle.py --check-paths` 只做路径解析检查，可用于
+  CI 在迁移数据目录后做 smoke。
+
+切换数据目录时，lock、coverage gate 与 broad oracle 读同一数据根，不会出现
+“coverage 用新目录、broad oracle 仍读旧绝对路径”的错配。
+
+### 6.2 门禁口径
+
+- `java_gated_fields`：必须与 Java csheet 精确一致的字段。
+- `known_gaps`：已确认与 Java 有差异、但暂不修复的字段。每条必须是
+  `{field, owner, issue}`：
+
+  ```json
+  {"field": "armor_class", "owner": "Sprint2-MSRD", "issue": "d20 Modern class defense bonus not modeled"}
+  ```
+
+  与 `java_gated_fields` 互斥，且两者并集必须覆盖 Java sheet 实际暴露的
+  全部字段；缺 owner/issue、重复字段、未覆盖字段都会让 `--check` 失败。
+- 默认拒绝新增 `known_gaps`：`--write-baseline` 检测到新 gap 时会拒绝，
+  必须显式加 `--accept-known-gaps` 并经过评审；`--check` 发现 cohort 的
+  `known_gaps` 与 baseline 记录不一致也会失败。
 - cohort 中标记 `expectation = computed_diverging` 的 case 必须能计算，但不要求
-  与 Java 一致（数值仍冻结在 baseline，用于捕捉漂移）；它们不计入 java 一致率分母。
+  与 Java 一致（数值仍冻结在 baseline）；它们不计入一致率分母。
+
+### 6.3 报告
+
+`--report` 只对 Java sheet 实际暴露的字段统计一致率，并把结果拆成三张表：
+
+- `all_field`：所有 Java 暴露字段（含 `known_gaps`）；
+- `gated`：`java_gated_fields` 子集，应当 100%；
+- `java_missing`：Java sheet 未暴露、从 all-field 分母排除的字段
+  （HTM 不提供 final stats / touch / flat 时不再被误报为分歧）。
 
 ```bash
-python3 scripts/broad_oracle.py --write-baseline   # 冻结当前行为（会改动 baseline）
-python3 scripts/broad_oracle.py --check            # 门禁
-python3 scripts/broad_oracle.py --check --json     # 结构化摘要（coverage gate 使用）
-python3 scripts/broad_oracle.py --report           # 字段一致率报告
+python3 scripts/broad_oracle.py --check-paths          # 路径 smoke
+python3 scripts/broad_oracle.py --write-baseline       # 冻结当前行为
+python3 scripts/broad_oracle.py --write-baseline --accept-known-gaps
+python3 scripts/broad_oracle.py --check                # 门禁
+python3 scripts/broad_oracle.py --check --json         # 结构化摘要（coverage gate 使用）
+python3 scripts/broad_oracle.py --report               # all-field / gated 报告
 ```
 
 `--check --json` 输出结构化摘要，把口径拆成：
 
 - `actual.computed`：必须计算且实际算出的 case 数（含 known-diverging）；
-- `actual.java_compared`：其中与 Java 一致率分母相同的 case 数；
+- `actual.java_compared`：声明为 `computed` 且实际算出的 case 数；
 - `actual.known_diverging`：声明为 `computed_diverging` 的 case 数；
+- `actual.known_gaps`：cohort 声明、带 owner/issue 的字段数；
 - `actual.data_missing` / `actual.java_gated`；
 - `expected`：cohort 声明的 `computed` / `computed_diverging` / `must_compute` /
   `data_missing_limit` 等。

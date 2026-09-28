@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Sprint 1 门禁可信度与可移植性（已完成）
+
+- cohort 数据路径改为相对 data root；`broad_oracle` 支持
+  `PCGEN_TESTDATA_DIR`，`java_root` 仅保留为 provenance。
+- `--report` 拆分为 `all_field` / `gated` / `java_missing` 三张表，
+  不再把 HTM 缺失字段计为分歧。
+- `known_gaps` 改为 `{field, owner, issue}` 并进入契约门禁：与
+  `java_gated_fields` 互斥、并集覆盖 Java 暴露字段、默认拒绝新增 gap。
+- 新增 `--check-paths`；full-data CI 增加迁移数据目录 smoke。
+- broad baseline / cohort schema 2→3。
+
 ### P6-1c Web 选择提示与导出下载（已完成）
 
 - `GET /api/curated` 返回 `ability_candidates`（ability category 成员与可重复能力），

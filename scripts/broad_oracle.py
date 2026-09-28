@@ -17,11 +17,18 @@ Two baseline modes are supported:
   Java csheet values for the fields listed for that case.  Only cases that
   actually pass today are listed here, so the gate is honest and tight.
 
+Cohort paths are relative to the data root (``PCGEN_TESTDATA_DIR`` or
+``<workspace>/raw/pcgen-master``); ``java_root`` is provenance only.  A field
+the Java sheet exposes must be either in ``java_gated_fields`` or in an owned
+``known_gaps`` entry, and new gaps are refused by default.
+
 Usage:
+    scripts/broad_oracle.py --check-paths           # resolve cohort paths
     scripts/broad_oracle.py --write-baseline        # regenerate the baseline
+    scripts/broad_oracle.py --write-baseline --accept-known-gaps
     scripts/broad_oracle.py --check                 # gate (default)
     scripts/broad_oracle.py --check --json          # structured gate summary
-    scripts/broad_oracle.py --report                # human summary, exit 0
+    scripts/broad_oracle.py --report                # all-field / gated report
     scripts/broad_oracle.py --report --json         # structured report
 """
 
@@ -29,6 +36,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -39,6 +47,25 @@ import differential_java_pcgen as curated  # type: ignore  # noqa: E402
 
 COHORT_PATH = ROOT / "tests/fixtures/differential/broad_cohort.json"
 BASELINE_PATH = ROOT / "tests/fixtures/differential/broad_baseline.json"
+
+# The data revision is pinned by scripts/testdata.lock.json; fetch_testdata.sh
+# installs it here by default.  PCGEN_TESTDATA_DIR overrides the location, so a
+# checkout or CI job can relocate the read-only snapshot without editing the
+# cohort.  Cohort paths are stored relative to this root; `java_root` is kept
+# only as provenance for the machine that generated the baseline.
+DEFAULT_DATA_ROOT = ROOT.parent / "raw" / "pcgen-master"
+
+
+def data_root() -> Path:
+    override = os.environ.get("PCGEN_TESTDATA_DIR")
+    if override:
+        return Path(override).expanduser()
+    return DEFAULT_DATA_ROOT
+
+
+def resolve_path(root: Path, value: str) -> Path:
+    path = Path(value)
+    return path if path.is_absolute() else root / path
 
 # Fields captured per computed case.  `position` is intentionally omitted:
 # the Java sheets do not expose it and it is always None in this corpus.
@@ -115,13 +142,21 @@ def load_cohort() -> dict:
 import htm_csheet  # type: ignore  # noqa: E402
 
 
+ALL_FIELDS = FIELDS + [f"save_{save}" for save in SAVES]
+
+
 def resolve_case(case: dict) -> tuple[Path, Path | None, Path]:
-    """Return (pcg, pcc, java_sheet).  The Java sheet is XML by default and
-    may be an HTM csheet when the case declares `java_sheet: "htm"`."""
-    java_root = Path(case["java_root"])
-    pcg = Path(case["pcg"])
-    sheet = Path(case.get("htm") or case.get("xml"))
-    pcc = Path(case["pcc"]) if case.get("pcc") else None
+    """Return (pcg, pcc, java_sheet) resolved under the active data root.
+
+    The Java sheet is XML by default and may be an HTM csheet when the case
+    declares ``java_sheet: "htm"``.  Cohort paths are stored relative to the
+    data root; ``java_root`` is provenance only and deliberately not used for
+    resolution, so the same cohort works on another checkout or in CI.
+    """
+    base = data_root()
+    pcg = resolve_path(base, case["pcg"])
+    sheet = resolve_path(base, case.get("htm") or case.get("xml"))
+    pcc = resolve_path(base, case["pcc"]) if case.get("pcc") else None
     return pcg, pcc, sheet
 
 
@@ -231,20 +266,6 @@ def htm_java_baseline(path: Path) -> dict:
     }
 
 
-def field_agreement(result: dict) -> dict[str, bool]:
-    """Per-field Rust-vs-Java agreement for a computed case."""
-    rust = result["values"].get("rust", {})
-    java = result["values"].get("java", {})
-    agreement = {}
-    for field in FIELDS:
-        agreement[field] = curated.normalise_value(field, rust.get(field)) == curated.normalise_value(
-            field, java.get(field)
-        )
-    for save in SAVES:
-        agreement[f"save_{save}"] = rust.get("saves", {}).get(save) == java.get("saves", {}).get(save)
-    return agreement
-
-
 def build_baseline(cohort: dict) -> dict:
     cases = {}
     for stem, case in cohort["cases"].items():
@@ -258,6 +279,7 @@ def build_baseline(cohort: dict) -> dict:
             }
             entry["choice_state"] = result["values"]["rust"]["choice_state"]
             entry["java_agreement"] = comparable_agreement(result)
+            entry["known_gaps"] = normalise_known_gaps(case.get("known_gaps"))
         elif result["status"] == "base_only":
             entry["values"] = result["values"]["base"]
         elif result["status"] == "data_missing":
@@ -266,7 +288,7 @@ def build_baseline(cohort: dict) -> dict:
             entry["error"] = result.get("error", "")
         cases[stem] = entry
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "cohort": cohort["name"],
         "data_ref": cohort["data_ref"],
         "generated_by": "scripts/broad_oracle.py --write-baseline",
@@ -344,15 +366,20 @@ def check_case(
     return failures
 
 
-def summarise(cohort: dict) -> tuple[dict[str, int], dict[str, int], list[str], list[str]]:
-    """Field agreement over the *fixed* computed cohort.
+def summarise(cohort: dict) -> dict:
+    """Field agreement over the fixed computed cohort.
 
-    Only cases whose declared `expectation` is `computed` contribute to the
-    denominator.  A case expected to compute but failing to do so is returned
-    as an error instead of silently shrinking the denominator.
+    Returns three distinct tables so missing Java data is never reported as a
+    disagreement:
+
+    * ``all_field``: Rust-vs-Java over fields the Java sheet exposes;
+    * ``gated``: subset declared in each case's ``java_gated_fields``;
+    * ``java_missing``: fields the sheet does not expose (counted separately).
     """
-    totals: dict[str, int] = {}
-    agreements: dict[str, int] = {}
+    all_field: dict[str, dict[str, int]] = {}
+    gated: dict[str, dict[str, int]] = {}
+    java_missing: dict[str, int] = {}
+    known_gaps: dict[str, list[dict[str, str]]] = {}
     errors: list[str] = []
     diverging: list[str] = []
     for stem, case in cohort["cases"].items():
@@ -367,10 +394,34 @@ def summarise(cohort: dict) -> tuple[dict[str, int], dict[str, int], list[str], 
         if expectation == "computed_diverging":
             diverging.append(stem)
             continue
-        for field, ok in field_agreement(result).items():
-            totals[field] = totals.get(field, 0) + 1
-            agreements[field] = agreements.get(field, 0) + (1 if ok else 0)
-    return totals, agreements, errors, diverging
+        agreement = comparable_agreement(result)
+        for field, ok in agreement.items():
+            entry = all_field.setdefault(field, {"ok": 0, "total": 0})
+            entry["total"] += 1
+            entry["ok"] += 1 if ok else 0
+        for field in ALL_FIELDS:
+            if field not in agreement:
+                java_missing[field] = java_missing.get(field, 0) + 1
+        for field in case.get("java_gated_fields", []):
+            if field not in agreement:
+                errors.append(
+                    f"{stem}: gated field {field!r} is not exposed by the Java sheet"
+                )
+                continue
+            entry = gated.setdefault(field, {"ok": 0, "total": 0})
+            entry["total"] += 1
+            entry["ok"] += 1 if agreement[field] else 0
+        gap_list = normalise_known_gaps(case.get("known_gaps"))
+        if gap_list:
+            known_gaps[stem] = gap_list
+    return {
+        "all_field": all_field,
+        "gated": gated,
+        "java_missing": java_missing,
+        "known_gaps": known_gaps,
+        "known_diverging": diverging,
+        "errors": errors,
+    }
 
 
 def _print_json(payload: dict) -> None:
@@ -407,6 +458,7 @@ def run_check(cohort: dict) -> tuple[dict, list[str]]:
             "java_compared": 0,
             "known_diverging": 0,
             "java_gated": expected["java_gated"],
+            "known_gaps": 0,
             "data_missing": 0,
         },
         "failures": [],
@@ -428,6 +480,17 @@ def run_check(cohort: dict) -> tuple[dict, list[str]]:
         expectation = case.get("expectation", "computed")
         result = evaluate_case(case)
         status = result["status"]
+
+        expected_case = baseline.get("cases", {}).get(stem, {})
+        current_gaps = normalise_known_gaps(case.get("known_gaps"))
+        baseline_gaps = normalise_known_gaps(expected_case.get("known_gaps"))
+        if current_gaps != baseline_gaps:
+            failures.append(
+                f"{stem}: known_gaps changed; regenerate with "
+                "--write-baseline --accept-known-gaps after review"
+            )
+        payload["actual"]["known_gaps"] += len(current_gaps)
+        failures.extend(validate_case_contract(stem, case, result))
 
         if status == "data_missing":
             data_missing_seen.append(stem)
@@ -509,6 +572,105 @@ def comparable_agreement(result: dict) -> dict[str, bool]:
     return agreement
 
 
+def normalise_known_gaps(raw: object) -> list[dict[str, str]]:
+    """Return a canonical list of owned known-gap objects.
+
+    Each entry must be an object with non-empty ``field`` / ``owner`` /
+    ``issue``.  Malformed entries are returned with an empty field so the
+    contract validator reports them instead of silently dropping them.
+    """
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        return [{"field": "", "owner": "", "issue": "known_gaps must be a list"}]
+    gaps: list[dict[str, str]] = []
+    for entry in raw:
+        if not isinstance(entry, dict):
+            gaps.append(
+                {"field": "", "owner": "", "issue": "known_gaps entries must be objects"}
+            )
+            continue
+        gaps.append(
+            {
+                "field": str(entry.get("field", "")).strip(),
+                "owner": str(entry.get("owner", "")).strip(),
+                "issue": str(entry.get("issue", "")).strip(),
+            }
+        )
+    return sorted(gaps, key=lambda gap: gap["field"])
+
+
+def validate_case_contract(stem: str, case: dict, result: dict) -> list[str]:
+    """Validate java_gated_fields / known_gaps against the Java sheet.
+
+    Contract:
+
+    * both lists use unique fields and are disjoint;
+    * every known gap is an object with non-empty field / owner / issue;
+    * for a computed case, their union exactly matches the fields the Java
+      sheet exposes (``comparable_agreement``), so a field cannot quietly
+      disappear from the gate.
+    """
+    failures: list[str] = []
+    gated_raw = case.get("java_gated_fields", [])
+    if not isinstance(gated_raw, list) or any(
+        not isinstance(field, str) for field in gated_raw
+    ):
+        failures.append(f"{stem}: java_gated_fields must be a list of strings")
+        gated_raw = []
+    gated = [field.strip() for field in gated_raw if field.strip()]
+    if len(gated) != len(set(gated)):
+        failures.append(f"{stem}: java_gated_fields contains duplicates")
+
+    gap_objects = normalise_known_gaps(case.get("known_gaps"))
+    for gap in gap_objects:
+        if not gap["field"] or not gap["owner"] or not gap["issue"]:
+            failures.append(
+                f"{stem}: known_gaps entries need non-empty field / owner / issue: {gap!r}"
+            )
+    gap_fields = [gap["field"] for gap in gap_objects if gap["field"]]
+    if len(gap_fields) != len(set(gap_fields)):
+        failures.append(f"{stem}: known_gaps contains duplicate fields")
+
+    overlap = set(gated) & set(gap_fields)
+    if overlap:
+        failures.append(f"{stem}: fields both gated and known-gap: {sorted(overlap)}")
+
+    if result.get("status") == "computed":
+        exposed = set(comparable_agreement(result))
+        classified = set(gated) | set(gap_fields)
+        uncovered = exposed - classified
+        extra = classified - exposed
+        if uncovered:
+            failures.append(
+                f"{stem}: Java-exposed fields missing from "
+                f"java_gated_fields/known_gaps: {sorted(uncovered)}"
+            )
+        if extra:
+            failures.append(
+                f"{stem}: gated/known fields not exposed by the Java sheet: "
+                f"{sorted(extra)}"
+            )
+    return failures
+
+
+def added_known_gap_fields(old: dict, new: dict) -> list[str]:
+    """Return known-gap fields present in ``new`` but not in ``old``."""
+    additions: list[str] = []
+    old_cases = old.get("cases", {})
+    for stem, case in new.get("cases", {}).items():
+        old_gaps = {
+            gap.get("field")
+            for gap in normalise_known_gaps(old_cases.get(stem, {}).get("known_gaps"))
+        }
+        new_gaps = {
+            gap.get("field") for gap in normalise_known_gaps(case.get("known_gaps"))
+        }
+        for field in sorted(new_gaps - old_gaps):
+            additions.append(f"{stem}: {field}")
+    return additions
+
+
 def baseline_regressions(old: dict, new: dict) -> list[str]:
     """Human-readable list of Java-agreement regressions old -> new."""
     regressions: list[str] = []
@@ -549,6 +711,11 @@ def main(argv: list[str] | None = None) -> int:
     mode.add_argument("--write-baseline", action="store_true")
     mode.add_argument("--check", action="store_true")
     mode.add_argument("--report", action="store_true")
+    mode.add_argument(
+        "--check-paths",
+        action="store_true",
+        help="resolve every cohort path under the active data root and exit",
+    )
     parser.add_argument(
         "--json",
         action="store_true",
@@ -563,25 +730,84 @@ def main(argv: list[str] | None = None) -> int:
             "frozen by accident."
         ),
     )
+    parser.add_argument(
+        "--accept-known-gaps",
+        action="store_true",
+        help=(
+            "allow --write-baseline to record newly-added known_gaps. "
+            "Without this flag new gaps are refused even if Java agreement "
+            "itself did not regress."
+        ),
+    )
     args = parser.parse_args(argv)
 
     cohort = load_cohort()
+    base = data_root()
     if not args.json:
         print(f"cohort: {cohort['name']} ({len(cohort['cases'])} cases)")
         print(f"data_ref: {cohort['data_ref']}")
+        print(f"data_root: {base}")
+
+    if not base.exists():
+        print(
+            f"data root not found: {base}; run scripts/fetch_testdata.sh "
+            "or set PCGEN_TESTDATA_DIR",
+            file=sys.stderr,
+        )
+        return 2
+
+    if args.check_paths:
+        failures: list[str] = []
+        for stem, case in cohort["cases"].items():
+            pcg, pcc, sheet = resolve_case(case)
+            for label, path in (("pcg", pcg), ("sheet", sheet), ("pcc", pcc)):
+                if path is not None and not path.exists():
+                    failures.append(f"{stem}: {label} missing: {path}")
+        payload = {
+            "mode": "check-paths",
+            "ok": not failures,
+            "data_root": str(base),
+            "cases": len(cohort["cases"]),
+            "failures": failures,
+        }
+        if args.json:
+            _print_json(payload)
+        elif failures:
+            print(f"broad oracle path check FAILED: {len(failures)} missing path(s)")
+            for failure in failures:
+                print(f"  {failure}")
+        else:
+            print(
+                f"broad oracle path check passed: {len(cohort['cases'])} cases "
+                f"under {base}"
+            )
+        return 0 if payload["ok"] else 1
 
     if args.write_baseline:
         baseline = build_baseline(cohort)
-        if BASELINE_PATH.exists() and not args.accept_diff:
+        old_baseline = None
+        if BASELINE_PATH.exists():
             old_baseline = json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
-            regressions = baseline_regressions(old_baseline, baseline)
-            if regressions:
-                print("refusing to write baseline: Java agreement regressed")
-                for regression in regressions:
-                    print(f"  {regression}")
+        if old_baseline is not None:
+            new_gaps = added_known_gap_fields(old_baseline, baseline)
+            if not args.accept_diff:
+                regressions = baseline_regressions(old_baseline, baseline)
+                if regressions:
+                    print("refusing to write baseline: Java agreement regressed")
+                    for regression in regressions:
+                        print(f"  {regression}")
+                    print(
+                        "re-run with --accept-diff only if this regression is "
+                        "intentional and reviewed."
+                    )
+                    return 1
+            if new_gaps and not args.accept_known_gaps:
+                print("refusing to write baseline: new known_gaps added")
+                for addition in new_gaps:
+                    print(f"  {addition}")
                 print(
-                    "re-run with --accept-diff only if this regression is "
-                    "intentional and reviewed."
+                    "re-run with --accept-known-gaps only if these gaps have "
+                    "an owner and a reviewable issue."
                 )
                 return 1
         BASELINE_PATH.write_text(
@@ -607,22 +833,37 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.report:
-        totals, agreements, errors, diverging = summarise(cohort)
-        fields = {}
-        for field in sorted(totals):
-            total = totals[field]
-            fields[field] = {
-                "ok": agreements[field],
-                "total": total,
-                "agreement": (agreements[field] / total) if total else 0.0,
+        summary = summarise(cohort)
+        errors = summary["errors"]
+        known_diverging = summary["known_diverging"]
+        all_field = {}
+        for field in sorted(summary["all_field"]):
+            entry = summary["all_field"][field]
+            all_field[field] = {
+                "ok": entry["ok"],
+                "total": entry["total"],
+                "missing": summary["java_missing"].get(field, 0),
+                "agreement": (entry["ok"] / entry["total"]) if entry["total"] else 0.0,
             }
+        gated = {
+            field: {
+                "ok": entry["ok"],
+                "total": entry["total"],
+                "agreement": (entry["ok"] / entry["total"]) if entry["total"] else 0.0,
+            }
+            for field, entry in sorted(summary["gated"].items())
+        }
         payload = {
             "mode": "report",
             "ok": not errors,
             "cohort": cohort["name"],
             "data_ref": cohort["data_ref"],
-            "fields": fields,
-            "known_diverging": diverging,
+            "data_root": str(base),
+            "all_field": all_field,
+            "gated": gated,
+            "java_missing": dict(sorted(summary["java_missing"].items())),
+            "known_gaps": summary["known_gaps"],
+            "known_diverging": known_diverging,
             "errors": errors,
         }
         if args.json:
@@ -635,15 +876,40 @@ def main(argv: list[str] | None = None) -> int:
                 f"base_only={expected.get('base_only', '?')} "
                 f"(data_missing_limit={cohort.get('data_missing_limit', '?')})"
             )
+            print()
+            print("all-field agreement (Java-exposed fields only)")
+            print(f"{'field':16} {'ok':>6} {'total':>6} {'missing':>8} {'agreement':>10}")
+            for field, entry in all_field.items():
+                print(
+                    f"{field:16} {entry['ok']:>6} {entry['total']:>6} "
+                    f"{entry['missing']:>8} {100.0 * entry['agreement']:9.1f}%"
+                )
+            print()
+            print("java-gated field agreement")
             print(f"{'field':16} {'ok':>6} {'total':>6} {'agreement':>10}")
-            for field in sorted(totals):
-                total = totals[field]
-                ok = agreements[field]
-                print(f"{field:16} {ok:>6} {total:>6} {100.0 * ok / total:9.1f}%")
-            if diverging:
+            for field, entry in gated.items():
+                print(
+                    f"{field:16} {entry['ok']:>6} {entry['total']:>6} "
+                    f"{100.0 * entry['agreement']:9.1f}%"
+                )
+            if summary["java_missing"]:
+                print()
+                print("java_missing (excluded from all-field denominator)")
+                for field, count in sorted(summary["java_missing"].items()):
+                    print(f"  {field:16} {count}")
+            if summary["known_gaps"]:
+                print()
+                print("owned known_gaps (excluded from java-gated gate)")
+                for stem, gaps in summary["known_gaps"].items():
+                    for gap in gaps:
+                        print(
+                            f"  {stem}: {gap['field']} owner={gap['owner']} "
+                            f"issue={gap['issue']}"
+                        )
+            if known_diverging:
                 print(
                     "known-diverging cases (excluded from denominator): "
-                    f"{', '.join(diverging)}"
+                    f"{', '.join(known_diverging)}"
                 )
             if errors:
                 print("cohort errors (expected computed but did not):")
@@ -667,7 +933,7 @@ def main(argv: list[str] | None = None) -> int:
             f"broad oracle passed: {payload['expected']['cases']} cases "
             f"({actual['computed']} computed = {actual['java_compared']} "
             f"java-compared + {actual['known_diverging']} known-diverging, "
-            f"{actual['java_gated']} java-gated)"
+            f"{actual['java_gated']} case-gated, {actual['known_gaps']} owned known gaps)"
         )
     return 0 if payload["ok"] else 1
 
