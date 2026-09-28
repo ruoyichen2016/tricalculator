@@ -112,12 +112,17 @@ def load_cohort() -> dict:
     return json.loads(COHORT_PATH.read_text(encoding="utf-8"))
 
 
+import htm_csheet  # type: ignore  # noqa: E402
+
+
 def resolve_case(case: dict) -> tuple[Path, Path | None, Path]:
+    """Return (pcg, pcc, java_sheet).  The Java sheet is XML by default and
+    may be an HTM csheet when the case declares `java_sheet: "htm"`."""
     java_root = Path(case["java_root"])
     pcg = Path(case["pcg"])
-    xml = Path(case["xml"])
+    sheet = Path(case.get("htm") or case.get("xml"))
     pcc = Path(case["pcc"]) if case.get("pcc") else None
-    return pcg, pcc, xml
+    return pcg, pcc, sheet
 
 
 def evaluate_case(case: dict) -> dict:
@@ -130,7 +135,10 @@ def evaluate_case(case: dict) -> dict:
         return result
 
     try:
-        java = curated.java_baseline(xml)
+        if case.get("java_sheet") == "htm":
+            java = htm_java_baseline(xml)
+        else:
+            java = curated.java_baseline(xml)
         base = curated.rust_base_state(curated.rust_character(pcg))
     except Exception as error:  # noqa: BLE001
         result["status"] = "error"
@@ -192,6 +200,37 @@ def evaluate_case(case: dict) -> dict:
     return result
 
 
+def htm_java_baseline(path: Path) -> dict:
+    """Adapt an HTM csheet to the baseline shape used by XML sheets.
+
+    Fields the HTML sheets do not expose (final stats, touch/flat-footed AC,
+    classes) stay `None` and are excluded from `java_gated_fields`.
+    """
+    parsed = htm_csheet.parse_htm_csheet(path)
+    return {
+        "name": None,
+        "race": None,
+        "base_stats": {},
+        "final_stats": {},
+        "classes": [],
+        "bab": parsed.get("bab"),
+        "hit_points": parsed.get("hit_points"),
+        "initiative": parsed.get("initiative"),
+        "armor_class": parsed.get("armor_class"),
+        "touch_ac": parsed.get("touch_ac"),
+        "flat_footed_ac": parsed.get("flat_footed_ac"),
+        "saves": {
+            "fortitude": parsed.get("save_fortitude"),
+            "reflex": parsed.get("save_reflex"),
+            "will": parsed.get("save_will"),
+        },
+        "skills": {},
+        "spell_dcs": {},
+        "prepared_spells": {},
+        "spell_caster_levels": set(),
+    }
+
+
 def field_agreement(result: dict) -> dict[str, bool]:
     """Per-field Rust-vs-Java agreement for a computed case."""
     rust = result["values"].get("rust", {})
@@ -218,7 +257,7 @@ def build_baseline(cohort: dict) -> dict:
                 if key != "choice_state"
             }
             entry["choice_state"] = result["values"]["rust"]["choice_state"]
-            entry["java_agreement"] = field_agreement(result)
+            entry["java_agreement"] = comparable_agreement(result)
         elif result["status"] == "base_only":
             entry["values"] = result["values"]["base"]
         elif result["status"] == "data_missing":
@@ -440,6 +479,30 @@ def baseline_agreements(baseline: dict) -> dict[str, tuple[int, int]]:
             if ok:
                 entry[0] += 1
     return {field: (ok, total) for field, (ok, total) in totals.items()}
+
+
+def comparable_agreement(result: dict) -> dict[str, bool]:
+    """Agreement only over fields the Java sheet actually exposes.
+
+    HTM csheets do not carry final stats or touch/flat-footed AC, so those
+    fields are skipped instead of counted as disagreements.
+    """
+    rust = result["values"].get("rust", {})
+    java = result["values"].get("java", {})
+    agreement = {}
+    for field in FIELDS:
+        want = java.get(field)
+        if want in (None, {}, []):
+            continue
+        agreement[field] = curated.normalise_value(field, rust.get(field)) == curated.normalise_value(
+            field, want
+        )
+    for save in SAVES:
+        want = java.get("saves", {}).get(save)
+        if want is None:
+            continue
+        agreement[f"save_{save}"] = rust.get("saves", {}).get(save) == want
+    return agreement
 
 
 def baseline_regressions(old: dict, new: dict) -> list[str]:

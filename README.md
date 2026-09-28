@@ -20,6 +20,7 @@ PCGen-Rust 是围绕统一 Rule IR、`CharacterDraft` / `CharacterSnapshot`
 - [`docs/P5_PATHFINDER_TRIAL.md`](docs/P5_PATHFINDER_TRIAL.md)
 - [`docs/P5_PATHFINDER_ASSESSMENT.md`](docs/P5_PATHFINDER_ASSESSMENT.md)
 - [`docs/P5_KIT_RUNTIME_DESIGN.md`](docs/P5_KIT_RUNTIME_DESIGN.md)
+- [`docs/P6_HTM_CSHEET.md`](docs/P6_HTM_CSHEET.md)
 
 ## 工作区
 
@@ -198,7 +199,7 @@ commit 并执行字段级差分）两个 job。细节见 [`docs/TESTING.md`](doc
   domain_spells / deity_domains；
 - P5-7：prepared/domain spell 的 AC/save/stat/skill `BONUS` 进入
   `applied_spell_effects`；
-- 197 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
+- 205 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
 
 真实 PCGen 数据解析与完整角色计算正在按 [`MIGRATION.md`](MIGRATION.md) 从
 archive 迁移。

@@ -51,6 +51,12 @@ pub struct CharacterDraft {
     /// (lower-cased).  Populated from `.pcg` `EQMOD=` customization data.
     #[serde(default)]
     pub equipment_modifiers: BTreeMap<String, Vec<String>>,
+    /// Base item name for customised equipment, keyed by item name (lower-cased).
+    #[serde(default)]
+    pub equipment_base_items: BTreeMap<String, String>,
+    /// `OUTPUTNAME:` display name per item, keyed by item name (lower-cased).
+    #[serde(default)]
+    pub equipment_display_names: BTreeMap<String, String>,
     #[serde(default)]
     pub abilities: Vec<(String, String)>,
     /// Applied creature templates (PCGen `TEMPLATE:` / `.pcg`).
@@ -122,6 +128,8 @@ impl Default for CharacterDraft {
             spells: Vec::new(),
             equipment: Vec::new(),
             equipment_modifiers: BTreeMap::new(),
+            equipment_base_items: BTreeMap::new(),
+            equipment_display_names: BTreeMap::new(),
             abilities: Vec::new(),
             templates: Vec::new(),
             active_states: Vec::new(),

@@ -179,6 +179,9 @@ pub struct CharacterSnapshot {
     /// `MOVECLONE` expansion.
     #[serde(default)]
     pub movement: BTreeMap<String, u32>,
+    /// Resolved equipment definitions after base-item / EQMOD resolution.
+    #[serde(default)]
+    pub equipment: Vec<pcgen_core::EquipmentDefinition>,
     /// Derived companion states (familiar / special mount / ...).
     #[serde(default)]
     pub companions: Vec<CompanionSnapshot>,

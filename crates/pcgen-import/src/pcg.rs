@@ -37,6 +37,8 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
         spells: Vec::new(),
         equipment: Vec::new(),
         equipment_modifiers: BTreeMap::new(),
+        equipment_base_items: BTreeMap::new(),
+        equipment_display_names: BTreeMap::new(),
         abilities: Vec::new(),
         templates: Vec::new(),
         advancement: Vec::new(),
@@ -87,6 +89,36 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
                         draft
                             .equipment_modifiers
                             .insert(name.to_ascii_lowercase(), modifiers);
+                    }
+                    if let Some(base_item) = extract_base_item(value) {
+                        draft
+                            .equipment_base_items
+                            .insert(name.to_ascii_lowercase(), base_item);
+                    }
+                    if let Some(display) = extract_equipment_display_name(value) {
+                        draft
+                            .equipment_display_names
+                            .insert(name.to_ascii_lowercase(), display);
+                    }
+                }
+            }
+            "EQUIPBASEITEM" => {
+                let parts = split_pipe(value);
+                if let (Some(item), Some(base)) = (parts.first(), parts.get(1)) {
+                    if !item.is_empty() && !base.is_empty() {
+                        draft
+                            .equipment_base_items
+                            .insert(item.to_ascii_lowercase(), base.to_string());
+                    }
+                }
+            }
+            "EQUIPDISPLAY" => {
+                let parts = split_pipe(value);
+                if let (Some(item), Some(display)) = (parts.first(), parts.get(1)) {
+                    if !item.is_empty() && !display.is_empty() {
+                        draft
+                            .equipment_display_names
+                            .insert(item.to_ascii_lowercase(), display.to_string());
                     }
                 }
             }
@@ -255,6 +287,12 @@ pub fn write_pcg_draft_string(draft: &PcgDraft) -> Result<String, PcgDraftError>
     }
     for item in &draft.equipment {
         writeln!(out, "EQUIPNAME:{item}").ok();
+    }
+    for (item, base) in &draft.equipment_base_items {
+        writeln!(out, "EQUIPBASEITEM:{item}|{base}").ok();
+    }
+    for (item, display) in &draft.equipment_display_names {
+        writeln!(out, "EQUIPDISPLAY:{item}|{display}").ok();
     }
     for (category, key) in &draft.abilities {
         match draft.choices.get(key) {
@@ -585,14 +623,32 @@ fn split_pipe(value: &str) -> Vec<&str> {
 }
 
 /// Extract `EQMOD=` references from a `.pcg` `CUSTOMIZATION` payload.
+fn extract_equipment_display_name(value: &str) -> Option<String> {
+    let start = value.find("OUTPUTNAME:")?;
+    let after = &value[start + "OUTPUTNAME:".len()..];
+    let end = after.find(['|', ']']).unwrap_or(after.len());
+    let name = after[..end].trim();
+    (!name.is_empty()).then(|| name.to_string())
+}
+
+fn extract_base_item(value: &str) -> Option<String> {
+    // `CUSTOMIZATION:[BASEITEM:Full Plate|DATA:...]` — search the whole
+    // customization payload, not only the `DATA:` segment.
+    let start = value.find("BASEITEM:")?;
+    let after = &value[start + "BASEITEM:".len()..];
+    let end = after.find(['|', ']', '$', ';']).unwrap_or(after.len());
+    let base = after[..end].trim();
+    (!base.is_empty()).then(|| base.to_string())
+}
+
 fn extract_equipmods(value: &str) -> Vec<String> {
-    let Some(start) = value.find("DATA:") else {
+    let Some(start) = value.find("EQMOD=") else {
         return Vec::new();
     };
-    value[start + "DATA:".len()..]
-        .split('|')
-        .flat_map(|part| part.split(';'))
-        .filter_map(|part| part.trim().strip_prefix("EQMOD="))
+    let after = &value[start + "EQMOD=".len()..];
+    let end = after.find(['$', '|', ']']).unwrap_or(after.len());
+    after[..end]
+        .split('.')
         .map(|part| part.trim().to_string())
         .filter(|part| !part.is_empty())
         .collect()

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### P6-1a HTM csheet 解析与 cohort 扩展（已完成）
+
+- 新增 `scripts/htm_csheet.py`，支持 `.htm` csheet 差分。
+- broad oracle 支持 `java_sheet: "htm"`，不可比较字段自动跳过。
+- cohort 23→25：`35e_L7-3(fighter-cleric-dwarf)` 与
+  `35e_L10(fighter-human)`。
+- 修复 `.pcg` 自定义装备 `BASEITEM` / `EQMOD` 解析与 `PLUSnA` /
+  `PLUSnS` AC 折入；两个 HTM case AC 与 Java 一致。
+- 测试 204→205。
+
 ### P5-14 KIT runtime 决策启动 + Pathfinder 立项评估（已完成）
 
 - 新增 `docs/P5_KIT_RUNTIME_DESIGN.md`：冻结 KIT runtime 启动条件；

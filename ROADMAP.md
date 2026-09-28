@@ -8,7 +8,7 @@
 ## 当前状态（最近验证：固定数据 + 全量门禁）
 
 - 工作区：7 crate（core / formula / ir / import / engine / output / cli）。
-- 测试：`cargo test --workspace` **197 passed**。
+- 测试：`cargo test --workspace` **205 passed**。
 - DS-3E（回归代理，`srdbasic.pcc`）：3,779 entities，23,723 tag occurrences，
   lowered 3,267；legacy pending 0；unsupported 0；
   **semantic completion 100.0%**。
@@ -22,7 +22,7 @@
   `XPCOST` 按 P4-DEC-2 移入 out-of-scope allowlist；三个数据集的
   `unsupported_pending` 均被门禁显式要求为 0。
 - 门禁 `scripts/coverage_gate.py`：**14 pass / 0 fail / 0 skip**（严格模式，含三数据集 coverage 基线与 DS-35E 阈值）。
-- broad per-case oracle：23 cohort（**23 computed = 23 java-compared +
+- broad per-case oracle：25 cohort（**25 computed = 25 java-compared +
   0 known-diverging**，0 data-missing），23 个 java-gated case；
   `final_stats` / `bab` / `hit_points` / `initiative` / `armor_class` /
   `touch_ac` / `flat_footed_ac` / `save_*` 全部 **23/23（100%）**。
@@ -217,6 +217,22 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
 - engine `apply_choose` 支持按 source entity 上下文查找 `draft.choices`；
 - `PRESUBCLASS` 支持 `class_subclasses`；
 - `TEMPLATESAPPLIED` 内嵌 `APPLIEDTO` 进入 choices；`CLASS|ALL` / `CLASS|PC` 动态 class list 解析；curated cohort 已无 unresolved choices。
+
+### P6-1a HTM csheet 解析与 cohort 扩展（已完成）
+
+- 新增 `scripts/htm_csheet.py`：从 PCGen `.htm` csheet 抽取
+  HP / AC / 先攻 / BAB / 三项豁免。
+- broad oracle 支持 `java_sheet: "htm"` 与 `htm` 字段；缺少的字段
+  （final_stats、touch/flat AC）按不可比较处理。
+- cohort 从 23 扩到 25：
+  - `35e_L7-3(fighter-cleric-dwarf)`
+  - `35e_L10(fighter-human)`
+- 修复自定义装备解析：
+  - `BASEITEM:` → `equipment_base_items`
+  - `EQMOD=` → `equipment_modifiers`
+  - `PLUSnA` / `PLUSnS` 增强加值折入 AC
+  - 两个 HTM case 的 AC 与 Java 完全一致（21 / 28）
+- broad oracle：25/25 Java-compared，0 known-diverging。
 
 ### P5-14 KIT runtime 决策启动 + Pathfinder 立项评估（已完成）
 

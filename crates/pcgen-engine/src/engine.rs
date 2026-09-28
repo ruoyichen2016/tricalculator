@@ -666,6 +666,7 @@ impl Engine {
             unarmed_mult,
             attack_cycle,
             movement,
+            equipment,
             companions,
             gestalt,
             faith_decisions,
@@ -996,21 +997,70 @@ impl Engine {
             .equipment
             .iter()
             .filter_map(|item| {
+                let customised = draft
+                    .equipment_base_items
+                    .get(&item.to_ascii_lowercase())
+                    .cloned();
+                let display = draft
+                    .equipment_display_names
+                    .get(&item.to_ascii_lowercase())
+                    .cloned();
+                let lookup = display
+                    .as_deref()
+                    .or(customised.as_deref())
+                    .unwrap_or(item.as_str())
+                    .trim();
                 let found = self
                     .pack
                     .equipment
-                    .get(item)
+                    .get(lookup)
                     .or_else(|| {
                         self.pack
                             .equipment
                             .iter()
                             .find(|(key, definition)| {
-                                key.eq_ignore_ascii_case(item)
-                                    || definition.name.eq_ignore_ascii_case(item)
+                                key.eq_ignore_ascii_case(lookup)
+                                    || definition.name.eq_ignore_ascii_case(lookup)
                             })
                             .map(|(_, definition)| definition)
                     })
-                    .cloned();
+                    .cloned()
+                    .map(|mut definition| {
+                        // Keep the customised display name so slot/AC output
+                        // still identifies the equipped item, but resolve the
+                        // mechanical fields from the base item.
+                        if let Some(base) = &customised {
+                            definition.name = format!("{item} [{base}]");
+                        }
+                        // Apply `EQMOD=` enhancement bonuses (`PLUS2A`, ...)
+                        // so customised armour/shield AC matches PCGen.
+                        if let Some(modifiers) =
+                            draft.equipment_modifiers.get(&item.to_ascii_lowercase())
+                        {
+                            for modifier in modifiers {
+                                let upper = modifier.to_ascii_uppercase();
+                                // `PLUS2A` = +2 to armour AC; `PLUS3S` = +3
+                                // to shield AC.  Other modifiers (STEEL,
+                                // MWORKA, BOWSTR) do not change AC directly.
+                                if let Some(rest) = upper.strip_prefix("PLUS") {
+                                    if let Some(value) = rest
+                                        .strip_suffix('A')
+                                        .and_then(|digits| digits.parse::<i32>().ok())
+                                    {
+                                        definition.armor_bonus += value;
+                                    } else if let Some(value) = rest
+                                        .strip_suffix('S')
+                                        .and_then(|digits| digits.parse::<i32>().ok())
+                                    {
+                                        // Shield enhancement is additive on the
+                                        // shield's AC component.
+                                        definition.armor_bonus += value;
+                                    }
+                                }
+                            }
+                        }
+                        definition
+                    });
                 if found.is_none() {
                     diagnostics.push(format!("missing equipment definition for `{item}`"));
                 }
@@ -1941,9 +1991,14 @@ fn equipment_totals(equipment: &[EquipmentDefinition]) -> (i32, i32, Option<i32>
             .iter()
             .map(|tag| tag.to_ascii_lowercase())
             .collect();
-        if tags.contains("shield") {
+        let proficiency = item
+            .proficiency
+            .as_deref()
+            .unwrap_or("")
+            .to_ascii_lowercase();
+        if tags.contains("shield") || proficiency.starts_with("shield") {
             shield += item.armor_bonus;
-        } else if tags.contains("armor") {
+        } else if tags.contains("armor") || proficiency.starts_with("armor") {
             armor += item.armor_bonus;
         }
         if let Some(cap) = item.max_dex_bonus {

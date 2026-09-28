@@ -54,6 +54,15 @@ pub struct PcgDraft {
     /// `CUSTOMIZATION` data), keyed by item name, lower-cased.
     #[serde(default)]
     pub equipment_modifiers: BTreeMap<String, Vec<String>>,
+    /// Base item name for customised equipment (`BASEITEM:` in `.pcg`
+    /// `CUSTOMIZATION` data), keyed by item name, lower-cased.  A customised
+    /// item such as `+2 scale mail` resolves its armour bonus from
+    /// `Scale Mail`.
+    #[serde(default)]
+    pub equipment_base_items: BTreeMap<String, String>,
+    /// `OUTPUTNAME:` display name per item, keyed by item name (lower-cased).
+    #[serde(default)]
+    pub equipment_display_names: BTreeMap<String, String>,
     #[serde(default)]
     pub abilities: Vec<(String, String)>,
     #[serde(default)]

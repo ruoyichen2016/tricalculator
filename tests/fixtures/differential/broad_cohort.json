@@ -432,6 +432,40 @@
       "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
       "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/3e_WizShar.pcg",
       "xml": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/3e_WizShar.xml"
+    },
+    "35e_L7-3(fighter-cleric-dwarf)": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "bab",
+        "hit_points",
+        "initiative",
+        "armor_class",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_L7-3(fighter-cleric-dwarf).pcg",
+      "htm": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_L7-3(fighter-cleric-dwarf-std).htm",
+      "java_sheet": "htm"
+    },
+    "35e_L10(fighter-human)": {
+      "expectation": "computed",
+      "java_gated_fields": [
+        "bab",
+        "hit_points",
+        "initiative",
+        "armor_class",
+        "save_fortitude",
+        "save_reflex",
+        "save_will"
+      ],
+      "java_root": "/home/ursa/worksphere/gladius/raw/pcgen-master",
+      "pcc": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
+      "pcg": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/PCGfiles/35e_L10(fighter-human).pcg",
+      "htm": "/home/ursa/worksphere/gladius/raw/pcgen-master/code/testsuite/csheets/35e_L10(fighter-human-std).htm",
+      "java_sheet": "htm"
     }
   },
   "cohort_date": "2026-09-18",
@@ -440,10 +474,10 @@
   "description": "All PCG/XML pairs in the pinned PCGen test suite that map to a data set. Each case declares an `expectation` (computed / data_missing / base_only) so the agreement denominator is fixed. `data_missing_limit` caps how many cases may be skipped for missing data. `java_gated_fields` must match the Java csheet exactly; the rest are frozen in broad_baseline.json.",
   "expectation_summary": {
     "base_only": 0,
-    "computed": 23,
+    "computed": 25,
     "computed_diverging": 0,
     "data_missing": 0,
-    "must_compute": 23
+    "must_compute": 25
   },
   "known_data_gaps": {},
   "name": "pcgen-testsuite-broad",
