@@ -285,6 +285,19 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
 - `none_derth` 判定为 legacy（PCG v2.4.3，无 CAMPAIGN 映射），保留审计样本。
 - full-data CI 增加 `cohort_matrix.py --check`，防止 fixture 漂移。
 
+### Sprint 3-L3b-1：深度字段门禁（已完成）
+
+- 新增 `scripts/deep_field_oracle.py`、`deep_field_cohort.json`、
+  `deep_field_baseline.json` 与 [`docs/DEEP_FIELDS.md`](docs/DEEP_FIELDS.md)。
+- 覆盖 `armor_bonus` / `shield_bonus` / `skill_total` / `spell_dc_max` /
+  `caster_level_max` / `prepared_count`，攻击总额先作为 visibility。
+- 7 个代表 case、24 个 Java-gated 字段、14 条 owned known_gaps；
+  默认拒绝新增 gap，stale gap 会失败。
+- Java 抽取器补充 `<attack>` 的 melee / ranged / grapple 总额。
+- full-data CI 与 `scripts/check.sh` 接入 `deep_field_oracle.py --check`。
+- L3b-2 待办：修 ACP / spell DC / caster level / prepared 语义，并让 Rust
+  snapshot 暴露攻击总额。
+
 ### P6-1a HTM csheet 解析与 cohort 扩展（已完成）
 
 - 新增 `scripts/htm_csheet.py`：从 PCGen `.htm` csheet 抽取

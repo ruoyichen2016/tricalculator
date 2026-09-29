@@ -215,6 +215,26 @@ python3 scripts/cohort_matrix.py --check   # CI 防漂移
 
 `--check` 会失败于：矩阵过期、或出现未归类的 PCG fixture。
 
+### 6.6 Deep-field aggregate oracle
+
+`scripts/deep_field_oracle.py` 覆盖 broad oracle 之外的聚合字段：
+`armor_bonus` / `shield_bonus` / `skill_total` / `spell_dc_max` /
+`caster_level_max` / `prepared_count`，以及 visibility-only 的攻击总额。
+
+- config：`tests/fixtures/differential/deep_field_cohort.json`
+- baseline：`tests/fixtures/differential/deep_field_baseline.json`
+- 每个 comparable 字段必须是 `gated` 或 owned `known_gaps`；
+- 默认拒绝新增 known_gap，stale gap 会让 `--check` 失败；
+- 当前 7 case / 24 gated fields / 14 owned gaps，详见
+  [`docs/DEEP_FIELDS.md`](DEEP_FIELDS.md)。
+
+```bash
+python3 scripts/deep_field_oracle.py --check --json
+python3 scripts/deep_field_oracle.py --report
+```
+
+`scripts/check.sh` 与 full-data CI 都会在数据存在时运行该门禁。
+
 ## 7. tag 直方图与工作清单
 
 `import-report` 现在输出 `coverage.unsupported_by_tag` / `legacy_by_tag`：

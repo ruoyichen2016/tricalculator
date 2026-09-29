@@ -23,6 +23,7 @@ the Rust unit tests rather than this XML baseline.
 
 from __future__ import annotations
 
+import re
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -221,6 +222,15 @@ def java_baseline(xml_path: Path) -> dict:
         if caster_level:
             spell_caster_levels.add(int(caster_level))
 
+    def attack_total(section: str) -> int | None:
+        value = root.findtext(f"./attack/{section}/total")
+        if value is None:
+            return None
+        # Iterative attacks are shown as "+7/+2"; the first total is the
+        # primary attack bonus used by this aggregate oracle.
+        match = re.search(r"[-+]?\d+", value)
+        return int(match.group(0)) if match else None
+
     return {
         "name": root.findtext("./basics/name"),
         "race": root.findtext("./basics/race"),
@@ -235,6 +245,9 @@ def java_baseline(xml_path: Path) -> dict:
         "shield_bonus": int(root.findtext("./armor_class/shield_bonus", "0")),
         "touch_ac": int(root.findtext("./armor_class/touch", "0")),
         "flat_footed_ac": int(root.findtext("./armor_class/flat", "0")),
+        "melee_attack": attack_total("melee"),
+        "ranged_attack": attack_total("ranged"),
+        "grapple_attack": attack_total("grapple"),
         "saves": saves,
         "skills": skills,
         "spell_dcs": spell_dcs,

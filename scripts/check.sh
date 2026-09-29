@@ -18,6 +18,8 @@ export PCGEN_BIN="$pcgen_bin"
 "$pcgen_bin" import-report tests/fixtures/campaign-mini/mini.pcc >/dev/null
 
 if bash scripts/check_testdata.sh --quiet >/dev/null 2>&1; then
+    python3 scripts/cohort_matrix.py --check
+    python3 scripts/deep_field_oracle.py --check
     # broad oracle runs once inside coverage_gate.py (structured JSON).
     python3 scripts/coverage_gate.py
     archive_bin="${ARCHIVE_PCGEN:-$ROOT/../reference/pcgen-rust-archive/target/debug/pcgen}"

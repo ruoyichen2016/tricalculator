@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "name": "deep-field-primary",
+  "data_ref": "f91bd03f2dbe1145d5526b52aa3e48fcd0f2fc8d",
+  "cohort": "tests/fixtures/differential/broad_cohort.json",
+  "description": "Aggregate deep-field gate for primary 3.0/3.5e cases. Each comparable field must be either java-gated or an owned known_gap; visibility fields (attack totals) are frozen for drift but not Java-gated yet.",
+  "visibility_fields": [
+    "melee_attack",
+    "ranged_attack",
+    "grapple_attack"
+  ],
+  "cases": {
+    "3e_BarJack": {
+      "source": {
+        "pcc": "data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
+        "pcg": "code/testsuite/PCGfiles/3e_BarJack.pcg",
+        "xml": "code/testsuite/csheets/3e_BarJack.xml"
+      },
+      "gated": [
+        "armor_bonus",
+        "shield_bonus"
+      ],
+      "known_gaps": [
+        {
+          "field": "skill_total",
+          "owner": "L3b-2-deep-fields",
+          "issue": "skill total normalization / armor check penalty (rust=26, java=24)"
+        },
+        {
+          "field": "spell_dc_max",
+          "owner": "L3b-2-deep-fields",
+          "issue": "spell DC normalization / spell-like abilities (rust=None, java=11)"
+        },
+        {
+          "field": "caster_level_max",
+          "owner": "L3b-2-deep-fields",
+          "issue": "caster level extraction / progression (rust=None, java=1)"
+        },
+        {
+          "field": "prepared_count",
+          "owner": "L3b-2-deep-fields",
+          "issue": "prepared vs known spell normalization (rust=0, java=4)"
+        }
+      ]
+    },
+    "3e_SWizSam": {
+      "source": {
+        "pcc": "data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
+        "pcg": "code/testsuite/PCGfiles/3e_SWizSam.pcg",
+        "xml": "code/testsuite/csheets/3e_SWizSam.xml"
+      },
+      "gated": [
+        "armor_bonus",
+        "shield_bonus",
+        "skill_total",
+        "caster_level_max"
+      ],
+      "known_gaps": [
+        {
+          "field": "spell_dc_max",
+          "owner": "L3b-2-deep-fields",
+          "issue": "spell DC normalization / spell-like abilities (rust=None, java=12)"
+        },
+        {
+          "field": "prepared_count",
+          "owner": "L3b-2-deep-fields",
+          "issue": "prepared vs known spell normalization (rust=5, java=19)"
+        }
+      ]
+    },
+    "3e_WizShar": {
+      "source": {
+        "pcc": "data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
+        "pcg": "code/testsuite/PCGfiles/3e_WizShar.pcg",
+        "xml": "code/testsuite/csheets/3e_WizShar.xml"
+      },
+      "gated": [
+        "armor_bonus",
+        "shield_bonus",
+        "skill_total",
+        "caster_level_max"
+      ],
+      "known_gaps": [
+        {
+          "field": "spell_dc_max",
+          "owner": "L3b-2-deep-fields",
+          "issue": "spell DC normalization / spell-like abilities (rust=None, java=12)"
+        },
+        {
+          "field": "prepared_count",
+          "owner": "L3b-2-deep-fields",
+          "issue": "prepared vs known spell normalization (rust=3, java=19)"
+        }
+      ]
+    },
+    "3e_BrdJoe": {
+      "source": {
+        "pcc": "data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
+        "pcg": "code/testsuite/PCGfiles/3e_BrdJoe.pcg",
+        "xml": "code/testsuite/csheets/3e_BrdJoe.xml"
+      },
+      "gated": [
+        "armor_bonus",
+        "shield_bonus",
+        "skill_total",
+        "spell_dc_max",
+        "caster_level_max",
+        "prepared_count"
+      ],
+      "known_gaps": []
+    },
+    "3e_FigFae": {
+      "source": {
+        "pcc": "data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
+        "pcg": "code/testsuite/PCGfiles/3e_FigFae.pcg",
+        "xml": "code/testsuite/csheets/3e_FigFae.xml"
+      },
+      "gated": [
+        "armor_bonus",
+        "shield_bonus",
+        "skill_total",
+        "prepared_count"
+      ],
+      "known_gaps": []
+    },
+    "35e_Bard": {
+      "source": {
+        "pcc": "data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc",
+        "pcg": "code/testsuite/PCGfiles/35e_Bard.pcg",
+        "xml": "code/testsuite/csheets/35e_Bard.xml"
+      },
+      "gated": [
+        "armor_bonus",
+        "shield_bonus",
+        "skill_total",
+        "prepared_count"
+      ],
+      "known_gaps": []
+    },
+    "3e_CleElf": {
+      "source": {
+        "pcc": "data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
+        "pcg": "code/testsuite/PCGfiles/3e_CleElf.pcg",
+        "xml": "code/testsuite/csheets/3e_CleElf.xml"
+      },
+      "gated": [],
+      "known_gaps": [
+        {
+          "field": "armor_bonus",
+          "owner": "L3b-2-deep-fields",
+          "issue": "equipment AC component normalization (rust=6, java=7)"
+        },
+        {
+          "field": "shield_bonus",
+          "owner": "L3b-2-deep-fields",
+          "issue": "equipment AC component normalization (rust=1, java=0)"
+        },
+        {
+          "field": "skill_total",
+          "owner": "L3b-2-deep-fields",
+          "issue": "skill total normalization / armor check penalty (rust=-13, java=-22)"
+        },
+        {
+          "field": "spell_dc_max",
+          "owner": "L3b-2-deep-fields",
+          "issue": "spell DC normalization / spell-like abilities (rust=None, java=12)"
+        },
+        {
+          "field": "caster_level_max",
+          "owner": "L3b-2-deep-fields",
+          "issue": "caster level extraction / progression (rust=2, java=3)"
+        },
+        {
+          "field": "prepared_count",
+          "owner": "L3b-2-deep-fields",
+          "issue": "prepared vs known spell normalization (rust=0, java=41)"
+        }
+      ]
+    }
+  }
+}

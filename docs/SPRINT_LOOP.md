@@ -19,9 +19,12 @@
       - [x] **L3a COHORT_MATRIX + 未纳入裁决**：42 PCG / 32 XML / 18 HTM
         全部归类；companion / legacy / out-of-scope 均有裁决；
         `scripts/cohort_matrix.py --check` 接入 full-data CI。
-      - [ ] **L3b 深度字段扩展**：技能总额 / 法术 DC / prepared /
-        caster level / 攻击加值 / 装备 AC 分量，至少 5 个代表 case
-        Java-gated；修复暴露的 engine 分歧。
+      - [x] **L3b-1 深度字段门禁**：7 case / 24 gated fields /
+        14 owned known_gaps；新增 `deep_field_oracle.py`、
+        `docs/DEEP_FIELDS.md`，攻击总额先作为 visibility。
+      - [ ] **L3b-2 深度字段修复**：修 ACP / spell DC / caster level /
+        prepared 语义，让 Rust snapshot 暴露 melee/ranged/grapple，
+        再把对应 known_gap 提升为 gated。
 
 ## 循环规则
 
@@ -38,4 +41,5 @@
 - L1：已完成（commit 见 git log）。
 - L2：已完成。
 - L3a：已完成（commit `5193835`）。
-- L3b：下一轮起点。
+- L3b-1：已完成，待本轮 commit。
+- L3b-2：下一轮起点。

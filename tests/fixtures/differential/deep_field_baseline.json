@@ -1,0 +1,495 @@
+{
+  "cases": {
+    "35e_Bard": {
+      "fields": {
+        "armor_bonus": {
+          "agreement": true,
+          "java": 0,
+          "note": "",
+          "rust": 0
+        },
+        "caster_level_max": {
+          "agreement": false,
+          "java": null,
+          "note": "",
+          "rust": 4
+        },
+        "grapple_attack": {
+          "agreement": null,
+          "java": 3,
+          "note": "visibility only: Rust snapshot does not expose attack totals yet",
+          "rust": null
+        },
+        "melee_attack": {
+          "agreement": null,
+          "java": 3,
+          "note": "visibility only: Rust snapshot does not expose attack totals yet",
+          "rust": null
+        },
+        "prepared_count": {
+          "agreement": true,
+          "java": 0,
+          "note": "rust spells=0 java spells=0",
+          "rust": 0
+        },
+        "ranged_attack": {
+          "agreement": null,
+          "java": 4,
+          "note": "visibility only: Rust snapshot does not expose attack totals yet",
+          "rust": null
+        },
+        "shield_bonus": {
+          "agreement": true,
+          "java": 0,
+          "note": "",
+          "rust": 0
+        },
+        "skill_total": {
+          "agreement": true,
+          "java": 25,
+          "note": "common skill keys=25",
+          "rust": 25
+        },
+        "spell_dc_max": {
+          "agreement": false,
+          "java": null,
+          "note": "",
+          "rust": null
+        }
+      },
+      "known_gaps": []
+    },
+    "3e_BarJack": {
+      "fields": {
+        "armor_bonus": {
+          "agreement": true,
+          "java": 5,
+          "note": "",
+          "rust": 5
+        },
+        "caster_level_max": {
+          "agreement": false,
+          "java": 1,
+          "note": "",
+          "rust": null
+        },
+        "grapple_attack": {
+          "agreement": null,
+          "java": 2,
+          "note": "visibility only: Rust snapshot does not expose attack totals yet",
+          "rust": null
+        },
+        "melee_attack": {
+          "agreement": null,
+          "java": 7,
+          "note": "visibility only: Rust snapshot does not expose attack totals yet",
+          "rust": null
+        },
+        "prepared_count": {
+          "agreement": false,
+          "java": 4,
+          "note": "rust spells=0 java spells=4",
+          "rust": 0
+        },
+        "ranged_attack": {
+          "agreement": null,
+          "java": 8,
+          "note": "visibility only: Rust snapshot does not expose attack totals yet",
+          "rust": null
+        },
+        "shield_bonus": {
+          "agreement": true,
+          "java": 0,
+          "note": "",
+          "rust": 0
+        },
+        "skill_total": {
+          "agreement": false,
+          "java": 24,
+          "note": "common skill keys=27",
+          "rust": 26
+        },
+        "spell_dc_max": {
+          "agreement": false,
+          "java": 11,
+          "note": "missing java-exposed spells: ['Ghost Sound']",
+          "rust": null
+        }
+      },
+      "known_gaps": [
+        {
+          "field": "skill_total",
+          "issue": "skill total normalization / armor check penalty (rust=26, java=24)",
+          "owner": "L3b-2-deep-fields"
+        },
+        {
+          "field": "spell_dc_max",
+          "issue": "spell DC normalization / spell-like abilities (rust=None, java=11)",
+          "owner": "L3b-2-deep-fields"
+        },
+        {
+          "field": "caster_level_max",
+          "issue": "caster level extraction / progression (rust=None, java=1)",
+          "owner": "L3b-2-deep-fields"
+        },
+        {
+          "field": "prepared_count",
+          "issue": "prepared vs known spell normalization (rust=0, java=4)",
+          "owner": "L3b-2-deep-fields"
+        }
+      ]
+    },
+    "3e_BrdJoe": {
+      "fields": {
+        "armor_bonus": {
+          "agreement": true,
+          "java": 0,
+          "note": "",
+          "rust": 0
+        },
+        "caster_level_max": {
+          "agreement": true,
+          "java": 1,
+          "note": "",
+          "rust": 1
+        },
+        "grapple_attack": {
+          "agreement": null,
+          "java": 1,
+          "note": "visibility only: Rust snapshot does not expose attack totals yet",
+          "rust": null
+        },
+        "melee_attack": {
+          "agreement": null,
+          "java": 1,
+          "note": "visibility only: Rust snapshot does not expose attack totals yet",
+          "rust": null
+        },
+        "prepared_count": {
+          "agreement": true,
+          "java": 4,
+          "note": "rust spells=4 java spells=4",
+          "rust": 4
+        },
+        "ranged_attack": {
+          "agreement": null,
+          "java": 1,
+          "note": "visibility only: Rust snapshot does not expose attack totals yet",
+          "rust": null
+        },
+        "shield_bonus": {
+          "agreement": true,
+          "java": 0,
+          "note": "",
+          "rust": 0
+        },
+        "skill_total": {
+          "agreement": true,
+          "java": 30,
+          "note": "common skill keys=8",
+          "rust": 30
+        },
+        "spell_dc_max": {
+          "agreement": true,
+          "java": 10,
+          "note": "",
+          "rust": 10
+        }
+      },
+      "known_gaps": []
+    },
+    "3e_CleElf": {
+      "fields": {
+        "armor_bonus": {
+          "agreement": false,
+          "java": 7,
+          "note": "",
+          "rust": 6
+        },
+        "caster_level_max": {
+          "agreement": false,
+          "java": 3,
+          "note": "",
+          "rust": 2
+        },
+        "grapple_attack": {
+          "agreement": null,
+          "java": 1,
+          "note": "visibility only: Rust snapshot does not expose attack totals yet",
+          "rust": null
+        },
+        "melee_attack": {
+          "agreement": null,
+          "java": 1,
+          "note": "visibility only: Rust snapshot does not expose attack totals yet",
+          "rust": null
+        },
+        "prepared_count": {
+          "agreement": false,
+          "java": 41,
+          "note": "rust spells=0 java spells=41",
+          "rust": 0
+        },
+        "ranged_attack": {
+          "agreement": null,
+          "java": 2,
+          "note": "visibility only: Rust snapshot does not expose attack totals yet",
+          "rust": null
+        },
+        "shield_bonus": {
+          "agreement": false,
+          "java": 0,
+          "note": "",
+          "rust": 1
+        },
+        "skill_total": {
+          "agreement": false,
+          "java": -22,
+          "note": "common skill keys=29",
+          "rust": -13
+        },
+        "spell_dc_max": {
+          "agreement": false,
+          "java": 12,
+          "note": "missing java-exposed spells: ['Bane', 'Bless Water', 'Cause Fear', 'Command', 'Cure Light Wounds', 'Cure Minor Wounds']",
+          "rust": null
+        }
+      },
+      "known_gaps": [
+        {
+          "field": "armor_bonus",
+          "issue": "equipment AC component normalization (rust=6, java=7)",
+          "owner": "L3b-2-deep-fields"
+        },
+        {
+          "field": "shield_bonus",
+          "issue": "equipment AC component normalization (rust=1, java=0)",
+          "owner": "L3b-2-deep-fields"
+        },
+        {
+          "field": "skill_total",
+          "issue": "skill total normalization / armor check penalty (rust=-13, java=-22)",
+          "owner": "L3b-2-deep-fields"
+        },
+        {
+          "field": "spell_dc_max",
+          "issue": "spell DC normalization / spell-like abilities (rust=None, java=12)",
+          "owner": "L3b-2-deep-fields"
+        },
+        {
+          "field": "caster_level_max",
+          "issue": "caster level extraction / progression (rust=2, java=3)",
+          "owner": "L3b-2-deep-fields"
+        },
+        {
+          "field": "prepared_count",
+          "issue": "prepared vs known spell normalization (rust=0, java=41)",
+          "owner": "L3b-2-deep-fields"
+        }
+      ]
+    },
+    "3e_FigFae": {
+      "fields": {
+        "armor_bonus": {
+          "agreement": true,
+          "java": 0,
+          "note": "",
+          "rust": 0
+        },
+        "caster_level_max": {
+          "agreement": false,
+          "java": null,
+          "note": "",
+          "rust": null
+        },
+        "grapple_attack": {
+          "agreement": null,
+          "java": 7,
+          "note": "visibility only: Rust snapshot does not expose attack totals yet",
+          "rust": null
+        },
+        "melee_attack": {
+          "agreement": null,
+          "java": 7,
+          "note": "visibility only: Rust snapshot does not expose attack totals yet",
+          "rust": null
+        },
+        "prepared_count": {
+          "agreement": true,
+          "java": 0,
+          "note": "rust spells=0 java spells=0",
+          "rust": 0
+        },
+        "ranged_attack": {
+          "agreement": null,
+          "java": 7,
+          "note": "visibility only: Rust snapshot does not expose attack totals yet",
+          "rust": null
+        },
+        "shield_bonus": {
+          "agreement": true,
+          "java": 0,
+          "note": "",
+          "rust": 0
+        },
+        "skill_total": {
+          "agreement": true,
+          "java": 24,
+          "note": "common skill keys=3",
+          "rust": 24
+        },
+        "spell_dc_max": {
+          "agreement": false,
+          "java": null,
+          "note": "",
+          "rust": null
+        }
+      },
+      "known_gaps": []
+    },
+    "3e_SWizSam": {
+      "fields": {
+        "armor_bonus": {
+          "agreement": true,
+          "java": 0,
+          "note": "",
+          "rust": 0
+        },
+        "caster_level_max": {
+          "agreement": true,
+          "java": 1,
+          "note": "",
+          "rust": 1
+        },
+        "grapple_attack": {
+          "agreement": null,
+          "java": -4,
+          "note": "visibility only: Rust snapshot does not expose attack totals yet",
+          "rust": null
+        },
+        "melee_attack": {
+          "agreement": null,
+          "java": 1,
+          "note": "visibility only: Rust snapshot does not expose attack totals yet",
+          "rust": null
+        },
+        "prepared_count": {
+          "agreement": false,
+          "java": 19,
+          "note": "rust spells=5 java spells=19",
+          "rust": 5
+        },
+        "ranged_attack": {
+          "agreement": null,
+          "java": 2,
+          "note": "visibility only: Rust snapshot does not expose attack totals yet",
+          "rust": null
+        },
+        "shield_bonus": {
+          "agreement": true,
+          "java": 0,
+          "note": "",
+          "rust": 0
+        },
+        "skill_total": {
+          "agreement": true,
+          "java": 22,
+          "note": "common skill keys=6",
+          "rust": 22
+        },
+        "spell_dc_max": {
+          "agreement": false,
+          "java": 12,
+          "note": "missing java-exposed spells: ['Flare', 'Mending', 'Open/Close', 'Resistance']",
+          "rust": null
+        }
+      },
+      "known_gaps": [
+        {
+          "field": "spell_dc_max",
+          "issue": "spell DC normalization / spell-like abilities (rust=None, java=12)",
+          "owner": "L3b-2-deep-fields"
+        },
+        {
+          "field": "prepared_count",
+          "issue": "prepared vs known spell normalization (rust=5, java=19)",
+          "owner": "L3b-2-deep-fields"
+        }
+      ]
+    },
+    "3e_WizShar": {
+      "fields": {
+        "armor_bonus": {
+          "agreement": true,
+          "java": 0,
+          "note": "",
+          "rust": 0
+        },
+        "caster_level_max": {
+          "agreement": true,
+          "java": 1,
+          "note": "",
+          "rust": 1
+        },
+        "grapple_attack": {
+          "agreement": null,
+          "java": 2,
+          "note": "visibility only: Rust snapshot does not expose attack totals yet",
+          "rust": null
+        },
+        "melee_attack": {
+          "agreement": null,
+          "java": 2,
+          "note": "visibility only: Rust snapshot does not expose attack totals yet",
+          "rust": null
+        },
+        "prepared_count": {
+          "agreement": false,
+          "java": 19,
+          "note": "rust spells=3 java spells=19",
+          "rust": 3
+        },
+        "ranged_attack": {
+          "agreement": null,
+          "java": 2,
+          "note": "visibility only: Rust snapshot does not expose attack totals yet",
+          "rust": null
+        },
+        "shield_bonus": {
+          "agreement": true,
+          "java": 0,
+          "note": "",
+          "rust": 0
+        },
+        "skill_total": {
+          "agreement": true,
+          "java": 47,
+          "note": "common skill keys=29",
+          "rust": 47
+        },
+        "spell_dc_max": {
+          "agreement": false,
+          "java": 12,
+          "note": "missing java-exposed spells: ['Daze', 'Flare', 'Ghost Sound', 'Mending', 'Open/Close', 'Resistance']",
+          "rust": null
+        }
+      },
+      "known_gaps": [
+        {
+          "field": "spell_dc_max",
+          "issue": "spell DC normalization / spell-like abilities (rust=None, java=12)",
+          "owner": "L3b-2-deep-fields"
+        },
+        {
+          "field": "prepared_count",
+          "issue": "prepared vs known spell normalization (rust=3, java=19)",
+          "owner": "L3b-2-deep-fields"
+        }
+      ]
+    }
+  },
+  "config": "deep-field-primary",
+  "data_ref": "f91bd03f2dbe1145d5526b52aa3e48fcd0f2fc8d",
+  "generated_by": "scripts/deep_field_oracle.py --write-baseline",
+  "schema_version": 1
+}

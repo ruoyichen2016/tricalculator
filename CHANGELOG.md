@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Sprint 3-L3b-1：深度字段门禁（已完成）
+
+- 新增 `deep_field_oracle.py` + deep field config/baseline，覆盖
+  armor/shield bonus、skill_total、spell_dc_max、caster_level_max、
+  prepared_count；攻击总额作为 visibility 冻结。
+- 7 个代表 case、24 个 Java-gated 字段、14 条 owned known_gaps；
+  默认拒绝新增 gap，stale gap 失败。
+- Java 抽取器补充 melee / ranged / grapple 总额。
+- full-data CI 与 `scripts/check.sh` 接入 deep-field gate。
+
 ### Sprint 3-L3a：COHORT_MATRIX 与未纳入裁决（已完成）
 
 - 新增 `scripts/cohort_matrix.py` 与 `docs/COHORT_MATRIX.md`，42 PCG /

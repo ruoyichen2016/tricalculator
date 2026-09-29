@@ -84,12 +84,17 @@ jobs:
               --cohort tests/fixtures/differential/broad_cohort_extended.json
           PCGEN_TESTDATA_DIR="$RUNNER_TEMP/pcgen-data-relocated" \
             python3 scripts/cohort_matrix.py --check
+          PCGEN_TESTDATA_DIR="$RUNNER_TEMP/pcgen-data-relocated" \
+            python3 scripts/deep_field_oracle.py --check
 
       - name: HTM csheet extractor checks
         run: python3 scripts/test_htm_csheet.py
 
       - name: Cohort matrix check
         run: python3 scripts/cohort_matrix.py --check
+
+      - name: Deep-field aggregate oracle
+        run: python3 scripts/deep_field_oracle.py --check
 
       - name: Build CLI
         run: cargo build -q -p pcgen-cli
