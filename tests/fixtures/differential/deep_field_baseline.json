@@ -117,7 +117,7 @@
         "caster_level_max": {
           "agreement": true,
           "java": 1,
-          "note": "",
+          "note": "domain caster bonus=0",
           "rust": 1
         },
         "equipment_ac_bonus": {
@@ -168,10 +168,10 @@
     "3e_CleElf": {
       "fields": {
         "caster_level_max": {
-          "agreement": false,
+          "agreement": true,
           "java": 3,
-          "note": "",
-          "rust": 2
+          "note": "domain caster bonus=1",
+          "rust": 3
         },
         "equipment_ac_bonus": {
           "agreement": true,
@@ -217,11 +217,6 @@
         }
       },
       "known_gaps": [
-        {
-          "field": "caster_level_max",
-          "issue": "caster level progression / SLA difference (rust=2, java=3)",
-          "owner": "L3b-2-deep-fields"
-        },
         {
           "field": "prepared_count",
           "issue": "prepared vs known spell semantics (rust=0, java=41)",
@@ -287,7 +282,7 @@
         "caster_level_max": {
           "agreement": true,
           "java": 1,
-          "note": "",
+          "note": "domain caster bonus=0",
           "rust": 1
         },
         "equipment_ac_bonus": {
@@ -346,7 +341,7 @@
         "caster_level_max": {
           "agreement": true,
           "java": 1,
-          "note": "",
+          "note": "domain caster bonus=0",
           "rust": 1
         },
         "equipment_ac_bonus": {

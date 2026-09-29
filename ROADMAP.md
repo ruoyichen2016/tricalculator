@@ -309,6 +309,15 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
   残留为 `prepared_count`、`3e_CleElf::caster_level_max` 与攻击总额，
   转 L3b-3。
 
+### Sprint 3-L3b-3：Domain caster level（已完成）
+
+- 识别 active domain 的 `DOMAINGRANTS` 中 “caster level” 文本；
+- `CharacterSnapshot` 新增 `caster_level_bonus`，修正 `3e_CleElf`
+  Law domain +1 caster level；
+- deep-field 收敛到 **24 gated / 4 owned gaps**；
+- 剩余 `prepared_count` 的 known / innate / memorized 语义与攻击总额
+  转 L3b-4。
+
 ### P6-1a HTM csheet 解析与 cohort 扩展（已完成）
 
 - 新增 `scripts/htm_csheet.py`：从 PCGen `.htm` csheet 抽取

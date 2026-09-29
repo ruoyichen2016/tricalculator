@@ -136,8 +136,9 @@ def evaluate_case(case: dict) -> dict:
     if rust_caster and java_caster:
         add(
             "caster_level_max",
-            max(rust_caster),
+            max(rust_caster) + int(rust.get("caster_level_bonus") or 0),
             max(java_caster),
+            f"domain caster bonus={rust.get('caster_level_bonus') or 0}",
         )
     else:
         add("caster_level_max", None, None, "not comparable on both sides")

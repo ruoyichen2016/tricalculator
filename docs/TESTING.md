@@ -225,7 +225,7 @@ python3 scripts/cohort_matrix.py --check   # CI 防漂移
 - baseline：`tests/fixtures/differential/deep_field_baseline.json`
 - 每个 comparable 字段必须是 `gated` 或 owned `known_gaps`；
 - 默认拒绝新增 known_gap，stale gap 会让 `--check` 失败；
-- 当前 7 case / 23 gated fields / 5 owned gaps，详见
+- 当前 7 case / 24 gated fields / 4 owned gaps，详见
   [`docs/DEEP_FIELDS.md`](DEEP_FIELDS.md)。
 
 ```bash

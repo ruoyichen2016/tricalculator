@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Sprint 3-L3b-3：Domain caster level（已完成）
+
+- active domain 的 `DOMAINGRANTS` caster level 文本进入
+  `CharacterSnapshot.caster_level_bonus`；
+- 修正 `3e_CleElf` Law domain +1 caster level；
+- deep-field 收敛到 24 gated fields / 4 owned gaps。
+
 ### Sprint 3-L3b-2：深度字段归一化修复（已完成）
 
 - `equipment_ac_bonus` 合并 armor+shield；`skill_total` 只看 Java 训练技能；

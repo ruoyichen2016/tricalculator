@@ -1,7 +1,7 @@
 # Deep-Field Aggregate Oracle
 
-> 状态：**L3b-1 + L3b-2 已完成**。残留差异为 owned `known_gaps`，
-> 由 L3b-3 继续修复。
+> 状态：**L3b-1 + L3b-2 + L3b-3 已完成**。残留差异为 owned
+> `known_gaps`，由 L3b-4 继续修复。
 
 ## 1. 目的
 
@@ -24,13 +24,13 @@ oracle 增加一层聚合字段门禁，暴露技能、法术、施法者等级�
 - `known_gaps`：带 `{field, owner, issue}` 的已确认差异，默认拒绝新增；
 - `visibility`：只冻结漂移，不做 Java 断言。
 
-## 2. 当前覆盖（L3b-2 后）
+## 2. 当前覆盖（L3b-3 后）
 
 配置：`tests/fixtures/differential/deep_field_cohort.json`
 
 - 7 个代表 case；
-- **23 个 Java-gated 字段**；
-- **5 条 owned known_gaps**。
+- **24 个 Java-gated 字段**；
+- **4 条 owned known_gaps**（全部为 `prepared_count`）。
 
 | case | gated 字段 |
 |---|---|
@@ -40,23 +40,23 @@ oracle 增加一层聚合字段门禁，暴露技能、法术、施法者等级�
 | `3e_FigFae` | equipment_ac_bonus / skill_total / prepared_count |
 | `35e_Bard` | equipment_ac_bonus / skill_total / prepared_count |
 | `3e_BarJack` | equipment_ac_bonus / skill_total |
-| `3e_CleElf` | equipment_ac_bonus / skill_total |
+| `3e_CleElf` | equipment_ac_bonus / skill_total / caster_level_max |
 
-L3b-2 修复的差异：
+L3b-2 / L3b-3 修复的差异：
 
 - 装备 AC：合并 armor+shield 后 `3e_CleElf` 两侧均为 7；
 - 技能总额：只看 Java 训练技能后 `3e_BarJack`（22/22）与
   `3e_CleElf`（12/12）一致；
 - 法术 DC：只比较共有 spell key 后 `3e_SWizSam` / `3e_WizShar` 一致；
-- 施法者等级：Java 为空（纯 SLA / 输出 sheet 未暴露）时不再强行比较。
+- 施法者等级：Java 为空时不再强行比较；Law domain `DOMAINGRANTS`
+  +1 caster level 进入 snapshot `caster_level_bonus`，修掉 `3e_CleElf`。
 
-## 3. Owned known_gaps（L3b-3）
+## 3. Owned known_gaps（L3b-4）
 
 | field | cases | 现象 | owner |
 |---|---|---|---|
-| `prepared_count` | `3e_BarJack` / `3e_SWizSam` / `3e_WizShar` / `3e_CleElf` | Rust 统计显式 `TIMES`；Java csheet 的 known / memorized 语义不同 | `L3b-3-prepared-semantics` |
-| `caster_level_max` | `3e_CleElf` | Law domain `DOMAINGRANTS` +1 caster level | `L3b-3-domain-caster-level` |
-| `melee/ranged/grapple` | 全部 7 case | Rust snapshot 未暴露攻击总额（当前 visibility） | `L3b-3-attack-totals` |
+| `prepared_count` | `3e_BarJack` / `3e_SWizSam` / `3e_WizShar` / `3e_CleElf` | Rust `BOOK:Known Spells` 计数与 Java innate / known / memorized 语义不一致 | `L3b-4-prepared-semantics` |
+| `melee/ranged/grapple` | 全部 7 case | Rust snapshot 未暴露攻击总额（当前 visibility） | `L3b-4-attack-totals` |
 
 > `--check` 会拒绝新增 gap，并让 stale gap（已修复但仍列为 gap）失败。
 
@@ -78,11 +78,11 @@ python3 scripts/deep_field_oracle.py --write-baseline --accept-known-gaps
   `deep_field_oracle --check`；
 - broad oracle 与 primary acceptance cohort 不受影响。
 
-## 6. L3b-3 计划
+## 6. L3b-4 计划
 
-1. 统一 known / memorized / prepared 语义，消掉 4 条 `prepared_count` gap；
-2. 建模 Law domain `DOMAINGRANTS` 的 +1 caster level，消掉
-   `3e_CleElf::caster_level_max`；
-3. 在 `CharacterSnapshot` 暴露 melee / ranged / grapple 总额，
+1. 区分 `known_spells` / `memorized_spells` / `spells_innate`，
+   修正 `.pcg` `BOOK:Known Spells` 的 prepared 语义，消掉 4 条
+   `prepared_count` gap；
+2. 在 `CharacterSnapshot` 暴露 melee / ranged / grapple 总额，
    把攻击字段从 visibility 提升为 gated；
-4. 每修一项，将对应 known_gap 提升为 gated，重跑 `check.sh`。
+3. 每修一项，将对应 known_gap 提升为 gated，重跑 `check.sh`。

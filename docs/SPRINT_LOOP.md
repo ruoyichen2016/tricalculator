@@ -25,8 +25,11 @@
       - [x] **L3b-2 深度字段归一化修复**：equipment_ac_bonus / skill_total /
         spell_dc_max / caster_level_max 完成归一化，deep-field 收敛到
         23 gated / 5 owned gaps。
-      - [ ] **L3b-3 残留修复**：prepared/known 语义、Law domain caster
-        level、Rust 攻击总额暴露；消除剩余 5 条 known_gap。
+      - [x] **L3b-3 Domain caster level**：新增
+        `CharacterSnapshot.caster_level_bonus`，修掉 `3e_CleElf`；deep-field
+        收敛到 24 gated / 4 owned gaps。
+      - [ ] **L3b-4 残留修复**：区分 known / memorized / innate 法术语义，
+        暴露 Rust melee/ranged/grapple 总额，消除剩余 4 条 known_gap。
 
 ## 循环规则
 
@@ -45,4 +48,5 @@
 - L3a：已完成（commit `5193835`）。
 - L3b-1：已完成（commit `d010547`）。
 - L3b-2：已完成（commit `d93bb15`）。
-- L3b-3：下一轮起点。
+- L3b-3：已完成，待本轮 commit。
+- L3b-4：下一轮起点。

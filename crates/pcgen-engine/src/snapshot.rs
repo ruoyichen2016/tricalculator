@@ -103,6 +103,10 @@ pub struct CharacterSnapshot {
     pub attack_bonuses: BTreeMap<String, i32>,
     #[serde(default)]
     pub caster_levels: BTreeMap<String, i32>,
+    /// Max caster level contribution from active domain grants such as
+    /// ``DOMAINGRANTS:You cast law spells at +1 caster level.``.
+    #[serde(default)]
+    pub caster_level_bonus: i32,
     #[serde(default)]
     pub spell_dcs: BTreeMap<String, i32>,
     #[serde(default)]

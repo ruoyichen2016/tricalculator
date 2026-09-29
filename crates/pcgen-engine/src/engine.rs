@@ -616,6 +616,7 @@ impl Engine {
             ),
         ]);
 
+        let caster_level_bonus = self.domain_caster_level_bonus(draft);
         let mut snapshot = CharacterSnapshot {
             draft_id: draft.id.clone(),
             name: draft.name.clone(),
@@ -646,6 +647,7 @@ impl Engine {
             skills,
             attack_bonuses,
             caster_levels,
+            caster_level_bonus,
             spell_dcs,
             spell_slots,
             known_limits,
@@ -1137,6 +1139,25 @@ impl Engine {
             0
         };
         Some(ability_mod + armor_penalty)
+    }
+
+    /// Max caster-level contribution from active domain grants.
+    ///
+    /// PCGen encodes this as free text in `DOMAINGRANTS`; this first step
+    /// only exposes the max contribution needed by the deep-field oracle.
+    fn domain_caster_level_bonus(&self, draft: &CharacterDraft) -> i32 {
+        for domain in &draft.domains {
+            if let Some(definition) = self.pack.domains.get(domain) {
+                if definition
+                    .granted_power
+                    .as_deref()
+                    .is_some_and(|grant| grant.to_ascii_lowercase().contains("caster level"))
+                {
+                    return 1;
+                }
+            }
+        }
+        0
     }
 
     fn skill(&self, name: &str) -> Option<&pcgen_core::SkillDefinition> {

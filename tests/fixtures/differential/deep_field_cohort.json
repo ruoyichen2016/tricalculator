@@ -117,14 +117,10 @@
       },
       "gated": [
         "equipment_ac_bonus",
-        "skill_total"
+        "skill_total",
+        "caster_level_max"
       ],
       "known_gaps": [
-        {
-          "field": "caster_level_max",
-          "owner": "L3b-2-deep-fields",
-          "issue": "caster level progression / SLA difference (rust=2, java=3)"
-        },
         {
           "field": "prepared_count",
           "owner": "L3b-2-deep-fields",
