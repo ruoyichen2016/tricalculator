@@ -5,3 +5,7 @@
 
 # native character saves (runtime)
 /characters/
+
+# release / pack outputs
+/dist/
+/data/packs/*/

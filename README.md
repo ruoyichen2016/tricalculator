@@ -26,6 +26,7 @@ PCGen-Rust 是围绕统一 Rule IR、`CharacterDraft` / `CharacterSnapshot`
 - [`docs/P7_PROFILE_SAVE_ENVELOPE_SPIKE.md`](docs/P7_PROFILE_SAVE_ENVELOPE_SPIKE.md)
 - [`docs/M9_PERSONAL_BUILDER.md`](docs/M9_PERSONAL_BUILDER.md)
 - [`docs/M9_LOOP.md`](docs/M9_LOOP.md)
+- [`docs/M9_PACKAGING.md`](docs/M9_PACKAGING.md)
 
 ## 工作区
 
@@ -94,6 +95,15 @@ bash scripts/check.sh
 
 CI 分为 `no-data`（push / PR）与 `full-data`（nightly / 手动，抓取固定 PCGen
 commit 并执行字段级差分）两个 job。细节见 [`docs/TESTING.md`](docs/TESTING.md)。
+
+## M9 打包发布
+
+```bash
+python3 scripts/package_release.py --packs rsrd35,srd30 --zip
+```
+
+产物：`dist/pcgen-rust-web/`，内含 `run-web.sh` / `run-web.bat`、
+`data/packs/rsrd35`、`data/packs/srd30` 与 `characters/`。
 
 ## M9 建卡命令（进行中）
 

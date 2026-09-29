@@ -1,5 +1,14 @@
 ## Unreleased
 
+### M9-4：数据包打包 + 启动器（已完成）
+
+- 新增 `scripts/package_datapack.py`：打包 `rsrd35` / `srd30` 玩家数据与
+  `pack.json`；
+- 新增 `scripts/package_release.py`：release binary + 数据包 + 启动器 + zip；
+- 新增 `run-web.sh` / `run-web.bat`，自动定位数据包、角色目录并打开浏览器；
+- 新增 `docs/M9_PACKAGING.md` 与 `data/packs/README.md`；
+- 朋友 beta 验收转入 M9-5。
+
 ### M9-3：Web 创建向导 + 角色卡打印（已完成）
 
 - 新增 `GET /api/pack-options`，返回 pack 内 race/class/skill/spell/equipment
