@@ -45,7 +45,9 @@
 - [x] M9-2 购点 + create / level-up（已完成）
 - [x] M9-3 Web 创建向导 + 角色卡打印（已完成）
 - [x] M9-4 数据包打包 + 启动器（已完成）
-- [ ] M9-5 朋友 beta 反馈与修复
+- [~] M9-5 朋友 beta 反馈与修复
+  - [x] M9-5a Beta checklist + package dry-run + diagnostics 按钮
+  - [ ] M9-5b 真实 beta 反馈修复
 
 ## P0：口径冻结（阶段 0，已完成）
 

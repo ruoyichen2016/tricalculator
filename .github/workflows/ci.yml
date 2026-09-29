@@ -56,6 +56,9 @@ jobs:
       - name: Web API smoke (no data)
         run: cargo test -p pcgen-web
 
+      - name: Package tooling dry-run
+        run: python3 scripts/test_package.py
+
       - name: No-data coverage gate (skips real-data gates explicitly)
         run: python3 scripts/coverage_gate.py --allow-skip
 

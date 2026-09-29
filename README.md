@@ -27,6 +27,7 @@ PCGen-Rust 是围绕统一 Rule IR、`CharacterDraft` / `CharacterSnapshot`
 - [`docs/M9_PERSONAL_BUILDER.md`](docs/M9_PERSONAL_BUILDER.md)
 - [`docs/M9_LOOP.md`](docs/M9_LOOP.md)
 - [`docs/M9_PACKAGING.md`](docs/M9_PACKAGING.md)
+- [`docs/M9_BETA_CHECKLIST.md`](docs/M9_BETA_CHECKLIST.md)
 
 ## 工作区
 

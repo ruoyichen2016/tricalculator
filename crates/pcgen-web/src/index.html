@@ -149,6 +149,7 @@
 <h2>Rendered HTML sheet</h2>
 <div class="row">
   <button type="button" id="printSheet">Print sheet</button>
+  <button type="button" id="copyDiagnostics">Copy diagnostics</button>
 </div>
 <iframe id="sheet" title="sheet"></iframe>
 
@@ -382,6 +383,13 @@ form.addEventListener('submit', async (event) => {
       return;
     }
     statusEl.textContent = 'OK';
+    lastDiagnosticsPayload = {
+      snapshot: data.snapshot,
+      choices: data.choices,
+      unresolved_choices: data.unresolved_choices,
+      ability_pool_usage: data.ability_pool_usage,
+      diagnostics: data.diagnostics,
+    };
     snapshotEl.textContent = JSON.stringify(data.snapshot, null, 2);
     choicesEl.textContent = JSON.stringify({
       choices: data.choices,
@@ -444,6 +452,7 @@ document.getElementById('openCharacter').onclick = async () => {
       return;
     }
     characterStatusEl.textContent = detail.error ? `loaded with warning: ${detail.error}` : 'Loaded';
+    lastDiagnosticsPayload = detail;
     characterPreviewEl.textContent = JSON.stringify(detail.snapshot || detail.envelope, null, 2);
     sheetEl.srcdoc = detail.html || '';
   } catch (error) {
@@ -507,6 +516,7 @@ const createAbilitiesEl = document.getElementById('createAbilities');
 const createSpellsEl = document.getElementById('createSpells');
 const createEquipmentEl = document.getElementById('createEquipment');
 const createStatusEl = document.getElementById('createStatus');
+let lastDiagnosticsPayload = null;
 
 const statKeys = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
 const pointBuyCost = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 6, 15: 8, 16: 10, 17: 13, 18: 16 };
@@ -669,6 +679,20 @@ document.getElementById('createCharacterBtn').onclick = async () => {
   } catch (error) {
     createStatusEl.className = 'error';
     createStatusEl.textContent = String(error);
+  }
+};
+
+document.getElementById('copyDiagnostics').onclick = async () => {
+  const text = lastDiagnosticsPayload
+    ? JSON.stringify(lastDiagnosticsPayload, null, 2)
+    : (characterPreviewEl.textContent || snapshotEl.textContent || '');
+  try {
+    await navigator.clipboard.writeText(text);
+    statusEl.className = '';
+    statusEl.textContent = 'Diagnostics copied';
+  } catch (error) {
+    statusEl.className = 'error';
+    statusEl.textContent = `copy failed: ${error}`;
   }
 };
 

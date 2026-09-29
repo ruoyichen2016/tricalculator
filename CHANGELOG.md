@@ -1,5 +1,12 @@
 ## Unreleased
 
+### M9-5a：Beta 自动化与反馈通道（已完成）
+
+- 新增 `docs/M9_BETA_CHECKLIST.md`：朋友必测场景与反馈模板；
+- 新增 `scripts/test_package.py`：数据包 / release 工具 dry-run smoke；
+- `scripts/check.sh` 与 no-data CI 接入 package dry-run；
+- Web 页面新增 Copy diagnostics 按钮，便于朋友反馈。
+
 ### M9-4：数据包打包 + 启动器（已完成）
 
 - 新增 `scripts/package_datapack.py`：打包 `rsrd35` / `srd30` 玩家数据与

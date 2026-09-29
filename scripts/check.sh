@@ -11,6 +11,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 cargo test -p pcgen-web --offline
 cargo build -q -p pcgen-cli
+python3 scripts/test_package.py
 pcgen_bin="$ROOT/target/debug/pcgen"
 [ -x "$pcgen_bin" ] || pcgen_bin="$ROOT/target/debug/pcgen.exe"
 export PCGEN_BIN="$pcgen_bin"
