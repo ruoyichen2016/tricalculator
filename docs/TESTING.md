@@ -198,6 +198,23 @@ python3 scripts/broad_oracle.py --check --json \
   --baseline tests/fixtures/differential/broad_baseline_extended.json
 ```
 
+### 6.5 Cohort matrix
+
+`docs/COHORT_MATRIX.md` 由 `scripts/cohort_matrix.py` 从固定测试套件生成，
+把 42 个 PCG / 32 个 XML / 18 个 HTM 全部归类：
+
+- `included-primary`：主验收 25 case；
+- `included-extended`：MSRD extended 2 case；
+- `out-of-scope`：`pf_*` / `sf_*`；
+- `companion` / `unit-test` / `legacy`：需要独立入口或保留审计。
+
+```bash
+python3 scripts/cohort_matrix.py --write   # 数据版本变化后重新生成
+python3 scripts/cohort_matrix.py --check   # CI 防漂移
+```
+
+`--check` 会失败于：矩阵过期、或出现未归类的 PCG fixture。
+
 ## 7. tag 直方图与工作清单
 
 `import-report` 现在输出 `coverage.unsupported_by_tag` / `legacy_by_tag`：

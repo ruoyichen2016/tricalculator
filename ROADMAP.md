@@ -274,6 +274,17 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
   `.pcg` 继续作为兼容导入/导出格式。
 - MSRD / PF1 profile 策略必须等产品确认后，以独立 cohort + 独立 gate 推进。
 
+### Sprint 3-L3a：COHORT_MATRIX 与未纳入裁决（已完成）
+
+- 新增 `scripts/cohort_matrix.py` 与 [`docs/COHORT_MATRIX.md`](docs/COHORT_MATRIX.md)；
+  42 PCG / 32 XML / 18 HTM 全部归类。
+- primary / extended / out-of-scope / companion / unit-test / legacy 均有明确
+  reason 与 next action。
+- `35e_Q-PsiCrystal` 判定为 companion（psicrystal），当前 HP/BAB 为 0，
+  需要独立 companion 入口后再评估。
+- `none_derth` 判定为 legacy（PCG v2.4.3，无 CAMPAIGN 映射），保留审计样本。
+- full-data CI 增加 `cohort_matrix.py --check`，防止 fixture 漂移。
+
 ### P6-1a HTM csheet 解析与 cohort 扩展（已完成）
 
 - 新增 `scripts/htm_csheet.py`：从 PCGen `.htm` csheet 抽取

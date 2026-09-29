@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Sprint 3-L3a：COHORT_MATRIX 与未纳入裁决（已完成）
+
+- 新增 `scripts/cohort_matrix.py` 与 `docs/COHORT_MATRIX.md`，42 PCG /
+  32 XML / 18 HTM 全部归类。
+- `35e_Q-PsiCrystal` 归为 companion，`none_derth` 归为 legacy；
+  `pf_*` / `sf_*` 明确 out-of-scope。
+- full-data CI 增加 cohort matrix `--check`。
+
 ### P7 设计 spike：SystemProfile + SaveEnvelope（已完成，未实现）
 
 - 新增 `docs/P7_PROFILE_SAVE_ENVELOPE_SPIKE.md`，抽取 Tri20 的

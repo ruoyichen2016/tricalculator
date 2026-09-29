@@ -15,9 +15,13 @@
       - 产出 `docs/P7_PROFILE_SAVE_ENVELOPE_SPIKE.md`。
       - 挂接现有 `CompiledPackHeader` / `rules_fingerprint` / `CharacterDraft`。
       - check.sh 全绿；无代码行为变化。
-- [ ] **L3 Sprint 3 覆盖深度**：建立 `docs/COHORT_MATRIX.md`，扩展
-      Java-gated 字段（技能总额 / 法术 DC / prepared / caster level /
-      攻击加值 / 装备 AC 分量），并修复暴露的 engine 分歧。
+- [~] **L3 Sprint 3 覆盖深度**
+      - [x] **L3a COHORT_MATRIX + 未纳入裁决**：42 PCG / 32 XML / 18 HTM
+        全部归类；companion / legacy / out-of-scope 均有裁决；
+        `scripts/cohort_matrix.py --check` 接入 full-data CI。
+      - [ ] **L3b 深度字段扩展**：技能总额 / 法术 DC / prepared /
+        caster level / 攻击加值 / 装备 AC 分量，至少 5 个代表 case
+        Java-gated；修复暴露的 engine 分歧。
 
 ## 循环规则
 
@@ -32,5 +36,6 @@
 
 - 最近更新：L1 门禁全绿（coverage gate 15/15，archive differential 通过）。
 - L1：已完成（commit 见 git log）。
-- L2：已完成，待本轮 commit。
-- L3：下一轮起点。
+- L2：已完成。
+- L3a：已完成，待本轮 commit。
+- L3b：下一轮起点。
