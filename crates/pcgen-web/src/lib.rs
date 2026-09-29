@@ -5,13 +5,16 @@
 //! evaluates a `.pcg` through the public engine API, exactly like the CLI.
 
 use axum::{
-    extract::{Path as AxumPath, State},
+    extract::{Path as AxumPath, Query, State},
     http::StatusCode,
     response::{Html, IntoResponse},
     routing::{get, post},
     Json, Router,
 };
-use pcgen_builder::{BuilderError, CharacterRepository, CharacterSummary, NativeSaveEnvelope};
+use pcgen_builder::{
+    create_draft, BuilderError, CharacterRepository, CharacterSummary, CreateRequest,
+    NativeSaveEnvelope,
+};
 use pcgen_engine::{CharacterDraft, DraftClassLevel, DraftSpell, Engine};
 use pcgen_import::{compile_pcc, parse_pcg_draft_file, PcgDraft};
 use pcgen_output::{render_html, render_json};
@@ -138,7 +141,39 @@ pub struct CreateCharacterRequest {
 pub struct CharacterDetail {
     pub envelope: NativeSaveEnvelope,
     pub snapshot: Option<serde_json::Value>,
+    pub html: Option<String>,
     pub error: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct NamedOption {
+    pub id: String,
+    pub name: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PackOptions {
+    pub races: Vec<NamedOption>,
+    pub classes: Vec<NamedOption>,
+    pub skills: Vec<NamedOption>,
+    pub ability_categories: Vec<NamedOption>,
+    pub spells: Vec<NamedOption>,
+    pub equipment: Vec<NamedOption>,
+    pub deities: Vec<NamedOption>,
+    pub domains: Vec<NamedOption>,
+    pub alignments: Vec<NamedOption>,
+    pub standard_point_buy_budget: u32,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PackOptionsQuery {
+    pub pcc: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateFromRequest {
+    pub pcc: String,
+    pub request: CreateRequest,
 }
 
 #[derive(Debug, Deserialize)]
@@ -175,7 +210,12 @@ pub fn app(config: WebConfig) -> Router {
         .route("/api/curated", get(curated))
         .route("/api/recalculate", post(recalculate))
         .route("/api/export", post(export))
+        .route("/api/pack-options", get(pack_options))
         .route("/api/characters", get(characters).post(create_character))
+        .route(
+            "/api/characters/create",
+            post(create_character_from_request),
+        )
         .route(
             "/api/characters/{id}",
             get(character).delete(delete_character),
@@ -214,26 +254,33 @@ async fn character(
 ) -> impl IntoResponse {
     match state.repository.load(&id) {
         Ok(envelope) => {
-            let (snapshot, error) = match envelope.pcc.as_deref() {
+            let (snapshot, html, error) = match envelope.pcc.as_deref() {
                 Some(pcc) => {
                     let pcc_path = resolve_path(&state.config.data_root, pcc);
                     match compile_pcc(&pcc_path) {
                         Ok((pack, _)) => {
-                            match render_json(&Engine::new(pack).evaluate(&envelope.character)) {
-                                Ok(text) => (serde_json::from_str(&text).ok(), None),
-                                Err(error) => (None, Some(error.to_string())),
-                            }
+                            let evaluated = Engine::new(pack).evaluate(&envelope.character);
+                            let snapshot = render_json(&evaluated)
+                                .ok()
+                                .and_then(|text| serde_json::from_str(&text).ok());
+                            let html = Some(render_html(&evaluated));
+                            (snapshot, html, None)
                         }
-                        Err(error) => (None, Some(error.to_string())),
+                        Err(error) => (None, None, Some(error.to_string())),
                     }
                 }
-                None => (None, Some("native character has no pcc path".to_string())),
+                None => (
+                    None,
+                    None,
+                    Some("native character has no pcc path".to_string()),
+                ),
             };
             (
                 StatusCode::OK,
                 Json(CharacterDetail {
                     envelope,
                     snapshot,
+                    html,
                     error,
                 }),
             )
@@ -293,19 +340,7 @@ async fn create_character(
         pack.header.data_ref.clone(),
     )
     .with_pcc(Some(pcc_relative));
-    let total_level = envelope
-        .character
-        .class_levels
-        .iter()
-        .map(|entry| entry.level)
-        .sum();
-    let summary = CharacterSummary {
-        id: envelope.character.id.clone(),
-        name: envelope.character.name.clone(),
-        race_id: envelope.character.race_id.clone(),
-        total_level,
-        rules_fingerprint: envelope.rules_fingerprint.clone(),
-    };
+    let summary = summary_for(&envelope);
     match state.repository.save(&envelope) {
         Ok(()) => (StatusCode::CREATED, Json(summary)).into_response(),
         Err(error) => api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
@@ -650,6 +685,124 @@ fn unresolved_hints(
             }
         })
         .collect()
+}
+
+fn named_options<T>(
+    values: impl Iterator<Item = T>,
+    id: impl Fn(&T) -> String,
+    name: impl Fn(&T) -> String,
+) -> Vec<NamedOption> {
+    let mut options: Vec<NamedOption> = values
+        .map(|value| NamedOption {
+            id: id(&value),
+            name: name(&value),
+        })
+        .collect();
+    options.sort_by(|left, right| left.name.cmp(&right.name));
+    options
+}
+
+fn summary_for(envelope: &NativeSaveEnvelope) -> CharacterSummary {
+    let total_level = envelope
+        .character
+        .class_levels
+        .iter()
+        .map(|entry| entry.level)
+        .sum();
+    CharacterSummary {
+        id: envelope.character.id.clone(),
+        name: envelope.character.name.clone(),
+        race_id: envelope.character.race_id.clone(),
+        total_level,
+        rules_fingerprint: envelope.rules_fingerprint.clone(),
+    }
+}
+
+async fn pack_options(
+    State(state): State<AppState>,
+    Query(query): Query<PackOptionsQuery>,
+) -> impl IntoResponse {
+    let pcc_path = resolve_path(&state.config.data_root, &query.pcc);
+    let (pack, _) = match compile_pcc(&pcc_path) {
+        Ok(value) => value,
+        Err(error) => return api_error(StatusCode::BAD_REQUEST, error.to_string()),
+    };
+    let options = PackOptions {
+        races: named_options(
+            pack.races.values(),
+            |item| item.id.clone(),
+            |item| item.name.clone(),
+        ),
+        classes: named_options(
+            pack.classes.values(),
+            |item| item.id.clone(),
+            |item| item.name.clone(),
+        ),
+        skills: named_options(
+            pack.skills.values(),
+            |item| item.id.clone(),
+            |item| item.name.clone(),
+        ),
+        ability_categories: named_options(
+            pack.ability_categories.values(),
+            |item| item.id.clone(),
+            |item| item.name.clone(),
+        ),
+        spells: named_options(
+            pack.spells.values(),
+            |item| item.id.clone(),
+            |item| item.name.clone(),
+        ),
+        equipment: named_options(
+            pack.equipment.values(),
+            |item| item.id.clone(),
+            |item| item.name.clone(),
+        ),
+        deities: named_options(
+            pack.deities.values(),
+            |item| item.id.clone(),
+            |item| item.name.clone(),
+        ),
+        domains: named_options(
+            pack.domains.values(),
+            |item| item.id.clone(),
+            |item| item.name.clone(),
+        ),
+        alignments: named_options(
+            pack.alignments.values(),
+            |item| item.id.clone(),
+            |item| item.name.clone(),
+        ),
+        standard_point_buy_budget: pcgen_builder::point_buy::STANDARD_BUDGET,
+    };
+    Json(options).into_response()
+}
+
+async fn create_character_from_request(
+    State(state): State<AppState>,
+    Json(body): Json<CreateFromRequest>,
+) -> impl IntoResponse {
+    let pcc_path = resolve_path(&state.config.data_root, &body.pcc);
+    let (pack, _) = match compile_pcc(&pcc_path) {
+        Ok(value) => value,
+        Err(error) => return api_error(StatusCode::BAD_REQUEST, error.to_string()),
+    };
+    let draft = match create_draft(&pack, &body.request) {
+        Ok(draft) => draft,
+        Err(error) => return api_error(StatusCode::BAD_REQUEST, error.to_string()),
+    };
+    let pcc_relative = relativize(&state.config.data_root, &pcc_path.to_string_lossy());
+    let envelope = NativeSaveEnvelope::new(
+        draft,
+        pack.header.rules_fingerprint.clone(),
+        pack.header.data_ref.clone(),
+    )
+    .with_pcc(Some(pcc_relative));
+    let summary = summary_for(&envelope);
+    match state.repository.save(&envelope) {
+        Ok(()) => (StatusCode::CREATED, Json(summary)).into_response(),
+        Err(error) => api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
+    }
 }
 
 fn resolve_path(root: &Path, value: &str) -> PathBuf {

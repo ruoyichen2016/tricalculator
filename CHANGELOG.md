@@ -1,5 +1,16 @@
 ## Unreleased
 
+### M9-3：Web 创建向导 + 角色卡打印（已完成）
+
+- 新增 `GET /api/pack-options`，返回 pack 内 race/class/skill/spell/equipment
+  等候选；
+- 新增 `POST /api/characters/create`，调用 `pcgen-builder::create_draft`
+  并保存原生角色；
+- `/api/characters/{id}` 增加 HTML sheet 输出；
+- Web 页面新增建卡向导：购点实时花费、标准数组、技能/能力/法术/装备输入、
+  创建后自动打开；
+- 新增 HTML sheet 打印按钮；web smoke 10→12。
+
 ### M9-2：购点 + CLI create / level-up（已完成）
 
 - `pcgen-builder` 新增 3.5e DMG 购点表、标准数组与预算校验；

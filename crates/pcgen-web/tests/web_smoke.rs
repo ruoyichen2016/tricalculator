@@ -298,3 +298,84 @@ async fn native_character_crud_round_trip() {
 
     let _ = std::fs::remove_dir_all(characters_root);
 }
+
+#[tokio::test]
+async fn pack_options_endpoint_lists_definitions() {
+    let response = app(mini_config())
+        .oneshot(
+            Request::builder()
+                .uri("/api/pack-options?pcc=campaign-mini/mini.pcc")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert!(!value["races"].as_array().unwrap().is_empty());
+    assert!(!value["classes"].as_array().unwrap().is_empty());
+    assert_eq!(value["standard_point_buy_budget"], 25);
+}
+
+#[tokio::test]
+async fn builder_create_endpoint_round_trip() {
+    let config = character_config("builder");
+    let characters_root = config.characters_root.clone();
+    let app = app(config);
+    let body = serde_json::json!({
+        "pcc": "campaign-mini/mini.pcc",
+        "request": {
+            "id": "",
+            "name": "Builder Hero",
+            "race": "Human",
+            "class": "Fighter",
+            "level": 1,
+            "alignment": "NG",
+            "campaign": "campaign-mini/mini.pcc",
+            "stats": {"STR": 12, "DEX": 12, "CON": 12, "INT": 10, "WIS": 10, "CHA": 8},
+            "point_buy_budget": 25,
+            "skills": {},
+            "abilities": [],
+            "spells": [],
+            "equipment": [],
+            "deity": null,
+            "domains": []
+        }
+    });
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/characters/create")
+                .header("content-type", "application/json")
+                .body(Body::from(body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/characters/builder-hero")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let detail: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(detail["envelope"]["character"]["id"], "builder-hero");
+    assert!(detail["html"].as_str().is_some());
+
+    let _ = std::fs::remove_dir_all(characters_root);
+}

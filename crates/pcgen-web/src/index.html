@@ -41,6 +41,44 @@
   <pre id="characterPreview"></pre>
 </div>
 
+<div class="card">
+  <h2>Create character</h2>
+  <div class="grid">
+    <div>
+      <label for="createName">Name</label>
+      <input id="createName" value="New Hero">
+      <label for="createRace">Race</label>
+      <select id="createRace"></select>
+      <label for="createClass">Class</label>
+      <select id="createClass"></select>
+      <label for="createLevel">Level</label>
+      <input id="createLevel" type="number" min="1" max="20" value="1">
+      <label for="createAlignment">Alignment</label>
+      <select id="createAlignment"></select>
+    </div>
+    <div>
+      <label for="createBudget">Point buy budget</label>
+      <input id="createBudget" type="number" min="1" value="25">
+      <p id="pointBuyStatus"></p>
+      <div class="grid" id="statInputs"></div>
+    </div>
+  </div>
+  <label for="createSkills">Skills (one per line: Climb=4)</label>
+  <textarea id="createSkills" rows="3"></textarea>
+  <label for="createAbilities">Abilities (one per line: FEAT=Power Attack)</label>
+  <textarea id="createAbilities" rows="3"></textarea>
+  <label for="createSpells">Spells (one per line: Magic Missile or Magic Missile=1)</label>
+  <textarea id="createSpells" rows="2"></textarea>
+  <label for="createEquipment">Equipment (one per line)</label>
+  <textarea id="createEquipment" rows="2"></textarea>
+  <div class="row">
+    <button type="button" id="loadPackOptions">Load pack options</button>
+    <button type="button" id="standardArray">Standard array</button>
+    <button type="button" id="createCharacterBtn">Create character</button>
+  </div>
+  <p id="createStatus"></p>
+</div>
+
 <form id="form">
   <label for="case">Curated case</label>
   <select id="case"><option value="">— custom —</option></select>
@@ -109,6 +147,9 @@
 </div>
 
 <h2>Rendered HTML sheet</h2>
+<div class="row">
+  <button type="button" id="printSheet">Print sheet</button>
+</div>
 <iframe id="sheet" title="sheet"></iframe>
 
 <script>
@@ -404,6 +445,7 @@ document.getElementById('openCharacter').onclick = async () => {
     }
     characterStatusEl.textContent = detail.error ? `loaded with warning: ${detail.error}` : 'Loaded';
     characterPreviewEl.textContent = JSON.stringify(detail.snapshot || detail.envelope, null, 2);
+    sheetEl.srcdoc = detail.html || '';
   } catch (error) {
     characterStatusEl.className = 'error';
     characterStatusEl.textContent = String(error);
@@ -452,9 +494,194 @@ document.getElementById('importCharacter').onclick = async () => {
   }
 };
 
+const createNameEl = document.getElementById('createName');
+const createRaceEl = document.getElementById('createRace');
+const createClassEl = document.getElementById('createClass');
+const createLevelEl = document.getElementById('createLevel');
+const createAlignmentEl = document.getElementById('createAlignment');
+const createBudgetEl = document.getElementById('createBudget');
+const statInputsEl = document.getElementById('statInputs');
+const pointBuyStatusEl = document.getElementById('pointBuyStatus');
+const createSkillsEl = document.getElementById('createSkills');
+const createAbilitiesEl = document.getElementById('createAbilities');
+const createSpellsEl = document.getElementById('createSpells');
+const createEquipmentEl = document.getElementById('createEquipment');
+const createStatusEl = document.getElementById('createStatus');
+
+const statKeys = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+const pointBuyCost = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 6, 15: 8, 16: 10, 17: 13, 18: 16 };
+
+function buildStatInputs() {
+  statInputsEl.innerHTML = '';
+  for (const key of statKeys) {
+    const label = document.createElement('label');
+    label.textContent = key;
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = '8';
+    input.max = '18';
+    input.value = '10';
+    input.id = `stat-${key}`;
+    input.addEventListener('input', updatePointBuy);
+    label.appendChild(input);
+    statInputsEl.appendChild(label);
+  }
+}
+
+function readStats() {
+  const stats = {};
+  for (const key of statKeys) {
+    const input = document.getElementById(`stat-${key}`);
+    const value = Number(input.value);
+    if (!Number.isInteger(value)) return null;
+    stats[key] = value;
+  }
+  return stats;
+}
+
+function updatePointBuy() {
+  const stats = readStats();
+  if (!stats) {
+    pointBuyStatusEl.className = 'error';
+    pointBuyStatusEl.textContent = 'Stats must be integers';
+    return;
+  }
+  let spent = 0;
+  for (const key of statKeys) {
+    const cost = pointBuyCost[stats[key]];
+    if (cost === undefined) {
+      pointBuyStatusEl.className = 'error';
+      pointBuyStatusEl.textContent = `${key}=${stats[key]} outside 8..18`;
+      return;
+    }
+    spent += cost;
+  }
+  const budget = Number(createBudgetEl.value) || 0;
+  pointBuyStatusEl.className = spent > budget ? 'error' : '';
+  pointBuyStatusEl.textContent = `Point buy: ${spent} / ${budget}`;
+}
+
+function fillSelect(element, options) {
+  element.innerHTML = '';
+  for (const option of options || []) {
+    const item = document.createElement('option');
+    item.value = option.id;
+    item.textContent = option.name;
+    element.appendChild(item);
+  }
+}
+
+async function loadPackOptions() {
+  createStatusEl.className = '';
+  createStatusEl.textContent = 'Loading pack options…';
+  try {
+    const response = await fetch(`/api/pack-options?pcc=${encodeURIComponent(pccEl.value)}`);
+    const data = await response.json();
+    if (!response.ok) {
+      createStatusEl.className = 'error';
+      createStatusEl.textContent = data.error || 'failed to load pack options';
+      return;
+    }
+    fillSelect(createRaceEl, data.races);
+    fillSelect(createClassEl, data.classes);
+    fillSelect(createAlignmentEl, data.alignments);
+    createStatusEl.textContent = `Options loaded: ${data.races.length} races, ${data.classes.length} classes`;
+  } catch (error) {
+    createStatusEl.className = 'error';
+    createStatusEl.textContent = String(error);
+  }
+}
+
+document.getElementById('loadPackOptions').onclick = loadPackOptions;
+
+document.getElementById('standardArray').onclick = () => {
+  const array = [15, 14, 13, 12, 10, 8];
+  statKeys.forEach((key, index) => {
+    document.getElementById(`stat-${key}`).value = array[index];
+  });
+  updatePointBuy();
+};
+
+function parseLineMap(text, valueParser) {
+  const out = {};
+  for (const raw of text.split('\n')) {
+    const line = raw.trim();
+    if (!line) continue;
+    const [key, value] = line.split('=').map((part) => part.trim());
+    if (!key) continue;
+    out[key] = value === undefined ? valueParser(undefined) : valueParser(value);
+  }
+  return out;
+}
+
+document.getElementById('createCharacterBtn').onclick = async () => {
+  const stats = readStats();
+  if (!stats) {
+    createStatusEl.className = 'error';
+    createStatusEl.textContent = 'Stats must be integers';
+    return;
+  }
+  const skills = parseLineMap(createSkillsEl.value, (value) => Number(value || '1'));
+  const equipment = createEquipmentEl.value.split('\n').map((line) => line.trim()).filter(Boolean);
+  const abilities = createAbilitiesEl.value.split('\n').map((line) => line.trim()).filter(Boolean);
+  const spells = createSpellsEl.value.split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
+    const [name, level] = line.split('=').map((part) => part.trim());
+    return { name, level: Number(level || '0'), times_memorized: 1 };
+  });
+  const request = {
+    pcc: pccEl.value,
+    request: {
+      id: '',
+      name: createNameEl.value,
+      race: createRaceEl.value,
+      class: createClassEl.value,
+      level: Number(createLevelEl.value),
+      alignment: createAlignmentEl.value,
+      campaign: pccEl.value,
+      stats,
+      point_buy_budget: Number(createBudgetEl.value),
+      skills,
+      abilities: abilities.map((line) => line.split('=').map((part) => part.trim())),
+      spells,
+      equipment,
+      deity: null,
+      domains: [],
+    },
+  };
+  createStatusEl.className = '';
+  createStatusEl.textContent = 'Creating…';
+  try {
+    const response = await fetch('/api/characters/create', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      createStatusEl.className = 'error';
+      createStatusEl.textContent = data.error || 'failed to create character';
+      return;
+    }
+    createStatusEl.textContent = `Created ${data.name} (${data.id})`;
+    await loadCharacters();
+    characterListEl.value = data.id;
+    document.getElementById('openCharacter').click();
+  } catch (error) {
+    createStatusEl.className = 'error';
+    createStatusEl.textContent = String(error);
+  }
+};
+
+document.getElementById('printSheet').onclick = () => {
+  if (sheetEl.contentWindow) sheetEl.contentWindow.print();
+};
+
+buildStatInputs();
+updatePointBuy();
 renderTables();
 loadCurated();
 loadCharacters();
+loadPackOptions();
 </script>
 </body>
 </html>

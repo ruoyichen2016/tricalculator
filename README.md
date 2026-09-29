@@ -76,8 +76,10 @@ POST /api/recalculate  # { "pcc", "pcg", "overrides": { choices, abilities,
 POST /api/export       # 同上入参，返回可回写 .pcg 文本 + unresolved + pool usage
 GET  /api/characters          # 原生角色列表
 POST /api/characters          # 从 pcc + pcg 保存为原生角色
-GET  /api/characters/{id}     # 读取原生角色 + snapshot
+POST /api/characters/create   # 按 CreateRequest 建卡并保存
+GET  /api/characters/{id}     # 读取原生角色 + snapshot + HTML sheet
 DELETE /api/characters/{id}   # 删除原生角色
+GET  /api/pack-options?pcc=…  # 种族 / 职业 / 技能 / 法术 / 装备候选
 ```
 
 页面功能：curated PCG 下拉列表、choice 覆盖、ability pool 编辑、
