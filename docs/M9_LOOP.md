@@ -17,11 +17,11 @@
   - [x] 3.5e 购点表 + 3.0 兼容（共用表，预算可配）
   - [x] builder create / level-up workflow + validation
   - [x] CLI create / level-up（commit `b3fcd5d`）
-- [x] **M9-3 Web 创建向导 + 角色卡打印**
+- [x] **M9-3 Web 创建向导 + 角色卡打印**（commit `f679d44`）
 - [ ] **M9-4 数据包打包 + 启动器 + 朋友 beta**
 
 ## 当前状态
 
-- 最近更新：M9-3 完成，Web 建卡向导与 HTML sheet 打印可用；
-  下一轮 M9-4 数据包打包 + 启动器 + 朋友 beta。
+- 最近更新：M9-3 完成（commit `f679d44`），Web 建卡向导与 HTML
+  sheet 打印可用；下一轮 M9-4 数据包打包 + 启动器 + 朋友 beta。
 - 已知风险：数据包许可、购点表版本、Web 首次编译性能。
