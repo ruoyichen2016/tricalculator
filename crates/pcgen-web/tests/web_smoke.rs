@@ -5,12 +5,31 @@ use axum::http::{Request, StatusCode};
 use pcgen_web::{app, WebConfig};
 use tower::ServiceExt;
 
+fn fixtures_root() -> std::path::PathBuf {
+    std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .join("tests/fixtures")
+}
+
+fn temp_characters_root(label: &str) -> std::path::PathBuf {
+    let path = std::env::temp_dir().join(format!("pcgen-web-smoke-{label}-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&path);
+    path
+}
+
 fn mini_config() -> WebConfig {
     WebConfig {
-        data_root: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../..")
-            .join("tests/fixtures"),
+        data_root: fixtures_root(),
         cohort_root: std::path::PathBuf::from("."),
+        characters_root: temp_characters_root("mini"),
+    }
+}
+
+fn character_config(label: &str) -> WebConfig {
+    WebConfig {
+        data_root: fixtures_root(),
+        cohort_root: std::path::PathBuf::from("."),
+        characters_root: temp_characters_root(label),
     }
 }
 
@@ -62,6 +81,7 @@ async fn curated_endpoint_lists_cases() {
     let response = app(WebConfig {
         data_root,
         cohort_root: std::path::PathBuf::from("."),
+        characters_root: temp_characters_root("curated"),
     })
     .oneshot(
         Request::builder()
@@ -155,6 +175,7 @@ async fn curated_response_includes_ability_candidates() {
     let response = app(WebConfig {
         data_root,
         cohort_root: std::path::PathBuf::from("."),
+        characters_root: temp_characters_root("curated"),
     })
     .oneshot(
         Request::builder()
@@ -188,4 +209,92 @@ async fn recalculate_reports_unresolved_hints() {
         .unwrap();
     let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert!(value["unresolved_hints"].is_array());
+}
+
+#[tokio::test]
+async fn native_character_crud_round_trip() {
+    let config = character_config("crud");
+    let characters_root = config.characters_root.clone();
+    let app = app(config);
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/characters")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    r#"{"pcc":"campaign-mini/mini.pcc","pcg":"campaign-mini/mini_character.pcg","id":"mini-hero","name":"Mini Hero"}"#,
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/characters")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let list: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(list.as_array().unwrap().len(), 1);
+    assert_eq!(list[0]["id"], "mini-hero");
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/characters/mini-hero")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let detail: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(detail["envelope"]["character"]["id"], "mini-hero");
+    assert!(detail["snapshot"].is_object());
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri("/api/characters/mini-hero")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::NO_CONTENT);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/characters")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let list: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(list.as_array().unwrap().len(), 0);
+
+    let _ = std::fs::remove_dir_all(characters_root);
 }

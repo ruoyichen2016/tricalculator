@@ -5,12 +5,13 @@
 //! evaluates a `.pcg` through the public engine API, exactly like the CLI.
 
 use axum::{
-    extract::State,
+    extract::{Path as AxumPath, State},
     http::StatusCode,
     response::{Html, IntoResponse},
     routing::{get, post},
     Json, Router,
 };
+use pcgen_builder::{BuilderError, CharacterRepository, CharacterSummary, NativeSaveEnvelope};
 use pcgen_engine::{CharacterDraft, DraftClassLevel, DraftSpell, Engine};
 use pcgen_import::{compile_pcc, parse_pcg_draft_file, PcgDraft};
 use pcgen_output::{render_html, render_json};
@@ -27,6 +28,8 @@ pub struct WebConfig {
     /// Defaults to the workspace root so the curated list works while
     /// `data_root` points at the read-only PCGen snapshot.
     pub cohort_root: PathBuf,
+    /// Directory holding native character saves.
+    pub characters_root: PathBuf,
 }
 
 impl Default for WebConfig {
@@ -34,6 +37,7 @@ impl Default for WebConfig {
         Self {
             data_root: PathBuf::from("."),
             cohort_root: PathBuf::from("."),
+            characters_root: PathBuf::from("characters"),
         }
     }
 }
@@ -41,6 +45,7 @@ impl Default for WebConfig {
 #[derive(Clone)]
 struct AppState {
     config: Arc<WebConfig>,
+    repository: CharacterRepository,
 }
 
 #[derive(Debug, Deserialize)]
@@ -120,6 +125,23 @@ pub struct ApiError {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct CreateCharacterRequest {
+    pub pcc: String,
+    pub pcg: String,
+    #[serde(default)]
+    pub id: Option<String>,
+    #[serde(default)]
+    pub name: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CharacterDetail {
+    pub envelope: NativeSaveEnvelope,
+    pub snapshot: Option<serde_json::Value>,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct ExportRequest {
     pub pcc: String,
     pub pcg: String,
@@ -142,8 +164,10 @@ pub struct ExportResponse {
 
 /// Build the axum router for the Web API.
 pub fn app(config: WebConfig) -> Router {
+    let repository = CharacterRepository::new(config.characters_root.clone());
     let state = AppState {
         config: Arc::new(config),
+        repository,
     };
     Router::new()
         .route("/", get(index))
@@ -151,6 +175,11 @@ pub fn app(config: WebConfig) -> Router {
         .route("/api/curated", get(curated))
         .route("/api/recalculate", post(recalculate))
         .route("/api/export", post(export))
+        .route("/api/characters", get(characters).post(create_character))
+        .route(
+            "/api/characters/{id}",
+            get(character).delete(delete_character),
+        )
         .with_state(state)
 }
 
@@ -160,6 +189,127 @@ async fn index() -> Html<&'static str> {
 
 async fn health() -> Json<serde_json::Value> {
     Json(serde_json::json!({"status": "ok"}))
+}
+
+fn api_error(status: StatusCode, message: impl Into<String>) -> axum::response::Response {
+    (
+        status,
+        Json(ApiError {
+            error: message.into(),
+        }),
+    )
+        .into_response()
+}
+
+async fn characters(State(state): State<AppState>) -> impl IntoResponse {
+    match state.repository.list() {
+        Ok(list) => (StatusCode::OK, Json(list)).into_response(),
+        Err(error) => api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
+    }
+}
+
+async fn character(
+    State(state): State<AppState>,
+    AxumPath(id): AxumPath<String>,
+) -> impl IntoResponse {
+    match state.repository.load(&id) {
+        Ok(envelope) => {
+            let (snapshot, error) = match envelope.pcc.as_deref() {
+                Some(pcc) => {
+                    let pcc_path = resolve_path(&state.config.data_root, pcc);
+                    match compile_pcc(&pcc_path) {
+                        Ok((pack, _)) => {
+                            match render_json(&Engine::new(pack).evaluate(&envelope.character)) {
+                                Ok(text) => (serde_json::from_str(&text).ok(), None),
+                                Err(error) => (None, Some(error.to_string())),
+                            }
+                        }
+                        Err(error) => (None, Some(error.to_string())),
+                    }
+                }
+                None => (None, Some("native character has no pcc path".to_string())),
+            };
+            (
+                StatusCode::OK,
+                Json(CharacterDetail {
+                    envelope,
+                    snapshot,
+                    error,
+                }),
+            )
+                .into_response()
+        }
+        Err(BuilderError::NotFound(_)) => {
+            api_error(StatusCode::NOT_FOUND, format!("character not found: {id}"))
+        }
+        Err(error) => api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
+    }
+}
+
+async fn delete_character(
+    State(state): State<AppState>,
+    AxumPath(id): AxumPath<String>,
+) -> impl IntoResponse {
+    match state.repository.delete(&id) {
+        Ok(()) => StatusCode::NO_CONTENT.into_response(),
+        Err(BuilderError::NotFound(_)) => {
+            api_error(StatusCode::NOT_FOUND, format!("character not found: {id}"))
+        }
+        Err(error) => api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
+    }
+}
+
+async fn create_character(
+    State(state): State<AppState>,
+    Json(request): Json<CreateCharacterRequest>,
+) -> impl IntoResponse {
+    let pcc_path = resolve_path(&state.config.data_root, &request.pcc);
+    let pcg_path = resolve_path(&state.config.data_root, &request.pcg);
+    let (pack, _) = match compile_pcc(&pcc_path) {
+        Ok(value) => value,
+        Err(error) => return api_error(StatusCode::BAD_REQUEST, error.to_string()),
+    };
+    let mut draft = match parse_pcg_draft_file(&pcg_path) {
+        Ok(pcg) => draft_from_pcg(pcg),
+        Err(error) => return api_error(StatusCode::BAD_REQUEST, error.to_string()),
+    };
+    if let Some(id) = request.id {
+        draft.id = id;
+    }
+    if draft.id.trim().is_empty() {
+        draft.id = pcg_path
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .unwrap_or("character")
+            .to_string();
+    }
+    if let Some(name) = request.name {
+        draft.name = name;
+    }
+    let pcc_relative = relativize(&state.config.data_root, &pcc_path.to_string_lossy());
+    let envelope = NativeSaveEnvelope::new(
+        draft,
+        pack.header.rules_fingerprint.clone(),
+        pack.header.data_ref.clone(),
+    )
+    .with_pcc(Some(pcc_relative));
+    let total_level = envelope
+        .character
+        .class_levels
+        .iter()
+        .map(|entry| entry.level)
+        .sum();
+    let summary = CharacterSummary {
+        id: envelope.character.id.clone(),
+        name: envelope.character.name.clone(),
+        race_id: envelope.character.race_id.clone(),
+        total_level,
+        rules_fingerprint: envelope.rules_fingerprint.clone(),
+    };
+    match state.repository.save(&envelope) {
+        Ok(()) => (StatusCode::CREATED, Json(summary)).into_response(),
+        Err(error) => api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
+    }
 }
 
 /// Curated catalogue assembled from the checked-in cohort or built-in defaults.

@@ -2,3 +2,6 @@
 /.cargo-home
 **/__pycache__/
 *.pyc
+
+# native character saves (runtime)
+/characters/

@@ -14,6 +14,7 @@ serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
 pcgen-core = { path = "../pcgen-core" }
+pcgen-builder = { path = "../pcgen-builder" }
 pcgen-engine = { path = "../pcgen-engine" }
 pcgen-import = { path = "../pcgen-import" }
 pcgen-output = { path = "../pcgen-output" }

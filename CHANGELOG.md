@@ -1,5 +1,17 @@
 ## Unreleased
 
+### M9-1b：Web 角色管理（已完成）
+
+- `pcgen-web` 依赖 `pcgen-builder`，`WebConfig` 新增 `characters_root`
+  （`--characters-root`，默认 `./characters`）。
+- 新增 API：
+  - `GET /api/characters`
+  - `POST /api/characters`（从当前 `.pcc` + `.pcg` 保存原生角色）
+  - `GET /api/characters/{id}`
+  - `DELETE /api/characters/{id}`
+- 页面新增原生角色列表、打开、删除、导入当前 `.pcg`。
+- `NativeSaveEnvelope` 新增 `pcc` provenance；web smoke 9→10。
+
 ### M9-0 / M9-1a：个人建卡器范围与角色仓库（进行中）
 
 - 冻结 M9 范围：购点、3.0+3.5e、打包数据、Web 优先、无随机 KIT。

@@ -23,6 +23,10 @@ pub struct NativeSaveEnvelope {
     pub rules_fingerprint: String,
     #[serde(default)]
     pub data_ref: Option<String>,
+    /// Campaign `.pcc` path relative to the active data root, when the
+    /// character was imported from a `.pcg`.
+    #[serde(default)]
+    pub pcc: Option<String>,
     pub character: CharacterDraft,
 }
 
@@ -37,8 +41,14 @@ impl NativeSaveEnvelope {
             application_version: APPLICATION_VERSION.to_string(),
             rules_fingerprint: rules_fingerprint.into(),
             data_ref,
+            pcc: None,
             character,
         }
+    }
+
+    pub fn with_pcc(mut self, pcc: Option<String>) -> Self {
+        self.pcc = pcc;
+        self
     }
 }
 

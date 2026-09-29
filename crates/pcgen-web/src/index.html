@@ -25,7 +25,21 @@
 </head>
 <body>
 <h1>PCGen-Rust Web</h1>
-<p>Local API: <code>POST /api/recalculate</code>, <code>GET /api/curated</code>.</p>
+<p>Local API: <code>POST /api/recalculate</code>, <code>GET /api/curated</code>,
+<code>/api/characters</code>.</p>
+
+<div class="card">
+  <div class="row">
+    <label for="characterList">Native characters</label>
+    <select id="characterList"><option value="">— none —</option></select>
+    <button type="button" id="refreshCharacters">Refresh</button>
+    <button type="button" id="openCharacter">Open</button>
+    <button type="button" id="deleteCharacter">Delete</button>
+    <button type="button" id="importCharacter">Import current .pcg</button>
+  </div>
+  <p id="characterStatus"></p>
+  <pre id="characterPreview"></pre>
+</div>
 
 <form id="form">
   <label for="case">Curated case</label>
@@ -343,8 +357,104 @@ form.addEventListener('submit', async (event) => {
   }
 });
 
+const characterListEl = document.getElementById('characterList');
+const characterStatusEl = document.getElementById('characterStatus');
+const characterPreviewEl = document.getElementById('characterPreview');
+
+async function loadCharacters() {
+  characterStatusEl.className = '';
+  characterStatusEl.textContent = 'Loading characters…';
+  try {
+    const response = await fetch('/api/characters');
+    const list = await response.json();
+    if (!response.ok) {
+      characterStatusEl.className = 'error';
+      characterStatusEl.textContent = list.error || 'failed to list characters';
+      return;
+    }
+    characterListEl.innerHTML = '<option value="">— none —</option>';
+    for (const item of list) {
+      const option = document.createElement('option');
+      option.value = item.id;
+      option.textContent = `${item.name} (L${item.total_level} ${item.race_id})`;
+      characterListEl.appendChild(option);
+    }
+    characterStatusEl.textContent = `${list.length} native character(s)`;
+  } catch (error) {
+    characterStatusEl.className = 'error';
+    characterStatusEl.textContent = String(error);
+  }
+}
+
+document.getElementById('refreshCharacters').onclick = loadCharacters;
+
+document.getElementById('openCharacter').onclick = async () => {
+  const id = characterListEl.value;
+  if (!id) return;
+  characterStatusEl.className = '';
+  characterStatusEl.textContent = 'Opening…';
+  characterPreviewEl.textContent = '';
+  try {
+    const response = await fetch(`/api/characters/${encodeURIComponent(id)}`);
+    const detail = await response.json();
+    if (!response.ok) {
+      characterStatusEl.className = 'error';
+      characterStatusEl.textContent = detail.error || 'failed to open character';
+      return;
+    }
+    characterStatusEl.textContent = detail.error ? `loaded with warning: ${detail.error}` : 'Loaded';
+    characterPreviewEl.textContent = JSON.stringify(detail.snapshot || detail.envelope, null, 2);
+  } catch (error) {
+    characterStatusEl.className = 'error';
+    characterStatusEl.textContent = String(error);
+  }
+};
+
+document.getElementById('deleteCharacter').onclick = async () => {
+  const id = characterListEl.value;
+  if (!id || !window.confirm(`Delete ${id}?`)) return;
+  try {
+    const response = await fetch(`/api/characters/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (!response.ok && response.status !== 204) {
+      const data = await response.json();
+      characterStatusEl.className = 'error';
+      characterStatusEl.textContent = data.error || 'failed to delete character';
+      return;
+    }
+    characterPreviewEl.textContent = '';
+    await loadCharacters();
+  } catch (error) {
+    characterStatusEl.className = 'error';
+    characterStatusEl.textContent = String(error);
+  }
+};
+
+document.getElementById('importCharacter').onclick = async () => {
+  characterStatusEl.className = '';
+  characterStatusEl.textContent = 'Importing…';
+  try {
+    const response = await fetch('/api/characters', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ pcc: pccEl.value, pcg: pcgEl.value }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      characterStatusEl.className = 'error';
+      characterStatusEl.textContent = data.error || 'failed to import character';
+      return;
+    }
+    characterStatusEl.textContent = `Imported ${data.name} (${data.id})`;
+    await loadCharacters();
+  } catch (error) {
+    characterStatusEl.className = 'error';
+    characterStatusEl.textContent = String(error);
+  }
+};
+
 renderTables();
 loadCurated();
+loadCharacters();
 </script>
 </body>
 </html>

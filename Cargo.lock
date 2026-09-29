@@ -491,6 +491,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
+ "pcgen-builder",
  "pcgen-core",
  "pcgen-engine",
  "pcgen-import",

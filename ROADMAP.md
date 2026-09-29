@@ -38,10 +38,10 @@
 > [`docs/M9_PERSONAL_BUILDER.md`](docs/M9_PERSONAL_BUILDER.md)。
 
 - [x] M9-0 范围冻结：购点 / 3.0+3.5e / 打包数据 / Web 优先 / 无随机 KIT。
-- [~] M9-1 原生存档 + 角色仓库 + Web 角色管理
+- [x] M9-1 原生存档 + 角色仓库 + Web 角色管理
   - [x] `pcgen-builder` crate：`NativeSaveEnvelope` + `CharacterRepository`
-  - [ ] Web `/api/characters` 列表 / 新建 / 打开 / 删除
-  - [ ] Web 角色列表页面
+  - [x] Web `/api/characters` 列表 / 新建 / 打开 / 删除
+  - [x] Web 角色列表与管理页面
 - [ ] M9-2 购点 + create / level-up
 - [ ] M9-3 Web 创建向导 + 角色卡打印
 - [ ] M9-4 数据包打包 + 启动器 + 朋友 beta

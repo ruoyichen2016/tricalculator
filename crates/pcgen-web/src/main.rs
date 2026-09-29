@@ -9,6 +9,7 @@ fn config_from_args() -> WebConfig {
     let mut args = std::env::args().skip(1);
     let mut data_root = PathBuf::from(".");
     let mut cohort_root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let mut characters_root = PathBuf::from("characters");
     while let Some(arg) = args.next() {
         if arg == "--data-root" {
             if let Some(value) = args.next() {
@@ -18,11 +19,16 @@ fn config_from_args() -> WebConfig {
             if let Some(value) = args.next() {
                 cohort_root = PathBuf::from(value);
             }
+        } else if arg == "--characters-root" {
+            if let Some(value) = args.next() {
+                characters_root = PathBuf::from(value);
+            }
         }
     }
     WebConfig {
         data_root,
         cohort_root,
+        characters_root,
     }
 }
 
