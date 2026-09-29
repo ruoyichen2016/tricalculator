@@ -1,68 +1,71 @@
 # Deep-Field Aggregate Oracle
 
-> 状态：**L3b-1 已完成**。深度字段以独立 config + baseline + owned
-> `known_gaps` 的形式进入 full-data 门禁；不扰动 broad oracle 的 10 字段口径。
+> 状态：**L3b-1 + L3b-2 已完成**。残留差异为 owned `known_gaps`，
+> 由 L3b-3 继续修复。
 
 ## 1. 目的
 
-broad oracle 只覆盖 HP / BAB / AC / saves 等 10 个扁平字段。L3b 增加一层
-“深度字段”门禁，用来暴露技能、法术、施法者等级与装备 AC 分量的差异：
+broad oracle 只覆盖 HP / BAB / AC / saves 等 10 个扁平字段。deep-field
+oracle 增加一层聚合字段门禁，暴露技能、法术、施法者等级与装备 AC 分量：
 
-- `armor_bonus` / `shield_bonus`：装备 AC 分量；
-- `skill_total`：Rust 与 Java 共同拥有 key 的技能修正总和（避免 Java 未训练
-  技能与 Rust 条目数量不同造成的假差异）；
-- `spell_dc_max`：Java csheet 实际暴露的法术 DC 最大值；
-- `caster_level_max`：施法者等级最大值；
-- `prepared_count`：已准备/已记忆法术计数总和；
+- `equipment_ac_bonus`：armor + shield 合计（PCGen XML 有时把 shield
+  折进 armor_bonus，分开比较会产生假差异）；
+- `skill_total`：只统计 Java 侧 `ranks > 0` 的训练技能（避免 Java 全技能
+  列表与 Rust `.pcg` 条目数量不同造成的假差异）；
+- `spell_dc_max`：只比较 Rust / Java 双方共有法术 key 的 DC 最大值；
+- `caster_level_max`：只在双方都有施法者等级时比较；
+- `prepared_count`：Rust 显式 `TIMES` 计数 vs Java csheet 计数；
 - `melee_attack` / `ranged_attack` / `grapple_attack`：**visibility only**；
-  Java 已从 `<attack>` 抽取，Rust snapshot 尚未暴露对应字段。
+  Java 已从 `<attack>` 抽取，Rust snapshot 尚未暴露对应总额。
 
-每个字段必须属于以下之一：
+每个 comparable 字段必须属于：
 
-- `gated`：必须与 Java 值一致，是真正的 Java-gated 字段；
+- `gated`：必须与 Java 一致；
 - `known_gaps`：带 `{field, owner, issue}` 的已确认差异，默认拒绝新增；
-- `visibility`：只冻结漂移，不做 Java 断言（当前仅攻击总额）。
+- `visibility`：只冻结漂移，不做 Java 断言。
 
-## 2. 当前覆盖
+## 2. 当前覆盖（L3b-2 后）
 
 配置：`tests/fixtures/differential/deep_field_cohort.json`
 
 - 7 个代表 case；
-- **24 个 gated 字段**，分布在 6 个 case：
-  `3e_BarJack` / `3e_SWizSam` / `3e_WizShar` / `3e_BrdJoe` /
-  `3e_FigFae` / `35e_Bard`；
-- **14 条 owned known_gaps**，全部指向 `L3b-2-deep-fields`。
+- **23 个 Java-gated 字段**；
+- **5 条 owned known_gaps**。
 
-代表性 gated 结果：
-
-| case | 主要 gated 字段 |
+| case | gated 字段 |
 |---|---|
-| `3e_BrdJoe` | armor / shield / skill_total / spell_dc_max / caster_level_max / prepared_count |
-| `3e_FigFae` | armor / shield / skill_total / prepared_count |
-| `35e_Bard` | armor / shield / skill_total / prepared_count |
-| `3e_SWizSam` / `3e_WizShar` | armor / shield / skill_total / caster_level_max |
-| `3e_BarJack` | armor / shield |
+| `3e_BrdJoe` | equipment_ac_bonus / skill_total / spell_dc_max / caster_level_max / prepared_count |
+| `3e_SWizSam` | equipment_ac_bonus / skill_total / spell_dc_max / caster_level_max |
+| `3e_WizShar` | equipment_ac_bonus / skill_total / spell_dc_max / caster_level_max |
+| `3e_FigFae` | equipment_ac_bonus / skill_total / prepared_count |
+| `35e_Bard` | equipment_ac_bonus / skill_total / prepared_count |
+| `3e_BarJack` | equipment_ac_bonus / skill_total |
+| `3e_CleElf` | equipment_ac_bonus / skill_total |
 
-## 3. Owned known_gaps（L3b-2 待修）
+L3b-2 修复的差异：
 
-| field | cases | 典型差异 | owner |
+- 装备 AC：合并 armor+shield 后 `3e_CleElf` 两侧均为 7；
+- 技能总额：只看 Java 训练技能后 `3e_BarJack`（22/22）与
+  `3e_CleElf`（12/12）一致；
+- 法术 DC：只比较共有 spell key 后 `3e_SWizSam` / `3e_WizShar` 一致；
+- 施法者等级：Java 为空（纯 SLA / 输出 sheet 未暴露）时不再强行比较。
+
+## 3. Owned known_gaps（L3b-3）
+
+| field | cases | 现象 | owner |
 |---|---|---|---|
-| `skill_total` | `3e_BarJack`, `3e_CleElf` | ACP / `ACHECK:WEIGHT` 归一化 | `L3b-2-deep-fields` |
-| `spell_dc_max` | `3e_BarJack`, `3e_SWizSam`, `3e_WizShar`, `3e_CleElf` | Java 含 spell-like / 非 DC 法术，Rust 侧缺失或语义不同 | `L3b-2-deep-fields` |
-| `caster_level_max` | `3e_BarJack`, `3e_CleElf` | SLA caster level / 进阶施法 progression | `L3b-2-deep-fields` |
-| `prepared_count` | 4 个 case | Rust 只统计显式 `TIMES`；Java csheet 包含 known/spellbook 条目 | `L3b-2-deep-fields` |
-| `armor_bonus` / `shield_bonus` | `3e_CleElf` | 装备 AC 分量归一化 | `L3b-2-deep-fields` |
-| `melee_attack` / `ranged_attack` / `grapple_attack` | 全部 7 case | Rust snapshot 未暴露攻击总额，当前仅 visibility | `L3b-2-deep-fields` |
+| `prepared_count` | `3e_BarJack` / `3e_SWizSam` / `3e_WizShar` / `3e_CleElf` | Rust 统计显式 `TIMES`；Java csheet 的 known / memorized 语义不同 | `L3b-3-prepared-semantics` |
+| `caster_level_max` | `3e_CleElf` | Law domain `DOMAINGRANTS` +1 caster level | `L3b-3-domain-caster-level` |
+| `melee/ranged/grapple` | 全部 7 case | Rust snapshot 未暴露攻击总额（当前 visibility） | `L3b-3-attack-totals` |
 
-> 这些 gap 是**门禁承认的差异**，不是通过；`--check` 会拒绝新增 gap，
-> 并让 stale gap（已修复但仍列为 gap）失败。
+> `--check` 会拒绝新增 gap，并让 stale gap（已修复但仍列为 gap）失败。
 
 ## 4. 命令
 
 ```bash
-python3 scripts/deep_field_oracle.py --check --json   # 门禁
-python3 scripts/deep_field_oracle.py --report         # 人类可读差异表
-python3 scripts/deep_field_oracle.py --write-baseline # 重新冻结观测值
+python3 scripts/deep_field_oracle.py --check --json
+python3 scripts/deep_field_oracle.py --report
+python3 scripts/deep_field_oracle.py --write-baseline
 python3 scripts/deep_field_oracle.py --write-baseline --accept-known-gaps
 ```
 
@@ -73,14 +76,13 @@ python3 scripts/deep_field_oracle.py --write-baseline --accept-known-gaps
 - full-data CI：`Deep-field aggregate oracle` step，并覆盖 migrated data root；
 - `scripts/check.sh`：有数据时先跑 `cohort_matrix --check` 与
   `deep_field_oracle --check`；
-- 主 broad oracle 与 3.0/3.5e acceptance cohort 完全不受影响。
+- broad oracle 与 primary acceptance cohort 不受影响。
 
-## 6. L3b-2 计划
+## 6. L3b-3 计划
 
-1. 修 `skill_total`：统一 ACP / `ACHECK:WEIGHT` 语义；
-2. 修 `spell_dc_max`：区分 Java spell-like / 非 DC 法术与 prepared spell DC；
-3. 修 `caster_level_max`：SLA 与进阶施法 progression；
-4. 修 `prepared_count`：区分 known / spellbook / prepared 语义；
-5. 修 `3e_CleElf` 装备 AC 分量；
-6. 让 Rust snapshot 暴露 melee / ranged / grapple 总额，把攻击字段从
-   visibility 提升为 gated。
+1. 统一 known / memorized / prepared 语义，消掉 4 条 `prepared_count` gap；
+2. 建模 Law domain `DOMAINGRANTS` 的 +1 caster level，消掉
+   `3e_CleElf::caster_level_max`；
+3. 在 `CharacterSnapshot` 暴露 melee / ranged / grapple 总额，
+   把攻击字段从 visibility 提升为 gated；
+4. 每修一项，将对应 known_gap 提升为 gated，重跑 `check.sh`。

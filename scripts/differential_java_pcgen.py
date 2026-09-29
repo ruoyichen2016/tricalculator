@@ -199,11 +199,18 @@ def java_baseline(xml_path: Path) -> dict:
             saves[name.lower()] = int(total)
 
     skills = {}
+    skill_ranks = {}
     for skill in root.findall("./skills/skill"):
         name = skill.findtext("name")
         modifier = skill.findtext("skill_mod")
+        ranks = skill.findtext("ranks")
         if name and modifier is not None:
             skills[name] = int(modifier)
+        if name and ranks is not None:
+            try:
+                skill_ranks[name] = float(ranks)
+            except ValueError:
+                pass
 
     spell_dcs = {}
     prepared_spells = {}
@@ -250,6 +257,7 @@ def java_baseline(xml_path: Path) -> dict:
         "grapple_attack": attack_total("grapple"),
         "saves": saves,
         "skills": skills,
+        "skill_ranks": skill_ranks,
         "spell_dcs": spell_dcs,
         "prepared_spells": prepared_spells,
         "spell_caster_levels": spell_caster_levels,

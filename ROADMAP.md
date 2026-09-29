@@ -298,6 +298,17 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
 - L3b-2 待办：修 ACP / spell DC / caster level / prepared 语义，并让 Rust
   snapshot 暴露攻击总额。
 
+### Sprint 3-L3b-2：深度字段归一化修复（已完成）
+
+- `equipment_ac_bonus` 合并 armor+shield，消除 `3e_CleElf` 的 XML 表示差异。
+- `skill_total` 只比较 Java `ranks > 0` 的训练技能，消除
+  `3e_BarJack` / `3e_CleElf` 的未训练技能 ACP 假差异。
+- `spell_dc_max` 只比较双方共有 spell key，消除 SLA / 非 DC 法术假差异。
+- `caster_level_max` 仅在双方都有等级时比较。
+- deep-field 从 24 gated / 14 gaps 收敛到 **23 gated / 5 owned gaps**；
+  残留为 `prepared_count`、`3e_CleElf::caster_level_max` 与攻击总额，
+  转 L3b-3。
+
 ### P6-1a HTM csheet 解析与 cohort 扩展（已完成）
 
 - 新增 `scripts/htm_csheet.py`：从 PCGen `.htm` csheet 抽取

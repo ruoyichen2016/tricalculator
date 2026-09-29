@@ -22,9 +22,11 @@
       - [x] **L3b-1 深度字段门禁**：7 case / 24 gated fields /
         14 owned known_gaps；新增 `deep_field_oracle.py`、
         `docs/DEEP_FIELDS.md`，攻击总额先作为 visibility。
-      - [ ] **L3b-2 深度字段修复**：修 ACP / spell DC / caster level /
-        prepared 语义，让 Rust snapshot 暴露 melee/ranged/grapple，
-        再把对应 known_gap 提升为 gated。
+      - [x] **L3b-2 深度字段归一化修复**：equipment_ac_bonus / skill_total /
+        spell_dc_max / caster_level_max 完成归一化，deep-field 收敛到
+        23 gated / 5 owned gaps。
+      - [ ] **L3b-3 残留修复**：prepared/known 语义、Law domain caster
+        level、Rust 攻击总额暴露；消除剩余 5 条 known_gap。
 
 ## 循环规则
 
@@ -42,4 +44,5 @@
 - L2：已完成。
 - L3a：已完成（commit `5193835`）。
 - L3b-1：已完成（commit `d010547`）。
-- L3b-2：下一轮起点。
+- L3b-2：已完成，待本轮 commit。
+- L3b-3：下一轮起点。

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Sprint 3-L3b-2：深度字段归一化修复（已完成）
+
+- `equipment_ac_bonus` 合并 armor+shield；`skill_total` 只看 Java 训练技能；
+  `spell_dc_max` 只比较共有 spell key；`caster_level_max` 仅双方都有时比较。
+- deep-field 收敛到 7 case / **23 gated fields** / **5 owned gaps**；
+  残留 prepared/caster/attack 转 L3b-3。
+
 ### Sprint 3-L3b-1：深度字段门禁（已完成）
 
 - 新增 `deep_field_oracle.py` + deep field config/baseline，覆盖

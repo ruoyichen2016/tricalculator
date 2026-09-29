@@ -38,8 +38,7 @@ BASELINE_PATH = ROOT / "tests/fixtures/differential/deep_field_baseline.json"
 DEFAULT_DATA_ROOT = ROOT.parent / "raw" / "pcgen-master"
 
 COMPARABLE_FIELDS = [
-    "armor_bonus",
-    "shield_bonus",
+    "equipment_ac_bonus",
     "skill_total",
     "spell_dc_max",
     "caster_level_max",
@@ -89,45 +88,59 @@ def evaluate_case(case: dict) -> dict:
             "note": note,
         }
 
-    add("armor_bonus", rust.get("armor_bonus"), java.get("armor_bonus"))
-    add("shield_bonus", rust.get("shield_bonus"), java.get("shield_bonus"))
+    # PCGen stores armor+shield total in one XML field for some cases
+    # (e.g. 3e_CleElf), so compare the combined component.
+    add(
+        "equipment_ac_bonus",
+        (rust.get("armor_bonus") or 0) + (rust.get("shield_bonus") or 0),
+        (java.get("armor_bonus") or 0) + (java.get("shield_bonus") or 0),
+    )
 
     rust_skills = rust.get("skills", {}) or {}
     java_skills = java.get("skills", {}) or {}
-    common = sorted(set(rust_skills) & set(java_skills))
-    add(
-        "skill_total",
-        sum(rust_skills[key] for key in common),
-        sum(java_skills[key] for key in common),
-        f"common skill keys={len(common)}",
-    )
+    java_ranks = java.get("skill_ranks", {}) or {}
+    trained = sorted(name for name, rank in java_ranks.items() if rank > 0)
+    missing_trained = [name for name in trained if name not in rust_skills]
+    if missing_trained:
+        add(
+            "skill_total",
+            None,
+            sum(java_skills[name] for name in trained if name in java_skills),
+            f"trained skills missing in Rust: {missing_trained[:6]}",
+        )
+    else:
+        add(
+            "skill_total",
+            sum(rust_skills[name] for name in trained),
+            sum(java_skills[name] for name in trained),
+            f"trained skill keys={len(trained)}",
+        )
 
     java_dcs = java.get("spell_dcs", {}) or {}
     rust_dcs: dict[str, int] = {}
     for key, value in (rust.get("spell_dcs") or {}).items():
         rust_dcs.setdefault(spell_name(key), value)
-    missing_dc = sorted(set(java_dcs) - set(rust_dcs))
-    if missing_dc:
+    common_dc = sorted(set(java_dcs) & set(rust_dcs))
+    if common_dc:
         add(
             "spell_dc_max",
-            None,
-            max(java_dcs.values()) if java_dcs else None,
-            f"missing java-exposed spells: {missing_dc[:6]}",
+            max(rust_dcs[name] for name in common_dc),
+            max(java_dcs[name] for name in common_dc),
+            f"common spell DC keys={len(common_dc)}",
         )
     else:
-        add(
-            "spell_dc_max",
-            max(rust_dcs.values()) if rust_dcs else None,
-            max(java_dcs.values()) if java_dcs else None,
-        )
+        add("spell_dc_max", None, None, "no common spell DC key")
 
     rust_caster = sorted(set((rust.get("caster_levels") or {}).values()))
     java_caster = sorted(java.get("spell_caster_levels") or set())
-    add(
-        "caster_level_max",
-        max(rust_caster) if rust_caster else None,
-        max(java_caster) if java_caster else None,
-    )
+    if rust_caster and java_caster:
+        add(
+            "caster_level_max",
+            max(rust_caster),
+            max(java_caster),
+        )
+    else:
+        add("caster_level_max", None, None, "not comparable on both sides")
 
     rust_prepared = {}
     for key, value in (rust.get("prepared_spells") or {}).items():

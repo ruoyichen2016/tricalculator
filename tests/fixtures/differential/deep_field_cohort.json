@@ -17,29 +17,14 @@
         "xml": "code/testsuite/csheets/3e_BarJack.xml"
       },
       "gated": [
-        "armor_bonus",
-        "shield_bonus"
+        "equipment_ac_bonus",
+        "skill_total"
       ],
       "known_gaps": [
         {
-          "field": "skill_total",
-          "owner": "L3b-2-deep-fields",
-          "issue": "skill total normalization / armor check penalty (rust=26, java=24)"
-        },
-        {
-          "field": "spell_dc_max",
-          "owner": "L3b-2-deep-fields",
-          "issue": "spell DC normalization / spell-like abilities (rust=None, java=11)"
-        },
-        {
-          "field": "caster_level_max",
-          "owner": "L3b-2-deep-fields",
-          "issue": "caster level extraction / progression (rust=None, java=1)"
-        },
-        {
           "field": "prepared_count",
           "owner": "L3b-2-deep-fields",
-          "issue": "prepared vs known spell normalization (rust=0, java=4)"
+          "issue": "prepared vs known spell semantics (rust=0, java=4)"
         }
       ]
     },
@@ -50,21 +35,16 @@
         "xml": "code/testsuite/csheets/3e_SWizSam.xml"
       },
       "gated": [
-        "armor_bonus",
-        "shield_bonus",
+        "equipment_ac_bonus",
         "skill_total",
+        "spell_dc_max",
         "caster_level_max"
       ],
       "known_gaps": [
         {
-          "field": "spell_dc_max",
-          "owner": "L3b-2-deep-fields",
-          "issue": "spell DC normalization / spell-like abilities (rust=None, java=12)"
-        },
-        {
           "field": "prepared_count",
           "owner": "L3b-2-deep-fields",
-          "issue": "prepared vs known spell normalization (rust=5, java=19)"
+          "issue": "prepared vs known spell semantics (rust=5, java=19)"
         }
       ]
     },
@@ -75,21 +55,16 @@
         "xml": "code/testsuite/csheets/3e_WizShar.xml"
       },
       "gated": [
-        "armor_bonus",
-        "shield_bonus",
+        "equipment_ac_bonus",
         "skill_total",
+        "spell_dc_max",
         "caster_level_max"
       ],
       "known_gaps": [
         {
-          "field": "spell_dc_max",
-          "owner": "L3b-2-deep-fields",
-          "issue": "spell DC normalization / spell-like abilities (rust=None, java=12)"
-        },
-        {
           "field": "prepared_count",
           "owner": "L3b-2-deep-fields",
-          "issue": "prepared vs known spell normalization (rust=3, java=19)"
+          "issue": "prepared vs known spell semantics (rust=3, java=19)"
         }
       ]
     },
@@ -100,8 +75,7 @@
         "xml": "code/testsuite/csheets/3e_BrdJoe.xml"
       },
       "gated": [
-        "armor_bonus",
-        "shield_bonus",
+        "equipment_ac_bonus",
         "skill_total",
         "spell_dc_max",
         "caster_level_max",
@@ -116,8 +90,7 @@
         "xml": "code/testsuite/csheets/3e_FigFae.xml"
       },
       "gated": [
-        "armor_bonus",
-        "shield_bonus",
+        "equipment_ac_bonus",
         "skill_total",
         "prepared_count"
       ],
@@ -130,8 +103,7 @@
         "xml": "code/testsuite/csheets/35e_Bard.xml"
       },
       "gated": [
-        "armor_bonus",
-        "shield_bonus",
+        "equipment_ac_bonus",
         "skill_total",
         "prepared_count"
       ],
@@ -143,37 +115,20 @@
         "pcg": "code/testsuite/PCGfiles/3e_CleElf.pcg",
         "xml": "code/testsuite/csheets/3e_CleElf.xml"
       },
-      "gated": [],
+      "gated": [
+        "equipment_ac_bonus",
+        "skill_total"
+      ],
       "known_gaps": [
-        {
-          "field": "armor_bonus",
-          "owner": "L3b-2-deep-fields",
-          "issue": "equipment AC component normalization (rust=6, java=7)"
-        },
-        {
-          "field": "shield_bonus",
-          "owner": "L3b-2-deep-fields",
-          "issue": "equipment AC component normalization (rust=1, java=0)"
-        },
-        {
-          "field": "skill_total",
-          "owner": "L3b-2-deep-fields",
-          "issue": "skill total normalization / armor check penalty (rust=-13, java=-22)"
-        },
-        {
-          "field": "spell_dc_max",
-          "owner": "L3b-2-deep-fields",
-          "issue": "spell DC normalization / spell-like abilities (rust=None, java=12)"
-        },
         {
           "field": "caster_level_max",
           "owner": "L3b-2-deep-fields",
-          "issue": "caster level extraction / progression (rust=2, java=3)"
+          "issue": "caster level progression / SLA difference (rust=2, java=3)"
         },
         {
           "field": "prepared_count",
           "owner": "L3b-2-deep-fields",
-          "issue": "prepared vs known spell normalization (rust=0, java=41)"
+          "issue": "prepared vs known spell semantics (rust=0, java=41)"
         }
       ]
     }

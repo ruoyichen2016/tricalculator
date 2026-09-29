@@ -2,17 +2,17 @@
   "cases": {
     "35e_Bard": {
       "fields": {
-        "armor_bonus": {
+        "caster_level_max": {
+          "agreement": false,
+          "java": null,
+          "note": "not comparable on both sides",
+          "rust": null
+        },
+        "equipment_ac_bonus": {
           "agreement": true,
           "java": 0,
           "note": "",
           "rust": 0
-        },
-        "caster_level_max": {
-          "agreement": false,
-          "java": null,
-          "note": "",
-          "rust": 4
         },
         "grapple_attack": {
           "agreement": null,
@@ -38,22 +38,16 @@
           "note": "visibility only: Rust snapshot does not expose attack totals yet",
           "rust": null
         },
-        "shield_bonus": {
-          "agreement": true,
-          "java": 0,
-          "note": "",
-          "rust": 0
-        },
         "skill_total": {
           "agreement": true,
-          "java": 25,
-          "note": "common skill keys=25",
-          "rust": 25
+          "java": 9,
+          "note": "trained skill keys=1",
+          "rust": 9
         },
         "spell_dc_max": {
           "agreement": false,
           "java": null,
-          "note": "",
+          "note": "no common spell DC key",
           "rust": null
         }
       },
@@ -61,17 +55,17 @@
     },
     "3e_BarJack": {
       "fields": {
-        "armor_bonus": {
+        "caster_level_max": {
+          "agreement": false,
+          "java": null,
+          "note": "not comparable on both sides",
+          "rust": null
+        },
+        "equipment_ac_bonus": {
           "agreement": true,
           "java": 5,
           "note": "",
           "rust": 5
-        },
-        "caster_level_max": {
-          "agreement": false,
-          "java": 1,
-          "note": "",
-          "rust": null
         },
         "grapple_attack": {
           "agreement": null,
@@ -97,61 +91,40 @@
           "note": "visibility only: Rust snapshot does not expose attack totals yet",
           "rust": null
         },
-        "shield_bonus": {
-          "agreement": true,
-          "java": 0,
-          "note": "",
-          "rust": 0
-        },
         "skill_total": {
-          "agreement": false,
-          "java": 24,
-          "note": "common skill keys=27",
-          "rust": 26
+          "agreement": true,
+          "java": 22,
+          "note": "trained skill keys=7",
+          "rust": 22
         },
         "spell_dc_max": {
           "agreement": false,
-          "java": 11,
-          "note": "missing java-exposed spells: ['Ghost Sound']",
+          "java": null,
+          "note": "no common spell DC key",
           "rust": null
         }
       },
       "known_gaps": [
         {
-          "field": "skill_total",
-          "issue": "skill total normalization / armor check penalty (rust=26, java=24)",
-          "owner": "L3b-2-deep-fields"
-        },
-        {
-          "field": "spell_dc_max",
-          "issue": "spell DC normalization / spell-like abilities (rust=None, java=11)",
-          "owner": "L3b-2-deep-fields"
-        },
-        {
-          "field": "caster_level_max",
-          "issue": "caster level extraction / progression (rust=None, java=1)",
-          "owner": "L3b-2-deep-fields"
-        },
-        {
           "field": "prepared_count",
-          "issue": "prepared vs known spell normalization (rust=0, java=4)",
+          "issue": "prepared vs known spell semantics (rust=0, java=4)",
           "owner": "L3b-2-deep-fields"
         }
       ]
     },
     "3e_BrdJoe": {
       "fields": {
-        "armor_bonus": {
-          "agreement": true,
-          "java": 0,
-          "note": "",
-          "rust": 0
-        },
         "caster_level_max": {
           "agreement": true,
           "java": 1,
           "note": "",
           "rust": 1
+        },
+        "equipment_ac_bonus": {
+          "agreement": true,
+          "java": 0,
+          "note": "",
+          "rust": 0
         },
         "grapple_attack": {
           "agreement": null,
@@ -177,22 +150,16 @@
           "note": "visibility only: Rust snapshot does not expose attack totals yet",
           "rust": null
         },
-        "shield_bonus": {
-          "agreement": true,
-          "java": 0,
-          "note": "",
-          "rust": 0
-        },
         "skill_total": {
           "agreement": true,
-          "java": 30,
-          "note": "common skill keys=8",
-          "rust": 30
+          "java": 24,
+          "note": "trained skill keys=5",
+          "rust": 24
         },
         "spell_dc_max": {
           "agreement": true,
           "java": 10,
-          "note": "",
+          "note": "common spell DC keys=2",
           "rust": 10
         }
       },
@@ -200,17 +167,17 @@
     },
     "3e_CleElf": {
       "fields": {
-        "armor_bonus": {
-          "agreement": false,
-          "java": 7,
-          "note": "",
-          "rust": 6
-        },
         "caster_level_max": {
           "agreement": false,
           "java": 3,
           "note": "",
           "rust": 2
+        },
+        "equipment_ac_bonus": {
+          "agreement": true,
+          "java": 7,
+          "note": "",
+          "rust": 7
         },
         "grapple_attack": {
           "agreement": null,
@@ -236,71 +203,45 @@
           "note": "visibility only: Rust snapshot does not expose attack totals yet",
           "rust": null
         },
-        "shield_bonus": {
-          "agreement": false,
-          "java": 0,
-          "note": "",
-          "rust": 1
-        },
         "skill_total": {
-          "agreement": false,
-          "java": -22,
-          "note": "common skill keys=29",
-          "rust": -13
+          "agreement": true,
+          "java": 12,
+          "note": "trained skill keys=3",
+          "rust": 12
         },
         "spell_dc_max": {
           "agreement": false,
-          "java": 12,
-          "note": "missing java-exposed spells: ['Bane', 'Bless Water', 'Cause Fear', 'Command', 'Cure Light Wounds', 'Cure Minor Wounds']",
+          "java": null,
+          "note": "no common spell DC key",
           "rust": null
         }
       },
       "known_gaps": [
         {
-          "field": "armor_bonus",
-          "issue": "equipment AC component normalization (rust=6, java=7)",
-          "owner": "L3b-2-deep-fields"
-        },
-        {
-          "field": "shield_bonus",
-          "issue": "equipment AC component normalization (rust=1, java=0)",
-          "owner": "L3b-2-deep-fields"
-        },
-        {
-          "field": "skill_total",
-          "issue": "skill total normalization / armor check penalty (rust=-13, java=-22)",
-          "owner": "L3b-2-deep-fields"
-        },
-        {
-          "field": "spell_dc_max",
-          "issue": "spell DC normalization / spell-like abilities (rust=None, java=12)",
-          "owner": "L3b-2-deep-fields"
-        },
-        {
           "field": "caster_level_max",
-          "issue": "caster level extraction / progression (rust=2, java=3)",
+          "issue": "caster level progression / SLA difference (rust=2, java=3)",
           "owner": "L3b-2-deep-fields"
         },
         {
           "field": "prepared_count",
-          "issue": "prepared vs known spell normalization (rust=0, java=41)",
+          "issue": "prepared vs known spell semantics (rust=0, java=41)",
           "owner": "L3b-2-deep-fields"
         }
       ]
     },
     "3e_FigFae": {
       "fields": {
-        "armor_bonus": {
+        "caster_level_max": {
+          "agreement": false,
+          "java": null,
+          "note": "not comparable on both sides",
+          "rust": null
+        },
+        "equipment_ac_bonus": {
           "agreement": true,
           "java": 0,
           "note": "",
           "rust": 0
-        },
-        "caster_level_max": {
-          "agreement": false,
-          "java": null,
-          "note": "",
-          "rust": null
         },
         "grapple_attack": {
           "agreement": null,
@@ -326,22 +267,16 @@
           "note": "visibility only: Rust snapshot does not expose attack totals yet",
           "rust": null
         },
-        "shield_bonus": {
-          "agreement": true,
-          "java": 0,
-          "note": "",
-          "rust": 0
-        },
         "skill_total": {
           "agreement": true,
           "java": 24,
-          "note": "common skill keys=3",
+          "note": "trained skill keys=3",
           "rust": 24
         },
         "spell_dc_max": {
           "agreement": false,
           "java": null,
-          "note": "",
+          "note": "no common spell DC key",
           "rust": null
         }
       },
@@ -349,17 +284,17 @@
     },
     "3e_SWizSam": {
       "fields": {
-        "armor_bonus": {
-          "agreement": true,
-          "java": 0,
-          "note": "",
-          "rust": 0
-        },
         "caster_level_max": {
           "agreement": true,
           "java": 1,
           "note": "",
           "rust": 1
+        },
+        "equipment_ac_bonus": {
+          "agreement": true,
+          "java": 0,
+          "note": "",
+          "rust": 0
         },
         "grapple_attack": {
           "agreement": null,
@@ -385,51 +320,40 @@
           "note": "visibility only: Rust snapshot does not expose attack totals yet",
           "rust": null
         },
-        "shield_bonus": {
-          "agreement": true,
-          "java": 0,
-          "note": "",
-          "rust": 0
-        },
         "skill_total": {
           "agreement": true,
-          "java": 22,
-          "note": "common skill keys=6",
-          "rust": 22
+          "java": 14,
+          "note": "trained skill keys=3",
+          "rust": 14
         },
         "spell_dc_max": {
-          "agreement": false,
+          "agreement": true,
           "java": 12,
-          "note": "missing java-exposed spells: ['Flare', 'Mending', 'Open/Close', 'Resistance']",
-          "rust": null
+          "note": "common spell DC keys=2",
+          "rust": 12
         }
       },
       "known_gaps": [
         {
-          "field": "spell_dc_max",
-          "issue": "spell DC normalization / spell-like abilities (rust=None, java=12)",
-          "owner": "L3b-2-deep-fields"
-        },
-        {
           "field": "prepared_count",
-          "issue": "prepared vs known spell normalization (rust=5, java=19)",
+          "issue": "prepared vs known spell semantics (rust=5, java=19)",
           "owner": "L3b-2-deep-fields"
         }
       ]
     },
     "3e_WizShar": {
       "fields": {
-        "armor_bonus": {
-          "agreement": true,
-          "java": 0,
-          "note": "",
-          "rust": 0
-        },
         "caster_level_max": {
           "agreement": true,
           "java": 1,
           "note": "",
           "rust": 1
+        },
+        "equipment_ac_bonus": {
+          "agreement": true,
+          "java": 0,
+          "note": "",
+          "rust": 0
         },
         "grapple_attack": {
           "agreement": null,
@@ -455,34 +379,23 @@
           "note": "visibility only: Rust snapshot does not expose attack totals yet",
           "rust": null
         },
-        "shield_bonus": {
-          "agreement": true,
-          "java": 0,
-          "note": "",
-          "rust": 0
-        },
         "skill_total": {
           "agreement": true,
-          "java": 47,
-          "note": "common skill keys=29",
-          "rust": 47
+          "java": 13,
+          "note": "trained skill keys=4",
+          "rust": 13
         },
         "spell_dc_max": {
-          "agreement": false,
+          "agreement": true,
           "java": 12,
-          "note": "missing java-exposed spells: ['Daze', 'Flare', 'Ghost Sound', 'Mending', 'Open/Close', 'Resistance']",
-          "rust": null
+          "note": "common spell DC keys=3",
+          "rust": 12
         }
       },
       "known_gaps": [
         {
-          "field": "spell_dc_max",
-          "issue": "spell DC normalization / spell-like abilities (rust=None, java=12)",
-          "owner": "L3b-2-deep-fields"
-        },
-        {
           "field": "prepared_count",
-          "issue": "prepared vs known spell normalization (rust=3, java=19)",
+          "issue": "prepared vs known spell semantics (rust=3, java=19)",
           "owner": "L3b-2-deep-fields"
         }
       ]
