@@ -9,6 +9,7 @@
       无随机 KIT；见 `docs/M9_PERSONAL_BUILDER.md`。
 - [~] **M9-1 原生存档 + 角色仓库 + Web 角色管理**
   - [x] `pcgen-builder` crate：`NativeSaveEnvelope` + `CharacterRepository`
+        （commit `b21614a`）
   - [ ] Web `/api/characters` 列表 / 新建 / 打开 / 删除
   - [ ] Web 角色列表页面
 - [ ] **M9-2 购点 + create / level-up**
@@ -20,5 +21,6 @@
 
 ## 当前状态
 
-- 最近更新：M9-1a 完成（builder crate + 5 tests），M9-1b Web 角色管理待做。
+- 最近更新：M9-1a 完成（commit `b21614a`，builder crate + 5 tests），
+  M9-1b Web 角色管理待做。
 - 已知风险：数据包许可、购点表版本、Web 首次编译性能。
