@@ -18,7 +18,7 @@
   - [x] builder create / level-up workflow + validation
   - [x] CLI create / level-up（commit `b3fcd5d`）
 - [x] **M9-3 Web 创建向导 + 角色卡打印**（commit `f679d44`）
-- [x] **M9-4 数据包打包 + 启动器**
+- [x] **M9-4 数据包打包 + 启动器**（commit `342f40b`）
   - [x] `package_datapack.py` / `package_release.py`
   - [x] `run-web.sh` / `run-web.bat`
   - [x] `docs/M9_PACKAGING.md`
@@ -26,5 +26,6 @@
 
 ## 当前状态
 
-- 最近更新：M9-4 打包与启动器完成；下一轮 M9-5 朋友 beta 反馈与修复。
+- 最近更新：M9-4 完成（commit `342f40b`）；下一轮 M9-5 朋友 beta
+  反馈与修复。
 - 已知风险：数据包许可、购点表版本、Web 首次编译性能。
