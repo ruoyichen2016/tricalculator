@@ -77,6 +77,7 @@ pcgen-output / pcgen-cli
 | `pcgen-ir` | RawRecord、PatchOperation、typed definitions、`PcgDraft` 数据、`CompiledRulePack`、降低 pass、覆盖度 | 解析 `.pcc/.lst/.pcg`；做角色数值计算 |
 | `pcgen-import` | `.pcc` 图解析、`.lst` tokenize、`.pcg` 读写 | 做角色数值计算；被 engine 依赖 |
 | `pcgen-engine` | Draft、规则管线、派生快照、增量重算、解释链 | 依赖 `pcgen-import`；理解 PCGen tag |
+| `pcgen-builder` | 原生存档 envelope、角色仓库、建卡/升级应用服务 | 做规则数值计算；依赖 `pcgen-import` |
 | `pcgen-output` | Snapshot 渲染 | 规则计算 |
 | `pcgen-cli` | 命令行入口 | 规则实现 |
 

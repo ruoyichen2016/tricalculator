@@ -1,6 +1,12 @@
-# Changelog
-
 ## Unreleased
+
+### M9-0 / M9-1a：个人建卡器范围与角色仓库（进行中）
+
+- 冻结 M9 范围：购点、3.0+3.5e、打包数据、Web 优先、无随机 KIT。
+- 新增 `pcgen-builder` crate：
+  - `NativeSaveEnvelope`（schema + fingerprint + CharacterDraft）；
+  - `CharacterRepository`（文件型多角色管理、原子写、schema 校验）。
+- 新增 `docs/M9_PERSONAL_BUILDER.md` 与 `docs/M9_LOOP.md`。
 
 ### Sprint 3-L3b-4：prepared 语义与攻击总额（已完成）
 

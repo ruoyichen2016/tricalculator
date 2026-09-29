@@ -24,6 +24,8 @@ PCGen-Rust 是围绕统一 Rule IR、`CharacterDraft` / `CharacterSnapshot`
 - [`docs/COHORT_MATRIX.md`](docs/COHORT_MATRIX.md)
 - [`docs/DEEP_FIELDS.md`](docs/DEEP_FIELDS.md)
 - [`docs/P7_PROFILE_SAVE_ENVELOPE_SPIKE.md`](docs/P7_PROFILE_SAVE_ENVELOPE_SPIKE.md)
+- [`docs/M9_PERSONAL_BUILDER.md`](docs/M9_PERSONAL_BUILDER.md)
+- [`docs/M9_LOOP.md`](docs/M9_LOOP.md)
 
 ## 工作区
 
@@ -34,6 +36,7 @@ PCGen-Rust 是围绕统一 Rule IR、`CharacterDraft` / `CharacterSnapshot`
 | `pcgen-ir` | 运行时 IR：RawRecord、PatchOperation、typed definitions、`PcgDraft`、CompiledRulePack、降低 pass |
 | `pcgen-import` | PCGen 文件格式：`.pcc` 图、`.lst` tokenize、`.pcg` 读写 |
 | `pcgen-engine` | `CharacterDraft → Engine → CharacterSnapshot`（只依赖 `pcgen-ir`） |
+| `pcgen-builder` | 原生存档 envelope、角色仓库、建卡/升级应用服务 |
 | `pcgen-output` | Snapshot text/json 渲染 |
 | `pcgen-cli` | `pcgen` 命令行 |
 | `pcgen-web` | 本地 HTTP API + 简单 Web 页面（axum） |

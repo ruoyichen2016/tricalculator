@@ -6,6 +6,7 @@ members = [
     "crates/pcgen-ir",
     "crates/pcgen-import",
     "crates/pcgen-engine",
+    "crates/pcgen-builder",
     "crates/pcgen-output",
     "crates/pcgen-cli",
     "crates/pcgen-web",

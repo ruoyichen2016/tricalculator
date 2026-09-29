@@ -32,6 +32,20 @@
   out-of-scope visibility，带 7 条 owned `known_gaps`，不参与主验收。
 - curated Java differential：9/9。
 
+## M9：个人建卡器（进行中）
+
+> 目标：自用 + 普通朋友用，Web 建卡替代 PCGen；范围见
+> [`docs/M9_PERSONAL_BUILDER.md`](docs/M9_PERSONAL_BUILDER.md)。
+
+- [x] M9-0 范围冻结：购点 / 3.0+3.5e / 打包数据 / Web 优先 / 无随机 KIT。
+- [~] M9-1 原生存档 + 角色仓库 + Web 角色管理
+  - [x] `pcgen-builder` crate：`NativeSaveEnvelope` + `CharacterRepository`
+  - [ ] Web `/api/characters` 列表 / 新建 / 打开 / 删除
+  - [ ] Web 角色列表页面
+- [ ] M9-2 购点 + create / level-up
+- [ ] M9-3 Web 创建向导 + 角色卡打印
+- [ ] M9-4 数据包打包 + 启动器 + 朋友 beta
+
 ## P0：口径冻结（阶段 0，已完成）
 
 - [x] 验收数据集固定：DS-3E `srdbasic.pcc`（回归代理）、
