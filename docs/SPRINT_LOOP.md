@@ -15,7 +15,7 @@
       - 产出 `docs/P7_PROFILE_SAVE_ENVELOPE_SPIKE.md`。
       - 挂接现有 `CompiledPackHeader` / `rules_fingerprint` / `CharacterDraft`。
       - check.sh 全绿；无代码行为变化。
-- [~] **L3 Sprint 3 覆盖深度**
+- [x] **L3 Sprint 3 覆盖深度**
       - [x] **L3a COHORT_MATRIX + 未纳入裁决**：42 PCG / 32 XML / 18 HTM
         全部归类；companion / legacy / out-of-scope 均有裁决；
         `scripts/cohort_matrix.py --check` 接入 full-data CI。
@@ -43,11 +43,12 @@
 
 ## 当前状态
 
-- 最近更新：L3b-3 完成（commit `c4914d5`）。
+- 最近更新：**Loop 全部完成**。L3b-4 完成（commit `ab4df68`），
+  deep-field 达到 49 gated / 0 owned gaps；check.sh 全绿。
 - L1：已完成（commit 见 git log）。
 - L2：已完成。
 - L3a：已完成（commit `5193835`）。
 - L3b-1：已完成（commit `d010547`）。
 - L3b-2：已完成（commit `d93bb15`）。
 - L3b-3：已完成（commit `c4914d5`）。
-- L3b-4：已完成，待本轮 commit。
+- L3b-4：已完成（commit `ab4df68`）。
