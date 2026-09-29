@@ -11,6 +11,7 @@
   - [x] `pcgen-builder` crate：`NativeSaveEnvelope` + `CharacterRepository`
         （commit `b21614a`）
   - [x] Web `/api/characters` 列表 / 新建 / 打开 / 删除
+        （commit `a2fbc10`）
   - [x] Web 角色列表与管理页面
 - [ ] **M9-2 购点 + create / level-up**
   - [ ] 3.5e 购点表 + 3.0 兼容
@@ -21,5 +22,6 @@
 
 ## 当前状态
 
-- 最近更新：M9-1b 完成，Web 角色管理可用；下一轮 M9-2 购点 + create / level-up。
+- 最近更新：M9-1b 完成（commit `a2fbc10`）；下一轮 M9-2 购点 +
+  create / level-up。
 - 已知风险：数据包许可、购点表版本、Web 首次编译性能。
