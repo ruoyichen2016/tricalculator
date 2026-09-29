@@ -42,11 +42,11 @@
 
 ## 当前状态
 
-- 最近更新：L3b-2 完成（commit `d93bb15`）。
+- 最近更新：L3b-3 完成（commit `c4914d5`）。
 - L1：已完成（commit 见 git log）。
 - L2：已完成。
 - L3a：已完成（commit `5193835`）。
 - L3b-1：已完成（commit `d010547`）。
 - L3b-2：已完成（commit `d93bb15`）。
-- L3b-3：已完成，待本轮 commit。
+- L3b-3：已完成（commit `c4914d5`）。
 - L3b-4：下一轮起点。
