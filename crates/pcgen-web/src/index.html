@@ -55,6 +55,8 @@
       <input id="createLevel" type="number" min="1" max="20" value="1">
       <label for="createAlignment">Alignment</label>
       <select id="createAlignment"></select>
+      <label for="createGold">Starting gold</label>
+      <input id="createGold" type="number" min="0" value="150">
     </div>
     <div>
       <label for="createBudget">Point buy budget</label>
@@ -508,6 +510,7 @@ const createRaceEl = document.getElementById('createRace');
 const createClassEl = document.getElementById('createClass');
 const createLevelEl = document.getElementById('createLevel');
 const createAlignmentEl = document.getElementById('createAlignment');
+const createGoldEl = document.getElementById('createGold');
 const createBudgetEl = document.getElementById('createBudget');
 const statInputsEl = document.getElementById('statInputs');
 const pointBuyStatusEl = document.getElementById('pointBuyStatus');
@@ -577,7 +580,17 @@ function fillSelect(element, options) {
     const item = document.createElement('option');
     item.value = option.id;
     item.textContent = option.name;
+    if (option.starting_gold !== undefined) {
+      item.dataset.startingGold = option.starting_gold;
+    }
     element.appendChild(item);
+  }
+}
+
+function syncClassGold() {
+  const selected = createClassEl.selectedOptions[0];
+  if (selected && selected.dataset.startingGold) {
+    createGoldEl.value = selected.dataset.startingGold;
   }
 }
 
@@ -595,6 +608,7 @@ async function loadPackOptions() {
     fillSelect(createRaceEl, data.races);
     fillSelect(createClassEl, data.classes);
     fillSelect(createAlignmentEl, data.alignments);
+    syncClassGold();
     createStatusEl.textContent = `Options loaded: ${data.races.length} races, ${data.classes.length} classes`;
   } catch (error) {
     createStatusEl.className = 'error';
@@ -603,6 +617,7 @@ async function loadPackOptions() {
 }
 
 document.getElementById('loadPackOptions').onclick = loadPackOptions;
+createClassEl.onchange = syncClassGold;
 
 document.getElementById('standardArray').onclick = () => {
   const array = [15, 14, 13, 12, 10, 8];
@@ -654,6 +669,7 @@ document.getElementById('createCharacterBtn').onclick = async () => {
       abilities: abilities.map((line) => line.split('=').map((part) => part.trim())),
       spells,
       equipment,
+      equipment_budget: Number(createGoldEl.value),
       deity: null,
       domains: [],
     },

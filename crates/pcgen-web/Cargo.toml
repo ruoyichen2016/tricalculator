@@ -17,6 +17,7 @@ pcgen-core = { path = "../pcgen-core" }
 pcgen-builder = { path = "../pcgen-builder" }
 pcgen-engine = { path = "../pcgen-engine" }
 pcgen-import = { path = "../pcgen-import" }
+pcgen-ir = { path = "../pcgen-ir" }
 pcgen-output = { path = "../pcgen-output" }
 
 [[bin]]

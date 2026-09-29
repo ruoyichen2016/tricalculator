@@ -48,6 +48,10 @@
 - [~] M9-5 朋友 beta 反馈与修复
   - [x] M9-5a Beta checklist + package dry-run + diagnostics 按钮
   - [ ] M9-5b 真实 beta 反馈修复
+- [~] M9-6 建卡深化
+  - [x] M9-6a 装备购买 + 起始金币
+  - [ ] M9-6b 法术书编辑
+  - [ ] M9-6c output sheet 深化
 
 ## P0：口径冻结（阶段 0，已完成）
 

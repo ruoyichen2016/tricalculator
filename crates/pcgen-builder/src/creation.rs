@@ -48,6 +48,9 @@ pub struct CreateRequest {
     pub spells: Vec<CreateSpell>,
     #[serde(default)]
     pub equipment: Vec<String>,
+    /// Optional starting-gold budget; equipment cost is summed and checked.
+    #[serde(default)]
+    pub equipment_budget: Option<f64>,
     #[serde(default)]
     pub deity: Option<String>,
     #[serde(default)]
@@ -142,6 +145,12 @@ pub fn create_draft(
         let key = canonical_equipment(pack, item)
             .ok_or_else(|| BuilderError::UnknownEquipment(item.clone()))?;
         equipment.push(key);
+    }
+    if let Some(budget) = request.equipment_budget {
+        let spent = equipment_cost(pack, &equipment);
+        if spent > budget + 1e-9 {
+            return Err(BuilderError::EquipmentBudgetExceeded { spent, budget });
+        }
     }
 
     let mut draft = CharacterDraft {
@@ -239,6 +248,28 @@ pub fn level_up_draft(
         });
     }
     Ok(())
+}
+
+/// Deterministic 3.5e starting gold by class name (average of the DMG roll).
+pub fn starting_gold_for_class(class_name: &str) -> f64 {
+    match class_name.trim().to_ascii_lowercase().as_str() {
+        "barbarian" | "bard" => 100.0,
+        "cleric" | "rogue" => 125.0,
+        "druid" => 50.0,
+        "fighter" | "paladin" | "ranger" => 150.0,
+        "monk" => 12.5,
+        "sorcerer" | "wizard" => 75.0,
+        _ => 100.0,
+    }
+}
+
+/// Sum the gold cost of canonical equipment keys.
+pub fn equipment_cost(pack: &CompiledRulePack, equipment: &[String]) -> f64 {
+    equipment
+        .iter()
+        .filter_map(|item| pack.equipment.get(item))
+        .map(|item| item.cost_gp)
+        .sum()
 }
 
 fn average_hit_points(pack: &CompiledRulePack, class_id: &str, level: u32) -> Vec<i32> {
@@ -371,10 +402,9 @@ mod tests {
                 ..Default::default()
             },
         );
-        pack.equipment.insert(
-            "Longsword".to_string(),
-            pcgen_core::domain::EquipmentDefinition::new("Longsword", "Longsword"),
-        );
+        let mut longsword = pcgen_core::domain::EquipmentDefinition::new("Longsword", "Longsword");
+        longsword.cost_gp = 15.0;
+        pack.equipment.insert("Longsword".to_string(), longsword);
         pack.spells.insert(
             "Magic Missile".to_string(),
             pcgen_core::domain::SpellDefinition::new("Magic Missile", "Magic Missile"),
@@ -406,6 +436,35 @@ mod tests {
         assert_eq!(draft.class_levels[0].level, 3);
         assert_eq!(draft.skills.get("Climb"), Some(&4.0));
         assert_eq!(draft.equipment, vec!["Longsword".to_string()]);
+    }
+
+    #[test]
+    fn validates_equipment_budget() {
+        let pack = sample_pack();
+        let base = CreateRequest {
+            name: "Hero".to_string(),
+            race: "Human".to_string(),
+            class_id: "Fighter".to_string(),
+            level: 1,
+            equipment: vec!["Longsword".to_string()],
+            ..CreateRequest::default()
+        };
+        let mut over = base.clone();
+        over.equipment_budget = Some(10.0);
+        assert!(matches!(
+            create_draft(&pack, &over),
+            Err(BuilderError::EquipmentBudgetExceeded { .. })
+        ));
+        let mut ok = base;
+        ok.equipment_budget = Some(20.0);
+        assert!(create_draft(&pack, &ok).is_ok());
+    }
+
+    #[test]
+    fn starting_gold_matches_class_profile() {
+        assert_eq!(starting_gold_for_class("Fighter"), 150.0);
+        assert_eq!(starting_gold_for_class("wizard"), 75.0);
+        assert_eq!(starting_gold_for_class("Cleric"), 125.0);
     }
 
     #[test]

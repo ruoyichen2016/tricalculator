@@ -12,8 +12,8 @@ use axum::{
     Json, Router,
 };
 use pcgen_builder::{
-    create_draft, BuilderError, CharacterRepository, CharacterSummary, CreateRequest,
-    NativeSaveEnvelope,
+    create_draft, starting_gold_for_class, BuilderError, CharacterRepository, CharacterSummary,
+    CreateRequest, NativeSaveEnvelope,
 };
 use pcgen_engine::{CharacterDraft, DraftClassLevel, DraftSpell, Engine};
 use pcgen_import::{compile_pcc, parse_pcg_draft_file, PcgDraft};
@@ -149,6 +149,10 @@ pub struct CharacterDetail {
 pub struct NamedOption {
     pub id: String,
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cost_gp: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub starting_gold: Option<f64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -696,6 +700,38 @@ fn named_options<T>(
         .map(|value| NamedOption {
             id: id(&value),
             name: name(&value),
+            cost_gp: None,
+            starting_gold: None,
+        })
+        .collect();
+    options.sort_by(|left, right| left.name.cmp(&right.name));
+    options
+}
+
+fn class_options(pack: &pcgen_ir::CompiledRulePack) -> Vec<NamedOption> {
+    let mut options: Vec<NamedOption> = pack
+        .classes
+        .values()
+        .map(|class| NamedOption {
+            id: class.id.clone(),
+            name: class.name.clone(),
+            cost_gp: None,
+            starting_gold: Some(starting_gold_for_class(&class.name)),
+        })
+        .collect();
+    options.sort_by(|left, right| left.name.cmp(&right.name));
+    options
+}
+
+fn equipment_options(pack: &pcgen_ir::CompiledRulePack) -> Vec<NamedOption> {
+    let mut options: Vec<NamedOption> = pack
+        .equipment
+        .values()
+        .map(|item| NamedOption {
+            id: item.id.clone(),
+            name: item.name.clone(),
+            cost_gp: Some(item.cost_gp),
+            starting_gold: None,
         })
         .collect();
     options.sort_by(|left, right| left.name.cmp(&right.name));
@@ -733,11 +769,7 @@ async fn pack_options(
             |item| item.id.clone(),
             |item| item.name.clone(),
         ),
-        classes: named_options(
-            pack.classes.values(),
-            |item| item.id.clone(),
-            |item| item.name.clone(),
-        ),
+        classes: class_options(&pack),
         skills: named_options(
             pack.skills.values(),
             |item| item.id.clone(),
@@ -753,11 +785,7 @@ async fn pack_options(
             |item| item.id.clone(),
             |item| item.name.clone(),
         ),
-        equipment: named_options(
-            pack.equipment.values(),
-            |item| item.id.clone(),
-            |item| item.name.clone(),
-        ),
+        equipment: equipment_options(&pack),
         deities: named_options(
             pack.deities.values(),
             |item| item.id.clone(),

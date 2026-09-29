@@ -7,7 +7,10 @@
 pub mod creation;
 pub mod point_buy;
 
-pub use creation::{create_draft, level_up_draft, CreateRequest, CreateSpell, LevelUpRequest};
+pub use creation::{
+    create_draft, equipment_cost, level_up_draft, starting_gold_for_class, CreateRequest,
+    CreateSpell, LevelUpRequest,
+};
 
 use pcgen_engine::CharacterDraft;
 use serde::{Deserialize, Serialize};
@@ -101,6 +104,8 @@ pub enum BuilderError {
     UnknownSpell(String),
     #[error("unknown equipment: {0}")]
     UnknownEquipment(String),
+    #[error("equipment budget exceeded: spent {spent:.2} > budget {budget:.2}")]
+    EquipmentBudgetExceeded { spent: f64, budget: f64 },
 }
 
 /// File-based character repository.

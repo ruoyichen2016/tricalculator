@@ -114,7 +114,8 @@ cargo run -p pcgen-cli -- create \
   --pcc ../raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/_rsrd_basics.pcc \
   --name "Hero" --race Human --class Fighter --level 3 --point-buy 25 \
   --stat STR=15 --stat DEX=14 --stat CON=13 --stat INT=12 --stat WIS=10 --stat CHA=8 \
-  --skill Climb=4 --ability FEAT=Power Attack --equipment Longsword
+  --skill Climb=4 --ability FEAT=Power Attack --equipment Longsword \
+  --starting-gold
 
 # 写入原生存档并升级
 cargo run -p pcgen-cli -- create ... --out hero.json

@@ -499,6 +499,7 @@ dependencies = [
  "pcgen-core",
  "pcgen-engine",
  "pcgen-import",
+ "pcgen-ir",
  "pcgen-output",
  "serde",
  "serde_json",

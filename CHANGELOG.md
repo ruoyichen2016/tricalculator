@@ -1,5 +1,13 @@
 ## Unreleased
 
+### M9-6a：装备购买 + 起始金币（已完成）
+
+- builder 新增 3.5e 职业起始金币表 `starting_gold_for_class`；
+- `CreateRequest.equipment_budget` 校验装备总花费，超出报错；
+- CLI `create` 支持 `--equipment-budget` / `--starting-gold`；
+- Web pack options 返回装备 `cost_gp` 与职业 `starting_gold`；
+- Web 向导新增 Starting gold 输入并根据职业自动填充。
+
 ### M9-5a：Beta 自动化与反馈通道（已完成）
 
 - 新增 `docs/M9_BETA_CHECKLIST.md`：朋友必测场景与反馈模板；

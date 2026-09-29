@@ -1,7 +1,8 @@
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
 use pcgen_builder::{
-    create_draft, level_up_draft, CreateRequest, CreateSpell, LevelUpRequest, NativeSaveEnvelope,
+    create_draft, level_up_draft, starting_gold_for_class, CreateRequest, CreateSpell,
+    LevelUpRequest, NativeSaveEnvelope,
 };
 use pcgen_core::{AdvancementFrame, AdvancementLane};
 use pcgen_engine::{CharacterDraft, ClassProgress, DraftClassLevel, DraftSpell, Engine};
@@ -101,6 +102,12 @@ enum Command {
         spells: Vec<String>,
         #[arg(long = "equipment")]
         equipment: Vec<String>,
+        /// Starting gold budget; equipment cost must fit.
+        #[arg(long)]
+        equipment_budget: Option<f64>,
+        /// Use the class's deterministic average starting gold as budget.
+        #[arg(long)]
+        starting_gold: bool,
         #[arg(long)]
         deity: Option<String>,
         #[arg(long = "domain")]
@@ -480,6 +487,8 @@ fn main() -> Result<()> {
             abilities,
             spells,
             equipment,
+            equipment_budget,
+            starting_gold,
             deity,
             domains,
             format,
@@ -487,6 +496,7 @@ fn main() -> Result<()> {
         } => {
             let (pack, _) =
                 compile_pcc(&pcc).with_context(|| format!("failed to import {}", pcc.display()))?;
+            let class_gold = starting_gold.then(|| starting_gold_for_class(&class_id));
             let request = CreateRequest {
                 id: String::new(),
                 name,
@@ -501,6 +511,7 @@ fn main() -> Result<()> {
                 abilities: parse_key_value_pairs(&abilities)?,
                 spells: parse_spells(&spells),
                 equipment,
+                equipment_budget: equipment_budget.or(class_gold),
                 deity,
                 domains,
             };
