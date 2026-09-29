@@ -16,6 +16,13 @@ pcgen_bin="$ROOT/target/debug/pcgen"
 export PCGEN_BIN="$pcgen_bin"
 "$pcgen_bin" demo >/dev/null
 "$pcgen_bin" import-report tests/fixtures/campaign-mini/mini.pcc >/dev/null
+m9_smoke="$ROOT/target/m9-smoke-character.json"
+"$pcgen_bin" create --pcc tests/fixtures/campaign-mini/mini.pcc \
+    --name Smoke --race Human --class Fighter --level 1 --point-buy 25 \
+    --out "$m9_smoke" >/dev/null
+"$pcgen_bin" level-up "$m9_smoke" --pcc tests/fixtures/campaign-mini/mini.pcc \
+    --class Fighter --hp 6 --out "${m9_smoke}.2" >/dev/null
+rm -f "$m9_smoke" "${m9_smoke}.2"
 
 if bash scripts/check_testdata.sh --quiet >/dev/null 2>&1; then
     python3 scripts/cohort_matrix.py --check

@@ -93,6 +93,21 @@ bash scripts/check.sh
 CI 分为 `no-data`（push / PR）与 `full-data`（nightly / 手动，抓取固定 PCGen
 commit 并执行字段级差分）两个 job。细节见 [`docs/TESTING.md`](docs/TESTING.md)。
 
+## M9 建卡命令（进行中）
+
+```bash
+# 3.5e 购点建卡，输出 snapshot
+cargo run -p pcgen-cli -- create \
+  --pcc ../raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/_rsrd_basics.pcc \
+  --name "Hero" --race Human --class Fighter --level 3 --point-buy 25 \
+  --stat STR=15 --stat DEX=14 --stat CON=13 --stat INT=12 --stat WIS=10 --stat CHA=8 \
+  --skill Climb=4 --ability FEAT=Power Attack --equipment Longsword
+
+# 写入原生存档并升级
+cargo run -p pcgen-cli -- create ... --out hero.json
+cargo run -p pcgen-cli -- level-up hero.json --pcc <pcc> --class Fighter --hp 6 --out hero2.json
+```
+
 ## 当前状态
 
 当前实现是架构骨架加核心切片，已经包含：

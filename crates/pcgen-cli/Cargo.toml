@@ -8,6 +8,7 @@ license.workspace = true
 anyhow.workspace = true
 clap.workspace = true
 serde_json.workspace = true
+pcgen-builder = { path = "../pcgen-builder" }
 pcgen-core = { path = "../pcgen-core" }
 pcgen-engine = { path = "../pcgen-engine" }
 pcgen-import = { path = "../pcgen-import" }

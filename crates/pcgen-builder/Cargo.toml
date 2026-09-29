@@ -6,7 +6,12 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+pcgen-core = { path = "../pcgen-core" }
 pcgen-engine = { path = "../pcgen-engine" }
+pcgen-ir = { path = "../pcgen-ir" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+
+[dev-dependencies]
+pcgen-import = { path = "../pcgen-import" }

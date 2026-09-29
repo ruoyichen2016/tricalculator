@@ -44,6 +44,15 @@ jobs:
       - name: Mini import smoke
         run: ./target/debug/pcgen import-report tests/fixtures/campaign-mini/mini.pcc
 
+      - name: M9 create / level-up smoke
+        run: |
+          ./target/debug/pcgen create --pcc tests/fixtures/campaign-mini/mini.pcc \
+            --name Smoke --race Human --class Fighter --level 1 --point-buy 25 \
+            --out target/m9-smoke-character.json
+          ./target/debug/pcgen level-up target/m9-smoke-character.json \
+            --pcc tests/fixtures/campaign-mini/mini.pcc \
+            --class Fighter --hp 6 --out target/m9-smoke-character-2.json
+
       - name: Web API smoke (no data)
         run: cargo test -p pcgen-web
 

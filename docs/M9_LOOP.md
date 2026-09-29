@@ -13,15 +13,15 @@
   - [x] Web `/api/characters` 列表 / 新建 / 打开 / 删除
         （commit `a2fbc10`）
   - [x] Web 角色列表与管理页面
-- [ ] **M9-2 购点 + create / level-up**
-  - [ ] 3.5e 购点表 + 3.0 兼容
-  - [ ] builder create / level-up workflow + validation
-  - [ ] CLI create / level-up
+- [x] **M9-2 购点 + create / level-up**
+  - [x] 3.5e 购点表 + 3.0 兼容（共用表，预算可配）
+  - [x] builder create / level-up workflow + validation
+  - [x] CLI create / level-up
 - [ ] **M9-3 Web 创建向导 + 角色卡打印**
 - [ ] **M9-4 数据包打包 + 启动器 + 朋友 beta**
 
 ## 当前状态
 
-- 最近更新：M9-1b 完成（commit `a2fbc10`）；下一轮 M9-2 购点 +
-  create / level-up。
+- 最近更新：M9-2 完成，CLI create / level-up 可用；下一轮 M9-3
+  Web 创建向导 + 角色卡打印。
 - 已知风险：数据包许可、购点表版本、Web 首次编译性能。

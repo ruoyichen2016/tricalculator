@@ -1,5 +1,8 @@
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
+use pcgen_builder::{
+    create_draft, level_up_draft, CreateRequest, CreateSpell, LevelUpRequest, NativeSaveEnvelope,
+};
 use pcgen_core::{AdvancementFrame, AdvancementLane};
 use pcgen_engine::{CharacterDraft, ClassProgress, DraftClassLevel, DraftSpell, Engine};
 use pcgen_import::PcgDraft;
@@ -66,6 +69,68 @@ enum Command {
         draft: PathBuf,
         #[arg(long, default_value = "text")]
         format: String,
+    },
+    /// Create a new character and optionally write a native save envelope.
+    Create {
+        #[arg(long)]
+        pcc: PathBuf,
+        #[arg(long)]
+        name: String,
+        #[arg(long)]
+        race: String,
+        #[arg(long = "class")]
+        class_id: String,
+        #[arg(long, default_value_t = 1)]
+        level: u32,
+        #[arg(long, default_value = "")]
+        alignment: String,
+        /// Stat assignment, e.g. `STR=14`; repeat per ability.
+        #[arg(long = "stat")]
+        stats: Vec<String>,
+        /// Validate stats against the 3.5e DMG point-buy budget.
+        #[arg(long)]
+        point_buy: Option<u32>,
+        /// Skill ranks, e.g. `Climb=4`; repeat per skill.
+        #[arg(long = "skill")]
+        skills: Vec<String>,
+        /// Ability selection, e.g. `FEAT=Power Attack`.
+        #[arg(long = "ability")]
+        abilities: Vec<String>,
+        /// Spell selection, e.g. `Magic Missile` or `Magic Missile=1`.
+        #[arg(long = "spell")]
+        spells: Vec<String>,
+        #[arg(long = "equipment")]
+        equipment: Vec<String>,
+        #[arg(long)]
+        deity: Option<String>,
+        #[arg(long = "domain")]
+        domains: Vec<String>,
+        #[arg(long, default_value = "json")]
+        format: String,
+        /// Write a native save envelope instead of printing the snapshot.
+        #[arg(long)]
+        out: Option<PathBuf>,
+    },
+    /// Apply one level to a native save envelope.
+    LevelUp {
+        /// Native save envelope JSON written by `pcgen create`.
+        draft: PathBuf,
+        #[arg(long)]
+        pcc: PathBuf,
+        #[arg(long = "class")]
+        class_id: String,
+        /// Explicit HP gained; when omitted, use the class HD average.
+        #[arg(long)]
+        hp: Option<i32>,
+        #[arg(long = "skill")]
+        skills: Vec<String>,
+        #[arg(long = "ability")]
+        abilities: Vec<String>,
+        #[arg(long = "spell")]
+        spells: Vec<String>,
+        /// Write the updated envelope here; otherwise print JSON to stdout.
+        #[arg(long)]
+        out: Option<PathBuf>,
     },
 }
 
@@ -142,6 +207,69 @@ fn demo_draft() -> CharacterDraft {
         domains: Vec::new(),
         deity_domains: Vec::new(),
     }
+}
+
+fn parse_pairs(values: &[String]) -> Result<BTreeMap<String, i32>> {
+    let mut out = BTreeMap::new();
+    for value in values {
+        let Some((key, raw)) = value.split_once('=') else {
+            bail!("expected KEY=VALUE, got {value:?}");
+        };
+        let key = key.trim().to_ascii_uppercase();
+        let score: i32 = raw
+            .trim()
+            .parse()
+            .with_context(|| format!("invalid stat value in {value:?}"))?;
+        out.insert(key, score);
+    }
+    Ok(out)
+}
+
+fn parse_skill_pairs(values: &[String]) -> Result<BTreeMap<String, f64>> {
+    let mut out = BTreeMap::new();
+    for value in values {
+        let Some((key, raw)) = value.split_once('=') else {
+            bail!("expected SKILL=RANKS, got {value:?}");
+        };
+        let ranks: f64 = raw
+            .trim()
+            .parse()
+            .with_context(|| format!("invalid skill rank in {value:?}"))?;
+        out.insert(key.trim().to_string(), ranks);
+    }
+    Ok(out)
+}
+
+fn parse_key_value_pairs(values: &[String]) -> Result<Vec<(String, String)>> {
+    let mut out = Vec::new();
+    for value in values {
+        let Some((key, raw)) = value.split_once('=') else {
+            bail!("expected CATEGORY=KEY, got {value:?}");
+        };
+        if key.trim().is_empty() || raw.trim().is_empty() {
+            bail!("empty category or key in {value:?}");
+        }
+        out.push((key.trim().to_string(), raw.trim().to_string()));
+    }
+    Ok(out)
+}
+
+fn parse_spells(values: &[String]) -> Vec<CreateSpell> {
+    values
+        .iter()
+        .map(|value| {
+            let (name, level) = match value.split_once('=') {
+                Some((name, raw)) => (name.trim(), raw.trim().parse::<u32>().unwrap_or(0)),
+                None => (value.trim(), 0),
+            };
+            CreateSpell {
+                name: name.to_string(),
+                level,
+                times_memorized: 1,
+                book: None,
+            }
+        })
+        .collect()
 }
 
 fn main() -> Result<()> {
@@ -337,6 +465,103 @@ fn main() -> Result<()> {
                 println!("{}", render_json(&snapshot)?);
             } else {
                 print!("{}", render_text(&snapshot));
+            }
+        }
+        Command::Create {
+            pcc,
+            name,
+            race,
+            class_id,
+            level,
+            alignment,
+            stats,
+            point_buy,
+            skills,
+            abilities,
+            spells,
+            equipment,
+            deity,
+            domains,
+            format,
+            out,
+        } => {
+            let (pack, _) =
+                compile_pcc(&pcc).with_context(|| format!("failed to import {}", pcc.display()))?;
+            let request = CreateRequest {
+                id: String::new(),
+                name,
+                race,
+                class_id,
+                level,
+                alignment,
+                campaign: pcc.display().to_string(),
+                stats: parse_pairs(&stats)?,
+                point_buy_budget: point_buy,
+                skills: parse_skill_pairs(&skills)?,
+                abilities: parse_key_value_pairs(&abilities)?,
+                spells: parse_spells(&spells),
+                equipment,
+                deity,
+                domains,
+            };
+            let draft = create_draft(&pack, &request)?;
+            if let Some(path) = out {
+                let envelope = NativeSaveEnvelope::new(
+                    draft,
+                    pack.header.rules_fingerprint.clone(),
+                    pack.header.data_ref.clone(),
+                )
+                .with_pcc(Some(pcc.display().to_string()));
+                if let Some(parent) = path.parent() {
+                    std::fs::create_dir_all(parent)
+                        .with_context(|| format!("failed to create {}", parent.display()))?;
+                }
+                std::fs::write(&path, serde_json::to_vec_pretty(&envelope)?)
+                    .with_context(|| format!("failed to write {}", path.display()))?;
+                println!("{}", path.display());
+            } else {
+                let snapshot = Engine::new(pack).evaluate(&draft);
+                let output_format = OutputFormat::from_name(&format).unwrap_or(OutputFormat::Json);
+                print!("{}", render(&snapshot, output_format)?);
+            }
+        }
+        Command::LevelUp {
+            draft,
+            pcc,
+            class_id,
+            hp,
+            skills,
+            abilities,
+            spells,
+            out,
+        } => {
+            let text = std::fs::read_to_string(&draft)
+                .with_context(|| format!("failed to read {}", draft.display()))?;
+            let mut envelope: NativeSaveEnvelope = serde_json::from_str(&text)
+                .with_context(|| format!("failed to parse {}", draft.display()))?;
+            let (pack, _) =
+                compile_pcc(&pcc).with_context(|| format!("failed to import {}", pcc.display()))?;
+            let request = LevelUpRequest {
+                class_id,
+                hp_gained: hp,
+                skills: parse_skill_pairs(&skills)?,
+                abilities: parse_key_value_pairs(&abilities)?,
+                spells: parse_spells(&spells),
+            };
+            level_up_draft(&pack, &mut envelope.character, &request)?;
+            envelope.pcc = Some(pcc.display().to_string());
+            envelope.rules_fingerprint = pack.header.rules_fingerprint.clone();
+            envelope.data_ref = pack.header.data_ref.clone();
+            if let Some(path) = out {
+                if let Some(parent) = path.parent() {
+                    std::fs::create_dir_all(parent)
+                        .with_context(|| format!("failed to create {}", parent.display()))?;
+                }
+                std::fs::write(&path, serde_json::to_vec_pretty(&envelope)?)
+                    .with_context(|| format!("failed to write {}", path.display()))?;
+                println!("{}", path.display());
+            } else {
+                println!("{}", serde_json::to_string_pretty(&envelope)?);
             }
         }
     }

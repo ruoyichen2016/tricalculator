@@ -1,5 +1,13 @@
 ## Unreleased
 
+### M9-2：购点 + CLI create / level-up（已完成）
+
+- `pcgen-builder` 新增 3.5e DMG 购点表、标准数组与预算校验；
+- builder `create_draft` / `level_up_draft`：规则包校验、确定性 HP 平均、
+  技能/能力/法术/装备规范化；
+- CLI 新增 `create` / `level-up`，支持 `--out` 写原生 envelope；
+- workspace 测试 213→220。
+
 ### M9-1b：Web 角色管理（已完成）
 
 - `pcgen-web` 依赖 `pcgen-builder`，`WebConfig` 新增 `characters_root`

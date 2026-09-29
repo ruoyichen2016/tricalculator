@@ -4,6 +4,11 @@
 //! It owns the native save envelope and a small file-based character
 //! repository; creation / level-up workflows will live here as M9 progresses.
 
+pub mod creation;
+pub mod point_buy;
+
+pub use creation::{create_draft, level_up_draft, CreateRequest, CreateSpell, LevelUpRequest};
+
 use pcgen_engine::CharacterDraft;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -74,6 +79,28 @@ pub enum BuilderError {
     InvalidId(String),
     #[error("character not found: {0}")]
     NotFound(String),
+    #[error("invalid point buy: {0}")]
+    InvalidPointBuy(String),
+    #[error("unknown race: {0}")]
+    UnknownRace(String),
+    #[error("unknown class: {0}")]
+    UnknownClass(String),
+    #[error("invalid level: {0}")]
+    InvalidLevel(u32),
+    #[error("invalid ability score: {0}")]
+    InvalidAbilityScore(String),
+    #[error("invalid skill rank: {0}")]
+    InvalidSkillRank(String),
+    #[error("unknown skill: {0}")]
+    UnknownSkill(String),
+    #[error("unknown ability category: {0}")]
+    UnknownAbilityCategory(String),
+    #[error("invalid ability: {0}")]
+    InvalidAbility(String),
+    #[error("unknown spell: {0}")]
+    UnknownSpell(String),
+    #[error("unknown equipment: {0}")]
+    UnknownEquipment(String),
 }
 
 /// File-based character repository.

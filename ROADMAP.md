@@ -42,7 +42,7 @@
   - [x] `pcgen-builder` crate：`NativeSaveEnvelope` + `CharacterRepository`
   - [x] Web `/api/characters` 列表 / 新建 / 打开 / 删除
   - [x] Web 角色列表与管理页面
-- [ ] M9-2 购点 + create / level-up
+- [x] M9-2 购点 + create / level-up（已完成）
 - [ ] M9-3 Web 创建向导 + 角色卡打印
 - [ ] M9-4 数据包打包 + 启动器 + 朋友 beta
 

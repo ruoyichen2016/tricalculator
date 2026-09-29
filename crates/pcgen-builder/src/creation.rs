@@ -1,0 +1,458 @@
+//! Rule-pack-aware character creation and level-up helpers.
+
+use crate::point_buy;
+use crate::BuilderError;
+use pcgen_engine::{CharacterDraft, DraftClassLevel, DraftSpell};
+use pcgen_ir::CompiledRulePack;
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+
+const ABILITY_KEYS: [&str; 6] = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateSpell {
+    pub name: String,
+    #[serde(default)]
+    pub level: u32,
+    #[serde(default = "default_times")]
+    pub times_memorized: u32,
+    #[serde(default)]
+    pub book: Option<String>,
+}
+
+fn default_times() -> u32 {
+    1
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CreateRequest {
+    pub id: String,
+    pub name: String,
+    pub race: String,
+    #[serde(rename = "class")]
+    pub class_id: String,
+    pub level: u32,
+    #[serde(default)]
+    pub alignment: String,
+    #[serde(default)]
+    pub campaign: String,
+    #[serde(default)]
+    pub stats: BTreeMap<String, i32>,
+    #[serde(default)]
+    pub point_buy_budget: Option<u32>,
+    #[serde(default)]
+    pub skills: BTreeMap<String, f64>,
+    #[serde(default)]
+    pub abilities: Vec<(String, String)>,
+    #[serde(default)]
+    pub spells: Vec<CreateSpell>,
+    #[serde(default)]
+    pub equipment: Vec<String>,
+    #[serde(default)]
+    pub deity: Option<String>,
+    #[serde(default)]
+    pub domains: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct LevelUpRequest {
+    #[serde(rename = "class")]
+    pub class_id: String,
+    #[serde(default)]
+    pub hp_gained: Option<i32>,
+    #[serde(default)]
+    pub skills: BTreeMap<String, f64>,
+    #[serde(default)]
+    pub abilities: Vec<(String, String)>,
+    #[serde(default)]
+    pub spells: Vec<CreateSpell>,
+}
+
+/// Build a `CharacterDraft` from a creation request, validating against the
+/// compiled rule pack.
+pub fn create_draft(
+    pack: &CompiledRulePack,
+    request: &CreateRequest,
+) -> Result<CharacterDraft, BuilderError> {
+    let race_id = canonical_race(pack, &request.race)
+        .ok_or_else(|| BuilderError::UnknownRace(request.race.clone()))?;
+    let class_id = canonical_class(pack, &request.class_id)
+        .ok_or_else(|| BuilderError::UnknownClass(request.class_id.clone()))?;
+    if request.level == 0 || request.level > 20 {
+        return Err(BuilderError::InvalidLevel(request.level));
+    }
+    if let Some(class) = pack.classes.get(&class_id) {
+        if class.max_level > 0 && request.level > class.max_level {
+            return Err(BuilderError::InvalidLevel(request.level));
+        }
+    }
+
+    let mut stats = BTreeMap::new();
+    for key in ABILITY_KEYS {
+        stats.insert(key.to_string(), 10);
+    }
+    for (key, value) in &request.stats {
+        let key = key.to_ascii_uppercase();
+        if !ABILITY_KEYS.contains(&key.as_str()) {
+            return Err(BuilderError::InvalidAbilityScore(key));
+        }
+        stats.insert(key, *value);
+    }
+    if let Some(budget) = request.point_buy_budget {
+        point_buy::validate(&stats, budget)?;
+    }
+
+    let mut skills = BTreeMap::new();
+    for (name, ranks) in &request.skills {
+        if *ranks < 0.0 {
+            return Err(BuilderError::InvalidSkillRank(name.clone()));
+        }
+        let key =
+            canonical_skill(pack, name).ok_or_else(|| BuilderError::UnknownSkill(name.clone()))?;
+        skills.insert(key, *ranks);
+    }
+
+    let mut abilities = Vec::new();
+    for (category, key) in &request.abilities {
+        if category.trim().is_empty() || key.trim().is_empty() {
+            return Err(BuilderError::InvalidAbility(key.clone()));
+        }
+        // Ability categories are data-dependent; keep the user-provided value
+        // when the pack has no matching typed category yet.
+        let category =
+            canonical_ability_category(pack, category).unwrap_or_else(|| category.clone());
+        abilities.push((category, key.clone()));
+    }
+
+    let mut spells = Vec::new();
+    for spell in &request.spells {
+        let name = canonical_spell(pack, &spell.name)
+            .ok_or_else(|| BuilderError::UnknownSpell(spell.name.clone()))?;
+        spells.push(DraftSpell {
+            name,
+            level: spell.level,
+            class_id: Some(class_id.clone()),
+            times_memorized: spell.times_memorized,
+            book: spell.book.clone(),
+        });
+    }
+
+    let mut equipment = Vec::new();
+    for item in &request.equipment {
+        let key = canonical_equipment(pack, item)
+            .ok_or_else(|| BuilderError::UnknownEquipment(item.clone()))?;
+        equipment.push(key);
+    }
+
+    let mut draft = CharacterDraft {
+        id: if request.id.trim().is_empty() {
+            slug(&request.name)
+        } else {
+            request.id.clone()
+        },
+        name: request.name.clone(),
+        race_id,
+        campaign: request.campaign.clone(),
+        alignment: request.alignment.clone(),
+        stats,
+        class_levels: vec![DraftClassLevel {
+            class_id: class_id.clone(),
+            level: request.level,
+            hit_points_gained: 0,
+            hit_points_by_level: average_hit_points(pack, &class_id, request.level),
+            experience_gained: 0,
+        }],
+        skills,
+        spells,
+        equipment,
+        abilities,
+        deity: request.deity.clone(),
+        domains: request.domains.clone(),
+        ..CharacterDraft::default()
+    };
+    draft.id = crate::sanitize_id(&draft.id).unwrap_or_else(|_| "character".to_string());
+    Ok(draft)
+}
+
+/// Apply one level of `request.class_id` to an existing draft.
+pub fn level_up_draft(
+    pack: &CompiledRulePack,
+    draft: &mut CharacterDraft,
+    request: &LevelUpRequest,
+) -> Result<(), BuilderError> {
+    let class_id = canonical_class(pack, &request.class_id)
+        .ok_or_else(|| BuilderError::UnknownClass(request.class_id.clone()))?;
+    if draft.total_level() >= 20 {
+        return Err(BuilderError::InvalidLevel(draft.total_level() + 1));
+    }
+    if let Some(entry) = draft
+        .class_levels
+        .iter_mut()
+        .find(|entry| entry.class_id.eq_ignore_ascii_case(&class_id))
+    {
+        entry.level += 1;
+        let gained = request
+            .hp_gained
+            .unwrap_or_else(|| average_hit_die(pack, &class_id));
+        if !entry.hit_points_by_level.is_empty() || request.hp_gained.is_some() {
+            entry.hit_points_by_level.push(gained);
+        } else {
+            entry.hit_points_gained += gained;
+        }
+    } else {
+        let gained = request
+            .hp_gained
+            .unwrap_or_else(|| average_hit_die(pack, &class_id));
+        draft.class_levels.push(DraftClassLevel {
+            class_id: class_id.clone(),
+            level: 1,
+            hit_points_gained: 0,
+            hit_points_by_level: vec![gained],
+            experience_gained: 0,
+        });
+    }
+    for (name, ranks) in &request.skills {
+        if *ranks < 0.0 {
+            return Err(BuilderError::InvalidSkillRank(name.clone()));
+        }
+        let key =
+            canonical_skill(pack, name).ok_or_else(|| BuilderError::UnknownSkill(name.clone()))?;
+        *draft.skills.entry(key).or_insert(0.0) += *ranks;
+    }
+    for (category, key) in &request.abilities {
+        if category.trim().is_empty() || key.trim().is_empty() {
+            return Err(BuilderError::InvalidAbility(key.clone()));
+        }
+        let category =
+            canonical_ability_category(pack, category).unwrap_or_else(|| category.clone());
+        draft.abilities.push((category, key.clone()));
+    }
+    for spell in &request.spells {
+        let name = canonical_spell(pack, &spell.name)
+            .ok_or_else(|| BuilderError::UnknownSpell(spell.name.clone()))?;
+        draft.spells.push(DraftSpell {
+            name,
+            level: spell.level,
+            class_id: Some(request.class_id.clone()),
+            times_memorized: spell.times_memorized,
+            book: spell.book.clone(),
+        });
+    }
+    Ok(())
+}
+
+fn average_hit_points(pack: &CompiledRulePack, class_id: &str, level: u32) -> Vec<i32> {
+    let average = average_hit_die(pack, class_id);
+    if average <= 0 {
+        Vec::new()
+    } else {
+        vec![average; level as usize]
+    }
+}
+
+fn average_hit_die(pack: &CompiledRulePack, class_id: &str) -> i32 {
+    pack.classes
+        .get(class_id)
+        .and_then(|class| parse_die(&class.hit_die))
+        .map(|die| die / 2 + 1)
+        .unwrap_or(0)
+}
+
+fn parse_die(value: &str) -> Option<i32> {
+    let digits: String = value
+        .chars()
+        .filter(|character| character.is_ascii_digit())
+        .collect();
+    digits.parse().ok()
+}
+
+fn slug(value: &str) -> String {
+    let value = value.trim();
+    if value.is_empty() {
+        "character".to_string()
+    } else {
+        value
+            .chars()
+            .map(|character| {
+                if character.is_ascii_alphanumeric() {
+                    character.to_ascii_lowercase()
+                } else {
+                    '-'
+                }
+            })
+            .collect()
+    }
+}
+
+fn canonical_race(pack: &CompiledRulePack, value: &str) -> Option<String> {
+    if pack.races.contains_key(value) {
+        return Some(value.to_string());
+    }
+    pack.races
+        .values()
+        .find(|race| race.name.eq_ignore_ascii_case(value))
+        .map(|race| race.id.clone())
+}
+
+fn canonical_class(pack: &CompiledRulePack, value: &str) -> Option<String> {
+    if pack.classes.contains_key(value) {
+        return Some(value.to_string());
+    }
+    pack.classes
+        .values()
+        .find(|class| class.name.eq_ignore_ascii_case(value))
+        .map(|class| class.id.clone())
+}
+
+fn canonical_skill(pack: &CompiledRulePack, value: &str) -> Option<String> {
+    if pack.skills.contains_key(value) {
+        return Some(value.to_string());
+    }
+    pack.skills
+        .values()
+        .find(|skill| skill.name.eq_ignore_ascii_case(value))
+        .map(|skill| skill.id.clone())
+}
+
+fn canonical_spell(pack: &CompiledRulePack, value: &str) -> Option<String> {
+    if pack.spells.contains_key(value) {
+        return Some(value.to_string());
+    }
+    pack.spells
+        .values()
+        .find(|spell| spell.name.eq_ignore_ascii_case(value))
+        .map(|spell| spell.id.clone())
+}
+
+fn canonical_equipment(pack: &CompiledRulePack, value: &str) -> Option<String> {
+    if pack.equipment.contains_key(value) {
+        return Some(value.to_string());
+    }
+    pack.equipment
+        .values()
+        .find(|item| item.name.eq_ignore_ascii_case(value))
+        .map(|item| item.id.clone())
+}
+
+fn canonical_ability_category(pack: &CompiledRulePack, value: &str) -> Option<String> {
+    if pack.ability_categories.contains_key(value) {
+        return Some(value.to_string());
+    }
+    pack.ability_categories
+        .values()
+        .find(|category| category.name.eq_ignore_ascii_case(value))
+        .map(|category| category.id.clone())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pcgen_import::lower_records;
+
+    fn sample_pack() -> CompiledRulePack {
+        let (mut pack, _) = lower_records(Some("3e".to_string()), Vec::new(), &[]);
+        pack.races.insert(
+            "Human".to_string(),
+            pcgen_core::domain::RaceDefinition::new("Human", "Human"),
+        );
+        pack.classes.insert(
+            "Fighter".to_string(),
+            pcgen_core::domain::ClassDefinition::new("Fighter", "Fighter"),
+        );
+        pack.skills.insert(
+            "Climb".to_string(),
+            pcgen_core::domain::SkillDefinition::new("Climb", "Climb"),
+        );
+        pack.ability_categories.insert(
+            "FEAT".to_string(),
+            pcgen_core::AbilityCategoryDefinition {
+                id: "FEAT".to_string(),
+                name: "FEAT".to_string(),
+                ..Default::default()
+            },
+        );
+        pack.equipment.insert(
+            "Longsword".to_string(),
+            pcgen_core::domain::EquipmentDefinition::new("Longsword", "Longsword"),
+        );
+        pack.spells.insert(
+            "Magic Missile".to_string(),
+            pcgen_core::domain::SpellDefinition::new("Magic Missile", "Magic Missile"),
+        );
+        pack
+    }
+
+    #[test]
+    fn creates_level_three_fighter() {
+        let pack = sample_pack();
+        let request = CreateRequest {
+            id: "hero".to_string(),
+            name: "Hero".to_string(),
+            race: "human".to_string(),
+            class_id: "fighter".to_string(),
+            level: 3,
+            stats: BTreeMap::new(),
+            point_buy_budget: Some(25),
+            skills: [("climb".to_string(), 4.0)].into_iter().collect(),
+            abilities: vec![("FEAT".to_string(), "Power Attack".to_string())],
+            spells: Vec::new(),
+            equipment: vec!["longsword".to_string()],
+            ..CreateRequest::default()
+        };
+        let draft = create_draft(&pack, &request).unwrap();
+        assert_eq!(draft.id, "hero");
+        assert_eq!(draft.race_id, "Human");
+        assert_eq!(draft.class_levels[0].class_id, "Fighter");
+        assert_eq!(draft.class_levels[0].level, 3);
+        assert_eq!(draft.skills.get("Climb"), Some(&4.0));
+        assert_eq!(draft.equipment, vec!["Longsword".to_string()]);
+    }
+
+    #[test]
+    fn rejects_unknown_race_and_skill() {
+        let pack = sample_pack();
+        let mut request = CreateRequest {
+            name: "Hero".to_string(),
+            race: "Elf".to_string(),
+            class_id: "Fighter".to_string(),
+            level: 1,
+            ..CreateRequest::default()
+        };
+        assert!(matches!(
+            create_draft(&pack, &request),
+            Err(BuilderError::UnknownRace(_))
+        ));
+        request.race = "Human".to_string();
+        request.skills.insert("Swim".to_string(), 1.0);
+        assert!(matches!(
+            create_draft(&pack, &request),
+            Err(BuilderError::UnknownSkill(_))
+        ));
+    }
+
+    #[test]
+    fn level_up_adds_class_level_and_skills() {
+        let pack = sample_pack();
+        let mut draft = create_draft(
+            &pack,
+            &CreateRequest {
+                name: "Hero".to_string(),
+                race: "Human".to_string(),
+                class_id: "Fighter".to_string(),
+                level: 1,
+                ..CreateRequest::default()
+            },
+        )
+        .unwrap();
+        let request = LevelUpRequest {
+            class_id: "Fighter".to_string(),
+            hp_gained: Some(6),
+            skills: [("Climb".to_string(), 2.0)].into_iter().collect(),
+            ..LevelUpRequest::default()
+        };
+        level_up_draft(&pack, &mut draft, &request).unwrap();
+        assert_eq!(draft.total_level(), 2);
+        assert_eq!(draft.class_levels[0].hit_points_by_level, vec![5, 6]);
+        assert_eq!(draft.skills.get("Climb"), Some(&2.0));
+    }
+}
