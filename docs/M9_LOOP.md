@@ -24,9 +24,11 @@
   - [x] `docs/M9_PACKAGING.md`
 - [~] **M9-5 朋友 beta 反馈与修复**
   - [x] M9-5a Beta checklist + package dry-run + Copy diagnostics
+        （commit `de9de22`）
   - [ ] M9-5b 真实 beta 反馈修复
 
 ## 当前状态
 
-- 最近更新：M9-5a 完成；等待真实 beta 反馈进入 M9-5b。
+- 最近更新：M9-5a 完成（commit `de9de22`）；等待真实 beta 反馈
+  进入 M9-5b。
 - 已知风险：数据包许可、购点表版本、Web 首次编译性能。
