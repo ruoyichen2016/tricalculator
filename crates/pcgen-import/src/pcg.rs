@@ -275,10 +275,15 @@ pub fn write_pcg_draft_string(draft: &PcgDraft) -> Result<String, PcgDraftError>
         writeln!(out, "SKILL:{skill}|RANKS:{ranks}").ok();
     }
     for spell in &draft.spells {
+        let book = spell
+            .book
+            .as_deref()
+            .map(|value| format!("|BOOK:{value}"))
+            .unwrap_or_default();
         writeln!(
             out,
-            "SPELLNAME:{}|SPELLLEVEL:{}|TIMES:{}",
-            spell.name, spell.level, spell.times_memorized
+            "SPELLNAME:{}|SPELLLEVEL:{}|TIMES:{}{}",
+            spell.name, spell.level, spell.times_memorized, book
         )
         .ok();
         if let Some(class_id) = &spell.class_id {
@@ -566,6 +571,10 @@ fn parse_spell(draft: &mut PcgDraft, value: &str) {
         .iter()
         .find_map(|part| part.strip_prefix("CLASS:"))
         .map(str::to_string);
+    let book = parts
+        .iter()
+        .find_map(|part| part.strip_prefix("BOOK:"))
+        .map(str::to_string);
     if let Some(existing) = draft
         .spells
         .iter_mut()
@@ -573,6 +582,9 @@ fn parse_spell(draft: &mut PcgDraft, value: &str) {
     {
         if existing.class_id.is_none() {
             existing.class_id = class_id;
+        }
+        if existing.book.is_none() {
+            existing.book = book;
         }
         existing.level = existing.level.max(level);
         existing.times_memorized = existing.times_memorized.max(times);
@@ -582,6 +594,7 @@ fn parse_spell(draft: &mut PcgDraft, value: &str) {
             level,
             class_id,
             times_memorized: times,
+            book,
         });
     }
 }

@@ -318,6 +318,15 @@ archive differential 改为 **三方差分**（archive vs new vs Java），由 J
 - 剩余 `prepared_count` 的 known / innate / memorized 语义与攻击总额
   转 L3b-4。
 
+### Sprint 3-L3b-4：prepared 语义与攻击总额（已完成）
+
+- `.pcg` 解析 `BOOK:`，`PcgSpell` / `DraftSpell` 新增 `book`；
+  只有 `BOOK:Prepared*` 才计入 prepared。
+- Java 抽取器只统计 `memorized_spells`，排除 `racial_innate_memorized`。
+- `CharacterSnapshot` 新增 melee / ranged / grapple 总额；grapple 使用
+  正确的 special size modifier。
+- deep-field 达到 **49 gated / 0 owned gaps**；Sprint 3 深度字段扩展完成。
+
 ### P6-1a HTM csheet 解析与 cohort 扩展（已完成）
 
 - 新增 `scripts/htm_csheet.py`：从 PCGen `.htm` csheet 抽取

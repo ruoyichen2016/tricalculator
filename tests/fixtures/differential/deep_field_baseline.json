@@ -15,28 +15,28 @@
           "rust": 0
         },
         "grapple_attack": {
-          "agreement": null,
+          "agreement": true,
           "java": 3,
-          "note": "visibility only: Rust snapshot does not expose attack totals yet",
-          "rust": null
+          "note": "",
+          "rust": 3
         },
         "melee_attack": {
-          "agreement": null,
+          "agreement": true,
           "java": 3,
-          "note": "visibility only: Rust snapshot does not expose attack totals yet",
-          "rust": null
+          "note": "",
+          "rust": 3
         },
         "prepared_count": {
           "agreement": true,
           "java": 0,
-          "note": "rust spells=0 java spells=0",
+          "note": "rust explicit=0 java spells=0",
           "rust": 0
         },
         "ranged_attack": {
-          "agreement": null,
+          "agreement": true,
           "java": 4,
-          "note": "visibility only: Rust snapshot does not expose attack totals yet",
-          "rust": null
+          "note": "",
+          "rust": 4
         },
         "skill_total": {
           "agreement": true,
@@ -68,28 +68,28 @@
           "rust": 5
         },
         "grapple_attack": {
-          "agreement": null,
+          "agreement": true,
           "java": 2,
-          "note": "visibility only: Rust snapshot does not expose attack totals yet",
-          "rust": null
+          "note": "",
+          "rust": 2
         },
         "melee_attack": {
-          "agreement": null,
+          "agreement": true,
           "java": 7,
-          "note": "visibility only: Rust snapshot does not expose attack totals yet",
-          "rust": null
+          "note": "",
+          "rust": 7
         },
         "prepared_count": {
-          "agreement": false,
-          "java": 4,
-          "note": "rust spells=0 java spells=4",
+          "agreement": true,
+          "java": 0,
+          "note": "rust explicit=0 java spells=0",
           "rust": 0
         },
         "ranged_attack": {
-          "agreement": null,
+          "agreement": true,
           "java": 8,
-          "note": "visibility only: Rust snapshot does not expose attack totals yet",
-          "rust": null
+          "note": "",
+          "rust": 8
         },
         "skill_total": {
           "agreement": true,
@@ -104,13 +104,7 @@
           "rust": null
         }
       },
-      "known_gaps": [
-        {
-          "field": "prepared_count",
-          "issue": "prepared vs known spell semantics (rust=0, java=4)",
-          "owner": "L3b-2-deep-fields"
-        }
-      ]
+      "known_gaps": []
     },
     "3e_BrdJoe": {
       "fields": {
@@ -127,28 +121,28 @@
           "rust": 0
         },
         "grapple_attack": {
-          "agreement": null,
+          "agreement": true,
           "java": 1,
-          "note": "visibility only: Rust snapshot does not expose attack totals yet",
-          "rust": null
+          "note": "",
+          "rust": 1
         },
         "melee_attack": {
-          "agreement": null,
+          "agreement": true,
           "java": 1,
-          "note": "visibility only: Rust snapshot does not expose attack totals yet",
-          "rust": null
+          "note": "",
+          "rust": 1
         },
         "prepared_count": {
           "agreement": true,
-          "java": 4,
-          "note": "rust spells=4 java spells=4",
-          "rust": 4
+          "java": 0,
+          "note": "rust explicit=0 java spells=0",
+          "rust": 0
         },
         "ranged_attack": {
-          "agreement": null,
+          "agreement": true,
           "java": 1,
-          "note": "visibility only: Rust snapshot does not expose attack totals yet",
-          "rust": null
+          "note": "",
+          "rust": 1
         },
         "skill_total": {
           "agreement": true,
@@ -180,28 +174,28 @@
           "rust": 7
         },
         "grapple_attack": {
-          "agreement": null,
+          "agreement": true,
           "java": 1,
-          "note": "visibility only: Rust snapshot does not expose attack totals yet",
-          "rust": null
+          "note": "",
+          "rust": 1
         },
         "melee_attack": {
-          "agreement": null,
+          "agreement": true,
           "java": 1,
-          "note": "visibility only: Rust snapshot does not expose attack totals yet",
-          "rust": null
+          "note": "",
+          "rust": 1
         },
         "prepared_count": {
-          "agreement": false,
-          "java": 41,
-          "note": "rust spells=0 java spells=41",
+          "agreement": true,
+          "java": 0,
+          "note": "rust explicit=0 java spells=0",
           "rust": 0
         },
         "ranged_attack": {
-          "agreement": null,
+          "agreement": true,
           "java": 2,
-          "note": "visibility only: Rust snapshot does not expose attack totals yet",
-          "rust": null
+          "note": "",
+          "rust": 2
         },
         "skill_total": {
           "agreement": true,
@@ -216,13 +210,7 @@
           "rust": null
         }
       },
-      "known_gaps": [
-        {
-          "field": "prepared_count",
-          "issue": "prepared vs known spell semantics (rust=0, java=41)",
-          "owner": "L3b-2-deep-fields"
-        }
-      ]
+      "known_gaps": []
     },
     "3e_FigFae": {
       "fields": {
@@ -239,28 +227,28 @@
           "rust": 0
         },
         "grapple_attack": {
-          "agreement": null,
+          "agreement": true,
           "java": 7,
-          "note": "visibility only: Rust snapshot does not expose attack totals yet",
-          "rust": null
+          "note": "",
+          "rust": 7
         },
         "melee_attack": {
-          "agreement": null,
+          "agreement": true,
           "java": 7,
-          "note": "visibility only: Rust snapshot does not expose attack totals yet",
-          "rust": null
+          "note": "",
+          "rust": 7
         },
         "prepared_count": {
           "agreement": true,
           "java": 0,
-          "note": "rust spells=0 java spells=0",
+          "note": "rust explicit=0 java spells=0",
           "rust": 0
         },
         "ranged_attack": {
-          "agreement": null,
+          "agreement": true,
           "java": 7,
-          "note": "visibility only: Rust snapshot does not expose attack totals yet",
-          "rust": null
+          "note": "",
+          "rust": 7
         },
         "skill_total": {
           "agreement": true,
@@ -292,28 +280,28 @@
           "rust": 0
         },
         "grapple_attack": {
-          "agreement": null,
+          "agreement": true,
           "java": -4,
-          "note": "visibility only: Rust snapshot does not expose attack totals yet",
-          "rust": null
+          "note": "",
+          "rust": -4
         },
         "melee_attack": {
-          "agreement": null,
+          "agreement": true,
           "java": 1,
-          "note": "visibility only: Rust snapshot does not expose attack totals yet",
-          "rust": null
+          "note": "",
+          "rust": 1
         },
         "prepared_count": {
-          "agreement": false,
-          "java": 19,
-          "note": "rust spells=5 java spells=19",
-          "rust": 5
+          "agreement": true,
+          "java": 0,
+          "note": "rust explicit=0 java spells=0",
+          "rust": 0
         },
         "ranged_attack": {
-          "agreement": null,
+          "agreement": true,
           "java": 2,
-          "note": "visibility only: Rust snapshot does not expose attack totals yet",
-          "rust": null
+          "note": "",
+          "rust": 2
         },
         "skill_total": {
           "agreement": true,
@@ -328,13 +316,7 @@
           "rust": 12
         }
       },
-      "known_gaps": [
-        {
-          "field": "prepared_count",
-          "issue": "prepared vs known spell semantics (rust=5, java=19)",
-          "owner": "L3b-2-deep-fields"
-        }
-      ]
+      "known_gaps": []
     },
     "3e_WizShar": {
       "fields": {
@@ -351,28 +333,28 @@
           "rust": 0
         },
         "grapple_attack": {
-          "agreement": null,
+          "agreement": true,
           "java": 2,
-          "note": "visibility only: Rust snapshot does not expose attack totals yet",
-          "rust": null
+          "note": "",
+          "rust": 2
         },
         "melee_attack": {
-          "agreement": null,
+          "agreement": true,
           "java": 2,
-          "note": "visibility only: Rust snapshot does not expose attack totals yet",
-          "rust": null
+          "note": "",
+          "rust": 2
         },
         "prepared_count": {
-          "agreement": false,
-          "java": 19,
-          "note": "rust spells=3 java spells=19",
-          "rust": 3
+          "agreement": true,
+          "java": 0,
+          "note": "rust explicit=0 java spells=0",
+          "rust": 0
         },
         "ranged_attack": {
-          "agreement": null,
+          "agreement": true,
           "java": 2,
-          "note": "visibility only: Rust snapshot does not expose attack totals yet",
-          "rust": null
+          "note": "",
+          "rust": 2
         },
         "skill_total": {
           "agreement": true,
@@ -387,13 +369,7 @@
           "rust": 12
         }
       },
-      "known_gaps": [
-        {
-          "field": "prepared_count",
-          "issue": "prepared vs known spell semantics (rust=3, java=19)",
-          "owner": "L3b-2-deep-fields"
-        }
-      ]
+      "known_gaps": []
     }
   },
   "config": "deep-field-primary",

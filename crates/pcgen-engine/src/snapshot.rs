@@ -82,6 +82,15 @@ pub struct CharacterSnapshot {
     #[serde(default)]
     pub feat_slots: u32,
     pub base_attack_bonus: i32,
+    /// Primary melee attack total (BAB + STR + size); see L3b-4 scope note.
+    #[serde(default)]
+    pub melee_attack: i32,
+    /// Primary ranged attack total (BAB + DEX + size).
+    #[serde(default)]
+    pub ranged_attack: i32,
+    /// Grapple total (BAB + STR + special size modifier).
+    #[serde(default)]
+    pub grapple_attack: i32,
     /// `EXCLASS` / `EXCHANGELEVEL` metadata for active classes.
     #[serde(default)]
     pub class_interactions: Vec<ClassInteraction>,
@@ -107,6 +116,10 @@ pub struct CharacterSnapshot {
     /// ``DOMAINGRANTS:You cast law spells at +1 caster level.``.
     #[serde(default)]
     pub caster_level_bonus: i32,
+    /// Prepared spell count from `BOOK:Prepared*` only; the `prepared_spells`
+    /// map keeps the broader spell-effect activation semantics.
+    #[serde(default)]
+    pub explicit_prepared_count: u32,
     #[serde(default)]
     pub spell_dcs: BTreeMap<String, i32>,
     #[serde(default)]

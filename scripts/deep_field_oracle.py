@@ -43,8 +43,11 @@ COMPARABLE_FIELDS = [
     "spell_dc_max",
     "caster_level_max",
     "prepared_count",
+    "melee_attack",
+    "ranged_attack",
+    "grapple_attack",
 ]
-VISIBILITY_FIELDS = ["melee_attack", "ranged_attack", "grapple_attack"]
+VISIBILITY_FIELDS: list[str] = []
 
 
 def data_root() -> Path:
@@ -143,26 +146,17 @@ def evaluate_case(case: dict) -> dict:
     else:
         add("caster_level_max", None, None, "not comparable on both sides")
 
-    rust_prepared = {}
-    for key, value in (rust.get("prepared_spells") or {}).items():
-        name = prepared_spell_name(key)
-        rust_prepared[name] = rust_prepared.get(name, 0) + value
     java_prepared = java.get("prepared_spells", {}) or {}
     add(
         "prepared_count",
-        sum(rust_prepared.values()),
+        int(rust.get("explicit_prepared_count") or 0),
         sum(java_prepared.values()),
-        f"rust spells={len(rust_prepared)} java spells={len(java_prepared)}",
+        f"rust explicit={rust.get('explicit_prepared_count')} java spells={len(java_prepared)}",
     )
 
-    for field in VISIBILITY_FIELDS:
-        java_value = java.get(field)
-        fields[field] = {
-            "rust": rust.get(field),
-            "java": java_value,
-            "agreement": None,
-            "note": "visibility only: Rust snapshot does not expose attack totals yet",
-        }
+    add("melee_attack", rust.get("melee_attack"), java.get("melee_attack"))
+    add("ranged_attack", rust.get("ranged_attack"), java.get("ranged_attack"))
+    add("grapple_attack", rust.get("grapple_attack"), java.get("grapple_attack"))
 
     return {
         "status": "computed",

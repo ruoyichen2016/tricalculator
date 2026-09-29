@@ -94,6 +94,7 @@ fn psion_power_points_manifester_level_and_dc() {
             level: 2,
             class_id: Some("Psion".to_string()),
             times_memorized: 0,
+            book: None,
         }],
         ..CharacterDraft::default()
     };

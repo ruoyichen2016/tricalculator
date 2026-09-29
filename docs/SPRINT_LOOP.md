@@ -28,8 +28,9 @@
       - [x] **L3b-3 Domain caster level**：新增
         `CharacterSnapshot.caster_level_bonus`，修掉 `3e_CleElf`；deep-field
         收敛到 24 gated / 4 owned gaps。
-      - [ ] **L3b-4 残留修复**：区分 known / memorized / innate 法术语义，
-        暴露 Rust melee/ranged/grapple 总额，消除剩余 4 条 known_gap。
+      - [x] **L3b-4 prepared 语义与攻击总额**：`.pcg BOOK` 语义修正、
+        Java memorized 抽取、`CharacterSnapshot` 攻击总额；deep-field
+        达到 49 gated / 0 owned gaps。
 
 ## 循环规则
 
@@ -49,4 +50,4 @@
 - L3b-1：已完成（commit `d010547`）。
 - L3b-2：已完成（commit `d93bb15`）。
 - L3b-3：已完成（commit `c4914d5`）。
-- L3b-4：下一轮起点。
+- L3b-4：已完成，待本轮 commit。

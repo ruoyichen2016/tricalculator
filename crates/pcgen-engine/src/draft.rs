@@ -26,6 +26,10 @@ pub struct DraftSpell {
     pub class_id: Option<String>,
     #[serde(default)]
     pub times_memorized: u32,
+    /// PCGen `BOOK:` value; `None` means a manual draft and is treated as
+    /// prepared for backward compatibility.
+    #[serde(default)]
+    pub book: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

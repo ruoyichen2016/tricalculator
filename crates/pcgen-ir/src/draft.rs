@@ -31,6 +31,9 @@ pub struct PcgSpell {
     pub class_id: Option<String>,
     #[serde(default)]
     pub times_memorized: u32,
+    /// PCGen `BOOK:` value, e.g. `Known Spells` or `Prepared Spells`.
+    #[serde(default)]
+    pub book: Option<String>,
 }
 
 /// Persisted draft inputs parsed from a `.pcg`.

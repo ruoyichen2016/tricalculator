@@ -616,6 +616,17 @@ impl Engine {
             ),
         ]);
 
+        let explicit_prepared_count = draft
+            .spells
+            .iter()
+            .filter(|spell| spell.times_memorized > 0 && is_prepared_book(&spell.book))
+            .map(|spell| spell.times_memorized)
+            .sum();
+        let strength_mod = stat_mods.get("STR").copied().unwrap_or(0);
+        let melee_attack = base_attack_bonus + strength_mod + size_modifier;
+        let ranged_attack = base_attack_bonus + dex_mod + size_modifier;
+        let grapple_attack =
+            base_attack_bonus + strength_mod + grapple_size_modifier_from_rank(size_rank);
         let caster_level_bonus = self.domain_caster_level_bonus(draft);
         let mut snapshot = CharacterSnapshot {
             draft_id: draft.id.clone(),
@@ -628,6 +639,9 @@ impl Engine {
             skill_points,
             feat_slots,
             base_attack_bonus,
+            melee_attack,
+            ranged_attack,
+            grapple_attack,
             class_interactions,
             prohibited_costs,
             ability_lists,
@@ -648,6 +662,7 @@ impl Engine {
             attack_bonuses,
             caster_levels,
             caster_level_bonus,
+            explicit_prepared_count,
             spell_dcs,
             spell_slots,
             known_limits,
@@ -1994,6 +2009,20 @@ fn save_ability_modifier(stat_mods: &BTreeMap<String, i32>, kind: SaveKind) -> i
         SaveKind::Will => "WIS",
     };
     stat_mods.get(stat).copied().unwrap_or(0)
+}
+
+fn is_prepared_book(book: &Option<String>) -> bool {
+    match book.as_deref() {
+        // Manual drafts (no BOOK value) keep the previous prepared meaning.
+        None => true,
+        Some(value) => value.to_ascii_lowercase().contains("prepared"),
+    }
+}
+
+fn grapple_size_modifier_from_rank(rank: usize) -> i32 {
+    // Fine .. Colossal: smaller creatures are worse at grappling.
+    const MODIFIERS: [i32; 9] = [-16, -12, -8, -4, 0, 4, 8, 12, 16];
+    MODIFIERS.get(rank).copied().unwrap_or(0)
 }
 
 fn size_modifier_from_rank(rank: usize) -> i32 {

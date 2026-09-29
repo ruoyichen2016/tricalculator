@@ -391,6 +391,7 @@ fn draft_from_pcg(draft: PcgDraft) -> CharacterDraft {
                 level: spell.level,
                 class_id: spell.class_id,
                 times_memorized: spell.times_memorized,
+                book: spell.book,
             })
             .collect(),
         equipment: draft.equipment,

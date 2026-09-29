@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Sprint 3-L3b-4：prepared 语义与攻击总额（已完成）
+
+- `.pcg` / `DraftSpell` 新增 `book`，只有 `BOOK:Prepared*` 才计入 prepared；
+- Java prepared 只统计 memorized spells，并排除 racial innate；
+- `CharacterSnapshot` 新增 melee / ranged / grapple 总额；
+- deep-field 达到 7 case / 49 gated / 0 owned gaps。
+
 ### Sprint 3-L3b-3：Domain caster level（已完成）
 
 - active domain 的 `DOMAINGRANTS` caster level 文本进入

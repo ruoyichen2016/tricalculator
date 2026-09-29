@@ -213,7 +213,6 @@ def java_baseline(xml_path: Path) -> dict:
                 pass
 
     spell_dcs = {}
-    prepared_spells = {}
     spell_caster_levels = set()
     for spell in root.findall(".//spell"):
         name = spell.findtext("name")
@@ -222,12 +221,26 @@ def java_baseline(xml_path: Path) -> dict:
         dc = spell.findtext("dc")
         if dc:
             spell_dcs[name] = int(dc)
-        times = spell.findtext("times_memorized")
-        if times:
-            prepared_spells[name] = int(times)
         caster_level = spell.findtext("casterlevel")
         if caster_level:
             spell_caster_levels.add(int(caster_level))
+
+    # `prepared_spells` must mean memorized/prepared spells, not the full
+    # known-spell list.  Racial innate memorized spells are tracked separately
+    # and are not part of the character's prepared spell list.
+    prepared_spells = {}
+    memorized = root.find("./spells/memorized_spells")
+    if memorized is not None:
+        racial_innate = set(memorized.findall("./racial_innate_memorized//spell"))
+        for spell in memorized.findall(".//spell"):
+            if spell in racial_innate:
+                continue
+            name = spell.findtext("name")
+            if not name:
+                continue
+            times = spell.findtext("times_memorized")
+            count = int(times) if times else 1
+            prepared_spells[name] = prepared_spells.get(name, 0) + count
 
     def attack_total(section: str) -> int | None:
         value = root.findtext(f"./attack/{section}/total")

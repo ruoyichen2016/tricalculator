@@ -4,11 +4,7 @@
   "data_ref": "f91bd03f2dbe1145d5526b52aa3e48fcd0f2fc8d",
   "cohort": "tests/fixtures/differential/broad_cohort.json",
   "description": "Aggregate deep-field gate for primary 3.0/3.5e cases. Each comparable field must be either java-gated or an owned known_gap; visibility fields (attack totals) are frozen for drift but not Java-gated yet.",
-  "visibility_fields": [
-    "melee_attack",
-    "ranged_attack",
-    "grapple_attack"
-  ],
+  "visibility_fields": [],
   "cases": {
     "3e_BarJack": {
       "source": {
@@ -18,15 +14,13 @@
       },
       "gated": [
         "equipment_ac_bonus",
-        "skill_total"
+        "skill_total",
+        "prepared_count",
+        "melee_attack",
+        "ranged_attack",
+        "grapple_attack"
       ],
-      "known_gaps": [
-        {
-          "field": "prepared_count",
-          "owner": "L3b-2-deep-fields",
-          "issue": "prepared vs known spell semantics (rust=0, java=4)"
-        }
-      ]
+      "known_gaps": []
     },
     "3e_SWizSam": {
       "source": {
@@ -38,15 +32,13 @@
         "equipment_ac_bonus",
         "skill_total",
         "spell_dc_max",
-        "caster_level_max"
+        "caster_level_max",
+        "prepared_count",
+        "melee_attack",
+        "ranged_attack",
+        "grapple_attack"
       ],
-      "known_gaps": [
-        {
-          "field": "prepared_count",
-          "owner": "L3b-2-deep-fields",
-          "issue": "prepared vs known spell semantics (rust=5, java=19)"
-        }
-      ]
+      "known_gaps": []
     },
     "3e_WizShar": {
       "source": {
@@ -58,15 +50,13 @@
         "equipment_ac_bonus",
         "skill_total",
         "spell_dc_max",
-        "caster_level_max"
+        "caster_level_max",
+        "prepared_count",
+        "melee_attack",
+        "ranged_attack",
+        "grapple_attack"
       ],
-      "known_gaps": [
-        {
-          "field": "prepared_count",
-          "owner": "L3b-2-deep-fields",
-          "issue": "prepared vs known spell semantics (rust=3, java=19)"
-        }
-      ]
+      "known_gaps": []
     },
     "3e_BrdJoe": {
       "source": {
@@ -79,7 +69,10 @@
         "skill_total",
         "spell_dc_max",
         "caster_level_max",
-        "prepared_count"
+        "prepared_count",
+        "melee_attack",
+        "ranged_attack",
+        "grapple_attack"
       ],
       "known_gaps": []
     },
@@ -92,7 +85,10 @@
       "gated": [
         "equipment_ac_bonus",
         "skill_total",
-        "prepared_count"
+        "prepared_count",
+        "melee_attack",
+        "ranged_attack",
+        "grapple_attack"
       ],
       "known_gaps": []
     },
@@ -105,7 +101,10 @@
       "gated": [
         "equipment_ac_bonus",
         "skill_total",
-        "prepared_count"
+        "prepared_count",
+        "melee_attack",
+        "ranged_attack",
+        "grapple_attack"
       ],
       "known_gaps": []
     },
@@ -118,15 +117,13 @@
       "gated": [
         "equipment_ac_bonus",
         "skill_total",
-        "caster_level_max"
+        "caster_level_max",
+        "prepared_count",
+        "melee_attack",
+        "ranged_attack",
+        "grapple_attack"
       ],
-      "known_gaps": [
-        {
-          "field": "prepared_count",
-          "owner": "L3b-2-deep-fields",
-          "issue": "prepared vs known spell semantics (rust=0, java=41)"
-        }
-      ]
+      "known_gaps": []
     }
   }
 }

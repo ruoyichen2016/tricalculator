@@ -56,6 +56,7 @@ fn numeric_spell_effects_are_reported_in_snapshot() {
             level: 1,
             class_id: Some("Wizard".to_string()),
             times_memorized: 1,
+            book: None,
         }],
         ..CharacterDraft::default()
     });
@@ -105,6 +106,7 @@ fn numeric_save_spell_folds_into_saves() {
             level: 1,
             class_id: Some("Cleric".to_string()),
             times_memorized: 1,
+            book: None,
         }],
         ..CharacterDraft::default()
     });
@@ -156,6 +158,7 @@ fn prepared_domain_spell_numeric_effect_is_reported() {
             level: 1,
             class_id: Some("Cleric".to_string()),
             times_memorized: 1,
+            book: None,
         }],
         ..CharacterDraft::default()
     });
@@ -265,12 +268,14 @@ fn numeric_stat_and_skill_spells_fold_into_derived_values() {
                 level: 2,
                 class_id: Some("Wizard".to_string()),
                 times_memorized: 1,
+                book: None,
             },
             DraftSpell {
                 name: "Bull's Strength Skill".to_string(),
                 level: 1,
                 class_id: Some("Wizard".to_string()),
                 times_memorized: 1,
+                book: None,
             },
         ],
         ..CharacterDraft::default()
@@ -390,6 +395,7 @@ fn numeric_attack_spell_folds_into_attack_bonuses() {
             level: 1,
             class_id: Some("Cleric".to_string()),
             times_memorized: 1,
+            book: None,
         }],
         ..CharacterDraft::default()
     });
