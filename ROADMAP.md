@@ -52,7 +52,7 @@
   - [x] M9-6a 装备购买 + 起始金币
   - [x] M9-6b 法术书编辑（class list 校验 + 法术候选）
   - [x] M9-6c output sheet 深化
-- [ ] M9-7 最终 release / beta 扩展
+- [x] M9-7 最终 release / beta 扩展（0.1.0 发布冻结）
 
 ## P0：口径冻结（阶段 0，已完成）
 

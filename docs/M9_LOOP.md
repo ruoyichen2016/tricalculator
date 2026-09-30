@@ -30,7 +30,8 @@
   - [x] M9-6a 装备购买 + 起始金币（commit `32f95dc`）
   - [x] M9-6b 法术书编辑（commit `703563a`）
   - [x] M9-6c output sheet 深化（commit `c7a8b18`）
-- [ ] M9-7 最终 release / beta 扩展
+- [x] M9-7 最终 release / beta 扩展（0.1.0 发布冻结）
+- [ ] M9-8 beta 反馈迭代（依赖 M9-5b）
 
 ## 当前状态
 

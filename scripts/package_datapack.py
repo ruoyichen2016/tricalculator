@@ -25,6 +25,8 @@ PACKS = {
         "entry": "data/35e/wizards_of_the_coast/rsrd/basics/_rsrd_basics.pcc",
         "paths": [
             "data/35e/wizards_of_the_coast/rsrd",
+            "data/homebrew/conversion_support",
+            "data/_universal",
         ],
     },
     "srd30": {
@@ -32,6 +34,8 @@ PACKS = {
         "entry": "data/3e/wizards_of_the_coast/srd/basics/srdbasic.pcc",
         "paths": [
             "data/3e/wizards_of_the_coast/srd",
+            "data/homebrew/conversion_support",
+            "data/_universal",
         ],
     },
 }

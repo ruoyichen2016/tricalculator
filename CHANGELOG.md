@@ -1,5 +1,13 @@
 ## Unreleased
 
+### M9-7：发布冻结（0.1.0，已完成）
+
+- 新增 `RELEASE_NOTES.md`；
+- `package_release.py` 输出 `release.json` 与 `SHA256SUMS`，zip 名称带版本；
+- 实际生成 `dist/pcgen-rust-web/` 与 `pcgen-rust-web-0.1.0.zip`；
+- 发布包包含 rsrd35 / srd30 数据包、run-web 启动器、打包与 beta 文档；
+- 已验证发布二进制可加载两套数据包并返回 pack options。
+
 ### M9-6c：output sheet 深化（已完成）
 
 - `render_html` 增加 Ability Scores / Combat / Saves / Skills /
