@@ -117,5 +117,5 @@
 
 **结论**：114 个测试中，**无一个属于"未决的静默丢失"**——每个都归类为
 migrated / superseded / dropped；dropped 与差距都有明确记录，且 archive
-differential 现已作为 strict 门禁运行。当前 205 个测试是不同粒度
+differential 现已作为 strict 门禁运行。当前 227 个测试是不同粒度
 （IR + 门禁 + differential）的结果，不应与 114 直接比数量。

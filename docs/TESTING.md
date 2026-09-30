@@ -290,9 +290,9 @@ KIT / COMPANIONMOD / 怪物记录**均在范围内**（见 `PRODUCT_SCOPE.md`）
 数据版本升级时 baseline 的 `data_ref` 必须与
 `scripts/testdata.lock.json` 一致，否则门禁打印告警。
 
-`docs/TAG_WORKLIST.md` 由 DS-3E 生成，把
-`unsupported=3`、`legacy_allowlisted=1,284`、`legacy_pending=1,489`
-拆成可分配的 tag 项（`semantic_pending = 1,492`）。
+`docs/TAG_WORKLIST.md` 由 DS-3E 生成，当前
+`unsupported_pending=0`、`legacy_pending=0`，三个数据集的
+`semantic_completion` 均为 **100.0%**。
 
 每个 pending tag 的 owner 划分见 [`docs/TAG_TRIAGE.md`](TAG_TRIAGE.md)：
 8 个展示/角色生成 tag 已改判 allowlist，其余全部归入 P4 任务；

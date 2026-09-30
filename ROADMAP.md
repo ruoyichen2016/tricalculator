@@ -7,8 +7,8 @@
 
 ## 当前状态（最近验证：固定数据 + 全量门禁）
 
-- 工作区：7 crate（core / formula / ir / import / engine / output / cli）。
-- 测试：`cargo test --workspace` **207 passed**。
+- 工作区：9 crate（core / formula / ir / import / engine / builder / output / cli / web）。
+- 测试：`cargo test --workspace` **227 passed**。
 - DS-3E（回归代理，`srdbasic.pcc`）：3,779 entities，23,723 tag occurrences，
   lowered 3,267；legacy pending 0；unsupported 0；
   **semantic completion 100.0%**。
@@ -48,7 +48,7 @@
 - [~] M9-5 朋友 beta 反馈与修复
   - [x] M9-5a Beta checklist + package dry-run + diagnostics 按钮
   - [ ] M9-5b 真实 beta 反馈修复
-- [~] M9-6 建卡深化
+- [x] M9-6 建卡深化
   - [x] M9-6a 装备购买 + 起始金币
   - [x] M9-6b 法术书编辑（class list 校验 + 法术候选）
   - [x] M9-6c output sheet 深化

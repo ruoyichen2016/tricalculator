@@ -239,7 +239,7 @@ cargo run -p pcgen-cli -- level-up hero.json --pcc <pcc> --class Fighter --hp 6 
   domain_spells / deity_domains；
 - P5-7：prepared/domain spell 的 AC/save/stat/skill `BONUS` 进入
   `applied_spell_effects`；
-- 205 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
+- 227 个测试（最新数字与门禁状态见 [`ROADMAP.md`](ROADMAP.md)）。
 
 真实 PCGen 数据解析与完整角色计算正在按 [`MIGRATION.md`](MIGRATION.md) 从
 archive 迁移。
