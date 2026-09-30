@@ -131,9 +131,16 @@ pub fn create_draft(
     for spell in &request.spells {
         let name = canonical_spell(pack, &spell.name)
             .ok_or_else(|| BuilderError::UnknownSpell(spell.name.clone()))?;
+        let class_level = spell_level_for_class(pack, &name, &class_id)
+            .ok_or_else(|| BuilderError::SpellNotOnClassList(name.clone(), class_id.clone()))?;
+        let level = if spell.level > 0 {
+            spell.level
+        } else {
+            class_level
+        };
         spells.push(DraftSpell {
-            name,
-            level: spell.level,
+            name: spell_display_name(pack, &name),
+            level,
             class_id: Some(class_id.clone()),
             times_memorized: spell.times_memorized,
             book: spell.book.clone(),
@@ -239,10 +246,17 @@ pub fn level_up_draft(
     for spell in &request.spells {
         let name = canonical_spell(pack, &spell.name)
             .ok_or_else(|| BuilderError::UnknownSpell(spell.name.clone()))?;
+        let class_level = spell_level_for_class(pack, &name, &class_id)
+            .ok_or_else(|| BuilderError::SpellNotOnClassList(name.clone(), class_id.clone()))?;
+        let level = if spell.level > 0 {
+            spell.level
+        } else {
+            class_level
+        };
         draft.spells.push(DraftSpell {
-            name,
-            level: spell.level,
-            class_id: Some(request.class_id.clone()),
+            name: spell_display_name(pack, &name),
+            level,
+            class_id: Some(class_id.clone()),
             times_memorized: spell.times_memorized,
             book: spell.book.clone(),
         });
@@ -270,6 +284,32 @@ pub fn equipment_cost(pack: &CompiledRulePack, equipment: &[String]) -> f64 {
         .filter_map(|item| pack.equipment.get(item))
         .map(|item| item.cost_gp)
         .sum()
+}
+
+fn spell_display_name(pack: &CompiledRulePack, spell_id: &str) -> String {
+    pack.spells
+        .get(spell_id)
+        .map(|spell| spell.name.clone())
+        .unwrap_or_else(|| spell_id.to_string())
+}
+
+fn spell_level_for_class(pack: &CompiledRulePack, spell_id: &str, class_id: &str) -> Option<u32> {
+    let spell = pack.spells.get(spell_id)?;
+    if spell.class_levels.is_empty() {
+        return Some(0);
+    }
+    if let Some(level) = spell.class_levels.get(class_id) {
+        return Some(*level);
+    }
+    let class_name = pack
+        .classes
+        .get(class_id)
+        .map(|class| class.name.as_str())?;
+    spell
+        .class_levels
+        .iter()
+        .find(|(key, _)| key.eq_ignore_ascii_case(class_name))
+        .map(|(_, level)| *level)
 }
 
 fn average_hit_points(pack: &CompiledRulePack, class_id: &str, level: u32) -> Vec<i32> {
@@ -320,9 +360,9 @@ fn canonical_race(pack: &CompiledRulePack, value: &str) -> Option<String> {
         return Some(value.to_string());
     }
     pack.races
-        .values()
-        .find(|race| race.name.eq_ignore_ascii_case(value))
-        .map(|race| race.id.clone())
+        .iter()
+        .find(|(_, race)| race.name.eq_ignore_ascii_case(value))
+        .map(|(key, _)| key.clone())
 }
 
 fn canonical_class(pack: &CompiledRulePack, value: &str) -> Option<String> {
@@ -330,9 +370,9 @@ fn canonical_class(pack: &CompiledRulePack, value: &str) -> Option<String> {
         return Some(value.to_string());
     }
     pack.classes
-        .values()
-        .find(|class| class.name.eq_ignore_ascii_case(value))
-        .map(|class| class.id.clone())
+        .iter()
+        .find(|(_, class)| class.name.eq_ignore_ascii_case(value))
+        .map(|(key, _)| key.clone())
 }
 
 fn canonical_skill(pack: &CompiledRulePack, value: &str) -> Option<String> {
@@ -340,9 +380,9 @@ fn canonical_skill(pack: &CompiledRulePack, value: &str) -> Option<String> {
         return Some(value.to_string());
     }
     pack.skills
-        .values()
-        .find(|skill| skill.name.eq_ignore_ascii_case(value))
-        .map(|skill| skill.id.clone())
+        .iter()
+        .find(|(_, skill)| skill.name.eq_ignore_ascii_case(value))
+        .map(|(key, _)| key.clone())
 }
 
 fn canonical_spell(pack: &CompiledRulePack, value: &str) -> Option<String> {
@@ -350,9 +390,9 @@ fn canonical_spell(pack: &CompiledRulePack, value: &str) -> Option<String> {
         return Some(value.to_string());
     }
     pack.spells
-        .values()
-        .find(|spell| spell.name.eq_ignore_ascii_case(value))
-        .map(|spell| spell.id.clone())
+        .iter()
+        .find(|(_, spell)| spell.name.eq_ignore_ascii_case(value))
+        .map(|(key, _)| key.clone())
 }
 
 fn canonical_equipment(pack: &CompiledRulePack, value: &str) -> Option<String> {
@@ -360,9 +400,9 @@ fn canonical_equipment(pack: &CompiledRulePack, value: &str) -> Option<String> {
         return Some(value.to_string());
     }
     pack.equipment
-        .values()
-        .find(|item| item.name.eq_ignore_ascii_case(value))
-        .map(|item| item.id.clone())
+        .iter()
+        .find(|(_, item)| item.name.eq_ignore_ascii_case(value))
+        .map(|(key, _)| key.clone())
 }
 
 fn canonical_ability_category(pack: &CompiledRulePack, value: &str) -> Option<String> {
@@ -370,9 +410,9 @@ fn canonical_ability_category(pack: &CompiledRulePack, value: &str) -> Option<St
         return Some(value.to_string());
     }
     pack.ability_categories
-        .values()
-        .find(|category| category.name.eq_ignore_ascii_case(value))
-        .map(|category| category.id.clone())
+        .iter()
+        .find(|(_, category)| category.name.eq_ignore_ascii_case(value))
+        .map(|(key, _)| key.clone())
 }
 
 #[cfg(test)]
@@ -405,10 +445,11 @@ mod tests {
         let mut longsword = pcgen_core::domain::EquipmentDefinition::new("Longsword", "Longsword");
         longsword.cost_gp = 15.0;
         pack.equipment.insert("Longsword".to_string(), longsword);
-        pack.spells.insert(
-            "Magic Missile".to_string(),
-            pcgen_core::domain::SpellDefinition::new("Magic Missile", "Magic Missile"),
-        );
+        let mut magic_missile =
+            pcgen_core::domain::SpellDefinition::new("Magic Missile", "Magic Missile");
+        magic_missile.class_levels.insert("Fighter".to_string(), 1);
+        pack.spells
+            .insert("Magic Missile".to_string(), magic_missile);
         pack
     }
 
@@ -436,6 +477,48 @@ mod tests {
         assert_eq!(draft.class_levels[0].level, 3);
         assert_eq!(draft.skills.get("Climb"), Some(&4.0));
         assert_eq!(draft.equipment, vec!["Longsword".to_string()]);
+    }
+
+    #[test]
+    fn validates_spell_class_list() {
+        let pack = sample_pack();
+        let ok = CreateRequest {
+            name: "Hero".to_string(),
+            race: "Human".to_string(),
+            class_id: "Fighter".to_string(),
+            level: 1,
+            spells: vec![CreateSpell {
+                name: "Magic Missile".to_string(),
+                level: 0,
+                times_memorized: 1,
+                book: None,
+            }],
+            ..CreateRequest::default()
+        };
+        let draft = create_draft(&pack, &ok).unwrap();
+        assert_eq!(draft.spells[0].level, 1);
+
+        let mut other = sample_pack();
+        let mut fireball = pcgen_core::domain::SpellDefinition::new("Fireball", "Fireball");
+        fireball.class_levels.insert("Wizard".to_string(), 3);
+        other.spells.insert("Fireball".to_string(), fireball);
+        let bad = CreateRequest {
+            name: "Hero".to_string(),
+            race: "Human".to_string(),
+            class_id: "Fighter".to_string(),
+            level: 1,
+            spells: vec![CreateSpell {
+                name: "Fireball".to_string(),
+                level: 0,
+                times_memorized: 1,
+                book: None,
+            }],
+            ..CreateRequest::default()
+        };
+        assert!(matches!(
+            create_draft(&other, &bad),
+            Err(BuilderError::SpellNotOnClassList(_, _))
+        ));
     }
 
     #[test]

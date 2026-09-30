@@ -1,5 +1,13 @@
 ## Unreleased
 
+### M9-6b：法术书编辑（已完成）
+
+- builder 校验法术是否属于所选职业 list，并按 class level 自动推断法术等级；
+- 修正 canonical helper 返回 map key 而不是 display id；
+- Web pack options 的法术候选带 `class_levels`；
+- Web 向导新增法术候选 datalist + Add spell 按钮，按职业过滤；
+- 新增 Wizard + Magic Missile 建卡回归测试。
+
 ### M9-6a：装备购买 + 起始金币（已完成）
 
 - builder 新增 3.5e 职业起始金币表 `starting_gold_for_class`；

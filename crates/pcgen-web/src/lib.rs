@@ -153,6 +153,8 @@ pub struct NamedOption {
     pub cost_gp: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub starting_gold: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub class_levels: Option<std::collections::BTreeMap<String, u32>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -702,6 +704,7 @@ fn named_options<T>(
             name: name(&value),
             cost_gp: None,
             starting_gold: None,
+            class_levels: None,
         })
         .collect();
     options.sort_by(|left, right| left.name.cmp(&right.name));
@@ -717,6 +720,7 @@ fn class_options(pack: &pcgen_ir::CompiledRulePack) -> Vec<NamedOption> {
             name: class.name.clone(),
             cost_gp: None,
             starting_gold: Some(starting_gold_for_class(&class.name)),
+            class_levels: None,
         })
         .collect();
     options.sort_by(|left, right| left.name.cmp(&right.name));
@@ -732,6 +736,23 @@ fn equipment_options(pack: &pcgen_ir::CompiledRulePack) -> Vec<NamedOption> {
             name: item.name.clone(),
             cost_gp: Some(item.cost_gp),
             starting_gold: None,
+            class_levels: None,
+        })
+        .collect();
+    options.sort_by(|left, right| left.name.cmp(&right.name));
+    options
+}
+
+fn spell_options(pack: &pcgen_ir::CompiledRulePack) -> Vec<NamedOption> {
+    let mut options: Vec<NamedOption> = pack
+        .spells
+        .values()
+        .map(|spell| NamedOption {
+            id: spell.id.clone(),
+            name: spell.name.clone(),
+            cost_gp: None,
+            starting_gold: None,
+            class_levels: Some(spell.class_levels.clone()),
         })
         .collect();
     options.sort_by(|left, right| left.name.cmp(&right.name));
@@ -780,11 +801,7 @@ async fn pack_options(
             |item| item.id.clone(),
             |item| item.name.clone(),
         ),
-        spells: named_options(
-            pack.spells.values(),
-            |item| item.id.clone(),
-            |item| item.name.clone(),
-        ),
+        spells: spell_options(&pack),
         equipment: equipment_options(&pack),
         deities: named_options(
             pack.deities.values(),

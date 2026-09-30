@@ -379,3 +379,66 @@ async fn builder_create_endpoint_round_trip() {
 
     let _ = std::fs::remove_dir_all(characters_root);
 }
+
+#[tokio::test]
+async fn builder_create_wizard_with_spell() {
+    let config = character_config("wizard");
+    let characters_root = config.characters_root.clone();
+    let app = app(config);
+    let body = serde_json::json!({
+        "pcc": "campaign-mini/mini.pcc",
+        "request": {
+            "id": "",
+            "name": "Wizard Test",
+            "race": "Human",
+            "class": "Wizard",
+            "level": 1,
+            "alignment": "NG",
+            "campaign": "campaign-mini/mini.pcc",
+            "stats": {},
+            "point_buy_budget": 25,
+            "skills": {},
+            "abilities": [],
+            "spells": [{"name": "Magic Missile", "level": 0, "times_memorized": 1}],
+            "equipment": [],
+            "deity": null,
+            "domains": []
+        }
+    });
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/characters/create")
+                .header("content-type", "application/json")
+                .body(Body::from(body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/characters/wizard-test")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let detail: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(
+        detail["envelope"]["character"]["spells"][0]["name"],
+        "Magic Missile"
+    );
+    assert_eq!(detail["envelope"]["character"]["spells"][0]["level"], 1);
+
+    let _ = std::fs::remove_dir_all(characters_root);
+}

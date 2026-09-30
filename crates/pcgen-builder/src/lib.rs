@@ -102,6 +102,8 @@ pub enum BuilderError {
     InvalidAbility(String),
     #[error("unknown spell: {0}")]
     UnknownSpell(String),
+    #[error("spell {0} is not on class {1}'s list")]
+    SpellNotOnClassList(String, String),
     #[error("unknown equipment: {0}")]
     UnknownEquipment(String),
     #[error("equipment budget exceeded: spent {spent:.2} > budget {budget:.2}")]

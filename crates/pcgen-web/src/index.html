@@ -70,6 +70,12 @@
   <label for="createAbilities">Abilities (one per line: FEAT=Power Attack)</label>
   <textarea id="createAbilities" rows="3"></textarea>
   <label for="createSpells">Spells (one per line: Magic Missile or Magic Missile=1)</label>
+  <div class="row">
+    <input id="spellCandidate" list="spellCandidates" placeholder="Magic Missile">
+    <input id="spellLevel" type="number" min="0" max="9" value="1" style="max-width: 6rem">
+    <button type="button" id="addSpellLine">Add spell</button>
+    <datalist id="spellCandidates"></datalist>
+  </div>
   <textarea id="createSpells" rows="2"></textarea>
   <label for="createEquipment">Equipment (one per line)</label>
   <textarea id="createEquipment" rows="2"></textarea>
@@ -517,6 +523,10 @@ const pointBuyStatusEl = document.getElementById('pointBuyStatus');
 const createSkillsEl = document.getElementById('createSkills');
 const createAbilitiesEl = document.getElementById('createAbilities');
 const createSpellsEl = document.getElementById('createSpells');
+const spellCandidateEl = document.getElementById('spellCandidate');
+const spellLevelEl = document.getElementById('spellLevel');
+const spellCandidatesEl = document.getElementById('spellCandidates');
+let packSpellOptions = [];
 const createEquipmentEl = document.getElementById('createEquipment');
 const createStatusEl = document.getElementById('createStatus');
 let lastDiagnosticsPayload = null;
@@ -594,6 +604,25 @@ function syncClassGold() {
   }
 }
 
+function spellMatchesClass(spell) {
+  if (!spell.class_levels || Object.keys(spell.class_levels).length === 0) {
+    return true;
+  }
+  const classId = createClassEl.value;
+  const className = createClassEl.selectedOptions[0]?.textContent || '';
+  const keys = Object.keys(spell.class_levels);
+  return keys.some((key) => key === classId || key.toLowerCase() === className.toLowerCase());
+}
+
+function refreshSpellCandidates() {
+  spellCandidatesEl.innerHTML = '';
+  for (const spell of packSpellOptions.filter(spellMatchesClass)) {
+    const option = document.createElement('option');
+    option.value = spell.name;
+    spellCandidatesEl.appendChild(option);
+  }
+}
+
 async function loadPackOptions() {
   createStatusEl.className = '';
   createStatusEl.textContent = 'Loading pack options…';
@@ -608,7 +637,9 @@ async function loadPackOptions() {
     fillSelect(createRaceEl, data.races);
     fillSelect(createClassEl, data.classes);
     fillSelect(createAlignmentEl, data.alignments);
+    packSpellOptions = data.spells || [];
     syncClassGold();
+    refreshSpellCandidates();
     createStatusEl.textContent = `Options loaded: ${data.races.length} races, ${data.classes.length} classes`;
   } catch (error) {
     createStatusEl.className = 'error';
@@ -617,7 +648,10 @@ async function loadPackOptions() {
 }
 
 document.getElementById('loadPackOptions').onclick = loadPackOptions;
-createClassEl.onchange = syncClassGold;
+createClassEl.onchange = () => {
+  syncClassGold();
+  refreshSpellCandidates();
+};
 
 document.getElementById('standardArray').onclick = () => {
   const array = [15, 14, 13, 12, 10, 8];
@@ -639,6 +673,15 @@ function parseLineMap(text, valueParser) {
   return out;
 }
 
+document.getElementById('addSpellLine').onclick = () => {
+  const name = spellCandidateEl.value.trim();
+  if (!name) return;
+  const level = Number(spellLevelEl.value);
+  const line = level > 0 ? `${name}=${level}` : name;
+  createSpellsEl.value = createSpellsEl.value
+    ? `${createSpellsEl.value.trim()}\n${line}`
+    : line;
+};
 document.getElementById('createCharacterBtn').onclick = async () => {
   const stats = readStats();
   if (!stats) {
