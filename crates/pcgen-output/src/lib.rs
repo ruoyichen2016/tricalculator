@@ -219,44 +219,318 @@ pub fn render_html(snapshot: &CharacterSnapshot) -> String {
     let mut out = String::new();
     writeln!(
         out,
-        "<!doctype html><html><head><meta charset=\"utf-8\"><title>{}</title></head><body>",
+        "<!doctype html><html><head><meta charset=\"utf-8\"><title>{}</title>",
         escape_html(&snapshot.name)
     )
     .ok();
-    writeln!(out, "<h1>{}</h1>", escape_html(&snapshot.name)).ok();
+    out.push_str(
+        "<style>\
+         body{font-family:system-ui,sans-serif;margin:2rem;color:#222;line-height:1.35}\
+         h1{margin:0 0 .25rem 0}h2{margin:1.25rem 0 .35rem 0;border-bottom:1px solid #ddd}\
+         .subtitle{color:#555;margin:0 0 1rem 0}\
+         table{border-collapse:collapse;width:100%;margin:.2rem 0 1rem 0}\
+         th,td{border:1px solid #ccc;padding:.2rem .5rem;text-align:left;vertical-align:top}\
+         th{background:#f5f5f5}\
+         ul{margin:.2rem 0 1rem 1.25rem;padding:0}\
+         .grid-skills{column-count:2;column-gap:2rem}\
+         .diagnostics{color:#a00}\
+         footer{margin-top:2rem;color:#777;font-size:.85rem}\
+         @media print{body{margin:.5in;font-size:11pt} .diagnostics{display:none} h2{page-break-after:avoid} table,ul{page-break-inside:avoid}}\
+         </style></head><body>",
+    );
     writeln!(
         out,
-        "<p><strong>Race:</strong> {} · <strong>Level:</strong> {} · <strong>HP:</strong> {} · <strong>BAB:</strong> {:+}</p>",
+        "<h1>{}</h1><p class=\"subtitle\">{} · Level {}</p>",
+        escape_html(&snapshot.name),
         escape_html(&snapshot.race_id),
-        snapshot.total_level,
-        snapshot.hit_points,
-        snapshot.base_attack_bonus
+        snapshot.total_level
     )
     .ok();
-    out.push_str("<h2>Saves</h2><ul>");
-    for (save, value) in &snapshot.saves {
-        writeln!(out, "<li>{save}: {value:+}</li>").ok();
+
+    if !snapshot.stats.is_empty() {
+        out.push_str("<section><h2>Ability Scores</h2><table>");
+        out.push_str("<tr><th>Ability</th><th>Score</th></tr>");
+        for (stat, value) in &snapshot.stats {
+            writeln!(
+                out,
+                "<tr><td>{}</td><td>{value}</td></tr>",
+                escape_html(stat)
+            )
+            .ok();
+        }
+        out.push_str("</table></section>");
     }
-    out.push_str("</ul>");
+
+    out.push_str("<section><h2>Combat</h2><table>");
     writeln!(
         out,
-        "<p><strong>AC:</strong> {} · <strong>Touch:</strong> {} · <strong>Flat-footed:</strong> {}</p>",
-        snapshot.armor_class, snapshot.touch_ac, snapshot.flat_footed_ac
+        "<tr><th>HP</th><td>{}</td><th>BAB</th><td>{:+}</td></tr>",
+        snapshot.hit_points, snapshot.base_attack_bonus
     )
     .ok();
-    if !snapshot.skills.is_empty() {
-        out.push_str("<h2>Skills</h2><ul>");
-        for (skill, value) in &snapshot.skills {
-            writeln!(out, "<li>{skill}: {value:+}</li>").ok();
+    writeln!(
+        out,
+        "<tr><th>Melee</th><td>{:+}</td><th>Ranged</th><td>{:+}</td></tr>",
+        snapshot.melee_attack, snapshot.ranged_attack
+    )
+    .ok();
+    writeln!(
+        out,
+        "<tr><th>Grapple</th><td>{:+}</td><th>Initiative</th><td>{:+}</td></tr>",
+        snapshot.grapple_attack, snapshot.initiative
+    )
+    .ok();
+    writeln!(
+        out,
+        "<tr><th>AC</th><td>{}</td><th>Touch</th><td>{}</td></tr>",
+        snapshot.armor_class, snapshot.touch_ac
+    )
+    .ok();
+    writeln!(
+        out,
+        "<tr><th>Flat-footed</th><td>{}</td><th>Armor / Shield</th><td>{} / {}</td></tr>",
+        snapshot.flat_footed_ac, snapshot.armor_bonus, snapshot.shield_bonus
+    )
+    .ok();
+    out.push_str("</table></section>");
+
+    if !snapshot.saves.is_empty() {
+        out.push_str("<section><h2>Saving Throws</h2><table>");
+        for (save, value) in &snapshot.saves {
+            writeln!(
+                out,
+                "<tr><td>{}</td><td>{value:+}</td></tr>",
+                escape_html(save)
+            )
+            .ok();
         }
-        out.push_str("</ul>");
+        out.push_str("</table></section>");
     }
-    if !snapshot.power_points.is_empty() {
-        out.push_str("<h2>Psionics</h2><ul>");
-        for (class_id, points) in &snapshot.power_points {
-            writeln!(out, "<li>{class_id}: {points} PP</li>").ok();
+
+    if !snapshot.skills.is_empty() {
+        out.push_str("<section><h2>Skills</h2><div class=\"grid-skills\"><table>");
+        out.push_str("<tr><th>Skill</th><th>Total</th></tr>");
+        for (skill, value) in &snapshot.skills {
+            writeln!(
+                out,
+                "<tr><td>{}</td><td>{value:+}</td></tr>",
+                escape_html(skill)
+            )
+            .ok();
         }
-        out.push_str("</ul>");
+        out.push_str("</table></div></section>");
+    }
+
+    let has_abilities = !snapshot.active_abilities.is_empty()
+        || snapshot
+            .ability_lists
+            .values()
+            .any(|values| !values.is_empty());
+    if has_abilities {
+        out.push_str("<section><h2>Feats &amp; Abilities</h2><ul>");
+        for ability in &snapshot.active_abilities {
+            writeln!(out, "<li>{}</li>", escape_html(ability)).ok();
+        }
+        for values in snapshot.ability_lists.values() {
+            for ability in values {
+                writeln!(out, "<li>{}</li>", escape_html(ability)).ok();
+            }
+        }
+        out.push_str("</ul></section>");
+    }
+
+    let has_spellcasting = !snapshot.caster_levels.is_empty()
+        || !snapshot.spell_dcs.is_empty()
+        || !snapshot.prepared_spells.is_empty()
+        || !snapshot.spell_slots.is_empty()
+        || !snapshot.power_points.is_empty()
+        || !snapshot.powers_known.is_empty()
+        || !snapshot.domain_spells.is_empty();
+    if has_spellcasting {
+        out.push_str("<section><h2>Spellcasting</h2>");
+        if !snapshot.caster_levels.is_empty() {
+            out.push_str("<table><tr><th>Class</th><th>Caster level</th></tr>");
+            for (class_id, level) in &snapshot.caster_levels {
+                writeln!(
+                    out,
+                    "<tr><td>{}</td><td>{level}</td></tr>",
+                    escape_html(class_id)
+                )
+                .ok();
+            }
+            out.push_str("</table>");
+        }
+        if !snapshot.spell_slots.is_empty() {
+            out.push_str("<table><tr><th>Class | level</th><th>Slots</th></tr>");
+            for (key, count) in &snapshot.spell_slots {
+                writeln!(
+                    out,
+                    "<tr><td>{}</td><td>{count}</td></tr>",
+                    escape_html(key)
+                )
+                .ok();
+            }
+            out.push_str("</table>");
+        }
+        if !snapshot.spell_dcs.is_empty() {
+            out.push_str("<table><tr><th>Spell</th><th>DC</th></tr>");
+            for (spell, dc) in &snapshot.spell_dcs {
+                writeln!(out, "<tr><td>{}</td><td>{dc}</td></tr>", escape_html(spell)).ok();
+            }
+            out.push_str("</table>");
+        }
+        if !snapshot.prepared_spells.is_empty() {
+            out.push_str("<table><tr><th>Prepared spell</th><th>Count</th></tr>");
+            for (spell, count) in &snapshot.prepared_spells {
+                writeln!(
+                    out,
+                    "<tr><td>{}</td><td>{count}</td></tr>",
+                    escape_html(spell)
+                )
+                .ok();
+            }
+            out.push_str("</table>");
+        }
+        if !snapshot.domain_spells.is_empty() {
+            out.push_str("<table><tr><th>Domain</th><th>Spells</th></tr>");
+            for (domain, spells) in &snapshot.domain_spells {
+                let names = spells
+                    .iter()
+                    .map(|spell| escape_html(&spell.name))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                writeln!(
+                    out,
+                    "<tr><td>{}</td><td>{names}</td></tr>",
+                    escape_html(domain)
+                )
+                .ok();
+            }
+            out.push_str("</table>");
+        }
+        if !snapshot.power_points.is_empty() {
+            out.push_str("<table><tr><th>Manifester</th><th>Power points</th></tr>");
+            for (class_id, points) in &snapshot.power_points {
+                writeln!(
+                    out,
+                    "<tr><td>{}</td><td>{points}</td></tr>",
+                    escape_html(class_id)
+                )
+                .ok();
+            }
+            out.push_str("</table>");
+        }
+        if !snapshot.powers_known.is_empty() {
+            out.push_str("<ul>");
+            for (class_id, powers) in &snapshot.powers_known {
+                writeln!(
+                    out,
+                    "<li><strong>{}</strong>: {}</li>",
+                    escape_html(class_id),
+                    powers
+                        .iter()
+                        .map(|power| escape_html(power))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+                .ok();
+            }
+            out.push_str("</ul>");
+        }
+        out.push_str("</section>");
+    }
+
+    if !snapshot.equipment.is_empty() {
+        out.push_str("<section><h2>Equipment</h2><table>");
+        out.push_str("<tr><th>Item</th><th>Cost</th><th>Armor</th><th>Max Dex</th><th>ACP</th><th>Type</th></tr>");
+        for item in &snapshot.equipment {
+            writeln!(
+                out,
+                "<tr><td>{}</td><td>{:.2} gp</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>",
+                escape_html(&item.name),
+                item.cost_gp,
+                item.armor_bonus,
+                item.max_dex_bonus
+                    .map(|value| value.to_string())
+                    .unwrap_or_else(|| "—".to_string()),
+                item.armor_check_penalty,
+                escape_html(&item.type_tags.join(", "))
+            )
+            .ok();
+        }
+        out.push_str("</table></section>");
+    }
+
+    let has_traits = !snapshot.vision.is_empty()
+        || !snapshot.damage_reduction.is_empty()
+        || snapshot.spell_resistance.is_some()
+        || !snapshot.languages.is_empty()
+        || !snapshot.movement.is_empty()
+        || !snapshot.natural_attacks.is_empty();
+    if has_traits {
+        out.push_str("<section><h2>Traits</h2><ul>");
+        if !snapshot.vision.is_empty() {
+            writeln!(
+                out,
+                "<li><strong>Vision:</strong> {}</li>",
+                escape_html(&snapshot.vision.join(", "))
+            )
+            .ok();
+        }
+        if !snapshot.damage_reduction.is_empty() {
+            writeln!(
+                out,
+                "<li><strong>DR:</strong> {}</li>",
+                escape_html(&snapshot.damage_reduction.join(", "))
+            )
+            .ok();
+        }
+        if let Some(sr) = snapshot.spell_resistance {
+            writeln!(out, "<li><strong>SR:</strong> {sr}</li>").ok();
+        }
+        if !snapshot.languages.is_empty() {
+            writeln!(
+                out,
+                "<li><strong>Languages:</strong> {}</li>",
+                escape_html(&snapshot.languages.join(", "))
+            )
+            .ok();
+        }
+        if !snapshot.movement.is_empty() {
+            let movement = snapshot
+                .movement
+                .iter()
+                .map(|(mode, feet)| format!("{} {} ft", escape_html(mode), feet))
+                .collect::<Vec<_>>()
+                .join(", ");
+            writeln!(out, "<li><strong>Movement:</strong> {movement}</li>").ok();
+        }
+        if !snapshot.natural_attacks.is_empty() {
+            writeln!(
+                out,
+                "<li><strong>Natural attacks:</strong> {}</li>",
+                escape_html(&snapshot.natural_attacks.join(", "))
+            )
+            .ok();
+        }
+        out.push_str("</ul></section>");
+    }
+
+    if !snapshot.diagnostics.is_empty() {
+        out.push_str("<section class=\"diagnostics\"><h2>Diagnostics</h2><ul>");
+        for diagnostic in &snapshot.diagnostics {
+            writeln!(out, "<li>{}</li>", escape_html(diagnostic)).ok();
+        }
+        out.push_str("</ul></section>");
+    }
+
+    if !snapshot.provenance.rules_fingerprint.is_empty() {
+        writeln!(
+            out,
+            "<footer>{}</footer>",
+            escape_html(&snapshot.provenance.render())
+        )
+        .ok();
     }
     out.push_str("</body></html>");
     out

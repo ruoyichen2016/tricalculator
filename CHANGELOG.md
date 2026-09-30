@@ -1,5 +1,13 @@
 ## Unreleased
 
+### M9-6c：output sheet 深化（已完成）
+
+- `render_html` 增加 Ability Scores / Combat / Saves / Skills /
+  Feats & Abilities / Spellcasting / Equipment / Traits 分区；
+- 打印友好 CSS（`@media print`、分页避免、diagnostics 隐藏）；
+- HTML sheet 覆盖装备、法术位、prepared、domain spells、psionics；
+- 新增 deep-section golden 断言。
+
 ### M9-6b：法术书编辑（已完成）
 
 - builder 校验法术是否属于所选职业 list，并按 class level 自动推断法术等级；

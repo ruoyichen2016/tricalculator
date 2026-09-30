@@ -112,3 +112,51 @@ fn real_official_sheet_smoke() {
     assert!(!rendered.contains("</@"));
     assert!(!rendered.contains("${"));
 }
+
+#[test]
+fn html_sheet_includes_deep_sections() {
+    use pcgen_core::domain::EquipmentDefinition;
+
+    let mut stats = BTreeMap::new();
+    stats.insert("STR".to_string(), 16);
+    stats.insert("DEX".to_string(), 12);
+    let mut saves = BTreeMap::new();
+    saves.insert("Fortitude".to_string(), 5);
+    let mut skills = BTreeMap::new();
+    skills.insert("Climb".to_string(), 6);
+    let mut caster_levels = BTreeMap::new();
+    caster_levels.insert("Wizard".to_string(), 3);
+    let mut spell_dcs = BTreeMap::new();
+    spell_dcs.insert("Magic Missile".to_string(), 14);
+    let mut prepared_spells = BTreeMap::new();
+    prepared_spells.insert("Wizard|Magic Missile".to_string(), 2);
+    let mut movement = BTreeMap::new();
+    movement.insert("walk".to_string(), 30);
+    let snapshot = CharacterSnapshot {
+        name: "Aria".to_string(),
+        stats,
+        saves,
+        skills,
+        caster_levels,
+        spell_dcs,
+        prepared_spells,
+        movement,
+        active_abilities: vec!["Power Attack".to_string()],
+        equipment: vec![EquipmentDefinition::new("Longsword", "Longsword")],
+        ..CharacterSnapshot::default()
+    };
+    let html = render_html(&snapshot);
+    for section in [
+        "<h2>Ability Scores</h2>",
+        "<h2>Combat</h2>",
+        "<h2>Saving Throws</h2>",
+        "<h2>Skills</h2>",
+        "<h2>Feats &amp; Abilities</h2>",
+        "<h2>Spellcasting</h2>",
+        "<h2>Equipment</h2>",
+        "<h2>Traits</h2>",
+        "@media print",
+    ] {
+        assert!(html.contains(section), "missing section: {section}");
+    }
+}
