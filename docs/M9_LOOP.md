@@ -36,6 +36,8 @@
   - Web 创建向导新增现代逐级编辑器：Normal / Gestalt、等级增删、职业汇总；
   - 每个 class lane 支持 archetype / alternate ability / substitution level 选择；
   - `/api/pack-options` 返回 `variants`，按职业过滤替代能力；
+  - 技能与专长改为可视化选择器；
+  - 新增 `data/packs/custom/` 自定义资料包目录；
   - 新增 builder / web API 回归测试。
 
 ## 当前状态

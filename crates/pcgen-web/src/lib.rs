@@ -168,11 +168,19 @@ pub struct VariantOption {
 }
 
 #[derive(Debug, Serialize)]
+pub struct AbilityOption {
+    pub id: String,
+    pub name: String,
+    pub category: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
 pub struct PackOptions {
     pub races: Vec<NamedOption>,
     pub classes: Vec<NamedOption>,
     pub skills: Vec<NamedOption>,
     pub ability_categories: Vec<NamedOption>,
+    pub abilities: Vec<AbilityOption>,
     pub spells: Vec<NamedOption>,
     pub equipment: Vec<NamedOption>,
     pub variants: Vec<VariantOption>,
@@ -807,6 +815,15 @@ async fn pack_options(
             |item| item.id.clone(),
             |item| item.name.clone(),
         ),
+        abilities: pack
+            .abilities
+            .values()
+            .map(|ability| AbilityOption {
+                id: ability.id.clone(),
+                name: ability.name.clone(),
+                category: ability.category.clone(),
+            })
+            .collect(),
         spells: spell_options(&pack),
         equipment: equipment_options(&pack),
         variants: pack

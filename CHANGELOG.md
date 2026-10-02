@@ -11,6 +11,9 @@
   - Normal / Gestalt 模式；
   - 每级职业行 + “替代等级/替代能力”下拉；
   - 等级增删与职业汇总；
+- 技能与专长改为可视化选择器，不再依赖手写文本；
+- `/api/pack-options` 新增 `abilities` 完整能力目录；
+- 新增 `data/packs/custom/` 用于放置自定义资料包；
 - `/api/pack-options` 新增 `variants`，按职业列出可用的 archetype / substitution；
 - `CharacterSummary.total_level` 统一改用 `CharacterDraft::total_level()`，
   兼容 `advancement` 角色；

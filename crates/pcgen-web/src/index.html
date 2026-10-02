@@ -52,6 +52,10 @@
   .lane-group select { width: 100%; }
   .advancement-summary { margin-top: .5rem; display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; }
   .advancement-summary .chip { background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: .1rem .6rem; font-size: .85rem; }
+  .picker-rows { display: grid; gap: .35rem; margin: .25rem 0; }
+  .picker-row { display: grid; grid-template-columns: 1fr 6rem 2rem; gap: .4rem; align-items: center; }
+  .picker-row.remove { grid-template-columns: 1fr 6rem 2rem; }
+  .remove-btn { border: none; background: transparent; color: var(--danger); cursor: pointer; font-size: 1.1rem; }
 </style>
 </head>
 <body>
@@ -109,10 +113,21 @@
       <div class="grid" id="statInputs"></div>
     </div>
   </div>
-  <label for="createSkills">Skills (one per line: Climb=4)</label>
-  <textarea id="createSkills" rows="3"></textarea>
-  <label for="createAbilities">Abilities (one per line: FEAT=Power Attack)</label>
-  <textarea id="createAbilities" rows="3"></textarea>
+  <label>Skills</label>
+  <div id="skillRows" class="picker-rows"></div>
+  <div class="row">
+    <select id="skillCandidate"></select>
+    <input id="skillRank" type="number" min="0" value="1" style="max-width: 6rem">
+    <button type="button" id="addSkillRow" class="ghost">+ Add skill</button>
+  </div>
+
+  <label>Feats / Abilities</label>
+  <div id="abilityRows" class="picker-rows"></div>
+  <div class="row">
+    <select id="abilityCategoryFilter"></select>
+    <select id="abilityCandidate"></select>
+    <button type="button" id="addAbilityRow" class="ghost">+ Add ability</button>
+  </div>
   <label for="createSpells">Spells (one per line: Magic Missile or Magic Missile=1)</label>
   <div class="row">
     <input id="spellCandidate" list="spellCandidates" placeholder="Magic Missile">
@@ -568,15 +583,25 @@ const createGoldEl = document.getElementById('createGold');
 const createBudgetEl = document.getElementById('createBudget');
 const statInputsEl = document.getElementById('statInputs');
 const pointBuyStatusEl = document.getElementById('pointBuyStatus');
-const createSkillsEl = document.getElementById('createSkills');
-const createAbilitiesEl = document.getElementById('createAbilities');
+const skillRowsEl = document.getElementById('skillRows');
+const abilityRowsEl = document.getElementById('abilityRows');
+const skillCandidateEl = document.getElementById('skillCandidate');
+const skillRankEl = document.getElementById('skillRank');
+const abilityCategoryFilterEl = document.getElementById('abilityCategoryFilter');
+const abilityCandidateEl = document.getElementById('abilityCandidate');
+const addSkillRowBtn = document.getElementById('addSkillRow');
+const addAbilityRowBtn = document.getElementById('addAbilityRow');
 const createSpellsEl = document.getElementById('createSpells');
 const spellCandidateEl = document.getElementById('spellCandidate');
 const spellLevelEl = document.getElementById('spellLevel');
 const spellCandidatesEl = document.getElementById('spellCandidates');
 let packClasses = [];
 let packVariants = [];
+let packSkills = [];
+let packAbilities = [];
 let packSpellOptions = [];
+let skillSelections = [];
+let abilitySelections = [];
 const createEquipmentEl = document.getElementById('createEquipment');
 const createStatusEl = document.getElementById('createStatus');
 let lastDiagnosticsPayload = null;
@@ -693,7 +718,13 @@ async function loadPackOptions() {
     fillSelect(createAlignmentEl, data.alignments);
     packClasses = data.classes || [];
     packVariants = data.variants || [];
+    packSkills = data.skills || [];
+    packAbilities = data.abilities || [];
     packSpellOptions = data.spells || [];
+    populateSkillPicker();
+    populateAbilityPicker();
+    renderSkillRows();
+    renderAbilityRows();
     buildLevelRows();
     syncClassGold();
     refreshSpellCandidates();
@@ -763,6 +794,153 @@ function updateAdvancementSummary() {
     ? `<span class="chip">${chips}</span>`
     : '';
 }
+
+function populateSkillPicker() {
+  skillCandidateEl.innerHTML = '';
+  for (const skill of packSkills) {
+    const option = document.createElement('option');
+    option.value = skill.name || skill.id;
+    option.textContent = skill.name;
+    skillCandidateEl.appendChild(option);
+  }
+}
+
+function abilityCategories() {
+  const seen = new Map();
+  for (const ability of packAbilities) {
+    const category = ability.category || 'Ability';
+    if (!seen.has(category)) seen.set(category, category);
+  }
+  return Array.from(seen.values()).sort();
+}
+
+function refreshAbilityCandidates() {
+  const category = abilityCategoryFilterEl.value;
+  abilityCandidateEl.innerHTML = '';
+  for (const ability of packAbilities) {
+    if (category && ability.category !== category) continue;
+    const option = document.createElement('option');
+    option.value = ability.name || ability.id;
+    option.textContent = ability.name;
+    abilityCandidateEl.appendChild(option);
+  }
+}
+
+function populateAbilityPicker() {
+  abilityCategoryFilterEl.innerHTML = '';
+  for (const category of abilityCategories()) {
+    const option = document.createElement('option');
+    option.value = category;
+    option.textContent = category;
+    abilityCategoryFilterEl.appendChild(option);
+  }
+  refreshAbilityCandidates();
+}
+
+function renderSkillRows() {
+  skillRowsEl.innerHTML = '';
+  skillSelections.forEach((entry, index) => {
+    const row = document.createElement('div');
+    row.className = 'picker-row';
+
+    const select = document.createElement('select');
+    for (const skill of packSkills) {
+      const option = document.createElement('option');
+      option.value = skill.name || skill.id;
+      option.textContent = skill.name;
+      select.appendChild(option);
+    }
+    select.value = entry.skill || '';
+    select.addEventListener('change', () => { entry.skill = select.value; });
+    row.appendChild(select);
+
+    const rank = document.createElement('input');
+    rank.type = 'number';
+    rank.min = '0';
+    rank.value = entry.rank ?? 1;
+    rank.addEventListener('input', () => { entry.rank = Math.max(0, Number(rank.value) || 0); });
+    row.appendChild(rank);
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'remove-btn';
+    remove.textContent = '✕';
+    remove.addEventListener('click', () => { skillSelections.splice(index, 1); renderSkillRows(); });
+    row.appendChild(remove);
+
+    skillRowsEl.appendChild(row);
+  });
+}
+
+function renderAbilityRows() {
+  abilityRowsEl.innerHTML = '';
+  const categories = abilityCategories();
+  abilitySelections.forEach((entry, index) => {
+    const row = document.createElement('div');
+    row.className = 'picker-row';
+
+    const categorySelect = document.createElement('select');
+    for (const category of categories) {
+      const option = document.createElement('option');
+      option.value = category;
+      option.textContent = category;
+      categorySelect.appendChild(option);
+    }
+    categorySelect.value = entry.category || categories[0] || 'Ability';
+    categorySelect.addEventListener('change', () => {
+      entry.category = categorySelect.value;
+      const abilitySelect = row.querySelector('select.ability-select');
+      refreshRowAbilityOptions(abilitySelect, entry.category);
+      entry.ability = abilitySelect.value;
+      renderAbilityRows();
+    });
+    row.appendChild(categorySelect);
+
+    const abilitySelect = document.createElement('select');
+    abilitySelect.className = 'ability-select';
+    refreshRowAbilityOptions(abilitySelect, categorySelect.value);
+    abilitySelect.value = entry.ability || '';
+    abilitySelect.addEventListener('change', () => { entry.ability = abilitySelect.value; });
+    row.appendChild(abilitySelect);
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'remove-btn';
+    remove.textContent = '✕';
+    remove.addEventListener('click', () => { abilitySelections.splice(index, 1); renderAbilityRows(); });
+    row.appendChild(remove);
+
+    abilityRowsEl.appendChild(row);
+  });
+}
+
+function refreshRowAbilityOptions(select, category) {
+  select.innerHTML = '';
+  for (const ability of packAbilities) {
+    if (category && ability.category !== category) continue;
+    const option = document.createElement('option');
+    option.value = ability.name || ability.id;
+    option.textContent = ability.name;
+    select.appendChild(option);
+  }
+}
+
+addSkillRowBtn.addEventListener('click', () => {
+  const skill = skillCandidateEl.value;
+  if (!skill) return;
+  skillSelections.push({ skill, rank: Math.max(0, Number(skillRankEl.value) || 1) });
+  renderSkillRows();
+});
+
+addAbilityRowBtn.addEventListener('click', () => {
+  const category = abilityCategoryFilterEl.value;
+  const ability = abilityCandidateEl.value;
+  if (!ability) return;
+  abilitySelections.push({ category, ability });
+  renderAbilityRows();
+});
+
+abilityCategoryFilterEl.addEventListener('change', refreshAbilityCandidates);
 
 function buildLevelRows() {
   const total = Math.max(1, Number(createLevelEl.value) || 1);
@@ -855,9 +1033,14 @@ document.getElementById('createCharacterBtn').onclick = async () => {
     createStatusEl.textContent = 'Stats must be integers';
     return;
   }
-  const skills = parseLineMap(createSkillsEl.value, (value) => Number(value || '1'));
+  const skills = {};
+  for (const entry of skillSelections) {
+    if (entry.skill) skills[entry.skill] = entry.rank ?? 1;
+  }
+  const abilities = abilitySelections
+    .filter((entry) => entry.ability)
+    .map((entry) => [entry.category || 'Ability', entry.ability]);
   const equipment = createEquipmentEl.value.split('\n').map((line) => line.trim()).filter(Boolean);
-  const abilities = createAbilitiesEl.value.split('\n').map((line) => line.trim()).filter(Boolean);
   const spells = createSpellsEl.value.split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
     const [name, level] = line.split('=').map((part) => part.trim());
     return { name, level: Number(level || '0'), times_memorized: 1 };
