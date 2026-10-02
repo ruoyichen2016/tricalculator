@@ -22,9 +22,15 @@ python3 scripts/package_release.py --packs rsrd35,srd30 --zip
 
 ## 2. 朋友使用方式
 
+> **平台注意**：发布包必须与操作系统匹配。当前仓库内 `dist/` 下的
+> `pcgen-rust-web-0.1.0.zip` 是在 Linux 环境构建的，仅含 Linux 二进制；
+> Windows 用户需要拿到在 Windows 上执行 `scripts/package_release.py` 生成的
+> 发布包（内含 `pcgen-web.exe`）。否则 `run-web.bat` 会提示找不到
+> `pcgen-web.exe`。
+
 Windows：
 
-1. 解压发布包；
+1. 解压 Windows 版发布包；
 2. 双击 `run-web.bat`；
 3. 浏览器打开 `http://127.0.0.1:8787`；
 4. 在 “Create character” 区域建卡；

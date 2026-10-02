@@ -13,6 +13,10 @@ python3 scripts/package_release.py --packs rsrd35,srd30 --zip
 
 ## 2. 朋友安装
 
+> **平台注意**：Windows 必须使用 Windows 上构建的发布包（内含
+> `pcgen-web.exe`）。如果拿到的是 Linux 构建包，`run-web.bat` 会因缺少
+> `pcgen-web.exe` 而报错/闪退；请重新在 Windows 上打包，或获取 Windows 构建。
+
 Windows：
 
 1. 解压 zip；

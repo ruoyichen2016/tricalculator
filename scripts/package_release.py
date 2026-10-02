@@ -82,6 +82,14 @@ def main() -> int:
                 if script.endswith(".sh"):
                     (out / script).chmod(0o755)
 
+    if os.name != "nt" and not args.dry_run:
+        print(
+            "WARNING: building on a non-Windows host; run-web.bat cannot run "
+            "the packaged binary on Windows. Build the release on Windows to "
+            "produce a Windows .exe bundle.",
+            file=sys.stderr,
+        )
+
     for doc_name in ("M9_PACKAGING.md", "M9_BETA_CHECKLIST.md"):
         doc = ROOT / "docs" / doc_name
         if doc.exists() and not args.dry_run:
@@ -108,6 +116,7 @@ def main() -> int:
         manifest = {
             "name": "pcgen-rust-web",
             "version": version,
+            "platform": sys.platform,
             "built_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
             "packs": packs,
             "binary_sha256": sha256(out / binary_name()),
