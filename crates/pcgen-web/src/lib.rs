@@ -49,6 +49,8 @@ impl Default for WebConfig {
 struct AppState {
     config: Arc<WebConfig>,
     repository: CharacterRepository,
+    /// Cache of compiled rule packs keyed by absolute `.pcc` path.
+    pack_cache: Arc<std::sync::Mutex<std::collections::HashMap<String, Arc<Engine>>>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -232,6 +234,7 @@ pub fn app(config: WebConfig) -> Router {
     let state = AppState {
         config: Arc::new(config),
         repository,
+        pack_cache: Arc::new(std::sync::Mutex::new(std::collections::HashMap::new())),
     };
     Router::new()
         .route("/", get(index))
@@ -250,6 +253,27 @@ pub fn app(config: WebConfig) -> Router {
             get(character).delete(delete_character),
         )
         .with_state(state)
+}
+
+fn cached_engine(state: &AppState, pcc_path: &Path) -> Result<Arc<Engine>, String> {
+    let key = pcc_path.to_string_lossy().to_string();
+    if let Some(engine) = state
+        .pack_cache
+        .lock()
+        .map_err(|_| "pack cache lock poisoned".to_string())?
+        .get(&key)
+        .cloned()
+    {
+        return Ok(engine);
+    }
+    let (pack, _) = compile_pcc(pcc_path).map_err(|error| error.to_string())?;
+    let engine = Arc::new(Engine::new(pack));
+    state
+        .pack_cache
+        .lock()
+        .map_err(|_| "pack cache lock poisoned".to_string())?
+        .insert(key, engine.clone());
+    Ok(engine)
 }
 
 async fn index() -> Html<&'static str> {
@@ -286,16 +310,16 @@ async fn character(
             let (snapshot, html, error) = match envelope.pcc.as_deref() {
                 Some(pcc) => {
                     let pcc_path = resolve_path(&state.config.data_root, pcc);
-                    match compile_pcc(&pcc_path) {
-                        Ok((pack, _)) => {
-                            let evaluated = Engine::new(pack).evaluate(&envelope.character);
+                    match cached_engine(&state, &pcc_path) {
+                        Ok(engine) => {
+                            let evaluated = engine.evaluate(&envelope.character);
                             let snapshot = render_json(&evaluated)
                                 .ok()
                                 .and_then(|text| serde_json::from_str(&text).ok());
                             let html = Some(render_html(&evaluated));
                             (snapshot, html, None)
                         }
-                        Err(error) => (None, None, Some(error.to_string())),
+                        Err(error) => (None, None, Some(error)),
                     }
                 }
                 None => (
@@ -341,9 +365,9 @@ async fn create_character(
 ) -> impl IntoResponse {
     let pcc_path = resolve_path(&state.config.data_root, &request.pcc);
     let pcg_path = resolve_path(&state.config.data_root, &request.pcg);
-    let (pack, _) = match compile_pcc(&pcc_path) {
-        Ok(value) => value,
-        Err(error) => return api_error(StatusCode::BAD_REQUEST, error.to_string()),
+    let engine = match cached_engine(&state, &pcc_path) {
+        Ok(engine) => engine,
+        Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
     };
     let mut draft = match parse_pcg_draft_file(&pcg_path) {
         Ok(pcg) => draft_from_pcg(pcg),
@@ -365,8 +389,8 @@ async fn create_character(
     let pcc_relative = relativize(&state.config.data_root, &pcc_path.to_string_lossy());
     let envelope = NativeSaveEnvelope::new(
         draft,
-        pack.header.rules_fingerprint.clone(),
-        pack.header.data_ref.clone(),
+        engine.pack.header.rules_fingerprint.clone(),
+        engine.pack.header.data_ref.clone(),
     )
     .with_pcc(Some(pcc_relative));
     let summary = summary_for(&envelope);
@@ -524,7 +548,7 @@ async fn recalculate(
     State(state): State<AppState>,
     Json(request): Json<RecalculateRequest>,
 ) -> impl IntoResponse {
-    match run_recalculate(&state.config, &request) {
+    match run_recalculate(&state, &request) {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
         Err(error) => (
             StatusCode::BAD_REQUEST,
@@ -540,7 +564,7 @@ async fn export(
     State(state): State<AppState>,
     Json(request): Json<ExportRequest>,
 ) -> impl IntoResponse {
-    match run_export(&state.config, &request) {
+    match run_export(&state, &request) {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
         Err(error) => (
             StatusCode::BAD_REQUEST,
@@ -552,16 +576,16 @@ async fn export(
     }
 }
 
-fn run_export(config: &WebConfig, request: &ExportRequest) -> anyhow::Result<ExportResponse> {
-    let pcc = resolve_path(&config.data_root, &request.pcc);
-    let pcg = resolve_path(&config.data_root, &request.pcg);
-    let (pack, _report) = compile_pcc(&pcc)?;
+fn run_export(state: &AppState, request: &ExportRequest) -> anyhow::Result<ExportResponse> {
+    let pcc = resolve_path(&state.config.data_root, &request.pcc);
+    let pcg = resolve_path(&state.config.data_root, &request.pcg);
+    let engine = cached_engine(state, &pcc).map_err(anyhow::Error::msg)?;
     let mut draft = draft_from_pcg(parse_pcg_draft_file(&pcg)?);
     apply_overrides(&mut draft, &request.overrides);
-    let snapshot = Engine::new(pack.clone()).evaluate(&draft);
+    let snapshot = engine.evaluate(&draft);
     let exported = pcg_from_draft(&draft);
     let unresolved_choices = snapshot.unresolved_choices.clone();
-    let hints = unresolved_hints(&draft, &unresolved_choices, &pack);
+    let hints = unresolved_hints(&draft, &unresolved_choices, &engine.pack);
     Ok(ExportResponse {
         pcg: pcgen_import::write_pcg_draft_string(&exported)?,
         unresolved_choices,
@@ -618,20 +642,20 @@ pub fn pcg_from_draft(draft: &CharacterDraft) -> PcgDraft {
 }
 
 fn run_recalculate(
-    config: &WebConfig,
+    state: &AppState,
     request: &RecalculateRequest,
 ) -> anyhow::Result<RecalculateResponse> {
-    let pcc = resolve_path(&config.data_root, &request.pcc);
-    let pcg = resolve_path(&config.data_root, &request.pcg);
-    let (pack, _report) = compile_pcc(&pcc)?;
+    let pcc = resolve_path(&state.config.data_root, &request.pcc);
+    let pcg = resolve_path(&state.config.data_root, &request.pcg);
+    let engine = cached_engine(state, &pcc).map_err(anyhow::Error::msg)?;
     let mut draft = draft_from_pcg(parse_pcg_draft_file(&pcg)?);
     apply_overrides(&mut draft, &request.overrides);
-    let snapshot = Engine::new(pack.clone()).evaluate(&draft);
+    let snapshot = engine.evaluate(&draft);
     let snapshot_json: serde_json::Value = serde_json::from_str(&render_json(&snapshot)?)?;
     let choices = serde_json::to_value(&snapshot.choices)?;
     let ability_pool_usage = serde_json::to_value(&snapshot.ability_pool_usage)?;
     let unresolved_choices = snapshot.unresolved_choices.clone();
-    let hints = unresolved_hints(&draft, &unresolved_choices, &pack);
+    let hints = unresolved_hints(&draft, &unresolved_choices, &engine.pack);
     Ok(RecalculateResponse {
         snapshot: snapshot_json,
         choices,
@@ -824,10 +848,11 @@ async fn pack_options(
     Query(query): Query<PackOptionsQuery>,
 ) -> impl IntoResponse {
     let pcc_path = resolve_path(&state.config.data_root, &query.pcc);
-    let (pack, _) = match compile_pcc(&pcc_path) {
-        Ok(value) => value,
-        Err(error) => return api_error(StatusCode::BAD_REQUEST, error.to_string()),
+    let engine = match cached_engine(&state, &pcc_path) {
+        Ok(engine) => engine,
+        Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
     };
+    let pack = &engine.pack;
     let options = PackOptions {
         races: named_options(
             pack.races.values(),
@@ -876,7 +901,7 @@ async fn pack_options(
                             class_features_cache
                                 .entry(class_id.to_ascii_lowercase())
                                 .or_insert_with(|| {
-                                    class_feature_names(&pack, class_id)
+                                    class_feature_names(pack, class_id)
                                         .into_iter()
                                         .map(|feature| normalized_feature(&feature))
                                         .collect()
@@ -934,19 +959,20 @@ async fn create_character_from_request(
     Json(body): Json<CreateFromRequest>,
 ) -> impl IntoResponse {
     let pcc_path = resolve_path(&state.config.data_root, &body.pcc);
-    let (pack, _) = match compile_pcc(&pcc_path) {
-        Ok(value) => value,
-        Err(error) => return api_error(StatusCode::BAD_REQUEST, error.to_string()),
+    let engine = match cached_engine(&state, &pcc_path) {
+        Ok(engine) => engine,
+        Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
     };
-    let draft = match create_draft(&pack, &body.request) {
+    let pack = &engine.pack;
+    let draft = match create_draft(pack, &body.request) {
         Ok(draft) => draft,
         Err(error) => return api_error(StatusCode::BAD_REQUEST, error.to_string()),
     };
     let pcc_relative = relativize(&state.config.data_root, &pcc_path.to_string_lossy());
     let envelope = NativeSaveEnvelope::new(
         draft,
-        pack.header.rules_fingerprint.clone(),
-        pack.header.data_ref.clone(),
+        engine.pack.header.rules_fingerprint.clone(),
+        engine.pack.header.data_ref.clone(),
     )
     .with_pcc(Some(pcc_relative));
     let summary = summary_for(&envelope);
