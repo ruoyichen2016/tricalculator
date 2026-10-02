@@ -155,6 +155,11 @@ pub enum Predicate {
     Domain {
         names: Vec<String>,
     },
+    /// Deity membership query (PCGen `PREDEITY`).
+    Deity {
+        names: BTreeSet<String>,
+        min_count: u32,
+    },
     /// Hit Dice threshold (PCGen `PREHD`).
     HitDice {
         min: Option<u32>,

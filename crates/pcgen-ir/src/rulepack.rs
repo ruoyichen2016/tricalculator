@@ -784,6 +784,27 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 })
             }
         }
+        "PREDEITY" => {
+            let min_count = parts.first()?.trim().parse::<u32>().ok()?;
+            let names = parts
+                .iter()
+                .skip(1)
+                .map(|part| {
+                    part.trim()
+                        .trim_end_matches(']')
+                        .trim()
+                        .to_ascii_lowercase()
+                })
+                .filter(|part| !part.is_empty() && part.parse::<u32>().is_err())
+                .collect::<std::collections::BTreeSet<_>>();
+            if names.is_empty() {
+                return None;
+            }
+            Some(Predicate::Deity {
+                names,
+                min_count: min_count.max(1),
+            })
+        }
         "PREWEAPONPROF" | "PREWIELD" | "PREDOMAIN" => {
             let values = parse_qualified_names(body);
             if values.is_empty() {
