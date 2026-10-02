@@ -16,4 +16,8 @@
 !/data/packs/custom/original/README.md
 !/data/packs/custom/curated/
 !/data/packs/custom/curated/README.md
+/data/packs/custom/original/*
+!/data/packs/custom/original/README.md
+/data/packs/custom/curated/*
+!/data/packs/custom/curated/README.md
 
