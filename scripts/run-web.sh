@@ -17,6 +17,8 @@ fi
 DATA="${PCGEN_DATA_ROOT:-}"
 if [ -z "$DATA" ]; then
     for candidate in \
+        "$DIR/data/packs/custom/curated/bahamut-all-35e3e" \
+        "$ROOT/data/packs/custom/curated/bahamut-all-35e3e" \
         "$DIR/data/packs/rsrd35" \
         "$ROOT/data/packs/rsrd35" \
         "$ROOT/../raw/pcgen-master"; do

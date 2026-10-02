@@ -43,7 +43,11 @@ rem ---- locate data pack ----
 if not "%PCGEN_DATA_ROOT%"=="" (
     set "DATA=%PCGEN_DATA_ROOT%"
 ) else (
-    if exist "%DIR%data\packs\rsrd35" (
+    if exist "%DIR%data\packs\custom\curated\bahamut-all-35e3e" (
+        set "DATA=%DIR%data\packs\custom\curated\bahamut-all-35e3e"
+    ) else if exist "%ROOT%\data\packs\custom\curated\bahamut-all-35e3e" (
+        set "DATA=%ROOT%\data\packs\custom\curated\bahamut-all-35e3e"
+    ) else if exist "%DIR%data\packs\rsrd35" (
         set "DATA=%DIR%data\packs\rsrd35"
     ) else if exist "%ROOT%\data\packs\rsrd35" (
         set "DATA=%ROOT%\data\packs\rsrd35"

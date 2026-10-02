@@ -17,6 +17,7 @@
 - 技能与专长改为可视化选择器，不再依赖手写文本；
 - `/api/pack-options` 新增 `abilities` 完整能力目录；
 - 新增 `data/packs/custom/` 用于放置自定义资料包；
+- 新增 3e/35e 全量扩展聚合包，并默认通过 `run-web.sh` / `run-web.bat` 优先载入；
 - `/api/pack-options` 新增 `variants`，按职业列出可用的 archetype / substitution；
 - `CharacterSummary.total_level` 统一改用 `CharacterDraft::total_level()`，
   兼容 `advancement` 角色；

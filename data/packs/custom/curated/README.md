@@ -24,6 +24,11 @@ PCGEN_DATA_ROOT="$PWD/data/packs/custom/curated/my_pack" ./run-web.sh
 
 ## 当前已审定资料
 
+- `bahamut-all-35e3e/`：3e/35e 全量扩展聚合包（默认载入）。
+  - 包含全部 3e、35e 的 `.pcc`；
+  - 已修正编码（UTF-8）与文件名大小写引用；
+  - 入口 `data/_all_35e3e.pcc`；
+  - `variants=96`，`error_diagnostics=0`。
 - `bahamut35e-players/`：面向玩家建卡的优化资料包。
   - 只抽取 Player's Handbook、Universal Rules、Unearthed Arcana；
   - 不包含 DMG / MM / 美术资源 / outputsheets 等非玩家必需内容；
