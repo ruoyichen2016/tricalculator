@@ -663,6 +663,8 @@ const spellLevelEl = document.getElementById('spellLevel');
 const spellCandidatesEl = document.getElementById('spellCandidates');
 let packClasses = [];
 let packVariants = [];
+let archetypesByClass = new Map();
+let substitutionsByClassLevel = new Map();
 let packSkills = [];
 let packAbilities = [];
 let packSpellOptions = [];
@@ -789,6 +791,7 @@ async function loadPackOptions() {
     fillSelect(createAlignmentEl, data.alignments);
     packClasses = data.classes || [];
     packVariants = data.variants || [];
+    buildVariantIndexes();
     packSkills = data.skills || [];
     packAbilities = data.abilities || [];
     packSpellOptions = data.spells || [];
@@ -828,6 +831,24 @@ document.getElementById('standardArray').onclick = () => {
 
 function classOptionName(classId) {
   return packClasses.find((option) => option.id === classId)?.name || classId;
+}
+
+function buildVariantIndexes() {
+  archetypesByClass.clear();
+  substitutionsByClassLevel.clear();
+  for (const variant of packVariants) {
+    if (!variant.applies_to) continue;
+    const classKey = variant.applies_to.toLowerCase();
+    if (variant.kind === 'substitution') {
+      const key = `${classKey}:${variant.level}`;
+      if (!substitutionsByClassLevel.has(key)) substitutionsByClassLevel.set(key, []);
+      substitutionsByClassLevel.get(key).push(variant);
+    } else {
+      if (variant.replaces && variant.replaces.length > 0 && !variant.matches_features) continue;
+      if (!archetypesByClass.has(classKey)) archetypesByClass.set(classKey, []);
+      archetypesByClass.get(classKey).push(variant);
+    }
+  }
 }
 
 function variantOptionsForClass(classId) {
@@ -1081,13 +1102,17 @@ function classLevelForLane(frameIndex, laneIndex) {
 
 function fillVariantOptions(select, classId, kind, level, selected) {
   select.innerHTML = '<option value="">— none —</option>';
-  const className = classOptionName(classId);
-  for (const variant of packVariants) {
-    if (variant.kind !== kind) continue;
-    if (kind === 'substitution' && variant.level !== level) continue;
-    if (kind === 'archetype' && variant.replaces && variant.replaces.length > 0 && !variant.matches_features) continue;
-    const applies = variant.applies_to;
-    if (!applies || (applies !== classId && applies.toLowerCase() !== className.toLowerCase())) continue;
+  const classKey = (classId || '').toLowerCase();
+  const classNameKey = (classOptionName(classId) || '').toLowerCase();
+  let variants = [];
+  if (kind === 'substitution') {
+    variants = substitutionsByClassLevel.get(`${classKey}:${level}`)
+      || substitutionsByClassLevel.get(`${classNameKey}:${level}`)
+      || [];
+  } else {
+    variants = archetypesByClass.get(classKey) || archetypesByClass.get(classNameKey) || [];
+  }
+  for (const variant of variants) {
     const option = document.createElement('option');
     option.value = variant.id;
     option.textContent = kind === 'substitution'

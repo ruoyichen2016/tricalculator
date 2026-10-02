@@ -856,49 +856,59 @@ async fn pack_options(
             .collect(),
         spells: spell_options(&pack),
         equipment: equipment_options(&pack),
-        variants: pack
-            .variants
-            .values()
-            .map(|variant| {
-                let kind = if variant.id.contains(" ~ level ") {
-                    "substitution"
-                } else {
-                    "archetype"
-                };
-                let class_features: std::collections::BTreeSet<String> = variant
-                    .applies_to
-                    .as_deref()
-                    .map(|class_id| {
-                        class_feature_names(&pack, class_id)
-                            .into_iter()
-                            .map(|feature| normalized_feature(&feature))
-                            .collect()
-                    })
-                    .unwrap_or_default();
-                let matches_features = variant.replaces.is_empty()
-                    || variant.replaces.iter().any(|replaced| {
-                        let wanted = normalized_feature(replaced);
-                        class_features.iter().any(|feature| {
-                            feature == &wanted
-                                || feature.contains(&wanted)
-                                || wanted.contains(feature)
+        variants: {
+            let mut class_features_cache: std::collections::HashMap<
+                String,
+                std::collections::BTreeSet<String>,
+            > = std::collections::HashMap::new();
+            pack.variants
+                .values()
+                .map(|variant| {
+                    let kind = if variant.id.contains(" ~ level ") {
+                        "substitution"
+                    } else {
+                        "archetype"
+                    };
+                    let class_features: std::collections::BTreeSet<String> = variant
+                        .applies_to
+                        .as_deref()
+                        .map(|class_id| {
+                            class_features_cache
+                                .entry(class_id.to_ascii_lowercase())
+                                .or_insert_with(|| {
+                                    class_feature_names(&pack, class_id)
+                                        .into_iter()
+                                        .map(|feature| normalized_feature(&feature))
+                                        .collect()
+                                })
+                                .clone()
                         })
-                    });
-                VariantOption {
-                    id: variant.id.clone(),
-                    name: variant.name.clone(),
-                    applies_to: variant.applies_to.clone(),
-                    kind: kind.to_string(),
-                    level: variant
-                        .id
-                        .rsplit_once(" ~ level ")
-                        .and_then(|(_, level)| level.trim().parse().ok()),
-                    replaces: variant.replaces.clone(),
-                    grants: variant.grants.clone(),
-                    matches_features,
-                }
-            })
-            .collect(),
+                        .unwrap_or_default();
+                    let matches_features = variant.replaces.is_empty()
+                        || variant.replaces.iter().any(|replaced| {
+                            let wanted = normalized_feature(replaced);
+                            class_features.iter().any(|feature| {
+                                feature == &wanted
+                                    || feature.contains(&wanted)
+                                    || wanted.contains(feature)
+                            })
+                        });
+                    VariantOption {
+                        id: variant.id.clone(),
+                        name: variant.name.clone(),
+                        applies_to: variant.applies_to.clone(),
+                        kind: kind.to_string(),
+                        level: variant
+                            .id
+                            .rsplit_once(" ~ level ")
+                            .and_then(|(_, level)| level.trim().parse().ok()),
+                        replaces: variant.replaces.clone(),
+                        grants: variant.grants.clone(),
+                        matches_features,
+                    }
+                })
+                .collect()
+        },
         deities: named_options(
             pack.deities.values(),
             |item| item.id.clone(),
