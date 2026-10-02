@@ -21,3 +21,8 @@ curated/
 ```bash
 PCGEN_DATA_ROOT="$PWD/data/packs/custom/curated/my_pack" ./run-web.sh
 ```
+
+## 当前已审定资料
+
+- `bahamut35e-core-ua/`：BahamutDragon 3.5e Core Books + Unearthed Arcana；
+  已通过 `pcgen import-report` 导入检查，并补全 `_universal/races.lst` 依赖。
