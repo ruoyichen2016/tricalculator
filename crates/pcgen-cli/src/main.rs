@@ -512,6 +512,7 @@ fn main() -> Result<()> {
                 spells: parse_spells(&spells),
                 equipment,
                 equipment_budget: equipment_budget.or(class_gold),
+                advancement: Vec::new(),
                 deity,
                 domains,
             };

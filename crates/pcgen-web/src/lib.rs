@@ -760,12 +760,7 @@ fn spell_options(pack: &pcgen_ir::CompiledRulePack) -> Vec<NamedOption> {
 }
 
 fn summary_for(envelope: &NativeSaveEnvelope) -> CharacterSummary {
-    let total_level = envelope
-        .character
-        .class_levels
-        .iter()
-        .map(|entry| entry.level)
-        .sum();
+    let total_level = envelope.character.total_level();
     CharacterSummary {
         id: envelope.character.id.clone(),
         name: envelope.character.name.clone(),

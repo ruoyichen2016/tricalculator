@@ -2,6 +2,7 @@
 
 use crate::point_buy;
 use crate::BuilderError;
+use pcgen_core::{AdvancementFrame, AdvancementLane, LaneId};
 use pcgen_engine::{CharacterDraft, DraftClassLevel, DraftSpell};
 use pcgen_ir::CompiledRulePack;
 use serde::{Deserialize, Serialize};
@@ -25,6 +26,24 @@ fn default_times() -> u32 {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CreateAdvancementLane {
+    pub class: String,
+    /// Optional explicit HP gained for this lane; defaults to average HD.
+    #[serde(default)]
+    pub hit_points_gained: Option<i32>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CreateAdvancementFrame {
+    /// 1-based character level. If 0, it is inferred from the frame index.
+    #[serde(default)]
+    pub character_level: u32,
+    /// One lane for normal characters; two or more for Gestalt.
+    #[serde(default)]
+    pub lanes: Vec<CreateAdvancementLane>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct CreateRequest {
     pub id: String,
     pub name: String,
@@ -36,6 +55,10 @@ pub struct CreateRequest {
     pub alignment: String,
     #[serde(default)]
     pub campaign: String,
+    /// Per-level advancement frames. When non-empty, this takes precedence
+    /// over `class` / `level` and is used as the authoritative progression.
+    #[serde(default)]
+    pub advancement: Vec<CreateAdvancementFrame>,
     #[serde(default)]
     pub stats: BTreeMap<String, i32>,
     #[serde(default)]
@@ -79,16 +102,6 @@ pub fn create_draft(
 ) -> Result<CharacterDraft, BuilderError> {
     let race_id = canonical_race(pack, &request.race)
         .ok_or_else(|| BuilderError::UnknownRace(request.race.clone()))?;
-    let class_id = canonical_class(pack, &request.class_id)
-        .ok_or_else(|| BuilderError::UnknownClass(request.class_id.clone()))?;
-    if request.level == 0 || request.level > 20 {
-        return Err(BuilderError::InvalidLevel(request.level));
-    }
-    if let Some(class) = pack.classes.get(&class_id) {
-        if class.max_level > 0 && request.level > class.max_level {
-            return Err(BuilderError::InvalidLevel(request.level));
-        }
-    }
 
     let mut stats = BTreeMap::new();
     for key in ABILITY_KEYS {
@@ -127,26 +140,6 @@ pub fn create_draft(
         abilities.push((category, key.clone()));
     }
 
-    let mut spells = Vec::new();
-    for spell in &request.spells {
-        let name = canonical_spell(pack, &spell.name)
-            .ok_or_else(|| BuilderError::UnknownSpell(spell.name.clone()))?;
-        let class_level = spell_level_for_class(pack, &name, &class_id)
-            .ok_or_else(|| BuilderError::SpellNotOnClassList(name.clone(), class_id.clone()))?;
-        let level = if spell.level > 0 {
-            spell.level
-        } else {
-            class_level
-        };
-        spells.push(DraftSpell {
-            name: spell_display_name(pack, &name),
-            level,
-            class_id: Some(class_id.clone()),
-            times_memorized: spell.times_memorized,
-            book: spell.book.clone(),
-        });
-    }
-
     let mut equipment = Vec::new();
     for item in &request.equipment {
         let key = canonical_equipment(pack, item)
@@ -160,6 +153,108 @@ pub fn create_draft(
         }
     }
 
+    // Resolve class progression: either an explicit per-level advancement
+    // (normal multiclass or Gestalt) or the legacy single-class request.
+    let mut class_ids: Vec<String> = Vec::new();
+    let mut advancement = Vec::new();
+    let mut class_levels = Vec::new();
+
+    if !request.advancement.is_empty() {
+        let mut lane_levels: BTreeMap<(String, String), u32> = BTreeMap::new();
+        for (index, frame) in request.advancement.iter().enumerate() {
+            if frame.lanes.is_empty() {
+                return Err(BuilderError::InvalidLevel(index as u32 + 1));
+            }
+            let character_level = if frame.character_level == 0 {
+                index as u32 + 1
+            } else {
+                frame.character_level
+            };
+            if character_level == 0 || character_level > 20 {
+                return Err(BuilderError::InvalidLevel(character_level));
+            }
+
+            let mut lanes = Vec::new();
+            for (lane_index, lane) in frame.lanes.iter().enumerate() {
+                let class_id = canonical_class(pack, &lane.class)
+                    .ok_or_else(|| BuilderError::UnknownClass(lane.class.clone()))?;
+                let lane_id = if frame.lanes.len() == 1 {
+                    LaneId::primary()
+                } else if lane_index == 0 {
+                    LaneId::new("primary")
+                } else {
+                    LaneId::new(format!("lane-{}", lane_index + 1))
+                };
+                let key = (lane_id.to_string(), class_id.clone());
+                let next_level = lane_levels.entry(key).or_insert(0);
+                *next_level += 1;
+                if let Some(class) = pack.classes.get(&class_id) {
+                    if class.max_level > 0 && *next_level > class.max_level {
+                        return Err(BuilderError::InvalidLevel(*next_level));
+                    }
+                }
+                let hit_points = lane
+                    .hit_points_gained
+                    .unwrap_or_else(|| average_hit_die(pack, &class_id));
+                lanes.push(AdvancementLane::new(
+                    lane_id,
+                    class_id.clone(),
+                    *next_level,
+                    hit_points,
+                    0,
+                ));
+                if !class_ids.contains(&class_id) {
+                    class_ids.push(class_id.clone());
+                }
+            }
+            advancement.push(AdvancementFrame::new(character_level, lanes));
+        }
+    } else {
+        let class_id = canonical_class(pack, &request.class_id)
+            .ok_or_else(|| BuilderError::UnknownClass(request.class_id.clone()))?;
+        if request.level == 0 || request.level > 20 {
+            return Err(BuilderError::InvalidLevel(request.level));
+        }
+        if let Some(class) = pack.classes.get(&class_id) {
+            if class.max_level > 0 && request.level > class.max_level {
+                return Err(BuilderError::InvalidLevel(request.level));
+            }
+        }
+        class_ids.push(class_id.clone());
+        class_levels.push(DraftClassLevel {
+            class_id: class_id.clone(),
+            level: request.level,
+            hit_points_gained: 0,
+            hit_points_by_level: average_hit_points(pack, &class_id, request.level),
+            experience_gained: 0,
+        });
+    }
+
+    let mut spells = Vec::new();
+    for spell in &request.spells {
+        let name = canonical_spell(pack, &spell.name)
+            .ok_or_else(|| BuilderError::UnknownSpell(spell.name.clone()))?;
+        let (spell_class_id, class_level) = spell_class_level_for_classes(pack, &name, &class_ids)
+            .ok_or_else(|| {
+                BuilderError::SpellNotOnClassList(
+                    name.clone(),
+                    class_ids.first().cloned().unwrap_or_default(),
+                )
+            })?;
+        let level = if spell.level > 0 {
+            spell.level
+        } else {
+            class_level
+        };
+        spells.push(DraftSpell {
+            name: spell_display_name(pack, &name),
+            level,
+            class_id: Some(spell_class_id),
+            times_memorized: spell.times_memorized,
+            book: spell.book.clone(),
+        });
+    }
+
     let mut draft = CharacterDraft {
         id: if request.id.trim().is_empty() {
             slug(&request.name)
@@ -171,13 +266,8 @@ pub fn create_draft(
         campaign: request.campaign.clone(),
         alignment: request.alignment.clone(),
         stats,
-        class_levels: vec![DraftClassLevel {
-            class_id: class_id.clone(),
-            level: request.level,
-            hit_points_gained: 0,
-            hit_points_by_level: average_hit_points(pack, &class_id, request.level),
-            experience_gained: 0,
-        }],
+        class_levels,
+        advancement,
         skills,
         spells,
         equipment,
@@ -312,6 +402,19 @@ fn spell_level_for_class(pack: &CompiledRulePack, spell_id: &str, class_id: &str
         .map(|(_, level)| *level)
 }
 
+fn spell_class_level_for_classes(
+    pack: &CompiledRulePack,
+    spell_id: &str,
+    class_ids: &[String],
+) -> Option<(String, u32)> {
+    for class_id in class_ids {
+        if let Some(level) = spell_level_for_class(pack, spell_id, class_id) {
+            return Some((class_id.clone(), level));
+        }
+    }
+    None
+}
+
 fn average_hit_points(pack: &CompiledRulePack, class_id: &str, level: u32) -> Vec<i32> {
     let average = average_hit_die(pack, class_id);
     if average <= 0 {
@@ -429,6 +532,10 @@ mod tests {
         pack.classes.insert(
             "Fighter".to_string(),
             pcgen_core::domain::ClassDefinition::new("Fighter", "Fighter"),
+        );
+        pack.classes.insert(
+            "Wizard".to_string(),
+            pcgen_core::domain::ClassDefinition::new("Wizard", "Wizard"),
         );
         pack.skills.insert(
             "Climb".to_string(),
@@ -570,6 +677,99 @@ mod tests {
             create_draft(&pack, &request),
             Err(BuilderError::UnknownSkill(_))
         ));
+    }
+
+    #[test]
+    fn creates_per_level_multiclass() {
+        let pack = sample_pack();
+        let request = CreateRequest {
+            name: "Multi".to_string(),
+            race: "Human".to_string(),
+            class_id: "Fighter".to_string(),
+            level: 1,
+            advancement: vec![
+                CreateAdvancementFrame {
+                    character_level: 1,
+                    lanes: vec![CreateAdvancementLane {
+                        class: "Fighter".to_string(),
+                        hit_points_gained: None,
+                    }],
+                },
+                CreateAdvancementFrame {
+                    character_level: 2,
+                    lanes: vec![CreateAdvancementLane {
+                        class: "Wizard".to_string(),
+                        hit_points_gained: None,
+                    }],
+                },
+                CreateAdvancementFrame {
+                    character_level: 3,
+                    lanes: vec![CreateAdvancementLane {
+                        class: "fighter".to_string(),
+                        hit_points_gained: None,
+                    }],
+                },
+            ],
+            ..CreateRequest::default()
+        };
+        let draft = create_draft(&pack, &request).unwrap();
+        assert!(draft.class_levels.is_empty());
+        assert_eq!(draft.advancement.len(), 3);
+        assert_eq!(draft.total_level(), 3);
+        assert_eq!(draft.advancement[0].lanes[0].class_id, "Fighter");
+        assert_eq!(draft.advancement[0].lanes[0].class_level, 1);
+        assert_eq!(draft.advancement[1].lanes[0].class_id, "Wizard");
+        assert_eq!(draft.advancement[1].lanes[0].class_level, 1);
+        assert_eq!(draft.advancement[2].lanes[0].class_id, "Fighter");
+        assert_eq!(draft.advancement[2].lanes[0].class_level, 2);
+    }
+
+    #[test]
+    fn creates_gestalt_advancement() {
+        let pack = sample_pack();
+        let request = CreateRequest {
+            name: "Gestalt".to_string(),
+            race: "Human".to_string(),
+            class_id: "Fighter".to_string(),
+            level: 1,
+            advancement: vec![
+                CreateAdvancementFrame {
+                    character_level: 1,
+                    lanes: vec![
+                        CreateAdvancementLane {
+                            class: "Fighter".to_string(),
+                            hit_points_gained: None,
+                        },
+                        CreateAdvancementLane {
+                            class: "Wizard".to_string(),
+                            hit_points_gained: None,
+                        },
+                    ],
+                },
+                CreateAdvancementFrame {
+                    character_level: 2,
+                    lanes: vec![
+                        CreateAdvancementLane {
+                            class: "Fighter".to_string(),
+                            hit_points_gained: None,
+                        },
+                        CreateAdvancementLane {
+                            class: "Wizard".to_string(),
+                            hit_points_gained: None,
+                        },
+                    ],
+                },
+            ],
+            ..CreateRequest::default()
+        };
+        let draft = create_draft(&pack, &request).unwrap();
+        assert!(draft.is_gestalt());
+        assert!(draft.class_levels.is_empty());
+        assert_eq!(draft.advancement.len(), 2);
+        assert_eq!(draft.advancement[0].lanes.len(), 2);
+        assert_eq!(draft.total_level(), 2);
+        assert_eq!(draft.advancement[1].lanes[0].class_level, 2);
+        assert_eq!(draft.advancement[1].lanes[1].class_level, 2);
     }
 
     #[test]

@@ -199,12 +199,7 @@ impl CharacterRepository {
 }
 
 fn summary(envelope: &NativeSaveEnvelope) -> CharacterSummary {
-    let total_level = envelope
-        .character
-        .class_levels
-        .iter()
-        .map(|level| level.level)
-        .sum();
+    let total_level = envelope.character.total_level();
     CharacterSummary {
         id: envelope.character.id.clone(),
         name: envelope.character.name.clone(),

@@ -381,6 +381,165 @@ async fn builder_create_endpoint_round_trip() {
 }
 
 #[tokio::test]
+async fn builder_create_advancement_multiclass() {
+    let config = character_config("multiclass");
+    let characters_root = config.characters_root.clone();
+    let app = app(config);
+    let body = serde_json::json!({
+        "pcc": "campaign-mini/mini.pcc",
+        "request": {
+            "id": "",
+            "name": "Multi Hero",
+            "race": "Human",
+            "class": "Fighter",
+            "level": 2,
+            "advancement": [
+                {"character_level": 1, "lanes": [{"class": "Fighter"}]},
+                {"character_level": 2, "lanes": [{"class": "Wizard"}]}
+            ],
+            "alignment": "NG",
+            "campaign": "campaign-mini/mini.pcc",
+            "stats": {"STR": 12, "DEX": 12, "CON": 12, "INT": 10, "WIS": 10, "CHA": 8},
+            "point_buy_budget": 25,
+            "skills": {},
+            "abilities": [],
+            "spells": [],
+            "equipment": [],
+            "deity": null,
+            "domains": []
+        }
+    });
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/characters/create")
+                .header("content-type", "application/json")
+                .body(Body::from(body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/characters/multi-hero")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let detail: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(
+        detail["envelope"]["character"]["class_levels"]
+            .as_array()
+            .map(|v| v.len()),
+        Some(0)
+    );
+    assert_eq!(
+        detail["envelope"]["character"]["advancement"]
+            .as_array()
+            .map(|v| v.len()),
+        Some(2)
+    );
+    assert_eq!(
+        detail["envelope"]["character"]["advancement"][1]["lanes"][0]["class_id"],
+        "Wizard"
+    );
+    assert!(detail["html"].as_str().is_some());
+
+    let _ = std::fs::remove_dir_all(characters_root);
+}
+
+#[tokio::test]
+async fn builder_create_gestalt_advancement() {
+    let config = character_config("gestalt");
+    let characters_root = config.characters_root.clone();
+    let app = app(config);
+    let body = serde_json::json!({
+        "pcc": "campaign-mini/mini.pcc",
+        "request": {
+            "id": "",
+            "name": "Gestalt Hero",
+            "race": "Human",
+            "class": "Fighter",
+            "level": 2,
+            "advancement": [
+                {
+                    "character_level": 1,
+                    "lanes": [{"class": "Fighter"}, {"class": "Wizard"}]
+                },
+                {
+                    "character_level": 2,
+                    "lanes": [{"class": "Fighter"}, {"class": "Wizard"}]
+                }
+            ],
+            "alignment": "NG",
+            "campaign": "campaign-mini/mini.pcc",
+            "stats": {"STR": 12, "DEX": 12, "CON": 12, "INT": 10, "WIS": 10, "CHA": 8},
+            "point_buy_budget": 25,
+            "skills": {},
+            "abilities": [],
+            "spells": [],
+            "equipment": [],
+            "deity": null,
+            "domains": []
+        }
+    });
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/characters/create")
+                .header("content-type", "application/json")
+                .body(Body::from(body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/characters/gestalt-hero")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let detail: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(
+        detail["envelope"]["character"]["advancement"]
+            .as_array()
+            .map(|v| v.len()),
+        Some(2)
+    );
+    assert_eq!(
+        detail["envelope"]["character"]["advancement"][0]["lanes"]
+            .as_array()
+            .map(|v| v.len()),
+        Some(2)
+    );
+
+    let _ = std::fs::remove_dir_all(characters_root);
+}
+
+#[tokio::test]
 async fn builder_create_wizard_with_spell() {
     let config = character_config("wizard");
     let characters_root = config.characters_root.clone();

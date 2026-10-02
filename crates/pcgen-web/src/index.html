@@ -49,10 +49,15 @@
       <input id="createName" value="New Hero">
       <label for="createRace">Race</label>
       <select id="createRace"></select>
-      <label for="createClass">Class</label>
-      <select id="createClass"></select>
-      <label for="createLevel">Level</label>
+      <label for="createMode">Progression</label>
+      <select id="createMode">
+        <option value="normal">Normal (one class per level)</option>
+        <option value="gestalt">Gestalt (two classes per level)</option>
+      </select>
+      <label for="createLevel">Levels</label>
       <input id="createLevel" type="number" min="1" max="20" value="1">
+      <button type="button" id="buildLevelRows">Build level rows</button>
+      <div id="classLevelRows"></div>
       <label for="createAlignment">Alignment</label>
       <select id="createAlignment"></select>
       <label for="createGold">Starting gold</label>
@@ -513,8 +518,10 @@ document.getElementById('importCharacter').onclick = async () => {
 
 const createNameEl = document.getElementById('createName');
 const createRaceEl = document.getElementById('createRace');
-const createClassEl = document.getElementById('createClass');
+const createModeEl = document.getElementById('createMode');
 const createLevelEl = document.getElementById('createLevel');
+const classLevelRowsEl = document.getElementById('classLevelRows');
+const buildLevelRowsBtn = document.getElementById('buildLevelRows');
 const createAlignmentEl = document.getElementById('createAlignment');
 const createGoldEl = document.getElementById('createGold');
 const createBudgetEl = document.getElementById('createBudget');
@@ -526,6 +533,7 @@ const createSpellsEl = document.getElementById('createSpells');
 const spellCandidateEl = document.getElementById('spellCandidate');
 const spellLevelEl = document.getElementById('spellLevel');
 const spellCandidatesEl = document.getElementById('spellCandidates');
+let packClasses = [];
 let packSpellOptions = [];
 const createEquipmentEl = document.getElementById('createEquipment');
 const createStatusEl = document.getElementById('createStatus');
@@ -597,8 +605,13 @@ function fillSelect(element, options) {
   }
 }
 
+function currentPrimaryClassSelect() {
+  const firstRow = classLevelRowsEl.querySelector('.class-row');
+  return firstRow ? firstRow.querySelector('select.class-select') : null;
+}
+
 function syncClassGold() {
-  const selected = createClassEl.selectedOptions[0];
+  const selected = currentPrimaryClassSelect()?.selectedOptions[0];
   if (selected && selected.dataset.startingGold) {
     createGoldEl.value = selected.dataset.startingGold;
   }
@@ -608,8 +621,8 @@ function spellMatchesClass(spell) {
   if (!spell.class_levels || Object.keys(spell.class_levels).length === 0) {
     return true;
   }
-  const classId = createClassEl.value;
-  const className = createClassEl.selectedOptions[0]?.textContent || '';
+  const classId = currentPrimaryClassSelect()?.value || '';
+  const className = currentPrimaryClassSelect()?.selectedOptions[0]?.textContent || '';
   const keys = Object.keys(spell.class_levels);
   return keys.some((key) => key === classId || key.toLowerCase() === className.toLowerCase());
 }
@@ -635,9 +648,10 @@ async function loadPackOptions() {
       return;
     }
     fillSelect(createRaceEl, data.races);
-    fillSelect(createClassEl, data.classes);
     fillSelect(createAlignmentEl, data.alignments);
+    packClasses = data.classes || [];
     packSpellOptions = data.spells || [];
+    buildLevelRows();
     syncClassGold();
     refreshSpellCandidates();
     createStatusEl.textContent = `Options loaded: ${data.races.length} races, ${data.classes.length} classes`;
@@ -648,10 +662,9 @@ async function loadPackOptions() {
 }
 
 document.getElementById('loadPackOptions').onclick = loadPackOptions;
-createClassEl.onchange = () => {
-  syncClassGold();
-  refreshSpellCandidates();
-};
+buildLevelRowsBtn.onclick = buildLevelRows;
+createLevelEl.addEventListener('change', buildLevelRows);
+createModeEl.addEventListener('change', buildLevelRows);
 
 document.getElementById('standardArray').onclick = () => {
   const array = [15, 14, 13, 12, 10, 8];
@@ -660,6 +673,46 @@ document.getElementById('standardArray').onclick = () => {
   });
   updatePointBuy();
 };
+
+function buildLevelRows() {
+  const total = Math.max(1, Number(createLevelEl.value) || 1);
+  const mode = createModeEl.value;
+  const lanesPerLevel = mode === 'gestalt' ? 2 : 1;
+  classLevelRowsEl.innerHTML = '';
+  for (let i = 1; i <= total; i++) {
+    const row = document.createElement('div');
+    row.className = 'class-row';
+    row.style.cssText = 'display:flex;gap:0.4rem;align-items:center;margin:0.2rem 0';
+    const label = document.createElement('span');
+    label.style.cssText = 'min-width:3rem';
+    label.textContent = `Lv ${i}`;
+    row.appendChild(label);
+    for (let lane = 0; lane < lanesPerLevel; lane++) {
+      const select = document.createElement('select');
+      select.className = 'class-select';
+      for (const option of packClasses) {
+        const item = document.createElement('option');
+        item.value = option.id;
+        item.textContent = option.name;
+        if (option.starting_gold !== undefined) {
+          item.dataset.startingGold = option.starting_gold;
+        }
+        select.appendChild(item);
+      }
+      if (lane === 1 && packClasses.length > 1) {
+        select.selectedIndex = 1;
+      }
+      select.addEventListener('change', () => {
+        syncClassGold();
+        refreshSpellCandidates();
+      });
+      row.appendChild(select);
+    }
+    classLevelRowsEl.appendChild(row);
+  }
+  syncClassGold();
+  refreshSpellCandidates();
+}
 
 function parseLineMap(text, valueParser) {
   const out = {};
@@ -696,14 +749,22 @@ document.getElementById('createCharacterBtn').onclick = async () => {
     const [name, level] = line.split('=').map((part) => part.trim());
     return { name, level: Number(level || '0'), times_memorized: 1 };
   });
+  const advancement = Array.from(classLevelRowsEl.querySelectorAll('.class-row')).map((row, index) => ({
+    character_level: index + 1,
+    lanes: Array.from(row.querySelectorAll('select.class-select')).map((select) => ({
+      class: select.value,
+    })),
+  }));
+  const primaryClass = advancement[0]?.lanes[0]?.class || '';
   const request = {
     pcc: pccEl.value,
     request: {
       id: '',
       name: createNameEl.value,
       race: createRaceEl.value,
-      class: createClassEl.value,
+      class: primaryClass,
       level: Number(createLevelEl.value),
+      advancement,
       alignment: createAlignmentEl.value,
       campaign: pccEl.value,
       stats,
