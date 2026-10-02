@@ -9,3 +9,6 @@
 # release / pack outputs
 /dist/
 /data/packs/*/
+
+!/data/packs/custom/
+!/data/packs/custom/README.md
