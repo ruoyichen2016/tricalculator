@@ -1,33 +1,15 @@
 # Custom Data Packs
 
-把自定义资料包放到这个目录下，每个资料包一个子目录：
+该目录区分两类资料：
 
-```text
-data/packs/custom/
-  my_pack/
-    pack.json
-    data/
-      ...
-```
+| 目录 | 用途 |
+|---|---|
+| `original/` | 原始资料包，未经审定，可能无法直接导入 |
+| `curated/` | 已经审定/校正后的资料包，可用于 Web 建卡 |
 
-`pack.json` 示例：
+工作流程：
 
-```json
-{
-  "id": "my_pack",
-  "name": "My Custom Pack",
-  "entry": "data/custom/main.pcc",
-  "version": "1.0.0",
-  "data_ref": "local",
-  "license": "OGL-1.0a"
-}
-```
-
-启动 Web 时可用 `PCGEN_DATA_ROOT` 指向该资料包：
-
-```bash
-PCGEN_DATA_ROOT="$PWD/data/packs/custom/my_pack" ./run-web.sh
-```
-
-也可以把多个资料包都放在 `custom/` 下，由后续的数据包选择器统一发现。
-当前 `custom/` 只保留手动放置的资料包，不做自动打包。
+1. 把从别处拿到的资料包放入 `original/`；
+2. 开发者对其进行导入检查与修正；
+3. 修正后可用的资料放入 `curated/`；
+4. Web 启动时通过 `PCGEN_DATA_ROOT` 指向 `curated/` 下的具体资料包。
