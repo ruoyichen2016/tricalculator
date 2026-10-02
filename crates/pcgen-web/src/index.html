@@ -1085,6 +1085,7 @@ function fillVariantOptions(select, classId, kind, level, selected) {
   for (const variant of packVariants) {
     if (variant.kind !== kind) continue;
     if (kind === 'substitution' && variant.level !== level) continue;
+    if (kind === 'archetype' && variant.replaces && variant.replaces.length > 0 && !variant.matches_features) continue;
     const applies = variant.applies_to;
     if (!applies || (applies !== classId && applies.toLowerCase() !== className.toLowerCase())) continue;
     const option = document.createElement('option');

@@ -7,6 +7,7 @@
   - 普通多职业：每个等级选择不同职业；
   - Gestalt：每个等级同时选择两个职业 lane；
   - 每个 lane 可选 archetype / alternate ability 与 substitution level；
+- 替代能力按职业已有特性索引：`variants` 增加 `matches_features`，UI 只展示与职业已有能力匹配的 Archetype / Alternate Ability；
 - 后端新增替代等级与“当前职业等级”的强校验：等级不匹配直接报错；
 - 修复 Archetype / Variant 与 Substitution Level 同时选择时的冲突：
   - 引擎现在允许同一 lane 同时应用 Archetype 与 Substitution Level；

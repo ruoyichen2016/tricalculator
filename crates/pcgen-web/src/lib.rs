@@ -167,6 +167,8 @@ pub struct VariantOption {
     pub level: Option<u32>,
     pub replaces: Vec<String>,
     pub grants: Vec<String>,
+    /// True when the variant's `replaces` intersects the class's known features.
+    pub matches_features: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -791,6 +793,32 @@ fn summary_for(envelope: &NativeSaveEnvelope) -> CharacterSummary {
     }
 }
 
+fn normalized_feature(value: &str) -> String {
+    value
+        .trim()
+        .to_ascii_lowercase()
+        .replace([' ', '-', '_'], "")
+}
+
+fn class_feature_names(pack: &pcgen_ir::CompiledRulePack, class_id: &str) -> Vec<String> {
+    let mut features = Vec::new();
+    if let Some(class) = pack.classes.get(class_id) {
+        for abilities in class.level_abilities.values() {
+            features.extend(abilities.iter().cloned());
+        }
+    }
+    if let Some(progression) = pack.progressions.get(class_id) {
+        let max_level = progression
+            .features_by_level
+            .keys()
+            .max()
+            .copied()
+            .unwrap_or(20);
+        features.extend(progression.features_up_to(max_level));
+    }
+    features
+}
+
 async fn pack_options(
     State(state): State<AppState>,
     Query(query): Query<PackOptionsQuery>,
@@ -837,6 +865,25 @@ async fn pack_options(
                 } else {
                     "archetype"
                 };
+                let class_features: std::collections::BTreeSet<String> = variant
+                    .applies_to
+                    .as_deref()
+                    .map(|class_id| {
+                        class_feature_names(&pack, class_id)
+                            .into_iter()
+                            .map(|feature| normalized_feature(&feature))
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                let matches_features = variant.replaces.is_empty()
+                    || variant.replaces.iter().any(|replaced| {
+                        let wanted = normalized_feature(replaced);
+                        class_features.iter().any(|feature| {
+                            feature == &wanted
+                                || feature.contains(&wanted)
+                                || wanted.contains(feature)
+                        })
+                    });
                 VariantOption {
                     id: variant.id.clone(),
                     name: variant.name.clone(),
@@ -848,6 +895,7 @@ async fn pack_options(
                         .and_then(|(_, level)| level.trim().parse().ok()),
                     replaces: variant.replaces.clone(),
                     grants: variant.grants.clone(),
+                    matches_features,
                 }
             })
             .collect(),
