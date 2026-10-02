@@ -7,6 +7,9 @@
   - 普通多职业：每个等级选择不同职业；
   - Gestalt：每个等级同时选择两个职业 lane；
   - 每个 lane 可选 archetype / alternate ability 与 substitution level；
+- 修复 Archetype / Variant 与 Substitution Level 同时选择时的冲突：
+  - 引擎现在允许同一 lane 同时应用 Archetype 与 Substitution Level；
+  - 特征替换、职业技能、变体效果、施法者推进均按两者叠加处理；
 - Web 建卡流程改为“步骤条 + 主从式编辑器”：
   - 步骤条：Basic → Advancement → Skills/Feats → Spells/Equipment → Review；
   - Advancement 使用左侧等级列表 + 右侧等级详情编辑器；

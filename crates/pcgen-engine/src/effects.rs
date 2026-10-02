@@ -298,42 +298,49 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
 
         for frame in &draft.advancement {
             for lane in &frame.lanes {
-                let Some(variant_id) = lane
-                    .archetype
-                    .as_deref()
-                    .or(lane.substitution_level.as_deref())
-                else {
-                    continue;
-                };
-                let Some(variant) = pack.variants.get(variant_id).or_else(|| {
-                    pack.variants
+                let mut variant_ids: Vec<&str> = Vec::new();
+                if let Some(id) = lane.archetype.as_deref() {
+                    variant_ids.push(id);
+                }
+                if let Some(id) = lane.substitution_level.as_deref() {
+                    if !variant_ids
                         .iter()
-                        .find(|(key, _)| key.eq_ignore_ascii_case(variant_id))
-                        .map(|(_, variant)| variant)
-                }) else {
-                    continue;
-                };
-                for (index, effect) in variant.effects.iter().enumerate() {
-                    if !processed_variant_effects.insert((variant.id.clone(), index)) {
-                        continue;
+                        .any(|existing| existing.eq_ignore_ascii_case(id))
+                    {
+                        variant_ids.push(id);
                     }
-                    if !predicate_holds(effect.condition.as_ref(), draft, &state) {
+                }
+                for variant_id in variant_ids {
+                    let Some(variant) = pack.variants.get(variant_id).or_else(|| {
+                        pack.variants
+                            .iter()
+                            .find(|(key, _)| key.eq_ignore_ascii_case(variant_id))
+                            .map(|(_, variant)| variant)
+                    }) else {
                         continue;
+                    };
+                    for (index, effect) in variant.effects.iter().enumerate() {
+                        if !processed_variant_effects.insert((variant.id.clone(), index)) {
+                            continue;
+                        }
+                        if !predicate_holds(effect.condition.as_ref(), draft, &state) {
+                            continue;
+                        }
+                        state.applied_effects += 1;
+                        apply_action(
+                            effect,
+                            EntityCategory::Class,
+                            None,
+                            pack,
+                            draft,
+                            &mut state,
+                            &mut variable_defs,
+                            &mut pending_formulas,
+                            &mut active,
+                            &mut queued,
+                            &mut changed,
+                        );
                     }
-                    state.applied_effects += 1;
-                    apply_action(
-                        effect,
-                        EntityCategory::Class,
-                        None,
-                        pack,
-                        draft,
-                        &mut state,
-                        &mut variable_defs,
-                        &mut pending_formulas,
-                        &mut active,
-                        &mut queued,
-                        &mut changed,
-                    );
                 }
             }
         }

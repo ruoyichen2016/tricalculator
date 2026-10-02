@@ -305,7 +305,7 @@ impl Engine {
             let mut effects = BTreeMap::new();
             for frame in &draft.advancement {
                 for lane in &frame.lanes {
-                    if let Some(variant) = self.variant_for(lane, &lane.class_id) {
+                    for variant in self.variants_for(lane, &lane.class_id) {
                         if !variant.bonus_tags.is_empty() {
                             effects.insert(variant.id.clone(), variant.bonus_tags.clone());
                         }
@@ -952,20 +952,27 @@ impl Engine {
         })
     }
 
-    fn variant_for(&self, lane: &AdvancementLane, class_id: &str) -> Option<&VariantDefinition> {
-        let id = lane
-            .archetype
-            .as_deref()
-            .or(lane.substitution_level.as_deref())?;
-        self.pack
-            .variants
-            .get(id)
-            .or_else(|| {
-                self.pack
-                    .variants
-                    .iter()
-                    .find(|(key, _)| key.eq_ignore_ascii_case(id))
-                    .map(|(_, variant)| variant)
+    /// Returns all variants attached to a lane: archetype first, then
+    /// substitution-level.  Both may coexist on the same lane.
+    fn variants_for(&self, lane: &AdvancementLane, class_id: &str) -> Vec<&VariantDefinition> {
+        let mut ids: Vec<&str> = Vec::new();
+        if let Some(id) = lane.archetype.as_deref() {
+            ids.push(id);
+        }
+        if let Some(id) = lane.substitution_level.as_deref() {
+            if !ids.iter().any(|existing| existing.eq_ignore_ascii_case(id)) {
+                ids.push(id);
+            }
+        }
+        ids.into_iter()
+            .filter_map(|id| {
+                self.pack.variants.get(id).or_else(|| {
+                    self.pack
+                        .variants
+                        .iter()
+                        .find(|(key, _)| key.eq_ignore_ascii_case(id))
+                        .map(|(_, variant)| variant)
+                })
             })
             .filter(|variant| {
                 variant
@@ -973,6 +980,11 @@ impl Engine {
                     .as_deref()
                     .is_none_or(|applies| applies.eq_ignore_ascii_case(class_id))
             })
+            .collect()
+    }
+
+    fn variant_for(&self, lane: &AdvancementLane, class_id: &str) -> Option<&VariantDefinition> {
+        self.variants_for(lane, class_id).into_iter().next()
     }
 
     fn race(&self, race_id: &str) -> Option<&RaceDefinition> {
@@ -1271,8 +1283,9 @@ impl Engine {
                 frame.lanes.iter().any(|lane| {
                     lane.class_id.eq_ignore_ascii_case(&class.id)
                         && self
-                            .variant_for(lane, &class.id)
-                            .is_some_and(|variant| variant.spellcaster_advance)
+                            .variants_for(lane, &class.id)
+                            .iter()
+                            .any(|variant| variant.spellcaster_advance)
                 })
             });
             let effective_level =
@@ -1833,15 +1846,15 @@ impl pcgen_core::ClassProgressSource for Engine {
 
     fn features_for_class(&self, lane: &AdvancementLane, class_id: &str) -> Option<Vec<String>> {
         let base = self.features_up_to_level(class_id, lane.class_level)?;
-        match self.variant_for(lane, class_id) {
-            Some(variant) => Some(variant.apply_to_features(base)),
-            None => Some(base),
-        }
+        let variants = self.variants_for(lane, class_id);
+        Some(variants.iter().fold(base, |features, variant| {
+            variant.apply_to_features(features)
+        }))
     }
 
     fn class_skills_for_lane(&self, lane: &AdvancementLane, class_id: &str) -> Option<Vec<String>> {
         let mut skills = self.class_skills(class_id)?;
-        if let Some(variant) = self.variant_for(lane, class_id) {
+        for variant in self.variants_for(lane, class_id) {
             skills.extend(variant.class_skills.iter().cloned());
         }
         Some(skills)
