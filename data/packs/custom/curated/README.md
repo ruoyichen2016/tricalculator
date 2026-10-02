@@ -29,6 +29,13 @@ PCGEN_DATA_ROOT="$PWD/data/packs/custom/curated/my_pack" ./run-web.sh
   - 已修正编码（UTF-8）与文件名大小写引用；
   - 入口 `data/_all_35e3e.pcc`；
   - `variants=96`，`error_diagnostics=0`。
+- `bahamut35e-wotc-supplements/`：3.5e WotC 扩展集合。
+  - 包含 Core + 全部 WotC supplement；
+  - 入口 `data/35e/wotc_supplements.pcc`；
+  - 已通过导入检查。
+- `bahamut3e-core/`：3e 核心选集。
+  - 入口 `data/3e/bahamut3e_core.pcc`；
+  - 已通过导入检查。
 - `bahamut35e-players/`：面向玩家建卡的优化资料包。
   - 只抽取 Player's Handbook、Universal Rules、Unearthed Arcana；
   - 不包含 DMG / MM / 美术资源 / outputsheets 等非玩家必需内容；

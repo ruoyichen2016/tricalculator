@@ -163,6 +163,8 @@ pub struct VariantOption {
     pub name: String,
     pub applies_to: Option<String>,
     pub kind: String,
+    /// For substitution-level variants, the class level this variant targets.
+    pub level: Option<u32>,
     pub replaces: Vec<String>,
     pub grants: Vec<String>,
 }
@@ -840,6 +842,10 @@ async fn pack_options(
                     name: variant.name.clone(),
                     applies_to: variant.applies_to.clone(),
                     kind: kind.to_string(),
+                    level: variant
+                        .id
+                        .rsplit_once(" ~ level ")
+                        .and_then(|(_, level)| level.trim().parse().ok()),
                     replaces: variant.replaces.clone(),
                     grants: variant.grants.clone(),
                 }

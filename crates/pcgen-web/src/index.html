@@ -1020,7 +1020,8 @@ abilityCategoryFilterEl.addEventListener('change', refreshAbilityCandidates);
 function defaultLane(laneIndex) {
   return {
     class: packClasses[laneIndex]?.id || packClasses[0]?.id || '',
-    variant: '',
+    archetype: '',
+    substitution: '',
   };
 }
 
@@ -1069,8 +1070,38 @@ function renderLevelList() {
   });
 }
 
+function classLevelForLane(frameIndex, laneIndex) {
+  const classId = advancement[frameIndex].lanes[laneIndex].class;
+  let level = 0;
+  for (let i = 0; i <= frameIndex; i++) {
+    if (advancement[i].lanes[laneIndex].class === classId) level++;
+  }
+  return level;
+}
+
+function fillVariantOptions(select, classId, kind, level, selected) {
+  select.innerHTML = '<option value="">— none —</option>';
+  const className = classOptionName(classId);
+  for (const variant of packVariants) {
+    if (variant.kind !== kind) continue;
+    if (kind === 'substitution' && variant.level !== level) continue;
+    const applies = variant.applies_to;
+    if (!applies || (applies !== classId && applies.toLowerCase() !== className.toLowerCase())) continue;
+    const option = document.createElement('option');
+    option.value = variant.id;
+    option.textContent = kind === 'substitution'
+      ? `${variant.name} (Lv ${variant.level})`
+      : variant.name;
+    select.appendChild(option);
+  }
+  if (selected && Array.from(select.options).some((option) => option.value === selected)) {
+    select.value = selected;
+  }
+}
+
 function renderLevelEditor() {
-  const frame = advancement[selectedLevel - 1];
+  const frameIndex = selectedLevel - 1;
+  const frame = advancement[frameIndex];
   if (!frame) {
     levelEditorEl.innerHTML = '';
     return;
@@ -1084,9 +1115,9 @@ function renderLevelEditor() {
     const editor = document.createElement('div');
     editor.className = 'lane-editor';
 
-    const label = document.createElement('label');
-    label.textContent = frame.lanes.length === 1 ? 'Class' : laneIndex === 0 ? 'Class A' : 'Class B';
-    editor.appendChild(label);
+    const laneLabel = document.createElement('label');
+    laneLabel.textContent = frame.lanes.length === 1 ? 'Class' : laneIndex === 0 ? 'Class A' : 'Class B';
+    editor.appendChild(laneLabel);
 
     const classSelect = document.createElement('select');
     for (const option of packClasses) {
@@ -1098,9 +1129,9 @@ function renderLevelEditor() {
     classSelect.value = lane.class || '';
     classSelect.addEventListener('change', () => {
       lane.class = classSelect.value;
-      lane.variant = '';
-      const variantSelect = editor.querySelector('.variant-select');
-      populateVariantSelect(variantSelect, lane.class, lane.variant);
+      lane.archetype = '';
+      lane.substitution = '';
+      renderLevelEditor();
       syncClassGold();
       refreshSpellCandidates();
       renderLevelList();
@@ -1108,18 +1139,33 @@ function renderLevelEditor() {
     });
     editor.appendChild(classSelect);
 
-    const variantLabel = document.createElement('label');
-    variantLabel.textContent = 'Variant';
-    editor.appendChild(variantLabel);
+    const classLevel = classLevelForLane(frameIndex, laneIndex);
 
-    const variantSelect = document.createElement('select');
-    variantSelect.className = 'variant-select';
-    populateVariantSelect(variantSelect, lane.class, lane.variant);
-    variantSelect.addEventListener('change', () => {
-      lane.variant = variantSelect.value;
+    const archetypeLabel = document.createElement('label');
+    archetypeLabel.textContent = 'Archetype / Variant';
+    editor.appendChild(archetypeLabel);
+
+    const archetypeSelect = document.createElement('select');
+    archetypeSelect.className = 'archetype-select';
+    fillVariantOptions(archetypeSelect, lane.class, 'archetype', null, lane.archetype);
+    archetypeSelect.addEventListener('change', () => {
+      lane.archetype = archetypeSelect.value;
       renderReviewSummary();
     });
-    editor.appendChild(variantSelect);
+    editor.appendChild(archetypeSelect);
+
+    const substitutionLabel = document.createElement('label');
+    substitutionLabel.textContent = `Substitution Lv ${classLevel}`;
+    editor.appendChild(substitutionLabel);
+
+    const substitutionSelect = document.createElement('select');
+    substitutionSelect.className = 'substitution-select';
+    fillVariantOptions(substitutionSelect, lane.class, 'substitution', classLevel, lane.substitution);
+    substitutionSelect.addEventListener('change', () => {
+      lane.substitution = substitutionSelect.value;
+      renderReviewSummary();
+    });
+    editor.appendChild(substitutionSelect);
 
     levelEditorEl.appendChild(editor);
   });
@@ -1136,7 +1182,11 @@ function copyPreviousLevel() {
   if (selectedLevel <= 1 || advancement.length < 2) return;
   const previous = advancement[selectedLevel - 2];
   const current = advancement[selectedLevel - 1];
-  current.lanes = previous.lanes.map((lane) => ({ class: lane.class, variant: lane.variant }));
+  current.lanes = previous.lanes.map((lane) => ({
+    class: lane.class,
+    archetype: lane.archetype || '',
+    substitution: lane.substitution || '',
+  }));
   renderLevelList();
   renderLevelEditor();
   renderReviewSummary();
@@ -1156,9 +1206,15 @@ function renderReviewSummary() {
   lines.push(`Race: ${createRaceEl.selectedOptions[0]?.textContent || createRaceEl.value}`);
   lines.push(`Mode: ${createModeEl.value === 'gestalt' ? 'Gestalt' : 'Normal'}`);
   lines.push(`Total levels: ${advancement.length}`);
+  const variantName = (id) => packVariants.find((item) => item.id === id)?.name || id;
   for (const frame of advancement) {
     const lanes = frame.lanes
-      .map((lane) => classOptionName(lane.class) + (lane.variant ? ` [${lane.variant}]` : ''))
+      .map((lane) => {
+        let label = classOptionName(lane.class);
+        if (lane.archetype) label += ` [${variantName(lane.archetype)}]`;
+        if (lane.substitution) label += ` <${variantName(lane.substitution)}>`;
+        return label;
+      })
       .join(' + ');
     lines.push(`Lv ${frame.character_level}: ${lanes || '—'}`);
   }
@@ -1211,17 +1267,11 @@ document.getElementById('createCharacterBtn').onclick = async () => {
   });
   const advancement = advancement.map((frame) => ({
     character_level: frame.character_level,
-    lanes: frame.lanes.map((lane) => {
-      const result = { class: lane.class };
-      const variant = packVariants.find((item) => item.id === lane.variant);
-      if (!variant) return result;
-      if (variant.kind === 'substitution') {
-        result.substitution_level = variant.id;
-      } else {
-        result.archetype = variant.id;
-      }
-      return result;
-    }),
+    lanes: frame.lanes.map((lane) => ({
+      class: lane.class,
+      archetype: lane.archetype || null,
+      substitution_level: lane.substitution || null,
+    })),
   }));
   const primaryClass = advancement[0]?.lanes[0]?.class || '';
   const request = {
