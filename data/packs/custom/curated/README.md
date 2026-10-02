@@ -24,5 +24,8 @@ PCGEN_DATA_ROOT="$PWD/data/packs/custom/curated/my_pack" ./run-web.sh
 
 ## 当前已审定资料
 
-- `bahamut35e-core-ua/`：BahamutDragon 3.5e Core Books + Unearthed Arcana；
-  已通过 `pcgen import-report` 导入检查，并补全 `_universal/races.lst` 依赖。
+- `bahamut35e-players/`：面向玩家建卡的优化资料包。
+  - 只抽取 Player's Handbook、Universal Rules、Unearthed Arcana；
+  - 不包含 DMG / MM / 美术资源 / outputsheets 等非玩家必需内容；
+  - 自建精简入口 `data/35e/bahamut_players.pcc`；
+  - 已通过 `pcgen import-report` 导入检查，`error_diagnostics=0`。
