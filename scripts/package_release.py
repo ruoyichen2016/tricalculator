@@ -110,6 +110,22 @@ def main() -> int:
         ]
         run(command, args.dry_run)
 
+    # Include locally curated custom packs. The default launcher prefers
+    # data/packs/custom/curated/bahamut-all-35e3e when present.
+    custom_curated = ROOT / "data" / "packs" / "custom" / "curated"
+    custom_packs: list[str] = []
+    if custom_curated.is_dir():
+        for pack_dir in sorted(custom_curated.iterdir()):
+            if not pack_dir.is_dir() or (pack_dir / "pack.json").exists() is False:
+                continue
+            if not args.dry_run:
+                dst = out / "data" / "packs" / "custom" / "curated" / pack_dir.name
+                if dst.exists():
+                    shutil.rmtree(dst)
+                shutil.copytree(pack_dir, dst)
+            custom_packs.append(pack_dir.name)
+            print(f"custom pack: {pack_dir.name}")
+
     version = args.version or workspace_version()
     if not args.dry_run:
         (out / "characters").mkdir(parents=True, exist_ok=True)
@@ -119,6 +135,7 @@ def main() -> int:
             "platform": sys.platform,
             "built_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
             "packs": packs,
+            "custom_packs": custom_packs,
             "binary_sha256": sha256(out / binary_name()),
         }
         (out / "release.json").write_text(
