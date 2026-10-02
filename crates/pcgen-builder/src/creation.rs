@@ -211,8 +211,40 @@ pub fn create_draft(
                     advancement_lane = advancement_lane.with_archetype(archetype.clone());
                 }
                 if let Some(substitution_level) = &lane.substitution_level {
-                    advancement_lane =
-                        advancement_lane.with_substitution_level(substitution_level.clone());
+                    let variant = pack
+                        .variants
+                        .get(substitution_level)
+                        .or_else(|| {
+                            pack.variants
+                                .iter()
+                                .find(|(key, _)| key.eq_ignore_ascii_case(substitution_level))
+                                .map(|(_, variant)| variant)
+                        })
+                        .ok_or_else(|| BuilderError::UnknownVariant(substitution_level.clone()))?;
+                    if let Some(applies_to) = &variant.applies_to {
+                        if !applies_to.eq_ignore_ascii_case(&class_id) {
+                            return Err(BuilderError::InvalidSubstitutionLevel {
+                                class: class_id.clone(),
+                                level: *next_level,
+                                variant: variant.id.clone(),
+                            });
+                        }
+                    }
+                    let variant_level = substitution_level_value(&variant.id).ok_or_else(|| {
+                        BuilderError::InvalidSubstitutionLevel {
+                            class: class_id.clone(),
+                            level: *next_level,
+                            variant: variant.id.clone(),
+                        }
+                    })?;
+                    if variant_level != *next_level {
+                        return Err(BuilderError::InvalidSubstitutionLevel {
+                            class: class_id.clone(),
+                            level: *next_level,
+                            variant: variant.id.clone(),
+                        });
+                    }
+                    advancement_lane = advancement_lane.with_substitution_level(variant.id.clone());
                 }
                 if let Some(subclass) = &lane.subclass {
                     advancement_lane = advancement_lane.with_subclass(subclass.clone());
@@ -428,6 +460,12 @@ fn spell_class_level_for_classes(
         }
     }
     None
+}
+
+fn substitution_level_value(variant_id: &str) -> Option<u32> {
+    variant_id
+        .rsplit_once(" ~ level ")
+        .and_then(|(_, level)| level.trim().parse().ok())
 }
 
 fn average_hit_points(pack: &CompiledRulePack, class_id: &str, level: u32) -> Vec<i32> {
@@ -850,6 +888,44 @@ mod tests {
             draft.advancement[1].lanes[0].substitution_level.as_deref(),
             Some("Wizard Substitution ~ level 1")
         );
+    }
+
+    #[test]
+    fn rejects_substitution_level_for_wrong_class_level() {
+        let pack = sample_pack();
+        let request = CreateRequest {
+            name: "Bad Sub".to_string(),
+            race: "Human".to_string(),
+            class_id: "Wizard".to_string(),
+            level: 2,
+            advancement: vec![
+                CreateAdvancementFrame {
+                    character_level: 1,
+                    lanes: vec![CreateAdvancementLane {
+                        class: "Wizard".to_string(),
+                        hit_points_gained: None,
+                        archetype: None,
+                        substitution_level: None,
+                        subclass: None,
+                    }],
+                },
+                CreateAdvancementFrame {
+                    character_level: 2,
+                    lanes: vec![CreateAdvancementLane {
+                        class: "Wizard".to_string(),
+                        hit_points_gained: None,
+                        archetype: None,
+                        substitution_level: Some("Wizard Substitution ~ level 1".to_string()),
+                        subclass: None,
+                    }],
+                },
+            ],
+            ..CreateRequest::default()
+        };
+        assert!(matches!(
+            create_draft(&pack, &request),
+            Err(BuilderError::InvalidSubstitutionLevel { .. })
+        ));
     }
 
     #[test]

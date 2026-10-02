@@ -106,6 +106,14 @@ pub enum BuilderError {
     SpellNotOnClassList(String, String),
     #[error("unknown equipment: {0}")]
     UnknownEquipment(String),
+    #[error("unknown variant: {0}")]
+    UnknownVariant(String),
+    #[error("invalid substitution level: {variant} for {class} level {level}")]
+    InvalidSubstitutionLevel {
+        class: String,
+        level: u32,
+        variant: String,
+    },
     #[error("equipment budget exceeded: spent {spent:.2} > budget {budget:.2}")]
     EquipmentBudgetExceeded { spent: f64, budget: f64 },
 }
