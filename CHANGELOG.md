@@ -7,10 +7,13 @@
   - 普通多职业：每个等级选择不同职业；
   - Gestalt：每个等级同时选择两个职业 lane；
   - 每个 lane 可选 archetype / alternate ability 与 substitution level；
-- Web 建卡向导新增现代化逐级编辑器：
+- Web 建卡流程改为“步骤条 + 主从式编辑器”：
+  - 步骤条：Basic → Advancement → Skills/Feats → Spells/Equipment → Review；
+  - Advancement 使用左侧等级列表 + 右侧等级详情编辑器；
   - Normal / Gestalt 模式；
-  - 每级职业行 + “替代等级/替代能力”下拉；
-  - 等级增删与职业汇总；
+  - 支持 Add / Remove / Copy previous level，不使用拖拽；
+  - 每个 lane 支持 Class + 替代等级/替代能力下拉；
+  - 等级增删与职业汇总常驻；
 - 技能与专长改为可视化选择器，不再依赖手写文本；
 - `/api/pack-options` 新增 `abilities` 完整能力目录；
 - 新增 `data/packs/custom/` 用于放置自定义资料包；

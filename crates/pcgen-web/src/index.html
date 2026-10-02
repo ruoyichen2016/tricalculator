@@ -56,6 +56,25 @@
   .picker-row { display: grid; grid-template-columns: 1fr 6rem 2rem; gap: .4rem; align-items: center; }
   .picker-row.remove { grid-template-columns: 1fr 6rem 2rem; }
   .remove-btn { border: none; background: transparent; color: var(--danger); cursor: pointer; font-size: 1.1rem; }
+  .wizard-steps { display: flex; gap: .35rem; flex-wrap: wrap; margin: .75rem 0; }
+  .wizard-step-btn { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: .35rem .9rem; cursor: pointer; font-weight: 600; color: var(--muted); }
+  .wizard-step-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .wizard-step { display: block; }
+  .wizard-step[hidden] { display: none; }
+  .wizard-nav { display: flex; gap: .5rem; justify-content: flex-end; margin-top: 1rem; }
+  .advancement-layout { display: grid; grid-template-columns: 14rem 1fr; gap: .75rem; margin-top: .5rem; }
+  .level-list { display: grid; gap: .25rem; align-content: start; max-height: 28rem; overflow: auto; border: 1px solid var(--line); border-radius: 8px; padding: .35rem; }
+  .level-item { display: flex; gap: .5rem; align-items: center; padding: .4rem .6rem; border-radius: 8px; cursor: pointer; border: 1px solid transparent; }
+  .level-item:hover { background: var(--accent-soft); }
+  .level-item.active { background: var(--accent-soft); border-color: var(--accent); }
+  .level-item .level-no { font-weight: 700; color: var(--muted); min-width: 2.2rem; }
+  .level-item .level-classes { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9rem; }
+  .level-editor { border: 1px solid var(--line); border-radius: 8px; padding: .75rem; background: #fff; }
+  .level-editor h4 { margin: 0 0 .5rem; }
+  .lane-editor { border: 1px solid var(--line); border-radius: 8px; padding: .5rem; margin-bottom: .5rem; }
+  .lane-editor label { font-size: .8rem; color: var(--muted); }
+  .lane-editor select { width: 100%; margin-top: .15rem; }
+  .review-summary { background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: .75rem; margin: .5rem 0; white-space: pre-wrap; }
 </style>
 </head>
 <body>
@@ -78,72 +97,117 @@
 
 <div class="card">
   <h2>Create character</h2>
-  <div class="grid">
-    <div>
-      <label for="createName">Name</label>
-      <input id="createName" value="New Hero">
-      <label for="createRace">Race</label>
-      <select id="createRace"></select>
-      <div class="advancement-editor">
-        <div class="advancement-toolbar">
-          <label>Progression
-            <select id="createMode">
-              <option value="normal">Normal</option>
-              <option value="gestalt">Gestalt</option>
-            </select>
-          </label>
-          <label>Levels
-            <input id="createLevel" type="number" min="1" max="20" value="1">
-          </label>
-          <button type="button" id="addLevelBtn" class="ghost">+ Add level</button>
-          <button type="button" id="removeLevelBtn" class="ghost">− Remove level</button>
-        </div>
-        <div id="classLevelRows" class="advancement-rows"></div>
-        <div id="advancementSummary" class="advancement-summary"></div>
-      </div>
-      <label for="createAlignment">Alignment</label>
-      <select id="createAlignment"></select>
-      <label for="createGold">Starting gold</label>
-      <input id="createGold" type="number" min="0" value="150">
-    </div>
-    <div>
-      <label for="createBudget">Point buy budget</label>
-      <input id="createBudget" type="number" min="1" value="25">
-      <p id="pointBuyStatus"></p>
-      <div class="grid" id="statInputs"></div>
-    </div>
-  </div>
-  <label>Skills</label>
-  <div id="skillRows" class="picker-rows"></div>
-  <div class="row">
-    <select id="skillCandidate"></select>
-    <input id="skillRank" type="number" min="0" value="1" style="max-width: 6rem">
-    <button type="button" id="addSkillRow" class="ghost">+ Add skill</button>
+  <div class="wizard-steps" id="createWizardSteps">
+    <button type="button" class="wizard-step-btn active" data-step="basic">Basic</button>
+    <button type="button" class="wizard-step-btn" data-step="advancement">Advancement</button>
+    <button type="button" class="wizard-step-btn" data-step="skills">Skills / Feats</button>
+    <button type="button" class="wizard-step-btn" data-step="spells">Spells / Equipment</button>
+    <button type="button" class="wizard-step-btn" data-step="review">Review</button>
   </div>
 
-  <label>Feats / Abilities</label>
-  <div id="abilityRows" class="picker-rows"></div>
-  <div class="row">
-    <select id="abilityCategoryFilter"></select>
-    <select id="abilityCandidate"></select>
-    <button type="button" id="addAbilityRow" class="ghost">+ Add ability</button>
+  <div class="wizard-step" id="step-basic">
+    <div class="grid">
+      <div>
+        <label for="createName">Name</label>
+        <input id="createName" value="New Hero">
+        <label for="createRace">Race</label>
+        <select id="createRace"></select>
+        <label for="createAlignment">Alignment</label>
+        <select id="createAlignment"></select>
+        <label for="createGold">Starting gold</label>
+        <input id="createGold" type="number" min="0" value="150">
+      </div>
+      <div>
+        <label for="createBudget">Point buy budget</label>
+        <input id="createBudget" type="number" min="1" value="25">
+        <p id="pointBuyStatus"></p>
+        <div class="grid" id="statInputs"></div>
+        <div class="row" style="margin-top: .5rem">
+          <button type="button" id="standardArray">Standard array</button>
+          <button type="button" id="loadPackOptions">Load pack options</button>
+        </div>
+      </div>
+    </div>
+    <div class="wizard-nav">
+      <button type="button" class="primary" data-next="advancement">Next: Advancement</button>
+    </div>
   </div>
-  <label for="createSpells">Spells (one per line: Magic Missile or Magic Missile=1)</label>
-  <div class="row">
-    <input id="spellCandidate" list="spellCandidates" placeholder="Magic Missile">
-    <input id="spellLevel" type="number" min="0" max="9" value="1" style="max-width: 6rem">
-    <button type="button" id="addSpellLine">Add spell</button>
-    <datalist id="spellCandidates"></datalist>
+
+  <div class="wizard-step" id="step-advancement" hidden>
+    <div class="advancement-editor">
+      <div class="advancement-toolbar">
+        <label>Progression
+          <select id="createMode">
+            <option value="normal">Normal</option>
+            <option value="gestalt">Gestalt</option>
+          </select>
+        </label>
+        <label>Levels
+          <input id="createLevel" type="number" min="1" max="20" value="1">
+        </label>
+        <button type="button" id="addLevelBtn" class="ghost">+ Add level</button>
+        <button type="button" id="removeLevelBtn" class="ghost">− Remove level</button>
+      </div>
+      <div class="advancement-layout">
+        <div class="level-list" id="levelList"></div>
+        <div class="level-editor" id="levelEditor"></div>
+      </div>
+      <div id="advancementSummary" class="advancement-summary"></div>
+    </div>
+    <div class="wizard-nav">
+      <button type="button" data-prev="basic">Back</button>
+      <button type="button" class="primary" data-next="skills">Next: Skills / Feats</button>
+    </div>
   </div>
-  <textarea id="createSpells" rows="2"></textarea>
-  <label for="createEquipment">Equipment (one per line)</label>
-  <textarea id="createEquipment" rows="2"></textarea>
-  <div class="row">
-    <button type="button" id="loadPackOptions">Load pack options</button>
-    <button type="button" id="standardArray">Standard array</button>
-    <button type="button" id="createCharacterBtn">Create character</button>
+
+  <div class="wizard-step" id="step-skills" hidden>
+    <label>Skills</label>
+    <div id="skillRows" class="picker-rows"></div>
+    <div class="row">
+      <select id="skillCandidate"></select>
+      <input id="skillRank" type="number" min="0" value="1" style="max-width: 6rem">
+      <button type="button" id="addSkillRow" class="ghost">+ Add skill</button>
+    </div>
+
+    <label>Feats / Abilities</label>
+    <div id="abilityRows" class="picker-rows"></div>
+    <div class="row">
+      <select id="abilityCategoryFilter"></select>
+      <select id="abilityCandidate"></select>
+      <button type="button" id="addAbilityRow" class="ghost">+ Add ability</button>
+    </div>
+    <div class="wizard-nav">
+      <button type="button" data-prev="advancement">Back</button>
+      <button type="button" class="primary" data-next="spells">Next: Spells / Equipment</button>
+    </div>
   </div>
-  <p id="createStatus"></p>
+
+  <div class="wizard-step" id="step-spells" hidden>
+    <label for="createSpells">Spells (one per line: Magic Missile or Magic Missile=1)</label>
+    <div class="row">
+      <input id="spellCandidate" list="spellCandidates" placeholder="Magic Missile">
+      <input id="spellLevel" type="number" min="0" max="9" value="1" style="max-width: 6rem">
+      <button type="button" id="addSpellLine">Add spell</button>
+      <datalist id="spellCandidates"></datalist>
+    </div>
+    <textarea id="createSpells" rows="2"></textarea>
+    <label for="createEquipment">Equipment (one per line)</label>
+    <textarea id="createEquipment" rows="2"></textarea>
+    <div class="wizard-nav">
+      <button type="button" data-prev="skills">Back</button>
+      <button type="button" class="primary" data-next="review">Next: Review</button>
+    </div>
+  </div>
+
+  <div class="wizard-step" id="step-review" hidden>
+    <h3>Review</h3>
+    <div id="reviewSummary" class="review-summary"></div>
+    <div class="row">
+      <button type="button" data-prev="spells">Back</button>
+      <button type="button" id="createCharacterBtn" class="primary">Create character</button>
+    </div>
+    <p id="createStatus"></p>
+  </div>
 </div>
 
 <form id="form">
@@ -574,8 +638,10 @@ const createNameEl = document.getElementById('createName');
 const createRaceEl = document.getElementById('createRace');
 const createModeEl = document.getElementById('createMode');
 const createLevelEl = document.getElementById('createLevel');
-const classLevelRowsEl = document.getElementById('classLevelRows');
+const levelListEl = document.getElementById('levelList');
+const levelEditorEl = document.getElementById('levelEditor');
 const advancementSummaryEl = document.getElementById('advancementSummary');
+const reviewSummaryEl = document.getElementById('reviewSummary');
 const addLevelBtn = document.getElementById('addLevelBtn');
 const removeLevelBtn = document.getElementById('removeLevelBtn');
 const createAlignmentEl = document.getElementById('createAlignment');
@@ -602,6 +668,8 @@ let packAbilities = [];
 let packSpellOptions = [];
 let skillSelections = [];
 let abilitySelections = [];
+let advancement = [];
+let selectedLevel = 1;
 const createEquipmentEl = document.getElementById('createEquipment');
 const createStatusEl = document.getElementById('createStatus');
 let lastDiagnosticsPayload = null;
@@ -672,15 +740,18 @@ function fillSelect(element, options) {
   }
 }
 
-function currentPrimaryClassSelect() {
-  const firstRow = classLevelRowsEl.querySelector('.class-row');
-  return firstRow ? firstRow.querySelector('select.class-select') : null;
+function currentPrimaryClassId() {
+  return advancement[0]?.lanes?.[0]?.class || '';
+}
+
+function currentPrimaryClassOption() {
+  return packClasses.find((option) => option.id === currentPrimaryClassId());
 }
 
 function syncClassGold() {
-  const selected = currentPrimaryClassSelect()?.selectedOptions[0];
-  if (selected && selected.dataset.startingGold) {
-    createGoldEl.value = selected.dataset.startingGold;
+  const selected = currentPrimaryClassOption();
+  if (selected && selected.starting_gold !== undefined) {
+    createGoldEl.value = selected.starting_gold;
   }
 }
 
@@ -688,8 +759,8 @@ function spellMatchesClass(spell) {
   if (!spell.class_levels || Object.keys(spell.class_levels).length === 0) {
     return true;
   }
-  const classId = currentPrimaryClassSelect()?.value || '';
-  const className = currentPrimaryClassSelect()?.selectedOptions[0]?.textContent || '';
+  const classId = currentPrimaryClassId();
+  const className = currentPrimaryClassOption()?.name || classId;
   const keys = Object.keys(spell.class_levels);
   return keys.some((key) => key === classId || key.toLowerCase() === className.toLowerCase());
 }
@@ -725,7 +796,7 @@ async function loadPackOptions() {
     populateAbilityPicker();
     renderSkillRows();
     renderAbilityRows();
-    buildLevelRows();
+    renderAdvancement();
     syncClassGold();
     refreshSpellCandidates();
     createStatusEl.textContent = `Options loaded: ${data.races.length} races, ${data.classes.length} classes`;
@@ -738,14 +809,14 @@ async function loadPackOptions() {
 document.getElementById('loadPackOptions').onclick = loadPackOptions;
 addLevelBtn.onclick = () => {
   createLevelEl.value = Math.min(20, Number(createLevelEl.value || 1) + 1);
-  buildLevelRows();
+  renderAdvancement();
 };
 removeLevelBtn.onclick = () => {
   createLevelEl.value = Math.max(1, Number(createLevelEl.value || 1) - 1);
-  buildLevelRows();
+  renderAdvancement();
 };
-createLevelEl.addEventListener('change', buildLevelRows);
-createModeEl.addEventListener('change', buildLevelRows);
+createLevelEl.addEventListener('change', renderAdvancement);
+createModeEl.addEventListener('change', renderAdvancement);
 
 document.getElementById('standardArray').onclick = () => {
   const array = [15, 14, 13, 12, 10, 8];
@@ -759,32 +830,36 @@ function classOptionName(classId) {
   return packClasses.find((option) => option.id === classId)?.name || classId;
 }
 
-function populateVariantSelect(select, classId) {
-  const previous = select.value;
-  select.innerHTML = '<option value="">— none —</option>';
+function variantOptionsForClass(classId) {
   const className = classOptionName(classId);
-  for (const variant of packVariants) {
+  return packVariants.filter((variant) => {
     const applies = variant.applies_to;
-    const matches = applies && (applies === classId || applies.toLowerCase() === className.toLowerCase());
-    if (!matches) continue;
+    return applies && (applies === classId || applies.toLowerCase() === className.toLowerCase());
+  });
+}
+
+function populateVariantSelect(select, classId, selectedVariant) {
+  select.innerHTML = '<option value="">— none —</option>';
+  for (const variant of variantOptionsForClass(classId)) {
     const option = document.createElement('option');
     option.value = variant.id;
     const kindLabel = variant.kind === 'substitution' ? 'Substitution' : 'Archetype';
     option.textContent = `${variant.name} (${kindLabel})`;
     select.appendChild(option);
   }
-  if (Array.from(select.options).some((option) => option.value === previous)) {
-    select.value = previous;
+  if (selectedVariant && Array.from(select.options).some((option) => option.value === selectedVariant)) {
+    select.value = selectedVariant;
+  } else {
+    select.value = '';
   }
 }
 
 function updateAdvancementSummary() {
   const counts = new Map();
-  for (const row of classLevelRowsEl.querySelectorAll('.class-row')) {
-    for (const select of row.querySelectorAll('select.class-select')) {
-      const classId = select.value;
-      if (!classId) continue;
-      counts.set(classId, (counts.get(classId) || 0) + 1);
+  for (const frame of advancement) {
+    for (const lane of frame.lanes) {
+      if (!lane.class) continue;
+      counts.set(lane.class, (counts.get(lane.class) || 0) + 1);
     }
   }
   const chips = Array.from(counts.entries())
@@ -942,67 +1017,156 @@ addAbilityRowBtn.addEventListener('click', () => {
 
 abilityCategoryFilterEl.addEventListener('change', refreshAbilityCandidates);
 
-function buildLevelRows() {
+function defaultLane(laneIndex) {
+  return {
+    class: packClasses[laneIndex]?.id || packClasses[0]?.id || '',
+    variant: '',
+  };
+}
+
+function ensureAdvancementSize() {
   const total = Math.max(1, Number(createLevelEl.value) || 1);
-  const mode = createModeEl.value;
-  const lanesPerLevel = mode === 'gestalt' ? 2 : 1;
-  classLevelRowsEl.innerHTML = '';
-  for (let i = 1; i <= total; i++) {
-    const row = document.createElement('div');
-    row.className = `class-row${lanesPerLevel === 2 ? ' lane-2' : ''}`;
-
-    const badge = document.createElement('span');
-    badge.className = 'level-badge';
-    badge.textContent = `Lv ${i}`;
-    row.appendChild(badge);
-
-    for (let lane = 0; lane < lanesPerLevel; lane++) {
-      const group = document.createElement('div');
-      group.className = 'lane-group';
-
-      const label = document.createElement('span');
-      label.className = 'lane-label';
-      label.textContent = lanesPerLevel === 1 ? 'Class' : lane === 0 ? 'Class A' : 'Class B';
-      group.appendChild(label);
-
-      const classSelect = document.createElement('select');
-      classSelect.className = 'class-select';
-      for (const option of packClasses) {
-        const item = document.createElement('option');
-        item.value = option.id;
-        item.textContent = option.name;
-        if (option.starting_gold !== undefined) {
-          item.dataset.startingGold = option.starting_gold;
-        }
-        classSelect.appendChild(item);
-      }
-      if (lane === 1 && packClasses.length > 1) {
-        classSelect.selectedIndex = 1;
-      }
-      classSelect.addEventListener('change', () => {
-        const variantSelect = group.querySelector('.variant-select');
-        populateVariantSelect(variantSelect, classSelect.value);
-        syncClassGold();
-        refreshSpellCandidates();
-        updateAdvancementSummary();
-      });
-      group.appendChild(classSelect);
-
-      const variantSelect = document.createElement('select');
-      variantSelect.className = 'variant-select';
-      variantSelect.innerHTML = '<option value="">— none —</option>';
-      populateVariantSelect(variantSelect, classSelect.value);
-      variantSelect.addEventListener('change', updateAdvancementSummary);
-      group.appendChild(variantSelect);
-
-      row.appendChild(group);
-    }
-
-    classLevelRowsEl.appendChild(row);
+  const lanesPerLevel = createModeEl.value === 'gestalt' ? 2 : 1;
+  while (advancement.length < total) {
+    advancement.push({
+      character_level: advancement.length + 1,
+      lanes: Array.from({ length: lanesPerLevel }, (_, laneIndex) => defaultLane(laneIndex)),
+    });
   }
-  syncClassGold();
-  refreshSpellCandidates();
+  advancement.length = total;
+  for (const frame of advancement) {
+    frame.character_level = advancement.indexOf(frame) + 1;
+    while (frame.lanes.length < lanesPerLevel) frame.lanes.push(defaultLane(frame.lanes.length));
+    frame.lanes.length = lanesPerLevel;
+  }
+  if (selectedLevel < 1) selectedLevel = 1;
+  if (selectedLevel > total) selectedLevel = total;
+}
+
+function summarizeFrame(frame) {
+  return frame.lanes.map((lane) => classOptionName(lane.class)).filter(Boolean).join(' + ') || '—';
+}
+
+function renderLevelList() {
+  levelListEl.innerHTML = '';
+  advancement.forEach((frame, index) => {
+    const item = document.createElement('div');
+    item.className = 'level-item' + (selectedLevel === index + 1 ? ' active' : '');
+    const no = document.createElement('span');
+    no.className = 'level-no';
+    no.textContent = String(index + 1);
+    const classes = document.createElement('span');
+    classes.className = 'level-classes';
+    classes.textContent = summarizeFrame(frame);
+    item.append(no, classes);
+    item.addEventListener('click', () => {
+      selectedLevel = index + 1;
+      renderLevelList();
+      renderLevelEditor();
+      renderReviewSummary();
+    });
+    levelListEl.appendChild(item);
+  });
+}
+
+function renderLevelEditor() {
+  const frame = advancement[selectedLevel - 1];
+  if (!frame) {
+    levelEditorEl.innerHTML = '';
+    return;
+  }
+  levelEditorEl.innerHTML = '';
+  const heading = document.createElement('h4');
+  heading.textContent = `Level ${selectedLevel}`;
+  levelEditorEl.appendChild(heading);
+
+  frame.lanes.forEach((lane, laneIndex) => {
+    const editor = document.createElement('div');
+    editor.className = 'lane-editor';
+
+    const label = document.createElement('label');
+    label.textContent = frame.lanes.length === 1 ? 'Class' : laneIndex === 0 ? 'Class A' : 'Class B';
+    editor.appendChild(label);
+
+    const classSelect = document.createElement('select');
+    for (const option of packClasses) {
+      const item = document.createElement('option');
+      item.value = option.id;
+      item.textContent = option.name;
+      classSelect.appendChild(item);
+    }
+    classSelect.value = lane.class || '';
+    classSelect.addEventListener('change', () => {
+      lane.class = classSelect.value;
+      lane.variant = '';
+      const variantSelect = editor.querySelector('.variant-select');
+      populateVariantSelect(variantSelect, lane.class, lane.variant);
+      syncClassGold();
+      refreshSpellCandidates();
+      renderLevelList();
+      renderReviewSummary();
+    });
+    editor.appendChild(classSelect);
+
+    const variantLabel = document.createElement('label');
+    variantLabel.textContent = 'Variant';
+    editor.appendChild(variantLabel);
+
+    const variantSelect = document.createElement('select');
+    variantSelect.className = 'variant-select';
+    populateVariantSelect(variantSelect, lane.class, lane.variant);
+    variantSelect.addEventListener('change', () => {
+      lane.variant = variantSelect.value;
+      renderReviewSummary();
+    });
+    editor.appendChild(variantSelect);
+
+    levelEditorEl.appendChild(editor);
+  });
+
+  const copyBtn = document.createElement('button');
+  copyBtn.type = 'button';
+  copyBtn.className = 'ghost';
+  copyBtn.textContent = 'Copy previous level';
+  copyBtn.addEventListener('click', copyPreviousLevel);
+  levelEditorEl.appendChild(copyBtn);
+}
+
+function copyPreviousLevel() {
+  if (selectedLevel <= 1 || advancement.length < 2) return;
+  const previous = advancement[selectedLevel - 2];
+  const current = advancement[selectedLevel - 1];
+  current.lanes = previous.lanes.map((lane) => ({ class: lane.class, variant: lane.variant }));
+  renderLevelList();
+  renderLevelEditor();
+  renderReviewSummary();
+}
+
+function renderAdvancement() {
+  ensureAdvancementSize();
+  renderLevelList();
+  renderLevelEditor();
   updateAdvancementSummary();
+  renderReviewSummary();
+}
+
+function renderReviewSummary() {
+  const lines = [];
+  lines.push(`Name: ${createNameEl.value}`);
+  lines.push(`Race: ${createRaceEl.selectedOptions[0]?.textContent || createRaceEl.value}`);
+  lines.push(`Mode: ${createModeEl.value === 'gestalt' ? 'Gestalt' : 'Normal'}`);
+  lines.push(`Total levels: ${advancement.length}`);
+  for (const frame of advancement) {
+    const lanes = frame.lanes
+      .map((lane) => classOptionName(lane.class) + (lane.variant ? ` [${lane.variant}]` : ''))
+      .join(' + ');
+    lines.push(`Lv ${frame.character_level}: ${lanes || '—'}`);
+  }
+  const skillsText = skillSelections.map((entry) => `${entry.skill}=${entry.rank}`).join(', ');
+  const abilitiesText = abilitySelections.map((entry) => `${entry.category}: ${entry.ability}`).join(', ');
+  lines.push(`Skills: ${skillsText || '—'}`);
+  lines.push(`Abilities: ${abilitiesText || '—'}`);
+  reviewSummaryEl.textContent = lines.join('\n');
 }
 
 function parseLineMap(text, valueParser) {
@@ -1045,20 +1209,18 @@ document.getElementById('createCharacterBtn').onclick = async () => {
     const [name, level] = line.split('=').map((part) => part.trim());
     return { name, level: Number(level || '0'), times_memorized: 1 };
   });
-  const advancement = Array.from(classLevelRowsEl.querySelectorAll('.class-row')).map((row, index) => ({
-    character_level: index + 1,
-    lanes: Array.from(row.querySelectorAll('.lane-group')).map((group) => {
-      const classSelect = group.querySelector('select.class-select');
-      const variantSelect = group.querySelector('select.variant-select');
-      const variant = packVariants.find((item) => item.id === variantSelect.value);
-      const lane = { class: classSelect.value };
-      if (!variant) return lane;
+  const advancement = advancement.map((frame) => ({
+    character_level: frame.character_level,
+    lanes: frame.lanes.map((lane) => {
+      const result = { class: lane.class };
+      const variant = packVariants.find((item) => item.id === lane.variant);
+      if (!variant) return result;
       if (variant.kind === 'substitution') {
-        lane.substitution_level = variant.id;
+        result.substitution_level = variant.id;
       } else {
-        lane.archetype = variant.id;
+        result.archetype = variant.id;
       }
-      return lane;
+      return result;
     }),
   }));
   const primaryClass = advancement[0]?.lanes[0]?.class || '';
@@ -1125,6 +1287,26 @@ document.getElementById('copyDiagnostics').onclick = async () => {
 document.getElementById('printSheet').onclick = () => {
   if (sheetEl.contentWindow) sheetEl.contentWindow.print();
 };
+
+function showCreateStep(step) {
+  document.querySelectorAll('.wizard-step').forEach((panel) => {
+    panel.hidden = panel.id !== `step-${step}`;
+  });
+  document.querySelectorAll('.wizard-step-btn').forEach((button) => {
+    button.classList.toggle('active', button.dataset.step === step);
+  });
+  if (step === 'review') renderReviewSummary();
+}
+
+document.querySelectorAll('.wizard-step-btn').forEach((button) => {
+  button.addEventListener('click', () => showCreateStep(button.dataset.step));
+});
+document.querySelectorAll('.wizard-step [data-next]').forEach((button) => {
+  button.addEventListener('click', () => showCreateStep(button.dataset.next));
+});
+document.querySelectorAll('.wizard-step [data-prev]').forEach((button) => {
+  button.addEventListener('click', () => showCreateStep(button.dataset.prev));
+});
 
 buildStatInputs();
 updatePointBuy();
