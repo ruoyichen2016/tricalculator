@@ -983,10 +983,6 @@ impl Engine {
             .collect()
     }
 
-    fn variant_for(&self, lane: &AdvancementLane, class_id: &str) -> Option<&VariantDefinition> {
-        self.variants_for(lane, class_id).into_iter().next()
-    }
-
     fn race(&self, race_id: &str) -> Option<&RaceDefinition> {
         self.pack.races.get(race_id).or_else(|| {
             self.pack
