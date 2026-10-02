@@ -31,6 +31,15 @@ pub struct CreateAdvancementLane {
     /// Optional explicit HP gained for this lane; defaults to average HD.
     #[serde(default)]
     pub hit_points_gained: Option<i32>,
+    /// Optional archetype / alternate ability variant id.
+    #[serde(default)]
+    pub archetype: Option<String>,
+    /// Optional substitution-level variant id.
+    #[serde(default)]
+    pub substitution_level: Option<String>,
+    /// Optional subclass/specialty selection.
+    #[serde(default)]
+    pub subclass: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -196,13 +205,19 @@ pub fn create_draft(
                 let hit_points = lane
                     .hit_points_gained
                     .unwrap_or_else(|| average_hit_die(pack, &class_id));
-                lanes.push(AdvancementLane::new(
-                    lane_id,
-                    class_id.clone(),
-                    *next_level,
-                    hit_points,
-                    0,
-                ));
+                let mut advancement_lane =
+                    AdvancementLane::new(lane_id, class_id.clone(), *next_level, hit_points, 0);
+                if let Some(archetype) = &lane.archetype {
+                    advancement_lane = advancement_lane.with_archetype(archetype.clone());
+                }
+                if let Some(substitution_level) = &lane.substitution_level {
+                    advancement_lane =
+                        advancement_lane.with_substitution_level(substitution_level.clone());
+                }
+                if let Some(subclass) = &lane.subclass {
+                    advancement_lane = advancement_lane.with_subclass(subclass.clone());
+                }
+                lanes.push(advancement_lane);
                 if !class_ids.contains(&class_id) {
                     class_ids.push(class_id.clone());
                 }
@@ -537,6 +552,21 @@ mod tests {
             "Wizard".to_string(),
             pcgen_core::domain::ClassDefinition::new("Wizard", "Wizard"),
         );
+        let mut two_handed =
+            pcgen_core::VariantDefinition::new("Two-Handed Fighter", "Two-Handed Fighter");
+        two_handed.applies_to = Some("Fighter".to_string());
+        two_handed.replaces = vec!["Bravery".to_string()];
+        two_handed.grants = vec!["Shattering Strike".to_string()];
+        pack.variants
+            .insert("Two-Handed Fighter".to_string(), two_handed);
+        let mut substitution = pcgen_core::VariantDefinition::new(
+            "Wizard Substitution ~ level 1",
+            "Wizard Substitution",
+        );
+        substitution.applies_to = Some("Wizard".to_string());
+        substitution.grants = vec!["Alternate Arcane Bond".to_string()];
+        pack.variants
+            .insert("Wizard Substitution ~ level 1".to_string(), substitution);
         pack.skills.insert(
             "Climb".to_string(),
             pcgen_core::domain::SkillDefinition::new("Climb", "Climb"),
@@ -693,6 +723,7 @@ mod tests {
                     lanes: vec![CreateAdvancementLane {
                         class: "Fighter".to_string(),
                         hit_points_gained: None,
+                        ..Default::default()
                     }],
                 },
                 CreateAdvancementFrame {
@@ -700,6 +731,7 @@ mod tests {
                     lanes: vec![CreateAdvancementLane {
                         class: "Wizard".to_string(),
                         hit_points_gained: None,
+                        ..Default::default()
                     }],
                 },
                 CreateAdvancementFrame {
@@ -707,6 +739,7 @@ mod tests {
                     lanes: vec![CreateAdvancementLane {
                         class: "fighter".to_string(),
                         hit_points_gained: None,
+                        ..Default::default()
                     }],
                 },
             ],
@@ -739,10 +772,12 @@ mod tests {
                         CreateAdvancementLane {
                             class: "Fighter".to_string(),
                             hit_points_gained: None,
+                            ..Default::default()
                         },
                         CreateAdvancementLane {
                             class: "Wizard".to_string(),
                             hit_points_gained: None,
+                            ..Default::default()
                         },
                     ],
                 },
@@ -752,10 +787,12 @@ mod tests {
                         CreateAdvancementLane {
                             class: "Fighter".to_string(),
                             hit_points_gained: None,
+                            ..Default::default()
                         },
                         CreateAdvancementLane {
                             class: "Wizard".to_string(),
                             hit_points_gained: None,
+                            ..Default::default()
                         },
                     ],
                 },
@@ -770,6 +807,49 @@ mod tests {
         assert_eq!(draft.total_level(), 2);
         assert_eq!(draft.advancement[1].lanes[0].class_level, 2);
         assert_eq!(draft.advancement[1].lanes[1].class_level, 2);
+    }
+
+    #[test]
+    fn creates_advancement_with_archetype_and_substitution() {
+        let pack = sample_pack();
+        let request = CreateRequest {
+            name: "Variant Hero".to_string(),
+            race: "Human".to_string(),
+            class_id: "Fighter".to_string(),
+            level: 2,
+            advancement: vec![
+                CreateAdvancementFrame {
+                    character_level: 1,
+                    lanes: vec![CreateAdvancementLane {
+                        class: "Fighter".to_string(),
+                        hit_points_gained: None,
+                        archetype: Some("Two-Handed Fighter".to_string()),
+                        substitution_level: None,
+                        subclass: None,
+                    }],
+                },
+                CreateAdvancementFrame {
+                    character_level: 2,
+                    lanes: vec![CreateAdvancementLane {
+                        class: "Wizard".to_string(),
+                        hit_points_gained: None,
+                        archetype: None,
+                        substitution_level: Some("Wizard Substitution ~ level 1".to_string()),
+                        subclass: None,
+                    }],
+                },
+            ],
+            ..CreateRequest::default()
+        };
+        let draft = create_draft(&pack, &request).unwrap();
+        assert_eq!(
+            draft.advancement[0].lanes[0].archetype.as_deref(),
+            Some("Two-Handed Fighter")
+        );
+        assert_eq!(
+            draft.advancement[1].lanes[0].substitution_level.as_deref(),
+            Some("Wizard Substitution ~ level 1")
+        );
     }
 
     #[test]

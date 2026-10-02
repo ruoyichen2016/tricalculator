@@ -317,6 +317,7 @@ async fn pack_options_endpoint_lists_definitions() {
     let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert!(!value["races"].as_array().unwrap().is_empty());
     assert!(!value["classes"].as_array().unwrap().is_empty());
+    assert!(value["variants"].as_array().is_some());
     assert_eq!(value["standard_point_buy_budget"], 25);
 }
 

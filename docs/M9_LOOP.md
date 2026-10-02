@@ -32,14 +32,15 @@
   - [x] M9-6c output sheet 深化（commit `c7a8b18`）
 - [x] M9-7 最终 release / beta 扩展（0.1.0 发布冻结，commit `d693c4f`，tag `v0.1.0-m9`）
 - [ ] M9-8 beta 反馈迭代（依赖 M9-5b）
-- [x] **M9-9 Web 建卡支持逐级多职业与格式塔（已完成）**
-  - Web 创建向导新增 Normal / Gestalt 模式与逐级 class lane 编辑；
-  - `CreateRequest.advancement` 进入 builder，支持逐级多职业与双 lane Gestalt；
+- [x] **M9-9 Web 建卡支持逐级多职业、格式塔与替代能力（已完成）**
+  - Web 创建向导新增现代逐级编辑器：Normal / Gestalt、等级增删、职业汇总；
+  - 每个 class lane 支持 archetype / alternate ability / substitution level 选择；
+  - `/api/pack-options` 返回 `variants`，按职业过滤替代能力；
   - 新增 builder / web API 回归测试。
 
 ## 当前状态
 
-- 最近更新：完成 M9-9 Web 逐级多职业 / 格式塔建卡支持；
+- 最近更新：完成 M9-9 Web 逐级多职业 / 格式塔 / 替代能力建卡支持；
   0.1.0 发布冻结仍可用（tag `v0.1.0-m9`）；等待朋友 beta
   反馈进入 M9-5b / M9-8。
 - 已知风险：数据包许可、购点表版本、Web 首次编译性能。

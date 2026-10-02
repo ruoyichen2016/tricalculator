@@ -158,6 +158,16 @@ pub struct NamedOption {
 }
 
 #[derive(Debug, Serialize)]
+pub struct VariantOption {
+    pub id: String,
+    pub name: String,
+    pub applies_to: Option<String>,
+    pub kind: String,
+    pub replaces: Vec<String>,
+    pub grants: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
 pub struct PackOptions {
     pub races: Vec<NamedOption>,
     pub classes: Vec<NamedOption>,
@@ -165,6 +175,7 @@ pub struct PackOptions {
     pub ability_categories: Vec<NamedOption>,
     pub spells: Vec<NamedOption>,
     pub equipment: Vec<NamedOption>,
+    pub variants: Vec<VariantOption>,
     pub deities: Vec<NamedOption>,
     pub domains: Vec<NamedOption>,
     pub alignments: Vec<NamedOption>,
@@ -798,6 +809,25 @@ async fn pack_options(
         ),
         spells: spell_options(&pack),
         equipment: equipment_options(&pack),
+        variants: pack
+            .variants
+            .values()
+            .map(|variant| {
+                let kind = if variant.id.contains(" ~ level ") {
+                    "substitution"
+                } else {
+                    "archetype"
+                };
+                VariantOption {
+                    id: variant.id.clone(),
+                    name: variant.name.clone(),
+                    applies_to: variant.applies_to.clone(),
+                    kind: kind.to_string(),
+                    replaces: variant.replaces.clone(),
+                    grants: variant.grants.clone(),
+                }
+            })
+            .collect(),
         deities: named_options(
             pack.deities.values(),
             |item| item.id.clone(),

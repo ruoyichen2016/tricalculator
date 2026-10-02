@@ -1,15 +1,20 @@
 ## Unreleased
 
-### M9-9：Web 建卡支持逐级多职业与格式塔（进行中）
+### M9-9：Web 建卡支持逐级多职业、格式塔与替代能力（进行中）
 
 - `CreateRequest` 新增 `advancement` 字段，可显式描述每个角色等级的 class lane；
 - `create_draft` 支持：
   - 普通多职业：每个等级选择不同职业；
   - Gestalt：每个等级同时选择两个职业 lane；
-- Web 建卡向导新增「Normal / Gestalt」模式和逐级职业行编辑；
+  - 每个 lane 可选 archetype / alternate ability 与 substitution level；
+- Web 建卡向导新增现代化逐级编辑器：
+  - Normal / Gestalt 模式；
+  - 每级职业行 + “替代等级/替代能力”下拉；
+  - 等级增删与职业汇总；
+- `/api/pack-options` 新增 `variants`，按职业列出可用的 archetype / substitution；
 - `CharacterSummary.total_level` 统一改用 `CharacterDraft::total_level()`，
   兼容 `advancement` 角色；
-- 新增 builder 与 web API 的逐级多职业/格式塔回归测试；
+- 新增 builder 与 web API 的逐级多职业/格式塔/替代能力回归测试；
 - CLI `create` 适配新增 `advancement` 字段。
 
 ### M9-7：发布冻结（0.1.0，已完成）
