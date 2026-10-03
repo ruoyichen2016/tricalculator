@@ -1145,8 +1145,11 @@ equipmentTypeFilterEl.addEventListener('change', () => {
 
 function defaultLane(laneIndex) {
   const baseClasses = packClasses.filter((option) => !option.serves_as && !option.is_prestige);
+  const baseClass = baseClasses[laneIndex]?.uuid || baseClasses[0]?.uuid || '';
   return {
-    class: baseClasses[laneIndex]?.uuid || baseClasses[0]?.uuid || '',
+    class: baseClass,
+    baseClass,
+    prestige: '',
     archetype: '',
     substitution: '',
   };
@@ -1252,7 +1255,14 @@ function renderLevelEditor() {
     laneLabel.textContent = frame.lanes.length === 1 ? 'Class' : laneIndex === 0 ? 'Class A' : 'Class B';
     editor.appendChild(laneLabel);
 
-    const selectedClassOption = packClassesByUuid.get(lane.class) || packClassesById.get(lane.class);
+    const selectedBaseOption = packClassesByUuid.get(lane.baseClass)
+      || packClassesById.get(lane.baseClass)
+      || packClassesByUuid.get(lane.class)
+      || packClassesById.get(lane.class);
+    const baseClassUuid = selectedBaseOption?.serves_as
+      ? (packClassesById.get(selectedBaseOption.serves_as)?.uuid || selectedBaseOption.serves_as)
+      : (selectedBaseOption?.uuid || lane.baseClass || lane.class);
+
     const classSelect = document.createElement('select');
     for (const option of packClasses.filter((candidate) => !candidate.serves_as && !candidate.is_prestige)) {
       const item = document.createElement('option');
@@ -1260,11 +1270,10 @@ function renderLevelEditor() {
       item.textContent = option.name;
       classSelect.appendChild(item);
     }
-    classSelect.value = selectedClassOption?.serves_as
-      ? (packClassesById.get(selectedClassOption.serves_as)?.uuid || selectedClassOption.serves_as)
-      : lane.class;
+    classSelect.value = selectedBaseOption?.serves_as ? baseClassUuid : (selectedBaseOption?.uuid || lane.baseClass || lane.class);
     classSelect.addEventListener('change', () => {
-      lane.class = classSelect.value;
+      lane.baseClass = classSelect.value;
+      lane.class = lane.prestige || lane.baseClass;
       lane.archetype = '';
       lane.substitution = '';
       renderLevelEditor();
@@ -1275,10 +1284,8 @@ function renderLevelEditor() {
     });
     editor.appendChild(classSelect);
 
-    const baseClassForVariant = selectedClassOption?.serves_as
-      ? packClassesById.get(selectedClassOption.serves_as)?.uuid || selectedClassOption.serves_as
-      : (packClassesByUuid.get(lane.class)?.id || lane.class);
-    const classVariants = classVariantsByBase.get((internalClassId(baseClassForVariant) || selectedClassOption?.serves_as || '').toLowerCase()) || [];
+    const baseLookupId = selectedBaseOption?.serves_as || selectedBaseOption?.id || internalClassId(lane.baseClass || lane.class);
+    const classVariants = classVariantsByBase.get(baseLookupId.toLowerCase()) || [];
     if (classVariants.length > 0) {
       const variantLabel = document.createElement('label');
       variantLabel.textContent = 'Class Variant';
@@ -1296,9 +1303,10 @@ function renderLevelEditor() {
         option.textContent = variant.name;
         variantSelect.appendChild(option);
       }
-      variantSelect.value = selectedClassOption?.serves_as ? lane.class : '';
+      variantSelect.value = selectedBaseOption?.serves_as ? selectedBaseOption.uuid : '';
       variantSelect.addEventListener('change', () => {
-        lane.class = variantSelect.value || baseClassForVariant;
+        lane.baseClass = variantSelect.value || baseClassUuid;
+        lane.class = lane.prestige || lane.baseClass;
         lane.archetype = '';
         lane.substitution = '';
         renderLevelEditor();
@@ -1310,6 +1318,40 @@ function renderLevelEditor() {
       editor.appendChild(variantSelect);
     }
 
+    const prestigeClasses = packClasses.filter((candidate) => candidate.is_prestige);
+    if (prestigeClasses.length > 0) {
+      const prestigeLabel = document.createElement('label');
+      prestigeLabel.textContent = 'Prestige Class';
+      editor.appendChild(prestigeLabel);
+
+      const prestigeSelect = document.createElement('select');
+      prestigeSelect.className = 'prestige-select';
+      const noneOption = document.createElement('option');
+      noneOption.value = '';
+      noneOption.textContent = '— none —';
+      prestigeSelect.appendChild(noneOption);
+      for (const prestige of prestigeClasses) {
+        const option = document.createElement('option');
+        option.value = prestige.uuid;
+        option.textContent = prestige.name;
+        prestigeSelect.appendChild(option);
+      }
+      prestigeSelect.value = lane.prestige || '';
+      prestigeSelect.addEventListener('change', () => {
+        lane.prestige = prestigeSelect.value;
+        lane.class = lane.prestige || lane.baseClass || lane.class;
+        lane.archetype = '';
+        lane.substitution = '';
+        renderLevelEditor();
+        syncClassGold();
+        refreshSpellCandidates();
+        renderLevelList();
+        renderReviewSummary();
+      });
+      editor.appendChild(prestigeSelect);
+    }
+
+    const variantBaseClassId = selectedBaseOption?.serves_as || internalClassId(selectedBaseOption?.id || lane.baseClass || lane.class);
     const classLevel = classLevelForLane(frameIndex, laneIndex);
 
     const archetypeLabel = document.createElement('label');
@@ -1318,7 +1360,7 @@ function renderLevelEditor() {
 
     const archetypeSelect = document.createElement('select');
     archetypeSelect.className = 'archetype-select';
-    fillVariantOptions(archetypeSelect, lane.class, 'archetype', null, lane.archetype);
+    fillVariantOptions(archetypeSelect, variantBaseClassId, 'archetype', null, lane.archetype);
     archetypeSelect.addEventListener('change', () => {
       lane.archetype = archetypeSelect.value;
       renderReviewSummary();
@@ -1331,7 +1373,7 @@ function renderLevelEditor() {
 
     const substitutionSelect = document.createElement('select');
     substitutionSelect.className = 'substitution-select';
-    fillVariantOptions(substitutionSelect, lane.class, 'substitution', classLevel, lane.substitution);
+    fillVariantOptions(substitutionSelect, variantBaseClassId, 'substitution', classLevel, lane.substitution);
     substitutionSelect.addEventListener('change', () => {
       lane.substitution = substitutionSelect.value;
       renderReviewSummary();
@@ -1355,6 +1397,8 @@ function copyPreviousLevel() {
   const current = advancement[selectedLevel - 1];
   current.lanes = previous.lanes.map((lane) => ({
     class: lane.class,
+    baseClass: lane.baseClass || lane.class,
+    prestige: lane.prestige || '',
     archetype: lane.archetype || '',
     substitution: lane.substitution || '',
   }));
