@@ -174,10 +174,108 @@ pub struct VariantOption {
 }
 
 #[derive(Debug, Serialize)]
-pub struct AbilityOption {
+pub struct PageMeta {
+    pub page: u32,
+    pub page_size: u32,
+    pub total: usize,
+    pub total_pages: u32,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SpellOption {
+    pub id: String,
+    pub name: String,
+    pub school: String,
+    pub class_levels: std::collections::BTreeMap<String, u32>,
+    pub domains: Vec<String>,
+    pub is_psionic: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SpellOptionsResponse {
+    pub items: Vec<SpellOption>,
+    pub meta: PageMeta,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct EquipmentOption {
+    pub id: String,
+    pub name: String,
+    pub type_tags: Vec<String>,
+    pub slot: String,
+    pub base_item: Option<String>,
+    pub cost_gp: f64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct EquipmentOptionsResponse {
+    pub items: Vec<EquipmentOption>,
+    pub meta: PageMeta,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AbilityOptionDetail {
     pub id: String,
     pub name: String,
     pub category: Option<String>,
+    pub type_tags: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AbilityOptionsResponse {
+    pub items: Vec<AbilityOptionDetail>,
+    pub meta: PageMeta,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SpellOptionsQuery {
+    pub pcc: String,
+    #[serde(default)]
+    pub class: Option<String>,
+    #[serde(default)]
+    pub level: Option<u32>,
+    #[serde(default)]
+    pub domain: Option<String>,
+    #[serde(default)]
+    pub school: Option<String>,
+    #[serde(default)]
+    pub search: Option<String>,
+    #[serde(default)]
+    pub page: Option<u32>,
+    #[serde(default)]
+    pub page_size: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct EquipmentOptionsQuery {
+    pub pcc: String,
+    #[serde(default)]
+    pub type_tag: Option<String>,
+    #[serde(default)]
+    pub slot: Option<String>,
+    #[serde(default)]
+    pub base_item: Option<String>,
+    #[serde(default)]
+    pub search: Option<String>,
+    #[serde(default)]
+    pub page: Option<u32>,
+    #[serde(default)]
+    pub page_size: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AbilityOptionsQuery {
+    pub pcc: String,
+    #[serde(default)]
+    pub category: Option<String>,
+    #[serde(default)]
+    pub type_tag: Option<String>,
+    #[serde(default)]
+    pub search: Option<String>,
+    #[serde(default)]
+    pub page: Option<u32>,
+    #[serde(default)]
+    pub page_size: Option<u32>,
 }
 
 #[derive(Debug, Serialize)]
@@ -186,9 +284,6 @@ pub struct PackOptions {
     pub classes: Vec<NamedOption>,
     pub skills: Vec<NamedOption>,
     pub ability_categories: Vec<NamedOption>,
-    pub abilities: Vec<AbilityOption>,
-    pub spells: Vec<NamedOption>,
-    pub equipment: Vec<NamedOption>,
     pub variants: Vec<VariantOption>,
     pub deities: Vec<NamedOption>,
     pub domains: Vec<NamedOption>,
@@ -243,6 +338,9 @@ pub fn app(config: WebConfig) -> Router {
         .route("/api/recalculate", post(recalculate))
         .route("/api/export", post(export))
         .route("/api/pack-options", get(pack_options))
+        .route("/api/options/spells", get(spell_search_options))
+        .route("/api/options/equipment", get(equipment_search_options))
+        .route("/api/options/abilities", get(ability_search_options))
         .route("/api/characters", get(characters).post(create_character))
         .route(
             "/api/characters/create",
@@ -774,37 +872,6 @@ fn class_options(pack: &pcgen_ir::CompiledRulePack) -> Vec<NamedOption> {
     options
 }
 
-fn equipment_options(pack: &pcgen_ir::CompiledRulePack) -> Vec<NamedOption> {
-    let mut options: Vec<NamedOption> = pack
-        .equipment
-        .values()
-        .map(|item| NamedOption {
-            id: item.id.clone(),
-            name: item.name.clone(),
-            cost_gp: Some(item.cost_gp),
-            starting_gold: None,
-            class_levels: None,
-        })
-        .collect();
-    options.sort_by(|left, right| left.name.cmp(&right.name));
-    options
-}
-
-fn spell_options(pack: &pcgen_ir::CompiledRulePack) -> Vec<NamedOption> {
-    let mut options: Vec<NamedOption> = pack
-        .spells
-        .values()
-        .map(|spell| NamedOption {
-            id: spell.id.clone(),
-            name: spell.name.clone(),
-            cost_gp: None,
-            starting_gold: None,
-            class_levels: Some(spell.class_levels.clone()),
-        })
-        .collect();
-    options.sort_by(|left, right| left.name.cmp(&right.name));
-    options
-}
 
 fn summary_for(envelope: &NativeSaveEnvelope) -> CharacterSummary {
     let total_level = envelope.character.total_level();
@@ -870,17 +937,6 @@ async fn pack_options(
             |item| item.id.clone(),
             |item| item.name.clone(),
         ),
-        abilities: pack
-            .abilities
-            .values()
-            .map(|ability| AbilityOption {
-                id: ability.id.clone(),
-                name: ability.name.clone(),
-                category: ability.category.clone(),
-            })
-            .collect(),
-        spells: spell_options(&pack),
-        equipment: equipment_options(&pack),
         variants: {
             let mut class_features_cache: std::collections::HashMap<
                 String,
@@ -952,6 +1008,261 @@ async fn pack_options(
         standard_point_buy_budget: pcgen_builder::point_buy::STANDARD_BUDGET,
     };
     Json(options).into_response()
+}
+
+fn equip_slot_name(slot: pcgen_core::equipment::EquipSlot) -> &'static str {
+    match slot {
+        pcgen_core::equipment::EquipSlot::Head => "head",
+        pcgen_core::equipment::EquipSlot::Body => "body",
+        pcgen_core::equipment::EquipSlot::Arms => "arms",
+        pcgen_core::equipment::EquipSlot::Hands => "hands",
+        pcgen_core::equipment::EquipSlot::Feet => "feet",
+        pcgen_core::equipment::EquipSlot::Waist => "waist",
+        pcgen_core::equipment::EquipSlot::Neck => "neck",
+        pcgen_core::equipment::EquipSlot::Wrist => "wrist",
+        pcgen_core::equipment::EquipSlot::Weapon => "weapon",
+        pcgen_core::equipment::EquipSlot::OffHand => "offhand",
+        pcgen_core::equipment::EquipSlot::Shield => "shield",
+        pcgen_core::equipment::EquipSlot::Special => "special",
+        pcgen_core::equipment::EquipSlot::None => "none",
+    }
+}
+
+async fn spell_search_options(
+    State(state): State<AppState>,
+    Query(query): Query<SpellOptionsQuery>,
+) -> impl IntoResponse {
+    let pcc_path = resolve_path(&state.config.data_root, &query.pcc);
+    let engine = match cached_engine(&state, &pcc_path) {
+        Ok(engine) => engine,
+        Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
+    };
+    let pack = &engine.pack;
+    let page = query.page.unwrap_or(1).max(1);
+    let page_size = query.page_size.unwrap_or(50).clamp(1, 200);
+    let search = query.search.as_deref().map(str::to_lowercase);
+
+    let mut items: Vec<SpellOption> = pack
+        .spells
+        .values()
+        .filter(|spell| {
+            if let Some(class) = &query.class {
+                if !spell
+                    .class_levels
+                    .keys()
+                    .any(|candidate| candidate.eq_ignore_ascii_case(class))
+                {
+                    return false;
+                }
+            }
+            if let Some(level) = query.level {
+                let level_match = spell.class_levels.values().any(|value| *value == level)
+                    || spell.level == level;
+                if !level_match {
+                    return false;
+                }
+            }
+            if let Some(domain) = &query.domain {
+                if !spell
+                    .domains
+                    .iter()
+                    .any(|candidate| candidate.eq_ignore_ascii_case(domain))
+                {
+                    return false;
+                }
+            }
+            if let Some(school) = &query.school {
+                if !spell.school.eq_ignore_ascii_case(school) {
+                    return false;
+                }
+            }
+            if let Some(search) = &search {
+                if !spell.name.to_lowercase().contains(search)
+                    && !spell.id.to_lowercase().contains(search)
+                {
+                    return false;
+                }
+            }
+            true
+        })
+        .map(|spell| SpellOption {
+            id: spell.id.clone(),
+            name: spell.name.clone(),
+            school: spell.school.clone(),
+            class_levels: spell.class_levels.clone(),
+            domains: spell.domains.clone(),
+            is_psionic: spell.is_psionic,
+        })
+        .collect();
+    items.sort_by(|left, right| left.name.cmp(&right.name));
+    let total = items.len();
+    let start = ((page - 1) as usize * page_size as usize).min(total);
+    let end = (start + page_size as usize).min(total);
+    Json(SpellOptionsResponse {
+        meta: PageMeta {
+            page,
+            page_size,
+            total,
+            total_pages: if total == 0 {
+                0
+            } else {
+                (total + page_size as usize - 1) / page_size as usize
+            } as u32,
+        },
+        items: items[start..end].to_vec(),
+    })
+    .into_response()
+}
+
+async fn equipment_search_options(
+    State(state): State<AppState>,
+    Query(query): Query<EquipmentOptionsQuery>,
+) -> impl IntoResponse {
+    let pcc_path = resolve_path(&state.config.data_root, &query.pcc);
+    let engine = match cached_engine(&state, &pcc_path) {
+        Ok(engine) => engine,
+        Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
+    };
+    let pack = &engine.pack;
+    let page = query.page.unwrap_or(1).max(1);
+    let page_size = query.page_size.unwrap_or(50).clamp(1, 200);
+    let search = query.search.as_deref().map(str::to_lowercase);
+
+    let mut items: Vec<EquipmentOption> = pack
+        .equipment
+        .values()
+        .filter(|item| {
+            if let Some(type_tag) = &query.type_tag {
+                if !item
+                    .type_tags
+                    .iter()
+                    .any(|candidate| candidate.eq_ignore_ascii_case(type_tag))
+                {
+                    return false;
+                }
+            }
+            if let Some(slot) = &query.slot {
+                if !equip_slot_name(item.slot).eq_ignore_ascii_case(slot) {
+                    return false;
+                }
+            }
+            if let Some(base_item) = &query.base_item {
+                if !item
+                    .base_item
+                    .as_deref()
+                    .is_some_and(|candidate| candidate.eq_ignore_ascii_case(base_item))
+                {
+                    return false;
+                }
+            }
+            if let Some(search) = &search {
+                if !item.name.to_lowercase().contains(search)
+                    && !item.id.to_lowercase().contains(search)
+                {
+                    return false;
+                }
+            }
+            true
+        })
+        .map(|item| EquipmentOption {
+            id: item.id.clone(),
+            name: item.name.clone(),
+            type_tags: item.type_tags.clone(),
+            slot: equip_slot_name(item.slot).to_string(),
+            base_item: item.base_item.clone(),
+            cost_gp: item.cost_gp,
+        })
+        .collect();
+    items.sort_by(|left, right| left.name.cmp(&right.name));
+    let total = items.len();
+    let start = ((page - 1) as usize * page_size as usize).min(total);
+    let end = (start + page_size as usize).min(total);
+    Json(EquipmentOptionsResponse {
+        meta: PageMeta {
+            page,
+            page_size,
+            total,
+            total_pages: if total == 0 {
+                0
+            } else {
+                (total + page_size as usize - 1) / page_size as usize
+            } as u32,
+        },
+        items: items[start..end].to_vec(),
+    })
+    .into_response()
+}
+
+async fn ability_search_options(
+    State(state): State<AppState>,
+    Query(query): Query<AbilityOptionsQuery>,
+) -> impl IntoResponse {
+    let pcc_path = resolve_path(&state.config.data_root, &query.pcc);
+    let engine = match cached_engine(&state, &pcc_path) {
+        Ok(engine) => engine,
+        Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
+    };
+    let pack = &engine.pack;
+    let page = query.page.unwrap_or(1).max(1);
+    let page_size = query.page_size.unwrap_or(50).clamp(1, 200);
+    let search = query.search.as_deref().map(str::to_lowercase);
+
+    let mut items: Vec<AbilityOptionDetail> = pack
+        .abilities
+        .values()
+        .filter(|ability| {
+            if let Some(category) = &query.category {
+                if !ability
+                    .category
+                    .as_deref()
+                    .is_some_and(|candidate| candidate.eq_ignore_ascii_case(category))
+                {
+                    return false;
+                }
+            }
+            if let Some(type_tag) = &query.type_tag {
+                if !ability
+                    .type_tags
+                    .iter()
+                    .any(|candidate| candidate.eq_ignore_ascii_case(type_tag))
+                {
+                    return false;
+                }
+            }
+            if let Some(search) = &search {
+                if !ability.name.to_lowercase().contains(search)
+                    && !ability.id.to_lowercase().contains(search)
+                {
+                    return false;
+                }
+            }
+            true
+        })
+        .map(|ability| AbilityOptionDetail {
+            id: ability.id.clone(),
+            name: ability.name.clone(),
+            category: ability.category.clone(),
+            type_tags: ability.type_tags.clone(),
+        })
+        .collect();
+    items.sort_by(|left, right| left.name.cmp(&right.name));
+    let total = items.len();
+    let start = ((page - 1) as usize * page_size as usize).min(total);
+    let end = (start + page_size as usize).min(total);
+    Json(AbilityOptionsResponse {
+        meta: PageMeta {
+            page,
+            page_size,
+            total,
+            total_pages: if total == 0 {
+                0
+            } else {
+                (total + page_size as usize - 1) / page_size as usize
+            } as u32,
+        },
+        items: items[start..end].to_vec(),
+    })
+    .into_response()
 }
 
 async fn create_character_from_request(

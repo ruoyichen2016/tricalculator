@@ -10,6 +10,11 @@
 - 替代能力按职业已有特性索引：`variants` 增加 `matches_features`，UI 只展示与职业已有能力匹配的 Archetype / Alternate Ability；
 - 性能优化：后端缓存职业特性集，前端预建 `ArchetypeByClass` / `SubstitutionByClassLevel` 索引，避免每次渲染全量遍历；
 - 性能优化：Web 层增加 `CompiledRulePack` 内存缓存，`pack-options` / `recalculate` / `export` / character 打开/导入等请求不再重复编译全量规则包；
+- 新增结构化搜索分页接口：`/api/options/spells`、`/api/options/equipment`、`/api/options/abilities`；
+  - 法术支持按职业法表/等级/领域/学派/关键词筛选；
+  - 装备支持按类型/槽位/基础物品/关键词筛选；
+  - 能力/专长支持按类别/类型/关键词筛选；
+- `pack-options` 不再下发全部法术/装备/专长，前端改为搜索式选择器；
 - 后端新增替代等级与“当前职业等级”的强校验：等级不匹配直接报错；
 - 修复 Archetype / Variant 与 Substitution Level 同时选择时的冲突：
   - 引擎现在允许同一 lane 同时应用 Archetype 与 Substitution Level；

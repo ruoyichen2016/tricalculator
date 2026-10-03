@@ -322,6 +322,29 @@ async fn pack_options_endpoint_lists_definitions() {
 }
 
 #[tokio::test]
+async fn structured_option_search_endpoints_respond() {
+    let app = app(mini_config());
+    for uri in [
+        "/api/options/spells?pcc=campaign-mini/mini.pcc",
+        "/api/options/equipment?pcc=campaign-mini/mini.pcc",
+        "/api/options/abilities?pcc=campaign-mini/mini.pcc",
+    ] {
+        let response = app
+            .clone()
+            .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK, "endpoint {uri}");
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert!(value["meta"].is_object(), "endpoint {uri} missing meta");
+        assert!(value["items"].is_array(), "endpoint {uri} missing items");
+    }
+}
+
+#[tokio::test]
 async fn builder_create_endpoint_round_trip() {
     let config = character_config("builder");
     let characters_root = config.characters_root.clone();

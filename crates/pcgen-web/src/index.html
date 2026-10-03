@@ -52,6 +52,7 @@
   .lane-group select { width: 100%; }
   .advancement-summary { margin-top: .5rem; display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; }
   .advancement-summary .chip { background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: .1rem .6rem; font-size: .85rem; }
+  .pager-hint { font-size: .8rem; color: var(--muted); min-height: 1rem; margin: .15rem 0; }
   .picker-rows { display: grid; gap: .35rem; margin: .25rem 0; }
   .picker-row { display: grid; grid-template-columns: 1fr 6rem 2rem; gap: .4rem; align-items: center; }
   .picker-row.remove { grid-template-columns: 1fr 6rem 2rem; }
@@ -173,9 +174,11 @@
     <div id="abilityRows" class="picker-rows"></div>
     <div class="row">
       <select id="abilityCategoryFilter"></select>
+      <input id="abilitySearch" placeholder="Search ability">
       <select id="abilityCandidate"></select>
       <button type="button" id="addAbilityRow" class="ghost">+ Add ability</button>
     </div>
+    <p id="abilityPager" class="pager-hint"></p>
     <div class="wizard-nav">
       <button type="button" data-prev="advancement">Back</button>
       <button type="button" class="primary" data-next="spells">Next: Spells / Equipment</button>
@@ -185,13 +188,24 @@
   <div class="wizard-step" id="step-spells" hidden>
     <label for="createSpells">Spells (one per line: Magic Missile or Magic Missile=1)</label>
     <div class="row">
+      <input id="spellSearch" placeholder="Search spell">
       <input id="spellCandidate" list="spellCandidates" placeholder="Magic Missile">
       <input id="spellLevel" type="number" min="0" max="9" value="1" style="max-width: 6rem">
       <button type="button" id="addSpellLine">Add spell</button>
       <datalist id="spellCandidates"></datalist>
     </div>
+    <p id="spellPager" class="pager-hint"></p>
     <textarea id="createSpells" rows="2"></textarea>
-    <label for="createEquipment">Equipment (one per line)</label>
+    <label>Equipment</label>
+    <div id="equipmentRows" class="picker-rows"></div>
+    <div class="row">
+      <select id="equipmentTypeFilter"></select>
+      <input id="equipmentSearch" placeholder="Search equipment">
+      <select id="equipmentCandidate"></select>
+      <button type="button" id="addEquipmentRow" class="ghost">+ Add equipment</button>
+    </div>
+    <p id="equipmentPager" class="pager-hint"></p>
+    <label for="createEquipment">Equipment (manual / one per line)</label>
     <textarea id="createEquipment" rows="2"></textarea>
     <div class="wizard-nav">
       <button type="button" data-prev="skills">Back</button>
@@ -657,21 +671,36 @@ const abilityCategoryFilterEl = document.getElementById('abilityCategoryFilter')
 const abilityCandidateEl = document.getElementById('abilityCandidate');
 const addSkillRowBtn = document.getElementById('addSkillRow');
 const addAbilityRowBtn = document.getElementById('addAbilityRow');
+const abilitySearchEl = document.getElementById('abilitySearch');
+const abilityPagerEl = document.getElementById('abilityPager');
 const createSpellsEl = document.getElementById('createSpells');
 const spellCandidateEl = document.getElementById('spellCandidate');
 const spellLevelEl = document.getElementById('spellLevel');
 const spellCandidatesEl = document.getElementById('spellCandidates');
+const spellSearchEl = document.getElementById('spellSearch');
+const spellPagerEl = document.getElementById('spellPager');
 let packClasses = [];
 let packVariants = [];
 let archetypesByClass = new Map();
 let substitutionsByClassLevel = new Map();
 let packSkills = [];
+let packAbilityCategories = [];
 let packAbilities = [];
 let packSpellOptions = [];
 let skillSelections = [];
 let abilitySelections = [];
+let abilityPage = 1;
+let spellPage = 1;
+let equipmentSelections = [];
+let equipmentPage = 1;
 let advancement = [];
 let selectedLevel = 1;
+const equipmentRowsEl = document.getElementById('equipmentRows');
+const equipmentTypeFilterEl = document.getElementById('equipmentTypeFilter');
+const equipmentSearchEl = document.getElementById('equipmentSearch');
+const equipmentCandidateEl = document.getElementById('equipmentCandidate');
+const addEquipmentRowBtn = document.getElementById('addEquipmentRow');
+const equipmentPagerEl = document.getElementById('equipmentPager');
 const createEquipmentEl = document.getElementById('createEquipment');
 const createStatusEl = document.getElementById('createStatus');
 let lastDiagnosticsPayload = null;
@@ -757,23 +786,35 @@ function syncClassGold() {
   }
 }
 
-function spellMatchesClass(spell) {
-  if (!spell.class_levels || Object.keys(spell.class_levels).length === 0) {
-    return true;
-  }
+async function searchSpells(reset = true) {
+  if (reset) spellPage = 1;
+  const params = new URLSearchParams({ pcc: pccEl.value, page: spellPage, page_size: 50 });
   const classId = currentPrimaryClassId();
-  const className = currentPrimaryClassOption()?.name || classId;
-  const keys = Object.keys(spell.class_levels);
-  return keys.some((key) => key === classId || key.toLowerCase() === className.toLowerCase());
+  if (classId) params.set('class', classId);
+  if (spellSearchEl.value) params.set('search', spellSearchEl.value.trim());
+  try {
+    const response = await fetch(`/api/options/spells?${params.toString()}`);
+    const data = await response.json();
+    if (!response.ok) {
+      spellPagerEl.textContent = data.error || 'search failed';
+      return;
+    }
+    if (spellPage === 1) spellCandidatesEl.innerHTML = '';
+    for (const item of data.items || []) {
+      const option = document.createElement('option');
+      option.value = item.name;
+      spellCandidatesEl.appendChild(option);
+    }
+    spellPagerEl.textContent = data.meta && data.meta.total
+      ? `Page ${data.meta.page}/${data.meta.total_pages} · ${data.meta.total} spells`
+      : 'No spells found';
+  } catch (error) {
+    spellPagerEl.textContent = String(error);
+  }
 }
 
 function refreshSpellCandidates() {
-  spellCandidatesEl.innerHTML = '';
-  for (const spell of packSpellOptions.filter(spellMatchesClass)) {
-    const option = document.createElement('option');
-    option.value = spell.name;
-    spellCandidatesEl.appendChild(option);
-  }
+  searchSpells();
 }
 
 async function loadPackOptions() {
@@ -793,15 +834,16 @@ async function loadPackOptions() {
     packVariants = data.variants || [];
     buildVariantIndexes();
     packSkills = data.skills || [];
-    packAbilities = data.abilities || [];
-    packSpellOptions = data.spells || [];
+    packAbilityCategories = data.ability_categories || [];
     populateSkillPicker();
-    populateAbilityPicker();
     renderSkillRows();
     renderAbilityRows();
     renderAdvancement();
     syncClassGold();
-    refreshSpellCandidates();
+    await searchAbilities();
+    await searchSpells();
+    await searchEquipment();
+    renderEquipmentRows();
     createStatusEl.textContent = `Options loaded: ${data.races.length} races, ${data.classes.length} classes`;
   } catch (error) {
     createStatusEl.className = 'error';
@@ -901,124 +943,66 @@ function populateSkillPicker() {
   }
 }
 
-function abilityCategories() {
-  const seen = new Map();
-  for (const ability of packAbilities) {
-    const category = ability.category || 'Ability';
-    if (!seen.has(category)) seen.set(category, category);
-  }
-  return Array.from(seen.values()).sort();
-}
-
-function refreshAbilityCandidates() {
-  const category = abilityCategoryFilterEl.value;
-  abilityCandidateEl.innerHTML = '';
-  for (const ability of packAbilities) {
-    if (category && ability.category !== category) continue;
-    const option = document.createElement('option');
-    option.value = ability.name || ability.id;
-    option.textContent = ability.name;
-    abilityCandidateEl.appendChild(option);
-  }
-}
-
 function populateAbilityPicker() {
   abilityCategoryFilterEl.innerHTML = '';
-  for (const category of abilityCategories()) {
+  for (const category of packAbilityCategories) {
     const option = document.createElement('option');
-    option.value = category;
-    option.textContent = category;
+    option.value = category.name || category.id;
+    option.textContent = category.name || category.id;
     abilityCategoryFilterEl.appendChild(option);
   }
-  refreshAbilityCandidates();
 }
 
-function renderSkillRows() {
-  skillRowsEl.innerHTML = '';
-  skillSelections.forEach((entry, index) => {
-    const row = document.createElement('div');
-    row.className = 'picker-row';
-
-    const select = document.createElement('select');
-    for (const skill of packSkills) {
-      const option = document.createElement('option');
-      option.value = skill.name || skill.id;
-      option.textContent = skill.name;
-      select.appendChild(option);
+async function searchAbilities(reset = true) {
+  if (reset) abilityPage = 1;
+  const params = new URLSearchParams({ pcc: pccEl.value, page: abilityPage, page_size: 50 });
+  if (abilityCategoryFilterEl.value) params.set('category', abilityCategoryFilterEl.value);
+  if (abilitySearchEl.value) params.set('search', abilitySearchEl.value.trim());
+  try {
+    const response = await fetch(`/api/options/abilities?${params.toString()}`);
+    const data = await response.json();
+    if (!response.ok) {
+      abilityPagerEl.textContent = data.error || 'search failed';
+      return;
     }
-    select.value = entry.skill || '';
-    select.addEventListener('change', () => { entry.skill = select.value; });
-    row.appendChild(select);
-
-    const rank = document.createElement('input');
-    rank.type = 'number';
-    rank.min = '0';
-    rank.value = entry.rank ?? 1;
-    rank.addEventListener('input', () => { entry.rank = Math.max(0, Number(rank.value) || 0); });
-    row.appendChild(rank);
-
-    const remove = document.createElement('button');
-    remove.type = 'button';
-    remove.className = 'remove-btn';
-    remove.textContent = '✕';
-    remove.addEventListener('click', () => { skillSelections.splice(index, 1); renderSkillRows(); });
-    row.appendChild(remove);
-
-    skillRowsEl.appendChild(row);
-  });
+    if (abilityPage === 1) abilityCandidateEl.innerHTML = '';
+    for (const item of data.items || []) {
+      const option = document.createElement('option');
+      option.value = item.name || item.id;
+      option.textContent = item.name;
+      abilityCandidateEl.appendChild(option);
+    }
+    abilityPagerEl.textContent = data.meta && data.meta.total
+      ? `Page ${data.meta.page}/${data.meta.total_pages} · ${data.meta.total} abilities`
+      : 'No abilities found';
+  } catch (error) {
+    abilityPagerEl.textContent = String(error);
+  }
 }
 
 function renderAbilityRows() {
   abilityRowsEl.innerHTML = '';
-  const categories = abilityCategories();
   abilitySelections.forEach((entry, index) => {
     const row = document.createElement('div');
     row.className = 'picker-row';
 
-    const categorySelect = document.createElement('select');
-    for (const category of categories) {
-      const option = document.createElement('option');
-      option.value = category;
-      option.textContent = category;
-      categorySelect.appendChild(option);
-    }
-    categorySelect.value = entry.category || categories[0] || 'Ability';
-    categorySelect.addEventListener('change', () => {
-      entry.category = categorySelect.value;
-      const abilitySelect = row.querySelector('select.ability-select');
-      refreshRowAbilityOptions(abilitySelect, entry.category);
-      entry.ability = abilitySelect.value;
-      renderAbilityRows();
-    });
-    row.appendChild(categorySelect);
+    const category = document.createElement('span');
+    category.textContent = entry.category || 'Ability';
+    row.appendChild(category);
 
-    const abilitySelect = document.createElement('select');
-    abilitySelect.className = 'ability-select';
-    refreshRowAbilityOptions(abilitySelect, categorySelect.value);
-    abilitySelect.value = entry.ability || '';
-    abilitySelect.addEventListener('change', () => { entry.ability = abilitySelect.value; });
-    row.appendChild(abilitySelect);
+    const ability = document.createElement('span');
+    ability.textContent = entry.ability;
+    row.appendChild(ability);
 
     const remove = document.createElement('button');
     remove.type = 'button';
     remove.className = 'remove-btn';
     remove.textContent = '✕';
-    remove.addEventListener('click', () => { abilitySelections.splice(index, 1); renderAbilityRows(); });
+    remove.addEventListener('click', () => { abilitySelections.splice(index, 1); renderAbilityRows(); renderReviewSummary(); });
     row.appendChild(remove);
 
     abilityRowsEl.appendChild(row);
   });
-}
-
-function refreshRowAbilityOptions(select, category) {
-  select.innerHTML = '';
-  for (const ability of packAbilities) {
-    if (category && ability.category !== category) continue;
-    const option = document.createElement('option');
-    option.value = ability.name || ability.id;
-    option.textContent = ability.name;
-    select.appendChild(option);
-  }
 }
 
 addSkillRowBtn.addEventListener('click', () => {
@@ -1026,6 +1010,7 @@ addSkillRowBtn.addEventListener('click', () => {
   if (!skill) return;
   skillSelections.push({ skill, rank: Math.max(0, Number(skillRankEl.value) || 1) });
   renderSkillRows();
+  renderReviewSummary();
 });
 
 addAbilityRowBtn.addEventListener('click', () => {
@@ -1034,9 +1019,101 @@ addAbilityRowBtn.addEventListener('click', () => {
   if (!ability) return;
   abilitySelections.push({ category, ability });
   renderAbilityRows();
+  renderReviewSummary();
 });
 
-abilityCategoryFilterEl.addEventListener('change', refreshAbilityCandidates);
+abilityCategoryFilterEl.addEventListener('change', () => searchAbilities());
+abilitySearchEl.addEventListener('input', debounce(() => searchAbilities()));
+
+async function searchEquipment(reset = true) {
+  if (reset) equipmentPage = 1;
+  const params = new URLSearchParams({ pcc: pccEl.value, page: equipmentPage, page_size: 50 });
+  if (equipmentTypeFilterEl.value) params.set('type_tag', equipmentTypeFilterEl.value);
+  if (equipmentSearchEl.value) params.set('search', equipmentSearchEl.value.trim());
+  try {
+    const response = await fetch(`/api/options/equipment?${params.toString()}`);
+    const data = await response.json();
+    if (!response.ok) {
+      equipmentPagerEl.textContent = data.error || 'search failed';
+      return;
+    }
+    if (equipmentPage === 1) {
+      equipmentCandidateEl.innerHTML = '';
+      equipmentTypeFilterEl.innerHTML = '<option value="">Any type</option>';
+      const seen = new Set();
+      for (const item of data.items || []) {
+        for (const tag of item.type_tags || []) {
+          if (!seen.has(tag)) {
+            seen.add(tag);
+            const option = document.createElement('option');
+            option.value = tag;
+            option.textContent = tag;
+            equipmentTypeFilterEl.appendChild(option);
+          }
+        }
+      }
+      if (equipmentTypeFilterEl.dataset.previous) equipmentTypeFilterEl.value = equipmentTypeFilterEl.dataset.previous;
+    }
+    for (const item of data.items || []) {
+      const option = document.createElement('option');
+      option.value = item.name;
+      option.textContent = item.name;
+      equipmentCandidateEl.appendChild(option);
+    }
+    equipmentPagerEl.textContent = data.meta && data.meta.total
+      ? `Page ${data.meta.page}/${data.meta.total_pages} · ${data.meta.total} items`
+      : 'No equipment found';
+  } catch (error) {
+    equipmentPagerEl.textContent = String(error);
+  }
+}
+
+function renderEquipmentRows() {
+  const lines = createEquipmentEl.value.split('\n').map((line) => line.trim()).filter(Boolean);
+  equipmentRowsEl.innerHTML = '';
+  lines.forEach((line, index) => {
+    const row = document.createElement('div');
+    row.className = 'picker-row';
+
+    const name = document.createElement('span');
+    name.textContent = line;
+    row.appendChild(name);
+
+    const spacer = document.createElement('span');
+    spacer.textContent = '';
+    row.appendChild(spacer);
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'remove-btn';
+    remove.textContent = '✕';
+    remove.addEventListener('click', () => {
+      const updated = lines.filter((_, i) => i !== index);
+      createEquipmentEl.value = updated.join('\n');
+      renderEquipmentRows();
+      renderReviewSummary();
+    });
+    row.appendChild(remove);
+
+    equipmentRowsEl.appendChild(row);
+  });
+}
+
+addEquipmentRowBtn.addEventListener('click', () => {
+  const name = equipmentCandidateEl.value;
+  if (!name) return;
+  createEquipmentEl.value = createEquipmentEl.value
+    ? `${createEquipmentEl.value.trim()}\n${name}`
+    : name;
+  renderEquipmentRows();
+  renderReviewSummary();
+});
+
+equipmentSearchEl.addEventListener('input', debounce(() => searchEquipment()));
+equipmentTypeFilterEl.addEventListener('change', () => {
+  equipmentTypeFilterEl.dataset.previous = equipmentTypeFilterEl.value;
+  searchEquipment();
+});
 
 function defaultLane(laneIndex) {
   return {
@@ -1263,6 +1340,8 @@ function parseLineMap(text, valueParser) {
   return out;
 }
 
+spellSearchEl.addEventListener('input', debounce(() => searchSpells()));
+
 document.getElementById('addSpellLine').onclick = () => {
   const name = spellCandidateEl.value.trim();
   if (!name) return;
@@ -1363,6 +1442,14 @@ document.getElementById('copyDiagnostics').onclick = async () => {
 document.getElementById('printSheet').onclick = () => {
   if (sheetEl.contentWindow) sheetEl.contentWindow.print();
 };
+
+function debounce(fn, delay = 250) {
+  let timer = null;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
 
 function showCreateStep(step) {
   document.querySelectorAll('.wizard-step').forEach((panel) => {
