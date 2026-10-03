@@ -159,6 +159,8 @@ pub struct NamedOption {
     pub class_levels: Option<std::collections::BTreeMap<String, u32>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub serves_as: Option<String>,
+    /// Stable UI-facing identifier; internal PCGen key stays in `id`.
+    pub uuid: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -855,6 +857,7 @@ fn named_options<T>(
             starting_gold: None,
             class_levels: None,
             serves_as: None,
+            uuid: stable_id("option", &id(&value)),
         })
         .collect();
     options.sort_by(|left, right| left.name.cmp(&right.name));
@@ -872,6 +875,7 @@ fn class_options(pack: &pcgen_ir::CompiledRulePack) -> Vec<NamedOption> {
             starting_gold: Some(starting_gold_for_class(&class.name)),
             class_levels: None,
             serves_as: class.serves_as.clone(),
+            uuid: stable_id("class", &class.id),
         })
         .collect();
     options.sort_by(|left, right| left.name.cmp(&right.name));
@@ -887,6 +891,28 @@ fn summary_for(envelope: &NativeSaveEnvelope) -> CharacterSummary {
         total_level,
         rules_fingerprint: envelope.rules_fingerprint.clone(),
     }
+}
+
+fn stable_id(kind: &str, value: &str) -> String {
+    let mut h1: u64 = 0xcbf29ce484222325;
+    let mut h2: u64 = 0x9e3779b97f4a7c15;
+    let input = format!("{kind}:{value}");
+    for byte in input.bytes() {
+        h1 ^= u64::from(byte);
+        h1 = h1.wrapping_mul(0x100000001b3);
+    }
+    for byte in input.bytes().rev() {
+        h2 ^= u64::from(byte);
+        h2 = h2.wrapping_mul(0x100000001b3);
+    }
+    format!(
+        "{:08x}-{:04x}-4{:03x}-8{:03x}-{:012x}",
+        (h1 >> 32) as u32,
+        ((h1 >> 16) & 0xffff) as u16,
+        (h1 & 0xfff) as u16,
+        ((h2 >> 48) & 0xfff) as u16,
+        h2 & 0xffff_ffff_ffff
+    )
 }
 
 fn normalized_feature(value: &str) -> String {
@@ -1313,6 +1339,28 @@ async fn ability_search_options(
     .into_response()
 }
 
+fn resolve_class_id(pack: &pcgen_ir::CompiledRulePack, value: &str) -> String {
+    if pack.classes.contains_key(value) {
+        return value.to_string();
+    }
+    // UI sends deterministic UUIDs; convert back to the internal PCGen key.
+    let uuid = value;
+    pack.classes
+        .iter()
+        .find(|(_, class)| stable_id("class", &class.id) == uuid)
+        .map(|(id, _)| id.clone())
+        .unwrap_or_else(|| value.to_string())
+}
+
+fn map_create_request_classes(pack: &pcgen_ir::CompiledRulePack, request: &mut CreateRequest) {
+    request.class_id = resolve_class_id(pack, &request.class_id);
+    for frame in &mut request.advancement {
+        for lane in &mut frame.lanes {
+            lane.class = resolve_class_id(pack, &lane.class);
+        }
+    }
+}
+
 async fn create_character_from_request(
     State(state): State<AppState>,
     Json(body): Json<CreateFromRequest>,
@@ -1323,7 +1371,9 @@ async fn create_character_from_request(
         Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
     };
     let pack = &engine.pack;
-    let draft = match create_draft(pack, &body.request) {
+    let mut request = body.request;
+    map_create_request_classes(pack, &mut request);
+    let draft = match create_draft(pack, &request) {
         Ok(draft) => draft,
         Err(error) => return api_error(StatusCode::BAD_REQUEST, error.to_string()),
     };

@@ -14,6 +14,7 @@
 - 能力/专长搜索接口新增 `requires` 前置列表，前端候选显示“requires: ...”专长链提示；
 - 支持 `SERVESAS` 职业变体：Cloistered Cleric 等服务 Cleric 的变体职业会作为 Cleric 的 Class Variant 显示；
 - 依据 dndtools Lightbringer 页面补充 `Lightbringer Cleric`：Cleric 1 级替代等级 + 3 个替代能力；
+- 字段与 UI 分离：class 等选项新增稳定 `uuid`，前端使用 UUID 作为字段值，显示名仍为 `name`，Web 请求时映射回内部 PCGen key；
   - 法术支持按职业法表/等级/领域/学派/关键词筛选；
   - 装备支持按类型/槽位/基础物品/关键词筛选；
   - 能力/专长支持按类别/类型/关键词筛选；

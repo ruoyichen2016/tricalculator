@@ -680,6 +680,8 @@ const spellCandidatesEl = document.getElementById('spellCandidates');
 const spellSearchEl = document.getElementById('spellSearch');
 const spellPagerEl = document.getElementById('spellPager');
 let packClasses = [];
+let packClassesByUuid = new Map();
+let packClassesById = new Map();
 let packVariants = [];
 let archetypesByClass = new Map();
 let substitutionsByClassLevel = new Map();
@@ -777,7 +779,8 @@ function currentPrimaryClassId() {
 }
 
 function currentPrimaryClassOption() {
-  return packClasses.find((option) => option.id === currentPrimaryClassId());
+  return packClassesByUuid.get(currentPrimaryClassId())
+    || packClassesById.get(currentPrimaryClassId());
 }
 
 function syncClassGold() {
@@ -790,7 +793,7 @@ function syncClassGold() {
 async function searchSpells(reset = true) {
   if (reset) spellPage = 1;
   const params = new URLSearchParams({ pcc: pccEl.value, page: spellPage, page_size: 50 });
-  const classId = currentPrimaryClassId();
+  const classId = internalClassId(currentPrimaryClassId());
   if (classId) params.set('class', classId);
   if (spellSearchEl.value) params.set('search', spellSearchEl.value.trim());
   try {
@@ -873,14 +876,24 @@ document.getElementById('standardArray').onclick = () => {
 };
 
 function classOptionName(classId) {
-  return packClasses.find((option) => option.id === classId)?.name || classId;
+  return packClassesByUuid.get(classId)?.name
+    || packClassesById.get(classId)?.name
+    || classId;
+}
+
+function internalClassId(classId) {
+  return packClassesByUuid.get(classId)?.id || classId;
 }
 
 function buildVariantIndexes() {
   archetypesByClass.clear();
   substitutionsByClassLevel.clear();
   classVariantsByBase.clear();
+  packClassesByUuid.clear();
+  packClassesById.clear();
   for (const option of packClasses) {
+    packClassesByUuid.set(option.uuid, option);
+    packClassesById.set(option.id, option);
     if (option.serves_as) {
       const baseKey = option.serves_as.toLowerCase();
       if (!classVariantsByBase.has(baseKey)) classVariantsByBase.set(baseKey, []);
@@ -1130,7 +1143,7 @@ equipmentTypeFilterEl.addEventListener('change', () => {
 
 function defaultLane(laneIndex) {
   return {
-    class: packClasses[laneIndex]?.id || packClasses[0]?.id || '',
+    class: packClasses[laneIndex]?.uuid || packClasses[0]?.uuid || '',
     archetype: '',
     substitution: '',
   };
@@ -1192,8 +1205,9 @@ function classLevelForLane(frameIndex, laneIndex) {
 
 function fillVariantOptions(select, classId, kind, level, selected) {
   select.innerHTML = '<option value="">— none —</option>';
-  const classKey = (classId || '').toLowerCase();
-  const classNameKey = (classOptionName(classId) || '').toLowerCase();
+  const internal = internalClassId(classId);
+  const classKey = (internal || '').toLowerCase();
+  const classNameKey = (classOptionName(internal) || internal || '').toLowerCase();
   let variants = [];
   if (kind === 'substitution') {
     variants = substitutionsByClassLevel.get(`${classKey}:${level}`)
@@ -1238,7 +1252,7 @@ function renderLevelEditor() {
     const classSelect = document.createElement('select');
     for (const option of packClasses) {
       const item = document.createElement('option');
-      item.value = option.id;
+      item.value = option.uuid;
       item.textContent = option.name;
       classSelect.appendChild(item);
     }
@@ -1255,9 +1269,11 @@ function renderLevelEditor() {
     });
     editor.appendChild(classSelect);
 
-    const selectedClassOption = packClasses.find((option) => option.id === lane.class);
-    const baseClassForVariant = selectedClassOption?.serves_as || lane.class || '';
-    const classVariants = classVariantsByBase.get(baseClassForVariant.toLowerCase()) || [];
+    const selectedClassOption = packClassesByUuid.get(lane.class) || packClassesById.get(lane.class);
+    const baseClassForVariant = selectedClassOption?.serves_as
+      ? packClassesById.get(selectedClassOption.serves_as)?.uuid || selectedClassOption.serves_as
+      : (packClassesByUuid.get(lane.class)?.id || lane.class);
+    const classVariants = classVariantsByBase.get((internalClassId(baseClassForVariant) || selectedClassOption?.serves_as || '').toLowerCase()) || [];
     if (classVariants.length > 0) {
       const variantLabel = document.createElement('label');
       variantLabel.textContent = 'Class Variant';
@@ -1271,7 +1287,7 @@ function renderLevelEditor() {
       variantSelect.appendChild(baseOption);
       for (const variant of classVariants) {
         const option = document.createElement('option');
-        option.value = variant.id;
+        option.value = variant.uuid;
         option.textContent = variant.name;
         variantSelect.appendChild(option);
       }

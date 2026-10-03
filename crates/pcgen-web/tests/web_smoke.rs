@@ -350,6 +350,96 @@ async fn structured_option_search_endpoints_respond() {
 }
 
 #[tokio::test]
+async fn builder_create_accepts_class_uuid() {
+    let config = character_config("uuid-class");
+    let characters_root = config.characters_root.clone();
+    let app = app(config);
+
+    let options_response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/pack-options?pcc=campaign-mini/mini.pcc")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let bytes = axum::body::to_bytes(options_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let options: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let class = options["classes"][0].clone();
+    let class_uuid = class["uuid"].as_str().expect("class uuid").to_string();
+    let class_name = class["name"].as_str().expect("class name").to_string();
+
+    let body = serde_json::json!({
+        "pcc": "campaign-mini/mini.pcc",
+        "request": {
+            "id": "",
+            "name": "UUID Hero",
+            "race": "Human",
+            "class": class_uuid,
+            "level": 1,
+            "alignment": "NG",
+            "campaign": "campaign-mini/mini.pcc",
+            "stats": {},
+            "point_buy_budget": null,
+            "skills": {},
+            "abilities": [],
+            "spells": [],
+            "equipment": [],
+            "deity": null,
+            "domains": []
+        }
+    });
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/characters/create")
+                .header("content-type", "application/json")
+                .body(Body::from(body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    if response.status() != StatusCode::CREATED {
+        let status = response.status();
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        eprintln!("create response body: {}", String::from_utf8_lossy(&bytes));
+        panic!("expected CREATED, got {:?}", status);
+    }
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/characters/uuid-hero")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let detail: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let saved_class = detail["envelope"]["character"]["class_levels"][0]["class_id"]
+        .as_str()
+        .unwrap();
+    assert!(
+        saved_class.eq_ignore_ascii_case(&class_name)
+            || class_name.eq_ignore_ascii_case(saved_class)
+    );
+
+    let _ = std::fs::remove_dir_all(characters_root);
+}
+
+#[tokio::test]
 async fn builder_create_endpoint_round_trip() {
     let config = character_config("builder");
     let characters_root = config.characters_root.clone();
