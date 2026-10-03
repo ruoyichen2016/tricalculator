@@ -84,7 +84,9 @@ GET  /api/characters/{id}     # 读取原生角色 + snapshot + HTML sheet
 DELETE /api/characters/{id}   # 删除原生角色
 POST /api/characters/{id}/level-up  # 升级角色（LevelUpRequest）；preview:true 时只预演不保存
                                    # 支持 archetype / 替代等级 / 子职业 / 模板覆盖，以及 lanes[] 多职业
-POST /api/characters/{id}/undo     # 还原到上一个保存版本（可连续回退），返回 undo_depth
+POST /api/characters/{id}/undo     # 还原到上一个保存版本（可连续回退），返回 undo_depth / redo_depth
+POST /api/characters/{id}/redo     # 重做最近一次撤销，返回相同详情
+GET  /api/characters/{id}/history  # { id, undo_depth, redo_depth }
 GET  /api/pack-options?pcc=…  # 种族 / 职业 / 技能 / 法术 / 装备候选
 ```
 
@@ -159,11 +161,12 @@ POST /api/characters/{id}/undo       # 无请求体；还原上一次写入前�
 ```
 
 每次写入前，旧版本会按序号压入 `<characters-root>/.history/<id>/`；
-`undo` 弹出最新一份并还原，可连续回退到任意更早的版本。CLI 等价命令：
+`undo` 弹出最新一份并还原，`redo` 反向重做；任何新的写入都会清空 redo 栈。CLI 等价命令：
 
 ```bash
 cargo run -p pcgen-cli -- undo hero.json            # 还原
 cargo run -p pcgen-cli -- undo hero.json --dry-run  # 只打印还原结果
+cargo run -p pcgen-cli -- redo hero.json            # 重做最近一次撤销
 ```
 
 `--template` 可重复；模板按 id 或名称解析（大小写不敏感），未知模板会报错。

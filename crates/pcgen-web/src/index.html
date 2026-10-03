@@ -93,6 +93,7 @@
     <button type="button" id="openCharacter">Open</button>
     <button type="button" id="deleteCharacter">Delete</button>
     <button type="button" id="undoCharacter" class="ghost">Undo</button>
+    <button type="button" id="redoCharacter" class="ghost">Redo</button>
     <button type="button" id="importCharacter">Import current .pcg</button>
   </div>
   <div class="row">
@@ -643,8 +644,8 @@ document.getElementById('openCharacter').onclick = async () => {
       characterStatusEl.textContent = detail.error || 'failed to open character';
       return;
     }
-    const depthNote = detail.undo_depth ? ` (undo: ${detail.undo_depth})` : '';
-    characterStatusEl.textContent = (detail.error ? `loaded with warning: ${detail.error}` : 'Loaded') + depthNote;
+    characterStatusEl.textContent = (detail.error ? `loaded with warning: ${detail.error}` : 'Loaded')
+      + describeHistory(detail);
     lastDiagnosticsPayload = detail;
     const levels = detail.envelope?.character?.class_levels || [];
     if (levels.length) {
@@ -693,7 +694,40 @@ document.getElementById('undoCharacter').onclick = async () => {
       characterStatusEl.textContent = detail.error || 'failed to undo';
       return;
     }
-    characterStatusEl.textContent = `Undone${detail.undo_depth ? ` (undo: ${detail.undo_depth})` : ''}`;
+    characterStatusEl.textContent = `Undone${describeHistory(detail)}`;
+    lastDiagnosticsPayload = detail;
+    characterPreviewEl.textContent = JSON.stringify(detail.snapshot || detail.envelope, null, 2);
+    sheetEl.srcdoc = detail.html || '';
+    await loadCharacters();
+  } catch (error) {
+    characterStatusEl.className = 'error';
+    characterStatusEl.textContent = String(error);
+  }
+};
+
+function describeHistory(detail) {
+  const parts = [];
+  if (detail?.undo_depth) parts.push(`undo: ${detail.undo_depth}`);
+  if (detail?.redo_depth) parts.push(`redo: ${detail.redo_depth}`);
+  return parts.length ? ` (${parts.join(', ')})` : '';
+}
+
+document.getElementById('redoCharacter').onclick = async () => {
+  const id = characterListEl.value;
+  if (!id) return;
+  characterStatusEl.className = '';
+  characterStatusEl.textContent = 'Redoing…';
+  try {
+    const response = await fetch(`/api/characters/${encodeURIComponent(id)}/redo`, {
+      method: 'POST',
+    });
+    const detail = await response.json();
+    if (!response.ok) {
+      characterStatusEl.className = 'error';
+      characterStatusEl.textContent = detail.error || 'failed to redo';
+      return;
+    }
+    characterStatusEl.textContent = `Redone${describeHistory(detail)}`;
     lastDiagnosticsPayload = detail;
     characterPreviewEl.textContent = JSON.stringify(detail.snapshot || detail.envelope, null, 2);
     sheetEl.srcdoc = detail.html || '';

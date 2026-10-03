@@ -147,6 +147,8 @@ pub struct CharacterDetail {
     pub error: Option<String>,
     /// Number of saved revisions available to undo.
     pub undo_depth: usize,
+    /// Number of undone revisions available to redo.
+    pub redo_depth: usize,
 }
 
 #[derive(Debug, Serialize)]
@@ -446,6 +448,8 @@ pub fn app(config: WebConfig) -> Router {
         )
         .route("/api/characters/{id}/level-up", post(level_up_character))
         .route("/api/characters/{id}/undo", post(undo_character))
+        .route("/api/characters/{id}/redo", post(redo_character))
+        .route("/api/characters/{id}/history", get(character_history))
         .with_state(state)
 }
 
@@ -502,6 +506,10 @@ fn evaluate_envelope(state: &AppState, envelope: NativeSaveEnvelope) -> Characte
         .repository
         .history_depth(&envelope.character.id)
         .unwrap_or(0);
+    let redo_depth = state
+        .repository
+        .redo_depth(&envelope.character.id)
+        .unwrap_or(0);
     let (snapshot, html, error) = match envelope.pcc.as_deref() {
         Some(pcc) => {
             let pcc_path = resolve_path(&state.config.data_root, pcc);
@@ -529,6 +537,7 @@ fn evaluate_envelope(state: &AppState, envelope: NativeSaveEnvelope) -> Characte
         html,
         error,
         undo_depth,
+        redo_depth,
     }
 }
 
@@ -659,6 +668,49 @@ async fn level_up_character(
         return api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string());
     }
     (StatusCode::OK, Json(evaluate_envelope(&state, envelope))).into_response()
+}
+
+/// Re-apply the most recently undone revision of a character.
+async fn redo_character(
+    State(state): State<AppState>,
+    AxumPath(id): AxumPath<String>,
+) -> impl IntoResponse {
+    match state.repository.redo(&id) {
+        Ok(envelope) => (StatusCode::OK, Json(evaluate_envelope(&state, envelope))).into_response(),
+        Err(BuilderError::NotFound(_)) => api_error(
+            StatusCode::NOT_FOUND,
+            format!("nothing to redo for character: {id}"),
+        ),
+        Err(error) => api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
+    }
+}
+
+/// Report how many undo/redo steps a character has available.
+async fn character_history(
+    State(state): State<AppState>,
+    AxumPath(id): AxumPath<String>,
+) -> impl IntoResponse {
+    match state.repository.load(&id) {
+        Ok(_) => {}
+        Err(BuilderError::NotFound(_)) => {
+            return api_error(StatusCode::NOT_FOUND, format!("character not found: {id}"))
+        }
+        Err(error) => return api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
+    }
+    let undo_depth = match state.repository.history_depth(&id) {
+        Ok(depth) => depth,
+        Err(error) => return api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
+    };
+    let redo_depth = match state.repository.redo_depth(&id) {
+        Ok(depth) => depth,
+        Err(error) => return api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
+    };
+    Json(serde_json::json!({
+        "id": id,
+        "undo_depth": undo_depth,
+        "redo_depth": redo_depth,
+    }))
+    .into_response()
 }
 
 /// Restore the version of a character saved before its most recent write.

@@ -147,13 +147,18 @@ impl CharacterRepository {
         let bytes = serde_json::to_vec_pretty(envelope)?;
         fs::write(&temporary, bytes)?;
         if final_path.exists() {
-            // Push the previous version onto the history stack so `undo` can
-            // step back through every saved revision.
+            // Push the previous version onto the undo stack so `undo` can step
+            // back through every saved revision.
             let history = self.character_history_dir(&id);
             fs::create_dir_all(&history)?;
             let next = self.next_history_index(&history)?;
             fs::copy(&final_path, history.join(format!("{next:06}.json")))?;
             fs::remove_file(&final_path)?;
+        }
+        // A fresh write invalidates any redo history.
+        let redo = self.character_redo_dir(&id);
+        if redo.exists() {
+            let _ = fs::remove_dir_all(&redo);
         }
         fs::rename(&temporary, &final_path)?;
         Ok(())
@@ -165,6 +170,45 @@ impl CharacterRepository {
 
     fn character_history_dir(&self, id: &str) -> PathBuf {
         self.history_dir().join(id)
+    }
+
+    fn character_redo_dir(&self, id: &str) -> PathBuf {
+        self.history_dir().join(format!("{id}.redo"))
+    }
+
+    fn snapshot_entries(&self, dir: &Path) -> Result<Vec<PathBuf>, BuilderError> {
+        if !dir.exists() {
+            return Ok(Vec::new());
+        }
+        let mut entries: Vec<PathBuf> = fs::read_dir(dir)?
+            .filter_map(|entry| entry.ok())
+            .map(|entry| entry.path())
+            .filter(|path| path.extension().and_then(|value| value.to_str()) == Some("json"))
+            .collect();
+        entries.sort();
+        Ok(entries)
+    }
+
+    /// Write `bytes` as the live version, moving the current one into `push_dir`
+    /// when it exists.
+    fn swap_live_version(
+        &self,
+        id: &str,
+        bytes: &[u8],
+        push_dir: Option<&Path>,
+    ) -> Result<(), BuilderError> {
+        let current = self.root.join(format!("{id}.json"));
+        if let Some(dir) = push_dir {
+            if current.exists() {
+                fs::create_dir_all(dir)?;
+                let next = self.next_history_index(dir)?;
+                fs::copy(&current, dir.join(format!("{next:06}.json")))?;
+            }
+        }
+        let temporary = self.root.join(format!(".{id}.json.tmp"));
+        fs::write(&temporary, bytes)?;
+        fs::rename(&temporary, &current)?;
+        Ok(())
     }
 
     fn next_history_index(&self, dir: &Path) -> Result<u32, BuilderError> {
@@ -200,33 +244,47 @@ impl CharacterRepository {
 
     /// Restore the previous saved revision of `id`.
     ///
-    /// Each call pops the newest history entry, so repeated `undo` walks
-    /// backwards through every saved revision.
+    /// Each call pops the newest undo entry and records the version it replaced
+    /// on the redo stack, so `redo` can step forward again.
     pub fn undo(&self, id: &str) -> Result<NativeSaveEnvelope, BuilderError> {
         let id = sanitize_id(id)?;
         let dir = self.character_history_dir(&id);
-        if !dir.exists() {
-            return Err(BuilderError::NotFound(id));
-        }
-        let mut entries: Vec<PathBuf> = fs::read_dir(&dir)?
-            .filter_map(|entry| entry.ok())
-            .map(|entry| entry.path())
-            .filter(|path| path.extension().and_then(|value| value.to_str()) == Some("json"))
-            .collect();
-        entries.sort();
-        let Some(backup) = entries.pop() else {
+        let entries = self.snapshot_entries(&dir)?;
+        let Some(backup) = entries.last().cloned() else {
             return Err(BuilderError::NotFound(id));
         };
         let previous_bytes = fs::read(&backup)?;
         let envelope: NativeSaveEnvelope = serde_json::from_slice(&previous_bytes)?;
-        let current = self.root.join(format!("{id}.json"));
-
-        // Pop the entry (it is now the live version) so repeated undo keeps
-        // walking further back through the stack.
         fs::remove_file(&backup)?;
-        let temporary = self.root.join(format!(".{id}.json.tmp"));
-        fs::write(&temporary, &previous_bytes)?;
-        fs::rename(&temporary, &current)?;
+        let redo = self.character_redo_dir(&id);
+        self.swap_live_version(&id, &previous_bytes, Some(&redo))?;
+        Ok(envelope)
+    }
+
+    /// True when a `redo` is available for `id`.
+    pub fn can_redo(&self, id: &str) -> Result<bool, BuilderError> {
+        Ok(self.redo_depth(id)? > 0)
+    }
+
+    /// Number of redo steps available for `id`.
+    pub fn redo_depth(&self, id: &str) -> Result<usize, BuilderError> {
+        let id = sanitize_id(id)?;
+        Ok(self.snapshot_entries(&self.character_redo_dir(&id))?.len())
+    }
+
+    /// Re-apply the most recently undone revision.
+    pub fn redo(&self, id: &str) -> Result<NativeSaveEnvelope, BuilderError> {
+        let id = sanitize_id(id)?;
+        let redo = self.character_redo_dir(&id);
+        let entries = self.snapshot_entries(&redo)?;
+        let Some(entry) = entries.last().cloned() else {
+            return Err(BuilderError::NotFound(id));
+        };
+        let bytes = fs::read(&entry)?;
+        let envelope: NativeSaveEnvelope = serde_json::from_slice(&bytes)?;
+        fs::remove_file(&entry)?;
+        let history = self.character_history_dir(&id);
+        self.swap_live_version(&id, &bytes, Some(&history))?;
         Ok(envelope)
     }
 
@@ -426,6 +484,45 @@ mod tests {
             repository.undo("hero"),
             Err(BuilderError::NotFound(_))
         ));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn undo_then_redo_round_trips() {
+        let root = temp_root();
+        let repository = CharacterRepository::new(&root);
+        for level in 1..=3 {
+            repository
+                .save(&NativeSaveEnvelope::new(
+                    sample_character("hero", "Hero", level),
+                    "fp",
+                    None,
+                ))
+                .unwrap();
+        }
+        assert_eq!(repository.load("hero").unwrap().character.total_level(), 3);
+        assert_eq!(repository.redo_depth("hero").unwrap(), 0);
+
+        repository.undo("hero").unwrap();
+        assert_eq!(repository.load("hero").unwrap().character.total_level(), 2);
+        assert!(repository.can_redo("hero").unwrap());
+        assert_eq!(repository.redo_depth("hero").unwrap(), 1);
+
+        repository.redo("hero").unwrap();
+        assert_eq!(repository.load("hero").unwrap().character.total_level(), 3);
+        assert!(!repository.can_redo("hero").unwrap());
+
+        // A new write clears the redo stack.
+        repository.undo("hero").unwrap();
+        assert!(repository.can_redo("hero").unwrap());
+        repository
+            .save(&NativeSaveEnvelope::new(
+                sample_character("hero", "Hero", 5),
+                "fp",
+                None,
+            ))
+            .unwrap();
+        assert!(!repository.can_redo("hero").unwrap());
         let _ = fs::remove_dir_all(root);
     }
 

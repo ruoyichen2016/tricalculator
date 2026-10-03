@@ -205,6 +205,14 @@ enum Command {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Re-apply the most recently undone version of a native character.
+    Redo {
+        /// Native save envelope JSON (id is read from the character).
+        draft: PathBuf,
+        /// Print the re-applied envelope instead of writing it back.
+        #[arg(long)]
+        dry_run: bool,
+    },
 }
 
 fn demo_engine() -> Engine {
@@ -839,6 +847,31 @@ fn main() -> Result<()> {
                     "restored {} to level {} ({} more step(s) available)",
                     restored.character.name,
                     restored.character.total_level(),
+                    remaining
+                );
+            }
+        }
+        Command::Redo { draft, dry_run } => {
+            let text = std::fs::read_to_string(&draft)
+                .with_context(|| format!("failed to read {}", draft.display()))?;
+            let envelope: NativeSaveEnvelope = serde_json::from_str(&text)
+                .with_context(|| format!("failed to parse {}", draft.display()))?;
+            let repository = CharacterRepository::new(
+                draft.parent().unwrap_or_else(|| std::path::Path::new(".")),
+            );
+            let id = envelope.character.id.clone();
+            if !repository.can_redo(&id)? {
+                bail!("nothing to redo for character: {id}");
+            }
+            let reapplied = repository.redo(&id)?;
+            if dry_run {
+                println!("{}", serde_json::to_string_pretty(&reapplied)?);
+            } else {
+                let remaining = repository.redo_depth(&id).unwrap_or(0);
+                println!(
+                    "re-applied {} at level {} ({} more redo step(s) available)",
+                    reapplied.character.name,
+                    reapplied.character.total_level(),
                     remaining
                 );
             }
