@@ -235,6 +235,20 @@ enum Command {
         /// Directory to write `<id>.json` saves into.
         dir: PathBuf,
     },
+    /// Delete one or more native characters from a directory.
+    Delete {
+        /// Directory holding `<id>.json` character saves.
+        dir: PathBuf,
+        /// Character id to delete; repeatable.
+        #[arg(long = "id")]
+        ids: Vec<String>,
+        /// Delete every character in the directory.
+        #[arg(long)]
+        all: bool,
+        /// List what would be deleted without removing anything.
+        #[arg(long)]
+        dry_run: bool,
+    },
 }
 
 fn demo_engine() -> Engine {
@@ -1006,6 +1020,48 @@ fn main() -> Result<()> {
                 imported += 1;
             }
             println!("imported {imported} character(s) into {}", dir.display());
+        }
+        Command::Delete {
+            dir,
+            ids,
+            all,
+            dry_run,
+        } => {
+            let repository = CharacterRepository::new(&dir);
+            let targets: Vec<String> = if all {
+                repository
+                    .list()?
+                    .into_iter()
+                    .map(|summary| summary.id)
+                    .collect()
+            } else {
+                ids
+            };
+            if targets.is_empty() {
+                bail!("nothing to delete: pass --id <id> or --all");
+            }
+            let mut deleted = 0usize;
+            for id in &targets {
+                if dry_run {
+                    println!("would delete {id}");
+                    continue;
+                }
+                match repository.delete(id) {
+                    Ok(()) => {
+                        deleted += 1;
+                        println!("deleted {id}");
+                    }
+                    Err(pcgen_builder::BuilderError::NotFound(_)) => {
+                        eprintln!("warning: no such character: {id}");
+                    }
+                    Err(error) => return Err(error.into()),
+                }
+            }
+            if dry_run {
+                println!("{} character(s) would be deleted", targets.len());
+            } else {
+                println!("deleted {deleted} character(s)");
+            }
         }
     }
     Ok(())

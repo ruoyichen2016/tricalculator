@@ -93,10 +93,11 @@
 <div class="card">
   <div class="row">
     <label for="characterList">Native characters</label>
-    <select id="characterList"><option value="">— none —</option></select>
+    <select id="characterList" multiple size="1" style="min-width:12rem"><option value="">— none —</option></select>
     <button type="button" id="refreshCharacters">Refresh</button>
     <button type="button" id="openCharacter">Open</button>
     <button type="button" id="deleteCharacter">Delete</button>
+    <button type="button" id="deleteSelected" class="ghost">Delete selected</button>
     <button type="button" id="undoCharacter" class="ghost">Undo</button>
     <button type="button" id="redoCharacter" class="ghost">Redo</button>
     <button type="button" id="historyCharacter" class="ghost">History</button>
@@ -696,6 +697,40 @@ document.getElementById('deleteCharacter').onclick = async () => {
       return;
     }
     characterPreviewEl.textContent = '';
+    await loadCharacters();
+  } catch (error) {
+    characterStatusEl.className = 'error';
+    characterStatusEl.textContent = String(error);
+  }
+};
+
+document.getElementById('deleteSelected').onclick = async () => {
+  const ids = Array.from(characterListEl.selectedOptions)
+    .map((option) => option.value)
+    .filter((value) => value);
+  if (ids.length === 0) {
+    characterStatusEl.className = 'error';
+    characterStatusEl.textContent = 'Select one or more characters (Ctrl/Cmd-click)';
+    return;
+  }
+  if (!window.confirm(`Delete ${ids.length} character(s)?`)) return;
+  try {
+    const response = await fetch('/api/characters/bundle', {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      characterStatusEl.className = 'error';
+      characterStatusEl.textContent = data.error || 'failed to delete characters';
+      return;
+    }
+    characterPreviewEl.textContent = '';
+    sheetEl.srcdoc = '';
+    currentSheetEl.srcdoc = '';
+    characterStatusEl.textContent = `Deleted ${(data.deleted || []).length}`
+      + ((data.missing || []).length ? ` (missing ${data.missing.join(', ')})` : '');
     await loadCharacters();
   } catch (error) {
     characterStatusEl.className = 'error';
@@ -2590,7 +2625,47 @@ function debounce(fn, delay = 250) {
   };
 }
 
+function createStepIssues(step) {
+  const issues = [];
+  if (step === 'review') {
+    const budget = computeSkillBudget();
+    const spent = skillSelections.reduce((sum, entry) => sum + (entry.rank || 0), 0);
+    if (spent > budget) {
+      issues.push(`Skill points over budget: ${spent} / ${budget}`);
+    }
+    const stats = readStats();
+    const pointBudget = Number(createBudgetEl.value) || 0;
+    if (stats) {
+      let pointSpent = 0;
+      let outOfRange = false;
+      for (const key of statKeys) {
+        const cost = pointBuyCost[stats[key]];
+        if (cost === undefined) {
+          outOfRange = true;
+          break;
+        }
+        pointSpent += cost;
+      }
+      if (outOfRange) {
+        issues.push('Ability scores must be within 8..18');
+      } else if (pointSpent > pointBudget) {
+        issues.push(`Point buy over budget: ${pointSpent} / ${pointBudget}`);
+      }
+    } else {
+      issues.push('Ability scores must be integers');
+    }
+  }
+  return issues;
+}
+
 function showCreateStep(step) {
+  const issues = createStepIssues(step);
+  if (issues.length) {
+    createStatusEl.className = 'error';
+    createStatusEl.textContent = issues.join(' · ');
+    return;
+  }
+  createStatusEl.className = '';
   document.querySelectorAll('.wizard-step').forEach((panel) => {
     panel.hidden = panel.id !== `step-${step}`;
   });

@@ -440,7 +440,7 @@ pub fn app(config: WebConfig) -> Router {
         .route("/api/characters", get(characters).post(create_character))
         .route(
             "/api/characters/bundle",
-            get(export_bundle).post(import_bundle),
+            get(export_bundle).post(import_bundle).delete(delete_bundle),
         )
         .route(
             "/api/characters/create",
@@ -517,6 +517,32 @@ async fn export_bundle(State(state): State<AppState>) -> impl IntoResponse {
         "schema": pcgen_builder::SAVE_SCHEMA,
         "application_version": pcgen_builder::APPLICATION_VERSION,
         "characters": characters,
+    }))
+    .into_response()
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BundleDeletePayload {
+    pub ids: Vec<String>,
+}
+
+/// Delete several native characters by id.
+async fn delete_bundle(
+    State(state): State<AppState>,
+    Json(payload): Json<BundleDeletePayload>,
+) -> impl IntoResponse {
+    let mut deleted = Vec::new();
+    let mut missing = Vec::new();
+    for id in &payload.ids {
+        match state.repository.delete(id) {
+            Ok(()) => deleted.push(id.clone()),
+            Err(BuilderError::NotFound(_)) => missing.push(id.clone()),
+            Err(error) => return api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
+        }
+    }
+    Json(serde_json::json!({
+        "deleted": deleted,
+        "missing": missing,
     }))
     .into_response()
 }

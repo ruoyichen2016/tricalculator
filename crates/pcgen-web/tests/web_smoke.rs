@@ -1344,3 +1344,71 @@ async fn bundle_import_rejects_newer_schema() {
 
     let _ = std::fs::remove_dir_all(characters_root);
 }
+
+#[tokio::test]
+async fn bundle_delete_removes_selected_ids() {
+    let config = character_config("bundle-delete");
+    let characters_root = config.characters_root.clone();
+    let app = app(config);
+
+    for id in ["keep-me", "drop-me"] {
+        let body = serde_json::json!({
+            "pcc": "campaign-mini/mini.pcc",
+            "pcg": "campaign-mini/mini_character.pcg",
+            "id": id,
+        });
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/characters")
+                    .header("content-type", "application/json")
+                    .body(Body::from(body.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::CREATED);
+    }
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri("/api/characters/bundle")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::json!({ "ids": ["drop-me", "missing-id"] }).to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let result: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(result["deleted"], serde_json::json!(["drop-me"]));
+    assert_eq!(result["missing"], serde_json::json!(["missing-id"]));
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/characters")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let list: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(list.as_array().unwrap().len(), 1);
+    assert_eq!(list[0]["id"], "keep-me");
+
+    let _ = std::fs::remove_dir_all(characters_root);
+}
