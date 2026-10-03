@@ -122,6 +122,36 @@ pub enum BuilderError {
     EquipmentBudgetExceeded { spent: f64, budget: f64 },
 }
 
+/// Difference between a saved revision and the current live version.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct VersionSummary {
+    /// Signed character-level difference (revision − current).
+    pub level_delta: i64,
+    /// Classes present in the revision but not in the current version.
+    pub classes_removed: Vec<String>,
+    /// Classes present in the current version but not in the revision.
+    pub classes_added: Vec<String>,
+    /// Templates present in the revision but not currently applied.
+    pub templates_removed: Vec<String>,
+    pub templates_added: Vec<String>,
+    /// Number of abilities added/removed relative to the current version.
+    pub abilities_added: usize,
+    pub abilities_removed: usize,
+}
+
+impl VersionSummary {
+    /// True when the revision differs from the current version at all.
+    pub fn is_empty(&self) -> bool {
+        self.level_delta == 0
+            && self.classes_removed.is_empty()
+            && self.classes_added.is_empty()
+            && self.templates_removed.is_empty()
+            && self.templates_added.is_empty()
+            && self.abilities_added == 0
+            && self.abilities_removed == 0
+    }
+}
+
 /// One revision in a character's undo/redo history.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CharacterVersion {
@@ -133,6 +163,68 @@ pub struct CharacterVersion {
     pub saved_at_unix: i64,
     /// Relative slot, e.g. `undo` or `redo`.
     pub stack: String,
+    /// How this revision differs from the current live version.
+    #[serde(default)]
+    pub summary: VersionSummary,
+}
+
+/// Signed level difference, class/template/ability set changes between a
+/// revision and the current version.
+fn summarize(revision: &CharacterDraft, current: &CharacterDraft) -> VersionSummary {
+    use std::collections::BTreeSet;
+
+    let revision_classes: BTreeSet<String> = revision
+        .class_levels
+        .iter()
+        .map(|entry| entry.class_id.clone())
+        .collect();
+    let current_classes: BTreeSet<String> = current
+        .class_levels
+        .iter()
+        .map(|entry| entry.class_id.clone())
+        .collect();
+    let revision_templates: BTreeSet<String> = revision
+        .templates
+        .iter()
+        .map(|value| value.to_ascii_lowercase())
+        .collect();
+    let current_templates: BTreeSet<String> = current
+        .templates
+        .iter()
+        .map(|value| value.to_ascii_lowercase())
+        .collect();
+
+    let ability_set = |draft: &CharacterDraft| -> BTreeSet<String> {
+        draft
+            .abilities
+            .iter()
+            .map(|(category, key)| format!("{category}:{key}").to_ascii_lowercase())
+            .collect()
+    };
+    let revision_abilities = ability_set(revision);
+    let current_abilities = ability_set(current);
+
+    VersionSummary {
+        level_delta: revision.total_level() as i64 - current.total_level() as i64,
+        classes_removed: revision_classes
+            .difference(&current_classes)
+            .cloned()
+            .collect(),
+        classes_added: current_classes
+            .difference(&revision_classes)
+            .cloned()
+            .collect(),
+        templates_removed: revision_templates
+            .difference(&current_templates)
+            .cloned()
+            .collect(),
+        templates_added: current_templates
+            .difference(&revision_templates)
+            .cloned()
+            .collect(),
+        abilities_added: revision_abilities.difference(&current_abilities).count(),
+        abilities_removed: current_abilities.difference(&revision_abilities).count(),
+    }
 }
 
 /// File-based character repository.
@@ -237,7 +329,13 @@ impl CharacterRepository {
         Ok(highest + 1)
     }
 
-    fn snapshot_meta(&self, path: &Path, index: usize, stack: &str) -> Option<CharacterVersion> {
+    fn snapshot_meta(
+        &self,
+        path: &Path,
+        index: usize,
+        stack: &str,
+        live: Option<&NativeSaveEnvelope>,
+    ) -> Option<CharacterVersion> {
         let bytes = fs::read(path).ok()?;
         let envelope: NativeSaveEnvelope = serde_json::from_slice(&bytes).ok()?;
         let saved_at_unix = fs::metadata(path)
@@ -246,25 +344,30 @@ impl CharacterRepository {
             .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
             .map(|duration| duration.as_secs() as i64)
             .unwrap_or(0);
+        let summary = live
+            .map(|live| summarize(&envelope.character, &live.character))
+            .unwrap_or_default();
         Some(CharacterVersion {
             index,
             name: envelope.character.name.clone(),
             total_level: envelope.character.total_level(),
             saved_at_unix,
             stack: stack.to_string(),
+            summary,
         })
     }
 
     /// List the saved revisions available to `undo` and `redo`, oldest first.
     pub fn history(&self, id: &str) -> Result<Vec<CharacterVersion>, BuilderError> {
         let id = sanitize_id(id)?;
+        let live = self.load(&id).ok();
         let mut versions = Vec::new();
         for (index, path) in self
             .snapshot_entries(&self.character_history_dir(&id))?
             .iter()
             .enumerate()
         {
-            if let Some(version) = self.snapshot_meta(path, index + 1, "undo") {
+            if let Some(version) = self.snapshot_meta(path, index + 1, "undo", live.as_ref()) {
                 versions.push(version);
             }
         }
@@ -273,7 +376,7 @@ impl CharacterRepository {
             .iter()
             .enumerate()
         {
-            if let Some(version) = self.snapshot_meta(path, index + 1, "redo") {
+            if let Some(version) = self.snapshot_meta(path, index + 1, "redo", live.as_ref()) {
                 versions.push(version);
             }
         }
@@ -645,6 +748,27 @@ mod tests {
             .unwrap()
             .iter()
             .any(|version| version.total_level == 4));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn history_summarizes_against_live_version() {
+        let root = temp_root();
+        let repository = CharacterRepository::new(&root);
+        for level in 1..=3 {
+            repository
+                .save(&NativeSaveEnvelope::new(
+                    sample_character("hero", "Hero", level),
+                    "fp",
+                    None,
+                ))
+                .unwrap();
+        }
+        // Live is level 3; revision 2 is level 2.
+        let versions = repository.history("hero").unwrap();
+        let second = versions.iter().find(|v| v.total_level == 2).unwrap();
+        assert_eq!(second.summary.level_delta, -1);
+        assert!(!second.summary.is_empty());
         let _ = fs::remove_dir_all(root);
     }
 

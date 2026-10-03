@@ -785,8 +785,16 @@ document.getElementById('historyCharacter').onclick = async () => {
       const when = version.saved_at_unix
         ? new Date(version.saved_at_unix * 1000).toLocaleString()
         : '—';
+      const summary = version.summary || {};
+      const deltaParts = [];
+      if (summary.level_delta) deltaParts.push(`level ${summary.level_delta > 0 ? '+' : ''}${summary.level_delta}`);
+      if ((summary.classes_removed || []).length) deltaParts.push(`-${summary.classes_removed.join(',')}`);
+      if ((summary.classes_added || []).length) deltaParts.push(`+${summary.classes_added.join(',')}`);
+      if (summary.abilities_added) deltaParts.push(`+${summary.abilities_added} ability`);
+      if (summary.abilities_removed) deltaParts.push(`-${summary.abilities_removed} ability`);
       const label = document.createElement('span');
-      label.textContent = `#${version.index} · L${version.total_level} · ${version.stack} · ${when}`;
+      label.textContent = `#${version.index} · L${version.total_level} · ${version.stack} · ${when}`
+        + (deltaParts.length ? ` [${deltaParts.join(' ')}]` : '');
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'ghost';

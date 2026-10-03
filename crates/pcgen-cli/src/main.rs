@@ -904,9 +904,31 @@ fn main() -> Result<()> {
                     repository.redo_depth(&id)?
                 );
                 for version in &versions {
+                    let summary = &version.summary;
+                    let mut delta = Vec::new();
+                    if summary.level_delta != 0 {
+                        delta.push(format!("level {:+}", summary.level_delta));
+                    }
+                    if !summary.classes_removed.is_empty() {
+                        delta.push(format!("-class {}", summary.classes_removed.join(",")));
+                    }
+                    if !summary.classes_added.is_empty() {
+                        delta.push(format!("+class {}", summary.classes_added.join(",")));
+                    }
+                    if summary.abilities_added > 0 {
+                        delta.push(format!("+{} ability", summary.abilities_added));
+                    }
+                    if summary.abilities_removed > 0 {
+                        delta.push(format!("-{} ability", summary.abilities_removed));
+                    }
+                    let delta = if delta.is_empty() {
+                        String::new()
+                    } else {
+                        format!("  [{}]", delta.join(" "))
+                    };
                     println!(
-                        "  #{:<3} L{:<3} {:<5} {}",
-                        version.index, version.total_level, version.stack, version.name
+                        "  #{:<3} L{:<3} {:<5} {}{}",
+                        version.index, version.total_level, version.stack, version.name, delta
                     );
                 }
             }

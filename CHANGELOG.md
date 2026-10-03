@@ -64,6 +64,7 @@
 - Web 原生角色面板新增 History 面板（列出可恢复版本并一键 Restore）；
 - Web 升级预览改为“当前 sheet / 预览 sheet”并排对比；
 - CLI 新增 `history` 子命令（文本或 JSON 列出可恢复版本）；
+- 历史版本附带相对当前版本的 `summary`（等级/职业/模板/能力增减），CLI 与 Web 历史面板均展示；
 - 新增 `POST /api/characters/{id}/undo` 与 CLI `undo` 子命令（`--dry-run` 只打印），可反复还原最近两个版本；
 - `/api/preview` 返回 ECL、最终属性、技能点、专长槽、激活能力与诊断；
 - Review 显示 ECL、最终属性、技能点、专长槽、模板效果与合法性诊断；

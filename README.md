@@ -87,6 +87,7 @@ POST /api/characters/{id}/level-up  # 升级角色（LevelUpRequest）；preview
 POST /api/characters/{id}/undo     # 还原到上一个保存版本（可连续回退），返回 undo_depth / redo_depth
 POST /api/characters/{id}/redo     # 重做最近一次撤销，返回相同详情
 GET  /api/characters/{id}/history  # { id, undo_depth, redo_depth, versions[] }
+                                   # versions[] 每项含相对当前版本的 summary（等级/职业/能力差异）
 POST /api/characters/{id}/history/{n}/restore  # 跳转到第 n 个历史版本（1-based，最旧起）
 GET  /api/pack-options?pcc=…  # 种族 / 职业 / 技能 / 法术 / 装备候选
 ```
