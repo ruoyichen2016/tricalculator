@@ -145,9 +145,9 @@ cargo run -p pcgen-cli -- level-up hero.json --pcc <pcc> --class Cleric --hp 6 \
 # 只预演、不写盘：打印升级后的 snapshot
 cargo run -p pcgen-cli -- level-up hero.json --pcc <pcc> --class Fighter --hp 6 --preview
 
-# Gestalt / 同一角色等级推进第二个职业 lane
+# Gestalt / 同一角色等级推进第二个职业 lane（可分别指定 archetype/替代等级/子职业）
 cargo run -p pcgen-cli -- level-up hero.json --pcc <pcc> --class Fighter --hp 6 \
-  --lane Wizard --lane-hp 3 --out hero2.json
+  --lane Wizard --lane-hp 3 --lane-subclass Evoker --out hero2.json
 ```
 
 ```text

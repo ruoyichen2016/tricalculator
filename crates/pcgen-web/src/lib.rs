@@ -537,6 +537,64 @@ async fn character(
     }
 }
 
+/// Summarise the derived changes between two evaluated snapshots.
+fn snapshot_delta(
+    before: &pcgen_engine::CharacterSnapshot,
+    after: &pcgen_engine::CharacterSnapshot,
+) -> serde_json::Value {
+    use serde_json::json;
+
+    let stat_delta: serde_json::Value = before
+        .stats
+        .iter()
+        .filter_map(|(key, value)| {
+            let next = after.stats.get(key).copied().unwrap_or(*value);
+            (next != *value).then(|| (key.clone(), json!(next - value)))
+        })
+        .collect::<serde_json::Map<_, _>>()
+        .into();
+
+    let skill_delta: serde_json::Value = before
+        .skills
+        .iter()
+        .chain(after.skills.iter())
+        .map(|(key, _)| key)
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .filter_map(|key| {
+            let previous = before.skills.get(key).copied().unwrap_or(0);
+            let next = after.skills.get(key).copied().unwrap_or(0);
+            (next != previous).then(|| (key.clone(), json!(next - previous)))
+        })
+        .collect::<serde_json::Map<_, _>>()
+        .into();
+
+    json!({
+        "total_level": after.total_level as i64 - before.total_level as i64,
+        "hit_points": after.hit_points - before.hit_points,
+        "base_attack_bonus": after.base_attack_bonus - before.base_attack_bonus,
+        "armor_class": after.armor_class - before.armor_class,
+        "skill_points": after.skill_points - before.skill_points,
+        "feat_slots": after.feat_slots as i64 - before.feat_slots as i64,
+        "saves": {
+            "fortitude": after.saves.get("Fortitude").copied().unwrap_or(0)
+                - before.saves.get("Fortitude").copied().unwrap_or(0),
+            "reflex": after.saves.get("Reflex").copied().unwrap_or(0)
+                - before.saves.get("Reflex").copied().unwrap_or(0),
+            "will": after.saves.get("Will").copied().unwrap_or(0)
+                - before.saves.get("Will").copied().unwrap_or(0),
+        },
+        "stats": stat_delta,
+        "skills": skill_delta,
+        "added_abilities": after
+            .active_abilities
+            .iter()
+            .filter(|ability| !before.active_abilities.contains(ability))
+            .cloned()
+            .collect::<Vec<_>>(),
+    })
+}
+
 /// Apply one level (and optional creature templates) to a saved character.
 async fn level_up_character(
     State(state): State<AppState>,
@@ -563,6 +621,7 @@ async fn level_up_character(
             Ok(preview) => preview,
             Err(error) => return api_error(StatusCode::BAD_REQUEST, error.to_string()),
         };
+        let before = engine.evaluate(&envelope.character);
         let evaluated = engine.evaluate(&preview);
         let snapshot: Option<serde_json::Value> = render_json(&evaluated)
             .ok()
@@ -573,6 +632,7 @@ async fn level_up_character(
                 "preview": true,
                 "character": preview,
                 "snapshot": snapshot,
+                "delta": snapshot_delta(&before, &evaluated),
                 "html": render_html(&evaluated),
             })),
         )

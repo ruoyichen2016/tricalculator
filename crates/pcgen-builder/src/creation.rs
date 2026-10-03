@@ -496,15 +496,13 @@ fn collect_level_up_lanes(request: &LevelUpRequest) -> Vec<LevelUpLane> {
     lanes
 }
 
-/// Advance one lane's class-level totals and, when the lane carries variant or
-/// subclass choices, append a matching advancement frame so the engine resolves
-/// the same variants the create wizard would.
-fn apply_level_up_lane(
+/// Advance one lane's class-level totals, returning the resulting class level
+/// and whether this lane carries explicit variant/subclass choices.
+fn bump_class_level(
     pack: &CompiledRulePack,
     draft: &mut CharacterDraft,
     lane: &LevelUpLane,
-    frame_level_hint: Option<u32>,
-) -> Result<(), BuilderError> {
+) -> Result<(String, u32, i32), BuilderError> {
     let class_id = canonical_class(pack, &lane.class_id)
         .ok_or_else(|| BuilderError::UnknownClass(lane.class_id.clone()))?;
     let gained = lane
@@ -542,43 +540,36 @@ fn apply_level_up_lane(
             }
         }
     }
+    Ok((class_id, next_level, gained))
+}
 
-    let has_variant =
-        lane.archetype.is_some() || lane.substitution_level.is_some() || lane.subclass.is_some();
-    if has_variant {
-        let mut advancement_lane =
-            AdvancementLane::new(LaneId::primary(), class_id.clone(), next_level, gained, 0);
-        if let Some(archetype) = &lane.archetype {
-            advancement_lane = advancement_lane.with_archetype(archetype.clone());
-        }
-        if let Some(substitution) = &lane.substitution_level {
-            let variant_id = resolve_substitution_level(pack, &class_id, next_level, substitution)?;
-            advancement_lane = advancement_lane.with_substitution_level(variant_id);
-        }
-        if let Some(subclass) = &lane.subclass {
-            advancement_lane = advancement_lane.with_subclass(subclass.clone());
-        }
-        let frame_level = frame_level_hint.unwrap_or_else(|| {
-            draft
-                .advancement
-                .iter()
-                .map(|frame| frame.character_level)
-                .max()
-                .unwrap_or(0)
-                + 1
-        });
-        draft
-            .advancement
-            .push(AdvancementFrame::new(frame_level, vec![advancement_lane]));
-        sync_draft_class_levels(draft);
+/// Build the `AdvancementLane` for one level-up lane, including any variants.
+fn build_advancement_lane(
+    pack: &CompiledRulePack,
+    lane: &LevelUpLane,
+    lane_id: LaneId,
+    class_id: &str,
+    class_level: u32,
+    gained: i32,
+) -> Result<AdvancementLane, BuilderError> {
+    let mut advancement_lane =
+        AdvancementLane::new(lane_id, class_id.to_string(), class_level, gained, 0);
+    if let Some(archetype) = &lane.archetype {
+        advancement_lane = advancement_lane.with_archetype(archetype.clone());
     }
-
+    if let Some(substitution) = &lane.substitution_level {
+        let variant_id = resolve_substitution_level(pack, class_id, class_level, substitution)?;
+        advancement_lane = advancement_lane.with_substitution_level(variant_id);
+    }
     if let Some(subclass) = &lane.subclass {
-        draft
-            .class_subclasses
-            .insert(class_id.clone(), subclass.clone());
+        advancement_lane = advancement_lane.with_subclass(subclass.clone());
     }
-    Ok(())
+    Ok(advancement_lane)
+}
+
+/// True when this lane asked for an explicit variant or subclass.
+fn lane_has_choices(lane: &LevelUpLane) -> bool {
+    lane.archetype.is_some() || lane.substitution_level.is_some() || lane.subclass.is_some()
 }
 
 /// Apply one character level to `draft`.
@@ -645,8 +636,41 @@ pub fn apply_level_up(
         sync_draft_class_levels(draft);
     } else {
         let lanes = collect_level_up_lanes(request);
-        for lane in &lanes {
-            apply_level_up_lane(pack, draft, lane, Some(frame_level))?;
+        let mut frame_lanes = Vec::new();
+        let mut any_choices = false;
+        let multi = lanes.len() > 1;
+        for (index, lane) in lanes.iter().enumerate() {
+            let (class_id, next_level, gained) = bump_class_level(pack, draft, lane)?;
+            if let Some(subclass) = &lane.subclass {
+                draft
+                    .class_subclasses
+                    .insert(class_id.clone(), subclass.clone());
+            }
+            if lane_has_choices(lane) {
+                any_choices = true;
+            }
+            // Always record a frame for multi-lane levels so the class-level
+            // chain stays authoritative for Gestalt characters.
+            if lane_has_choices(lane) || multi {
+                let lane_id = if multi {
+                    if index == 0 {
+                        LaneId::new("primary")
+                    } else {
+                        LaneId::new(format!("lane-{}", index + 1))
+                    }
+                } else {
+                    LaneId::primary()
+                };
+                frame_lanes.push(build_advancement_lane(
+                    pack, lane, lane_id, &class_id, next_level, gained,
+                )?);
+            }
+        }
+        if any_choices || multi {
+            draft
+                .advancement
+                .push(AdvancementFrame::new(frame_level, frame_lanes));
+            sync_draft_class_levels(draft);
         }
     }
 
@@ -1566,6 +1590,95 @@ mod tests {
             .unwrap();
         assert_eq!(fighter.level, 2);
         assert_eq!(wizard.level, 1);
+    }
+
+    #[test]
+    fn multi_lane_level_up_uses_single_frame() {
+        let pack = sample_pack();
+        let mut draft = create_draft(
+            &pack,
+            &CreateRequest {
+                name: "Gestalt".to_string(),
+                race: "Human".to_string(),
+                class_id: "Fighter".to_string(),
+                level: 1,
+                ..CreateRequest::default()
+            },
+        )
+        .unwrap();
+        let request = LevelUpRequest {
+            class_id: "Fighter".to_string(),
+            hp_gained: Some(6),
+            lanes: vec![LevelUpLane {
+                class_id: "Wizard".to_string(),
+                hp_gained: Some(3),
+                substitution_level: Some("Wizard Substitution ~ level 1".to_string()),
+                ..LevelUpLane::default()
+            }],
+            ..LevelUpRequest::default()
+        };
+        level_up_draft(&pack, &mut draft, &request).unwrap();
+        assert_eq!(draft.advancement.len(), 1, "both lanes share one frame");
+        let frame = &draft.advancement[0];
+        assert_eq!(frame.lanes.len(), 2);
+        let wizard_lane = frame
+            .lanes
+            .iter()
+            .find(|lane| lane.class_id == "Wizard")
+            .unwrap();
+        assert_eq!(
+            wizard_lane.substitution_level.as_deref(),
+            Some("Wizard Substitution ~ level 1")
+        );
+    }
+
+    #[test]
+    fn multi_lane_lane_metadata_is_supported() {
+        let pack = sample_pack();
+        let mut draft = create_draft(
+            &pack,
+            &CreateRequest {
+                name: "Gestalt".to_string(),
+                race: "Human".to_string(),
+                class_id: "Fighter".to_string(),
+                level: 1,
+                ..CreateRequest::default()
+            },
+        )
+        .unwrap();
+        let request = LevelUpRequest {
+            class_id: "Fighter".to_string(),
+            hp_gained: Some(6),
+            archetype: Some("Two-Handed Fighter".to_string()),
+            lanes: vec![LevelUpLane {
+                class_id: "Wizard".to_string(),
+                hp_gained: Some(3),
+                subclass: Some("Evoker".to_string()),
+                ..LevelUpLane::default()
+            }],
+            ..LevelUpRequest::default()
+        };
+        level_up_draft(&pack, &mut draft, &request).unwrap();
+        let frame = &draft.advancement[0];
+        let fighter_lane = frame
+            .lanes
+            .iter()
+            .find(|lane| lane.class_id == "Fighter")
+            .unwrap();
+        let wizard_lane = frame
+            .lanes
+            .iter()
+            .find(|lane| lane.class_id == "Wizard")
+            .unwrap();
+        assert_eq!(
+            fighter_lane.archetype.as_deref(),
+            Some("Two-Handed Fighter")
+        );
+        assert_eq!(wizard_lane.subclass.as_deref(), Some("Evoker"));
+        assert_eq!(
+            draft.class_subclasses.get("Wizard").map(String::as_str),
+            Some("Evoker")
+        );
     }
 
     #[test]

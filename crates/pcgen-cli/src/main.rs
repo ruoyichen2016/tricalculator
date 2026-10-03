@@ -181,6 +181,15 @@ enum Command {
         /// HP gained for the matching `--lane` (same order); repeatable.
         #[arg(long = "lane-hp")]
         lane_hp: Vec<i32>,
+        /// Archetype id for the matching `--lane` (same order); repeatable.
+        #[arg(long = "lane-archetype")]
+        lane_archetype: Vec<String>,
+        /// Substitution-level variant id for the matching `--lane`; repeatable.
+        #[arg(long = "lane-substitution")]
+        lane_substitution: Vec<String>,
+        /// Subclass selection for the matching `--lane`; repeatable.
+        #[arg(long = "lane-subclass")]
+        lane_subclass: Vec<String>,
         /// Print the resulting snapshot without writing the save.
         #[arg(long)]
         preview: bool,
@@ -266,14 +275,28 @@ fn demo_draft() -> CharacterDraft {
 }
 
 /// Pair repeatable `--lane` classes with repeatable `--lane-hp` values.
-fn build_lanes(classes: &[String], hit_points: &[i32]) -> Vec<LevelUpLane> {
+fn build_lanes(
+    classes: &[String],
+    hit_points: &[i32],
+    archetypes: &[String],
+    substitutions: &[String],
+    subclasses: &[String],
+) -> Vec<LevelUpLane> {
+    let non_empty = |values: &[String], index: usize| {
+        values
+            .get(index)
+            .filter(|value| !value.trim().is_empty())
+            .cloned()
+    };
     classes
         .iter()
         .enumerate()
         .map(|(index, class_id)| LevelUpLane {
             class_id: class_id.clone(),
             hp_gained: hit_points.get(index).copied(),
-            ..LevelUpLane::default()
+            archetype: non_empty(archetypes, index),
+            substitution_level: non_empty(substitutions, index),
+            subclass: non_empty(subclasses, index),
         })
         .collect()
 }
@@ -718,6 +741,9 @@ fn main() -> Result<()> {
             subclass,
             lanes,
             lane_hp,
+            lane_archetype,
+            lane_substitution,
+            lane_subclass,
             preview,
             out,
         } => {
@@ -738,12 +764,27 @@ fn main() -> Result<()> {
                 archetype,
                 substitution_level,
                 subclass,
-                lanes: build_lanes(&lanes, &lane_hp),
+                lanes: build_lanes(
+                    &lanes,
+                    &lane_hp,
+                    &lane_archetype,
+                    &lane_substitution,
+                    &lane_subclass,
+                ),
             };
             if preview {
+                let engine = Engine::new(pack.clone());
+                let before = engine.evaluate(&envelope.character);
                 let preview_draft = preview_level_up(&pack, &envelope.character, &request, None)?;
-                let snapshot = Engine::new(pack).evaluate(&preview_draft);
-                println!("{}", render_json(&snapshot)?);
+                let after = engine.evaluate(&preview_draft);
+                println!("{}", render_json(&after)?);
+                eprintln!(
+                    "delta: level {:+}  hp {:+}  bab {:+}  ac {:+}",
+                    after.total_level as i64 - before.total_level as i64,
+                    after.hit_points - before.hit_points,
+                    after.base_attack_bonus - before.base_attack_bonus,
+                    after.armor_class - before.armor_class
+                );
                 return Ok(());
             }
             level_up_draft(&pack, &mut envelope.character, &request)?;

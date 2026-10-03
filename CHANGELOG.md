@@ -52,6 +52,9 @@
 - builder 新增 `apply_level_up` / `preview_level_up`：核心升级逻辑与预演解耦，预览不改动原 draft；
 - CLI `level-up` 新增 `--preview`（只预演）与 `--lane <class>` / `--lane-hp <n>`（多职业）；
 - Web `POST /api/characters/{id}/level-up` 支持 `preview:true` 与 `request.lanes[]`；UI 增加 Preview 按钮与 Gestalt lane 行；
+- 多 lane 升级现在写入同一个 advancement frame（Gestalt 语义），并支持 per-lane archetype/替代等级/子职业；
+- 预览返回 `delta`（等级/HP/BAB/AC/豁免/技能点/属性/技能/新增能力差异），CLI `--preview` 同时在 stderr 打印摘要；
+- CLI `level-up` 新增 `--lane-archetype` / `--lane-substitution` / `--lane-subclass`；
 - `/api/preview` 返回 ECL、最终属性、技能点、专长槽、激活能力与诊断；
 - Review 显示 ECL、最终属性、技能点、专长槽、模板效果与合法性诊断；
 - Dragon Age 选择器扩展为 Life Stage：除龙外，其他生物若有幼体/成年体/古代体等年龄模板也会显示并纳入 Templates；

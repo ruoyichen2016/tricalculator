@@ -893,12 +893,23 @@ document.getElementById('levelUpPreviewBtn').onclick = async () => {
     }
     characterStatusEl.textContent = 'Preview (not saved)';
     const snap = data.snapshot || {};
+    const d = data.delta || {};
+    const signed = (value) => `${value >= 0 ? '+' : ''}${value}`;
+    const mapDelta = (map) => {
+      const entries = Object.entries(map || {});
+      return entries.length ? entries.map(([k, v]) => `${k} ${signed(v)}`).join(', ') : '—';
+    };
     levelUpPreviewEl.textContent = [
-      `total level: ${snap.total_level}`,
-      `hit points: ${snap.hit_points}`,
-      `BAB: ${snap.base_attack_bonus}`,
+      `total level: ${snap.total_level} (${signed(d.total_level || 0)})`,
+      `hit points: ${snap.hit_points} (${signed(d.hit_points || 0)})`,
+      `BAB: ${snap.base_attack_bonus} (${signed(d.base_attack_bonus || 0)})`,
+      `AC: ${snap.armor_class} (${signed(d.armor_class || 0)})`,
+      `saves: fort ${signed(d.saves?.fortitude || 0)}, ref ${signed(d.saves?.reflex || 0)}, will ${signed(d.saves?.will || 0)}`,
+      `skill points: ${signed(d.skill_points || 0)}, feat slots: ${signed(d.feat_slots || 0)}`,
+      `skill ranks: ${mapDelta(d.skills)}`,
+      `stats: ${mapDelta(d.stats)}`,
+      `new abilities: ${(d.added_abilities || []).join(', ') || '—'}`,
       `templates: ${(data.character?.templates || []).join(', ') || 'none'}`,
-      `active abilities: ${(snap.active_abilities || []).join(', ') || '—'}`,
       `diagnostics: ${(data.snapshot?.diagnostics || []).length}`,
     ].join('\n');
   } catch (error) {
