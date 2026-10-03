@@ -41,6 +41,7 @@
 - `CreateRequest` 支持 `templates`，builder 校验并写入 `CharacterDraft.templates`；
 - `/api/preview` 返回 ECL、最终属性、技能点、专长槽、激活能力与诊断；
 - Review 显示 ECL、最终属性、技能点、专长槽、模板效果与合法性诊断；
+- Dragon Age 选择器：当所选种族类型为 Dragon 时显示年龄层，并把年龄模板加入 Templates；
   - 法术支持按职业法表/等级/领域/学派/关键词筛选；
   - 装备支持按类型/槽位/基础物品/关键词筛选；
   - 能力/专长支持按类别/类型/关键词筛选；

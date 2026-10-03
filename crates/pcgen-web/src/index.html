@@ -122,6 +122,8 @@
         <label for="createRaceVariant">Race Variant</label>
         <select id="createRaceVariant"></select>
         <div id="racePreview" class="race-preview"></div>
+        <label for="dragonAge">Dragon Age</label>
+        <select id="dragonAge"><option value="">— none —</option></select>
         <label>Templates</label>
         <div id="templateRows" class="picker-rows"></div>
         <div class="row">
@@ -670,6 +672,7 @@ const createRaceVariantEl = document.getElementById('createRaceVariant');
 const raceSearchEl = document.getElementById('raceSearch');
 const raceCategoryEl = document.getElementById('raceCategory');
 const racePreviewEl = document.getElementById('racePreview');
+const dragonAgeEl = document.getElementById('dragonAge');
 const templateRowsEl = document.getElementById('templateRows');
 const templateSearchEl = document.getElementById('templateSearch');
 const templateCandidateEl = document.getElementById('templateCandidate');
@@ -721,6 +724,7 @@ let skillSelections = [];
 let abilitySelections = [];
 let templateSelections = [];
 let templatePage = 1;
+const DRAGON_AGE_CATEGORIES = ['Wyrmling','Very Young','Young','Juvenile','Young Adult','Adult','Mature Adult','Old','Very Old','Ancient','Wyrm','Great Wyrm'];
 let abilityPage = 1;
 let spellPage = 1;
 let equipmentSelections = [];
@@ -979,6 +983,21 @@ function populateRaceVariants(baseUuid) {
   renderRacePreview();
 }
 
+function populateDragonAge() {
+  const selected = raceCatalog.find((race) => race.uuid === createRaceVariantEl.value)
+    || raceCatalog.find((race) => race.uuid === createRaceEl.value);
+  const isDragon = selected && (selected.type_tags || []).some((tag) => tag.toLowerCase() === 'dragon');
+  dragonAgeEl.style.display = isDragon ? '' : 'none';
+  dragonAgeEl.innerHTML = '<option value="">— none —</option>';
+  if (!isDragon) return;
+  for (const age of DRAGON_AGE_CATEGORIES) {
+    const option = document.createElement('option');
+    option.value = age;
+    option.textContent = age;
+    dragonAgeEl.appendChild(option);
+  }
+}
+
 function renderRacePreview() {
   const selected = raceCatalog.find((race) => race.uuid === createRaceVariantEl.value)
     || raceCatalog.find((race) => race.uuid === createRaceEl.value);
@@ -992,6 +1011,7 @@ function renderRacePreview() {
   const adjustments = Object.entries(selected.ability_adjustments || {})
     .map(([stat, value]) => `${stat}${value >= 0 ? '+' : ''}${value}`)
     .join(', ');
+  populateDragonAge();
   racePreviewEl.textContent = [
     `Name: ${selected.display_name || selected.name}`,
     `Type: ${(selected.type_tags || []).join(', ') || '—'}`,
@@ -1063,6 +1083,13 @@ addTemplateBtn.addEventListener('click', () => {
 });
 
 templateSearchEl.addEventListener('input', debounce(() => searchTemplates()));
+dragonAgeEl.addEventListener('change', () => {
+  const chosen = dragonAgeEl.value;
+  templateSelections = templateSelections.filter((entry) => !DRAGON_AGE_CATEGORIES.includes(entry.name));
+  if (chosen) templateSelections.push({ id: chosen, name: chosen });
+  renderTemplateRows();
+  renderReviewSummary();
+});
 
 function buildVariantIndexes() {
   archetypesByClass.clear();
