@@ -1142,8 +1142,9 @@ equipmentTypeFilterEl.addEventListener('change', () => {
 });
 
 function defaultLane(laneIndex) {
+  const baseClasses = packClasses.filter((option) => !option.serves_as);
   return {
-    class: packClasses[laneIndex]?.uuid || packClasses[0]?.uuid || '',
+    class: baseClasses[laneIndex]?.uuid || baseClasses[0]?.uuid || '',
     archetype: '',
     substitution: '',
   };
@@ -1249,14 +1250,17 @@ function renderLevelEditor() {
     laneLabel.textContent = frame.lanes.length === 1 ? 'Class' : laneIndex === 0 ? 'Class A' : 'Class B';
     editor.appendChild(laneLabel);
 
+    const selectedClassOption = packClassesByUuid.get(lane.class) || packClassesById.get(lane.class);
     const classSelect = document.createElement('select');
-    for (const option of packClasses) {
+    for (const option of packClasses.filter((candidate) => !candidate.serves_as)) {
       const item = document.createElement('option');
       item.value = option.uuid;
       item.textContent = option.name;
       classSelect.appendChild(item);
     }
-    classSelect.value = lane.class || '';
+    classSelect.value = selectedClassOption?.serves_as
+      ? (packClassesById.get(selectedClassOption.serves_as)?.uuid || selectedClassOption.serves_as)
+      : lane.class;
     classSelect.addEventListener('change', () => {
       lane.class = classSelect.value;
       lane.archetype = '';
@@ -1269,7 +1273,6 @@ function renderLevelEditor() {
     });
     editor.appendChild(classSelect);
 
-    const selectedClassOption = packClassesByUuid.get(lane.class) || packClassesById.get(lane.class);
     const baseClassForVariant = selectedClassOption?.serves_as
       ? packClassesById.get(selectedClassOption.serves_as)?.uuid || selectedClassOption.serves_as
       : (packClassesByUuid.get(lane.class)?.id || lane.class);

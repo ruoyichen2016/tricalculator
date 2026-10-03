@@ -318,7 +318,8 @@ fn parse_race(record: &RawRecord) -> RaceDefinition {
 }
 
 fn parse_class(record: &RawRecord) -> ClassDefinition {
-    let mut class = ClassDefinition::new(record.key.clone(), record.name.clone());
+    let class_name = record.name.trim().trim_end_matches(".MOD").to_string();
+    let mut class = ClassDefinition::new(record.key.clone(), class_name);
     let hit_die = tag(record, "HD").unwrap_or("8");
     class.hit_die = if hit_die.starts_with('d') {
         hit_die.to_string()
