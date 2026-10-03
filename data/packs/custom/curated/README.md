@@ -25,6 +25,11 @@ PCGEN_DATA_ROOT="$PWD/data/packs/custom/curated/my_pack" ./run-web.sh
 ## 当前已审定资料
 
 - `bahamut-all-35e3e/`：3e/35e 全量扩展聚合包（默认载入）。
+  - 覆盖原始仓库全部 3e/35e 资料：**3e 13 个 PCC + 35e 102 个 PCC = 115 个 PCC**；
+  - 已修正编码：8 个非 UTF-8 文件转为 UTF-8；
+  - 已修正大小写引用：7 处 PCC 文件引用与磁盘文件名不一致；
+  - 已补全 `_universal/races.lst` 共享依赖；
+  - 入口 `data/_all_35e3e.pcc`，`error_diagnostics=0`。
   - 包含全部 3e、35e 的 `.pcc`；
   - 已修正编码（UTF-8）与文件名大小写引用；
   - 入口 `data/_all_35e3e.pcc`；
