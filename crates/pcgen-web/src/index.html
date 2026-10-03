@@ -856,6 +856,8 @@ async function loadPackOptions() {
 }
 
 document.getElementById('loadPackOptions').onclick = loadPackOptions;
+pccEl.addEventListener('change', debounce(() => loadPackOptions(), 400));
+pccEl.addEventListener('input', debounce(() => loadPackOptions(), 800));
 addLevelBtn.onclick = () => {
   createLevelEl.value = Math.min(20, Number(createLevelEl.value || 1) + 1);
   renderAdvancement();

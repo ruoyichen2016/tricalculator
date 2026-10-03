@@ -17,6 +17,7 @@
 - 字段与 UI 分离：class 等选项新增稳定 `uuid`，前端使用 UUID 作为字段值，显示名仍为 `name`，Web 请求时映射回内部 PCGen key；
 - 修复 `.MOD` 显示：class 显示名自动剥离 `.MOD` 后缀；
 - 修复职业变体混入主职业列表：`serves_as` 变体只出现在 Class Variant 下拉，不再出现在主职业下拉；
+- 增加 `.pcc` 自动刷新：切换或修改 `pcc` 后自动重新拉取 pack-options / spells / equipment / abilities，无需手动点击刷新；
   - 法术支持按职业法表/等级/领域/学派/关键词筛选；
   - 装备支持按类型/槽位/基础物品/关键词筛选；
   - 能力/专长支持按类别/类型/关键词筛选；
