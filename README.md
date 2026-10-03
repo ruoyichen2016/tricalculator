@@ -84,6 +84,7 @@ GET  /api/characters/{id}     # 读取原生角色 + snapshot + HTML sheet
 DELETE /api/characters/{id}   # 删除原生角色
 POST /api/characters/{id}/level-up  # 升级角色（LevelUpRequest）；preview:true 时只预演不保存
                                    # 支持 archetype / 替代等级 / 子职业 / 模板覆盖，以及 lanes[] 多职业
+POST /api/characters/{id}/undo     # 还原到上一次保存前的版本（可反复切换最近两个版本）
 GET  /api/pack-options?pcc=…  # 种族 / 职业 / 技能 / 法术 / 装备候选
 ```
 
@@ -153,7 +154,16 @@ cargo run -p pcgen-cli -- level-up hero.json --pcc <pcc> --class Fighter --hp 6 
 ```text
 POST /api/characters/{id}/level-up   # { pcc, request, preview? }
   request.lanes: [{ "class": "...", "hp_gained": 3, "archetype": ..., }]  # 多职业
-  preview: true -> 返回 { preview, character, snapshot, html }，不写盘
+  preview: true -> 返回 { preview, character, snapshot, delta, html }，不写盘
+POST /api/characters/{id}/undo       # 无请求体；还原上一次写入前的版本
+```
+
+每次写入前，旧版本会备份到 `<characters-root>/.history/<id>.json`；
+`undo` 会把当前版本与备份互换，因此可反复撤销/重做最近两个版本。CLI 等价命令：
+
+```bash
+cargo run -p pcgen-cli -- undo hero.json            # 还原
+cargo run -p pcgen-cli -- undo hero.json --dry-run  # 只打印还原结果
 ```
 
 `--template` 可重复；模板按 id 或名称解析（大小写不敏感），未知模板会报错。

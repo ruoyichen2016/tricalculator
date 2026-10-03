@@ -1,8 +1,8 @@
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
 use pcgen_builder::{
-    create_draft, level_up_draft, preview_level_up, starting_gold_for_class, CreateRequest,
-    CreateSpell, LevelUpLane, LevelUpRequest, NativeSaveEnvelope,
+    create_draft, level_up_draft, preview_level_up, starting_gold_for_class, CharacterRepository,
+    CreateRequest, CreateSpell, LevelUpLane, LevelUpRequest, NativeSaveEnvelope,
 };
 use pcgen_core::{AdvancementFrame, AdvancementLane};
 use pcgen_engine::{CharacterDraft, ClassProgress, DraftClassLevel, DraftSpell, Engine};
@@ -197,6 +197,14 @@ enum Command {
         #[arg(long)]
         out: Option<PathBuf>,
     },
+    /// Restore the version of a native character saved before its last write.
+    Undo {
+        /// Native save envelope JSON (id is read from the character).
+        draft: PathBuf,
+        /// Print the restored envelope instead of writing it back.
+        #[arg(long)]
+        dry_run: bool,
+    },
 }
 
 fn demo_engine() -> Engine {
@@ -272,6 +280,21 @@ fn demo_draft() -> CharacterDraft {
         domains: Vec::new(),
         deity_domains: Vec::new(),
     }
+}
+
+/// Write a native save through the repository so the previous version is
+/// backed up and `pcgen undo` can restore it.
+fn save_envelope(path: &std::path::Path, envelope: &NativeSaveEnvelope) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .with_context(|| format!("failed to create {}", parent.display()))?;
+    }
+    let root = path.parent().unwrap_or_else(|| std::path::Path::new("."));
+    let repository = CharacterRepository::new(root);
+    repository
+        .save(envelope)
+        .with_context(|| format!("failed to write {}", path.display()))?;
+    Ok(())
 }
 
 /// Pair repeatable `--lane` classes with repeatable `--lane-hp` values.
@@ -713,12 +736,8 @@ fn main() -> Result<()> {
                     pack.header.data_ref.clone(),
                 )
                 .with_pcc(Some(pcc.display().to_string()));
-                if let Some(parent) = path.parent() {
-                    std::fs::create_dir_all(parent)
-                        .with_context(|| format!("failed to create {}", parent.display()))?;
-                }
-                std::fs::write(&path, serde_json::to_vec_pretty(&envelope)?)
-                    .with_context(|| format!("failed to write {}", path.display()))?;
+                save_envelope(&path, &envelope)?;
+                println!("{}", path.display());
                 println!("{}", path.display());
             } else {
                 let snapshot = Engine::new(pack).evaluate(&draft);
@@ -792,15 +811,34 @@ fn main() -> Result<()> {
             envelope.rules_fingerprint = pack.header.rules_fingerprint.clone();
             envelope.data_ref = pack.header.data_ref.clone();
             if let Some(path) = out {
-                if let Some(parent) = path.parent() {
-                    std::fs::create_dir_all(parent)
-                        .with_context(|| format!("failed to create {}", parent.display()))?;
-                }
-                std::fs::write(&path, serde_json::to_vec_pretty(&envelope)?)
-                    .with_context(|| format!("failed to write {}", path.display()))?;
+                save_envelope(&path, &envelope)?;
+                println!("{}", path.display());
                 println!("{}", path.display());
             } else {
                 println!("{}", serde_json::to_string_pretty(&envelope)?);
+            }
+        }
+        Command::Undo { draft, dry_run } => {
+            let text = std::fs::read_to_string(&draft)
+                .with_context(|| format!("failed to read {}", draft.display()))?;
+            let envelope: NativeSaveEnvelope = serde_json::from_str(&text)
+                .with_context(|| format!("failed to parse {}", draft.display()))?;
+            let repository = CharacterRepository::new(
+                draft.parent().unwrap_or_else(|| std::path::Path::new(".")),
+            );
+            let id = envelope.character.id.clone();
+            if !repository.can_undo(&id)? {
+                bail!("no previous version for character: {id}");
+            }
+            let restored = repository.undo(&id)?;
+            if dry_run {
+                println!("{}", serde_json::to_string_pretty(&restored)?);
+            } else {
+                println!(
+                    "restored {} to level {}",
+                    restored.character.name,
+                    restored.character.total_level()
+                );
             }
         }
     }

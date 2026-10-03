@@ -443,6 +443,7 @@ pub fn app(config: WebConfig) -> Router {
             get(character).delete(delete_character),
         )
         .route("/api/characters/{id}/level-up", post(level_up_character))
+        .route("/api/characters/{id}/undo", post(undo_character))
         .with_state(state)
 }
 
@@ -651,6 +652,21 @@ async fn level_up_character(
         return api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string());
     }
     (StatusCode::OK, Json(evaluate_envelope(&state, envelope))).into_response()
+}
+
+/// Restore the version of a character saved before its most recent write.
+async fn undo_character(
+    State(state): State<AppState>,
+    AxumPath(id): AxumPath<String>,
+) -> impl IntoResponse {
+    match state.repository.undo(&id) {
+        Ok(envelope) => (StatusCode::OK, Json(evaluate_envelope(&state, envelope))).into_response(),
+        Err(BuilderError::NotFound(_)) => api_error(
+            StatusCode::NOT_FOUND,
+            format!("no previous version for character: {id}"),
+        ),
+        Err(error) => api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
+    }
 }
 
 /// Resolve class ids coming from the UI (uuid or key) across all lanes.

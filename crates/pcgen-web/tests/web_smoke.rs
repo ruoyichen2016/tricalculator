@@ -958,3 +958,79 @@ async fn level_up_preview_does_not_persist_and_lanes_advance() {
 
     let _ = std::fs::remove_dir_all(characters_root);
 }
+
+#[tokio::test]
+async fn undo_restores_previous_character_version() {
+    let config = character_config("undo");
+    let characters_root = config.characters_root.clone();
+    let app = app(config);
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/characters")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    r#"{"pcc":"campaign-mini/mini.pcc","pcg":"campaign-mini/mini_character.pcg","id":"undo-hero"}"#,
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // Level up once, then undo and check the level goes back.
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/characters/undo-hero/level-up")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    r#"{"pcc":"campaign-mini/mini.pcc","request":{"class":"Fighter","hp_gained":7}}"#,
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/characters/undo-hero/undo")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let detail: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(
+        detail["envelope"]["character"]["class_levels"][0]["level"],
+        2
+    );
+
+    // Undo is repeatable: a second undo toggles back to level 3.
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/characters/undo-hero/undo")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let _ = std::fs::remove_dir_all(characters_root);
+}

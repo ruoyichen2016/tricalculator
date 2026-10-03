@@ -147,10 +147,53 @@ impl CharacterRepository {
         let bytes = serde_json::to_vec_pretty(envelope)?;
         fs::write(&temporary, bytes)?;
         if final_path.exists() {
+            // Keep the previous version so `undo` can restore it.
+            let history = self.history_dir();
+            fs::create_dir_all(&history)?;
+            let backup = history.join(format!("{id}.json"));
+            fs::copy(&final_path, &backup)?;
             fs::remove_file(&final_path)?;
         }
         fs::rename(&temporary, &final_path)?;
         Ok(())
+    }
+
+    fn history_dir(&self) -> PathBuf {
+        self.root.join(".history")
+    }
+
+    /// True when a previous version of `id` is available for `undo`.
+    pub fn can_undo(&self, id: &str) -> Result<bool, BuilderError> {
+        let id = sanitize_id(id)?;
+        Ok(self.history_dir().join(format!("{id}.json")).exists())
+    }
+
+    /// Restore the version of `id` saved before the most recent write.
+    ///
+    /// The backup holds the immediately-previous version, so `undo` can be
+    /// repeated: each call swaps the live file with the backup, toggling
+    /// between the two most recent versions (undo / redo).
+    pub fn undo(&self, id: &str) -> Result<NativeSaveEnvelope, BuilderError> {
+        let id = sanitize_id(id)?;
+        let backup = self.history_dir().join(format!("{id}.json"));
+        if !backup.exists() {
+            return Err(BuilderError::NotFound(id));
+        }
+        let previous_bytes = fs::read(&backup)?;
+        let envelope: NativeSaveEnvelope = serde_json::from_slice(&previous_bytes)?;
+        let current = self.root.join(format!("{id}.json"));
+
+        // Swap: live file becomes the new backup, previous version is restored.
+        if current.exists() {
+            let current_bytes = fs::read(&current)?;
+            fs::write(&backup, current_bytes)?;
+        } else {
+            fs::remove_file(&backup)?;
+        }
+        let temporary = self.root.join(format!(".{id}.json.tmp"));
+        fs::write(&temporary, &previous_bytes)?;
+        fs::rename(&temporary, &current)?;
+        Ok(envelope)
     }
 
     pub fn load(&self, id: &str) -> Result<NativeSaveEnvelope, BuilderError> {
@@ -289,6 +332,57 @@ mod tests {
         repository.save(&envelope).unwrap();
         let loaded = repository.load("hero-1").unwrap();
         assert_eq!(loaded, envelope);
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn undo_restores_previous_version() {
+        let root = temp_root();
+        let repository = CharacterRepository::new(&root);
+        repository
+            .save(&NativeSaveEnvelope::new(
+                sample_character("hero", "Hero", 1),
+                "fp",
+                None,
+            ))
+            .unwrap();
+        assert!(!repository.can_undo("hero").unwrap());
+
+        repository
+            .save(&NativeSaveEnvelope::new(
+                sample_character("hero", "Hero", 2),
+                "fp",
+                None,
+            ))
+            .unwrap();
+        assert!(repository.can_undo("hero").unwrap());
+        assert_eq!(repository.load("hero").unwrap().character.total_level(), 2);
+
+        let restored = repository.undo("hero").unwrap();
+        assert_eq!(restored.character.total_level(), 1);
+        assert_eq!(repository.load("hero").unwrap().character.total_level(), 1);
+
+        // undo is repeatable and toggles back to level 2.
+        repository.undo("hero").unwrap();
+        assert_eq!(repository.load("hero").unwrap().character.total_level(), 2);
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn undo_without_history_is_not_found() {
+        let root = temp_root();
+        let repository = CharacterRepository::new(&root);
+        repository
+            .save(&NativeSaveEnvelope::new(
+                sample_character("hero", "Hero", 1),
+                "fp",
+                None,
+            ))
+            .unwrap();
+        assert!(matches!(
+            repository.undo("hero"),
+            Err(BuilderError::NotFound(_))
+        ));
         let _ = fs::remove_dir_all(root);
     }
 
