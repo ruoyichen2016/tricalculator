@@ -55,6 +55,8 @@
 - 多 lane 升级现在写入同一个 advancement frame（Gestalt 语义），并支持 per-lane archetype/替代等级/子职业；
 - 预览返回 `delta`（等级/HP/BAB/AC/豁免/技能点/属性/技能/新增能力差异），CLI `--preview` 同时在 stderr 打印摘要；
 - CLI `level-up` 新增 `--lane-archetype` / `--lane-substitution` / `--lane-subclass`；
+- Web 多 lane 行新增 per-lane 的 Archetype / 替代等级下拉与子职业输入；
+- Web 升级预览并排渲染 HTML sheet（`levelUpSheet` iframe）；
 - `/api/preview` 返回 ECL、最终属性、技能点、专长槽、激活能力与诊断；
 - Review 显示 ECL、最终属性、技能点、专长槽、模板效果与合法性诊断；
 - Dragon Age 选择器扩展为 Life Stage：除龙外，其他生物若有幼体/成年体/古代体等年龄模板也会显示并纳入 Templates；

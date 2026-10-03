@@ -121,6 +121,7 @@
   </div>
   <div id="levelUpTemplateRows" class="picker-rows"></div>
   <pre id="levelUpPreview"></pre>
+  <iframe id="levelUpSheet" title="level-up preview sheet" style="width:100%;min-height:16rem;border:1px solid var(--line);border-radius:8px"></iframe>
   <p id="characterStatus"></p>
   <pre id="characterPreview"></pre>
 </div>
@@ -800,23 +801,82 @@ levelUpTemplateSearchEl.addEventListener('input', debounce(() => searchLevelUpTe
 
 const levelUpLaneRowsEl = document.getElementById('levelUpLaneRows');
 const levelUpPreviewEl = document.getElementById('levelUpPreview');
+const levelUpSheetEl = document.getElementById('levelUpSheet');
 let levelUpLanes = [];
+
+function laneSelect(lane, index, field, options, placeholder) {
+  const select = document.createElement('select');
+  const none = document.createElement('option');
+  none.value = '';
+  none.textContent = placeholder;
+  select.appendChild(none);
+  for (const option of options) {
+    const item = document.createElement('option');
+    item.value = option.value;
+    item.textContent = option.label;
+    select.appendChild(item);
+  }
+  select.value = lane[field] || '';
+  select.onchange = () => {
+    levelUpLanes[index][field] = select.value || undefined;
+  };
+  return select;
+}
+
+function laneOptionsFor(classId) {
+  const variants = variantOptionsForClass(classId);
+  return {
+    archetypes: variants
+      .filter((variant) => variant.kind !== 'substitution')
+      .map((variant) => ({ value: variant.id, label: variant.name })),
+    substitutions: variants
+      .filter((variant) => variant.kind === 'substitution')
+      .map((variant) => ({ value: variant.id, label: `${variant.name} (L${variant.level})` })),
+  };
+}
 
 function renderLevelUpLaneRows() {
   levelUpLaneRowsEl.innerHTML = '';
   levelUpLanes.forEach((lane, index) => {
     const row = document.createElement('div');
     row.className = 'row';
-    const select = document.createElement('select');
+
+    const classSelect = document.createElement('select');
     for (const option of packClasses) {
       if (option.serves_as || option.is_prestige) continue;
       const item = document.createElement('option');
       item.value = option.uuid || option.id;
       item.textContent = option.name;
-      select.appendChild(item);
+      classSelect.appendChild(item);
     }
-    select.value = lane.class;
-    select.onchange = () => { levelUpLanes[index].class = select.value; };
+    classSelect.value = lane.class;
+
+    const archetypeHost = document.createElement('span');
+    const substitutionHost = document.createElement('span');
+    const refreshVariants = () => {
+      const options = laneOptionsFor(levelUpLanes[index].class);
+      archetypeHost.replaceChildren(
+        laneSelect(levelUpLanes[index], index, 'archetype', options.archetypes, '— archetype —')
+      );
+      substitutionHost.replaceChildren(
+        laneSelect(levelUpLanes[index], index, 'substitution_level', options.substitutions, '— substitution —')
+      );
+    };
+    classSelect.onchange = () => {
+      levelUpLanes[index].class = classSelect.value;
+      levelUpLanes[index].archetype = undefined;
+      levelUpLanes[index].substitution_level = undefined;
+      refreshVariants();
+    };
+
+    const subclass = document.createElement('input');
+    subclass.placeholder = 'subclass';
+    subclass.style.width = '8rem';
+    subclass.value = lane.subclass || '';
+    subclass.oninput = () => {
+      levelUpLanes[index].subclass = subclass.value.trim() || undefined;
+    };
+
     const hp = document.createElement('input');
     hp.type = 'number';
     hp.min = '1';
@@ -824,6 +884,7 @@ function renderLevelUpLaneRows() {
     hp.style.width = '4rem';
     hp.value = lane.hp || '';
     hp.oninput = () => { levelUpLanes[index].hp = Number(hp.value) || 0; };
+
     const remove = document.createElement('button');
     remove.type = 'button';
     remove.className = 'ghost';
@@ -832,8 +893,10 @@ function renderLevelUpLaneRows() {
       levelUpLanes.splice(index, 1);
       renderLevelUpLaneRows();
     };
-    row.append(select, hp, remove);
+
+    row.append(classSelect, archetypeHost, substitutionHost, subclass, hp, remove);
     levelUpLaneRowsEl.appendChild(row);
+    refreshVariants();
   });
 }
 
@@ -863,6 +926,9 @@ function buildLevelUpRequest() {
       .map((lane) => {
         const entry = { class: lane.class };
         if (Number(lane.hp) > 0) entry.hp_gained = Number(lane.hp);
+        if (lane.archetype) entry.archetype = lane.archetype;
+        if (lane.substitution_level) entry.substitution_level = lane.substitution_level;
+        if (lane.subclass) entry.subclass = lane.subclass;
         return entry;
       });
   }
@@ -892,6 +958,7 @@ document.getElementById('levelUpPreviewBtn').onclick = async () => {
       return;
     }
     characterStatusEl.textContent = 'Preview (not saved)';
+    levelUpSheetEl.srcdoc = data.html || '';
     const snap = data.snapshot || {};
     const d = data.delta || {};
     const signed = (value) => `${value >= 0 ? '+' : ''}${value}`;
