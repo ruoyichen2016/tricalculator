@@ -159,6 +159,9 @@
     <button type="button" class="wizard-step-btn" data-step="skills">Skills / Feats</button>
     <button type="button" class="wizard-step-btn" data-step="spells">Spells / Equipment</button>
     <button type="button" class="wizard-step-btn" data-step="review">Review</button>
+    <button type="button" id="saveDraftBtn" class="ghost">Save draft</button>
+    <button type="button" id="loadDraftBtn" class="ghost">Load draft</button>
+    <input type="file" id="draftFile" accept="application/json" hidden>
   </div>
 
   <div class="wizard-step" id="step-basic">
@@ -1652,6 +1655,11 @@ function populateRaceVariants(baseUuid) {
     option.textContent = variant.display_name || variant.name;
     createRaceVariantEl.appendChild(option);
   }
+  const pending = createRaceVariantEl.dataset.pendingVariant;
+  if (pending && Array.from(createRaceVariantEl.options).some((option) => option.value === pending)) {
+    createRaceVariantEl.value = pending;
+    delete createRaceVariantEl.dataset.pendingVariant;
+  }
   renderRacePreview();
 }
 
@@ -2567,6 +2575,125 @@ function buildCreateRequestPayload() {
     },
   };
 }
+
+function serializeCreateDraft() {
+  const stats = readStats() || {};
+  const skills = skillSelections
+    .filter((entry) => entry.skill)
+    .map((entry) => ({ skill: entry.skill, rank: entry.rank ?? 1 }));
+  const abilities = abilitySelections
+    .filter((entry) => entry.ability)
+    .map((entry) => ({ category: entry.category || 'Ability', ability: entry.ability }));
+  return {
+    schema: 1,
+    pcc: pccEl.value,
+    name: createNameEl.value,
+    race: createRaceEl.value,
+    raceVariant: createRaceVariantEl.value,
+    mode: createModeEl.value,
+    level: Number(createLevelEl.value),
+    alignment: createAlignmentEl.value,
+    budget: Number(createBudgetEl.value),
+    gold: Number(createGoldEl.value),
+    stats,
+    skills,
+    abilities,
+    spells: createSpellsEl.value,
+    equipment: createEquipmentEl.value,
+    templates: templateSelections.map((entry) => ({ id: entry.id, name: entry.name })),
+    advancement: advancement.map((frame) => ({
+      character_level: frame.character_level,
+      lanes: frame.lanes.map((lane) => ({
+        class: lane.class,
+        baseClass: lane.baseClass,
+        archetype: lane.archetype,
+        substitution: lane.substitution,
+      })),
+    })),
+  };
+}
+
+function applyCreateDraft(draft) {
+  if (!draft || draft.schema !== 1) {
+    createStatusEl.className = 'error';
+    createStatusEl.textContent = 'Unsupported draft schema';
+    return false;
+  }
+  createNameEl.value = draft.name || '';
+  createModeEl.value = draft.mode || 'normal';
+  createLevelEl.value = draft.level || 1;
+  createRaceVariantEl.dataset.pendingVariant = draft.raceVariant || '';
+  createAlignmentEl.value = draft.alignment || createAlignmentEl.value;
+  createBudgetEl.value = draft.budget ?? createBudgetEl.value;
+  createGoldEl.value = draft.gold ?? createGoldEl.value;
+  createSpellsEl.value = draft.spells || '';
+  createEquipmentEl.value = draft.equipment || '';
+  if (draft.pcc && pccEl.value !== draft.pcc) {
+    pccEl.value = draft.pcc;
+  }
+  if (draft.race) createRaceEl.value = draft.race;
+  for (const key of statKeys) {
+    const input = document.getElementById(`stat-${key}`);
+    if (input && draft.stats && draft.stats[key] !== undefined) {
+      input.value = draft.stats[key];
+    }
+  }
+  skillSelections = (draft.skills || []).map((entry) => ({ skill: entry.skill, rank: entry.rank }));
+  abilitySelections = (draft.abilities || []).map((entry) => ({
+    category: entry.category,
+    ability: entry.ability,
+  }));
+  templateSelections = (draft.templates || []).map((entry) => ({ id: entry.id, name: entry.name }));
+  if (Array.isArray(draft.advancement) && draft.advancement.length) {
+    advancement = draft.advancement.map((frame) => ({
+      character_level: frame.character_level,
+      lanes: (frame.lanes || []).map((lane) => ({
+        class: lane.class,
+        baseClass: lane.baseClass || lane.class,
+        archetype: lane.archetype,
+        substitution: lane.substitution,
+      })),
+    }));
+  }
+  renderSkillRows();
+  renderAbilityRows();
+  renderTemplateRows();
+  renderAdvancement();
+  renderEquipmentRows();
+  updatePointBuy();
+  updateSkillPoints();
+  renderReviewSummary();
+  return true;
+}
+
+document.getElementById('saveDraftBtn').onclick = () => {
+  try {
+    const draft = serializeCreateDraft();
+    window.localStorage.setItem('pcgen-create-draft', JSON.stringify(draft));
+    createStatusEl.className = '';
+    createStatusEl.textContent = 'Draft saved to browser storage';
+  } catch (error) {
+    createStatusEl.className = 'error';
+    createStatusEl.textContent = String(error);
+  }
+};
+
+document.getElementById('loadDraftBtn').onclick = () => {
+  try {
+    const raw = window.localStorage.getItem('pcgen-create-draft');
+    if (!raw) {
+      createStatusEl.className = 'error';
+      createStatusEl.textContent = 'No saved draft found';
+      return;
+    }
+    if (applyCreateDraft(JSON.parse(raw))) {
+      createStatusEl.textContent = 'Draft loaded';
+    }
+  } catch (error) {
+    createStatusEl.className = 'error';
+    createStatusEl.textContent = String(error);
+  }
+};
 
 document.getElementById('createCharacterBtn').onclick = async () => {
   const request = buildCreateRequestPayload();

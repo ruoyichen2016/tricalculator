@@ -16,6 +16,7 @@ pub use creation::{
 
 use pcgen_engine::CharacterDraft;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -294,6 +295,30 @@ pub fn validate_bundle(characters: &[NativeSaveEnvelope]) -> BundleReport {
         }
     }
     report
+}
+
+/// Group a bundle's character ids by the rules fingerprint they were saved
+/// with, so a caller can import only the group matching the active campaign.
+pub fn group_by_fingerprint(characters: &[NativeSaveEnvelope]) -> BTreeMap<String, Vec<String>> {
+    let mut groups: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for envelope in characters {
+        groups
+            .entry(envelope.rules_fingerprint.clone())
+            .or_default()
+            .push(envelope.character.id.clone());
+    }
+    groups
+}
+
+/// Keep only the characters whose rules fingerprint matches `fingerprint`.
+pub fn filter_by_fingerprint(
+    characters: Vec<NativeSaveEnvelope>,
+    fingerprint: &str,
+) -> Vec<NativeSaveEnvelope> {
+    characters
+        .into_iter()
+        .filter(|envelope| envelope.rules_fingerprint == fingerprint)
+        .collect()
 }
 
 /// Compare a bundle against a specific rules fingerprint and report mismatches.
@@ -902,6 +927,23 @@ mod tests {
         assert_eq!(report.version_mismatch, vec!["fp".to_string()]);
         assert!(!report.is_compatible());
         assert_eq!(report.warnings().len(), 3);
+    }
+
+    #[test]
+    fn group_by_fingerprint_buckets_characters() {
+        let a = NativeSaveEnvelope::new(sample_character("a", "A", 1), "fp-1", None);
+        let b = NativeSaveEnvelope::new(sample_character("b", "B", 1), "fp-1", None);
+        let c = NativeSaveEnvelope::new(sample_character("c", "C", 1), "fp-2", None);
+        let groups = group_by_fingerprint(&[a.clone(), b.clone(), c.clone()]);
+        assert_eq!(
+            groups.get("fp-1").unwrap(),
+            &vec!["a".to_string(), "b".to_string()]
+        );
+        assert_eq!(groups.get("fp-2").unwrap(), &vec!["c".to_string()]);
+
+        let filtered = filter_by_fingerprint(vec![a, b, c], "fp-2");
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].character.id, "c");
     }
 
     #[test]

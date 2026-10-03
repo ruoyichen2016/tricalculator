@@ -234,6 +234,12 @@ enum Command {
         bundle: PathBuf,
         /// Directory to write `<id>.json` saves into.
         dir: PathBuf,
+        /// Only import characters matching this `.pcc`'s rules fingerprint.
+        #[arg(long)]
+        pcc: Option<PathBuf>,
+        /// Print the fingerprint groups in the bundle instead of importing.
+        #[arg(long)]
+        list_groups: bool,
     },
     /// Delete one or more native characters from a directory.
     Delete {
@@ -992,7 +998,12 @@ fn main() -> Result<()> {
                 None => println!("{text}"),
             }
         }
-        Command::ImportBundle { bundle, dir } => {
+        Command::ImportBundle {
+            bundle,
+            dir,
+            pcc,
+            list_groups,
+        } => {
             let text = std::fs::read_to_string(&bundle)
                 .with_context(|| format!("failed to read {}", bundle.display()))?;
             let value: serde_json::Value = serde_json::from_str(&text)
@@ -1010,6 +1021,24 @@ fn main() -> Result<()> {
                         format!("failed to parse a character in {}", bundle.display())
                     })?;
                 envelopes.push(envelope);
+            }
+            if list_groups {
+                for (fingerprint, ids) in pcgen_builder::group_by_fingerprint(&envelopes) {
+                    println!("{fingerprint}: {}", ids.join(", "));
+                }
+                return Ok(());
+            }
+            if let Some(pcc) = &pcc {
+                let (pack, _) = compile_pcc(pcc)
+                    .with_context(|| format!("failed to import {}", pcc.display()))?;
+                let before = envelopes.len();
+                envelopes =
+                    pcgen_builder::filter_by_fingerprint(envelopes, &pack.header.rules_fingerprint);
+                println!(
+                    "fingerprint filter kept {} of {} character(s)",
+                    envelopes.len(),
+                    before
+                );
             }
             let report = pcgen_builder::validate_bundle(&envelopes);
             for warning in report.warnings() {

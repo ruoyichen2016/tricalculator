@@ -83,6 +83,7 @@ GET  /api/characters/bundle   # 导出全部原生角色为一个 JSON bundle
 POST /api/characters/bundle   # 导入 bundle（覆盖同 id）；不兼容 schema 返回 400，
                              # 兼容但版本/指纹不同时返回 { imported, warnings }
 DELETE /api/characters/bundle # 批量删除 { ids: [...] }，返回 { deleted, missing }
+GET  /api/characters/bundle/groups  # 按规则指纹分组列出已存角色
 POST /api/characters/create   # 按 CreateRequest 建卡并保存
 GET  /api/characters/{id}     # 读取原生角色 + snapshot + HTML sheet
 DELETE /api/characters/{id}   # 删除原生角色
@@ -178,7 +179,9 @@ cargo run -p pcgen-cli -- history hero.json         # 列出可恢复版本（--
 
 # 批量导出 / 导入
 cargo run -p pcgen-cli -- export-all <characters-root> --out bundle.json
-cargo run -p pcgen-cli -- import-bundle bundle.json <characters-root>
+cargo run -p pcgen-cli -- import-bundle bundle.json <characters-root>            # 全部导入
+cargo run -p pcgen-cli -- import-bundle bundle.json <dir> --list-groups           # 只看指纹分组
+cargo run -p pcgen-cli -- import-bundle bundle.json <dir> --pcc <pcc>             # 只导入匹配指纹的角色
 cargo run -p pcgen-cli -- delete <characters-root> --id hero [--id other]
 cargo run -p pcgen-cli -- delete <characters-root> --all --dry-run
 ```

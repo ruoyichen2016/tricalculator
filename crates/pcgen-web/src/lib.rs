@@ -442,6 +442,7 @@ pub fn app(config: WebConfig) -> Router {
             "/api/characters/bundle",
             get(export_bundle).post(import_bundle).delete(delete_bundle),
         )
+        .route("/api/characters/bundle/groups", get(bundle_groups))
         .route(
             "/api/characters/create",
             post(create_character_from_request),
@@ -498,6 +499,22 @@ fn api_error(status: StatusCode, message: impl Into<String>) -> axum::response::
         }),
     )
         .into_response()
+}
+
+/// Report how the saved characters group by rules fingerprint.
+async fn bundle_groups(State(state): State<AppState>) -> impl IntoResponse {
+    let summaries = match state.repository.list() {
+        Ok(list) => list,
+        Err(error) => return api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
+    };
+    let mut envelopes = Vec::new();
+    for summary in &summaries {
+        match state.repository.load(&summary.id) {
+            Ok(envelope) => envelopes.push(envelope),
+            Err(error) => return api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
+        }
+    }
+    Json(pcgen_builder::group_by_fingerprint(&envelopes)).into_response()
 }
 
 /// Download every saved character as a single JSON bundle.
