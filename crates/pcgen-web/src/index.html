@@ -15,6 +15,7 @@
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
   .card { border: 1px solid #ddd; padding: 1rem; border-radius: 6px; }
   .error { color: #b00020; font-weight: 600; }
+  .warning { color: #b26a00; font-weight: 600; font-size: .85rem; }
   .row { display: flex; gap: 0.5rem; align-items: center; }
   .row input { flex: 1; }
   iframe { width: 100%; height: 30rem; border: 1px solid #ddd; border-radius: 6px; }
@@ -1302,7 +1303,7 @@ function findVariantById(id) {
   return packVariants.find((variant) => variant.id === id);
 }
 
-function laneConflict(lane) {
+function laneReplacementNotice(lane) {
   const archetype = findVariantById(lane.archetype);
   const substitution = findVariantById(lane.substitution);
   if (!archetype || !substitution) return null;
@@ -1310,7 +1311,7 @@ function laneConflict(lane) {
   const substitutionReplaces = (substitution.replaces || []).map(normalizedVariantValue);
   const overlap = archetypeReplaces.filter((value) => substitutionReplaces.includes(value));
   if (overlap.length === 0) return null;
-  return `Conflicts: both replace ${overlap.join(', ')}`;
+  return `Substitution overrides Archetype: ${overlap.join(', ')}`;
 }
 
 function renderLevelEditor() {
@@ -1458,11 +1459,11 @@ function renderLevelEditor() {
     });
     editor.appendChild(substitutionSelect);
 
-    const conflict = laneConflict(lane);
-    if (conflict) {
+    const notice = laneReplacementNotice(lane);
+    if (notice) {
       const warning = document.createElement('p');
-      warning.className = 'error';
-      warning.textContent = conflict;
+      warning.className = 'warning';
+      warning.textContent = notice;
       editor.appendChild(warning);
     }
 
@@ -1546,12 +1547,12 @@ function renderReviewSummary() {
   lines.push(`Skill points: ${spentSkill} / ${skillBudget}`);
   lines.push(`Skills: ${skillsText || '—'}`);
   lines.push(`Abilities: ${abilitiesText || '—'}`);
-  const conflicts = advancement
+  const replacementNotes = advancement
     .flatMap((frame) => frame.lanes)
-    .map(laneConflict)
+    .map(laneReplacementNotice)
     .filter(Boolean);
-  if (conflicts.length > 0) {
-    lines.push(`Conflicts: ${conflicts.join(' | ')}`);
+  if (replacementNotes.length > 0) {
+    lines.push(`Replacement notes: ${replacementNotes.join(' | ')}`);
   }
   reviewSummaryEl.textContent = lines.join('\n');
 }
@@ -1629,15 +1630,6 @@ document.getElementById('createCharacterBtn').onclick = async () => {
       domains: [],
     },
   };
-  const conflicts = advancement
-    .flatMap((frame) => frame.lanes)
-    .map(laneConflict)
-    .filter(Boolean);
-  if (conflicts.length > 0) {
-    createStatusEl.className = 'error';
-    createStatusEl.textContent = conflicts.join(' | ');
-    return;
-  }
   createStatusEl.className = '';
   createStatusEl.textContent = 'Creating…';
   try {
