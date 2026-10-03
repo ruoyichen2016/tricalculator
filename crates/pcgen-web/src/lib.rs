@@ -157,6 +157,8 @@ pub struct NamedOption {
     pub starting_gold: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub class_levels: Option<std::collections::BTreeMap<String, u32>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub serves_as: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -852,6 +854,7 @@ fn named_options<T>(
             cost_gp: None,
             starting_gold: None,
             class_levels: None,
+            serves_as: None,
         })
         .collect();
     options.sort_by(|left, right| left.name.cmp(&right.name));
@@ -868,6 +871,7 @@ fn class_options(pack: &pcgen_ir::CompiledRulePack) -> Vec<NamedOption> {
             cost_gp: None,
             starting_gold: Some(starting_gold_for_class(&class.name)),
             class_levels: None,
+            serves_as: class.serves_as.clone(),
         })
         .collect();
     options.sort_by(|left, right| left.name.cmp(&right.name));

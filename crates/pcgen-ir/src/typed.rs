@@ -348,6 +348,12 @@ fn parse_class(record: &RawRecord) -> ClassDefinition {
         .unwrap_or_default();
     class.requires_spellbook =
         tag(record, "SPELLBOOK").is_some_and(|value| value.eq_ignore_ascii_case("YES"));
+    class.serves_as = tag(record, "SERVESAS").and_then(|value| {
+        value
+            .split('|')
+            .find(|part| !part.is_empty() && !part.eq_ignore_ascii_case("CLASS"))
+            .map(str::to_string)
+    });
     class.is_prestige = type_tags(record)
         .iter()
         .any(|tag| tag.eq_ignore_ascii_case("prestige"));

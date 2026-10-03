@@ -683,6 +683,7 @@ let packClasses = [];
 let packVariants = [];
 let archetypesByClass = new Map();
 let substitutionsByClassLevel = new Map();
+let classVariantsByBase = new Map();
 let packSkills = [];
 let packAbilityCategories = [];
 let packAbilities = [];
@@ -878,6 +879,14 @@ function classOptionName(classId) {
 function buildVariantIndexes() {
   archetypesByClass.clear();
   substitutionsByClassLevel.clear();
+  classVariantsByBase.clear();
+  for (const option of packClasses) {
+    if (option.serves_as) {
+      const baseKey = option.serves_as.toLowerCase();
+      if (!classVariantsByBase.has(baseKey)) classVariantsByBase.set(baseKey, []);
+      classVariantsByBase.get(baseKey).push(option);
+    }
+  }
   for (const variant of packVariants) {
     if (!variant.applies_to) continue;
     const classKey = variant.applies_to.toLowerCase();
@@ -1245,6 +1254,40 @@ function renderLevelEditor() {
       renderReviewSummary();
     });
     editor.appendChild(classSelect);
+
+    const selectedClassOption = packClasses.find((option) => option.id === lane.class);
+    const baseClassForVariant = selectedClassOption?.serves_as || lane.class || '';
+    const classVariants = classVariantsByBase.get(baseClassForVariant.toLowerCase()) || [];
+    if (classVariants.length > 0) {
+      const variantLabel = document.createElement('label');
+      variantLabel.textContent = 'Class Variant';
+      editor.appendChild(variantLabel);
+
+      const variantSelect = document.createElement('select');
+      variantSelect.className = 'class-variant-select';
+      const baseOption = document.createElement('option');
+      baseOption.value = '';
+      baseOption.textContent = '— base class —';
+      variantSelect.appendChild(baseOption);
+      for (const variant of classVariants) {
+        const option = document.createElement('option');
+        option.value = variant.id;
+        option.textContent = variant.name;
+        variantSelect.appendChild(option);
+      }
+      variantSelect.value = selectedClassOption?.serves_as ? lane.class : '';
+      variantSelect.addEventListener('change', () => {
+        lane.class = variantSelect.value || baseClassForVariant;
+        lane.archetype = '';
+        lane.substitution = '';
+        renderLevelEditor();
+        syncClassGold();
+        refreshSpellCandidates();
+        renderLevelList();
+        renderReviewSummary();
+      });
+      editor.appendChild(variantSelect);
+    }
 
     const classLevel = classLevelForLane(frameIndex, laneIndex);
 

@@ -245,6 +245,9 @@ pub struct ClassDefinition {
     pub is_prestige: bool,
     #[serde(default)]
     pub is_psionic: bool,
+    /// PCGen `SERVESAS:CLASS|X`: this class is an alternate/variant of `X`.
+    #[serde(default)]
+    pub serves_as: Option<String>,
     /// Monster / racial class: its levels do not count for `PREPCLEVEL`.
     #[serde(default)]
     pub is_monster: bool,
@@ -353,6 +356,7 @@ impl ClassDefinition {
             description: String::new(),
             is_prestige: false,
             is_psionic: false,
+            serves_as: None,
             is_monster: false,
             gestalt_slot_cost: None,
             hit_die: "d8".to_string(),
