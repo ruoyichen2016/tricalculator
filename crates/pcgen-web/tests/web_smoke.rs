@@ -1129,3 +1129,87 @@ async fn redo_reapplies_and_history_reports_depths() {
 
     let _ = std::fs::remove_dir_all(characters_root);
 }
+
+#[tokio::test]
+async fn history_lists_revisions_and_restore_jumps_to_one() {
+    let config = character_config("history");
+    let characters_root = config.characters_root.clone();
+    let app = app(config);
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/characters")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    r#"{"pcc":"campaign-mini/mini.pcc","pcg":"campaign-mini/mini_character.pcg","id":"hist-hero"}"#,
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    for _ in 0..2 {
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/characters/hist-hero/level-up")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        r#"{"pcc":"campaign-mini/mini.pcc","request":{"class":"Fighter","hp_gained":7}}"#,
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/characters/hist-hero/history")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let history: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let versions = history["versions"].as_array().unwrap();
+    assert_eq!(versions.len(), 2);
+    assert_eq!(versions[0]["total_level"], 2);
+    assert_eq!(versions[1]["total_level"], 3);
+
+    // Jump to the oldest revision (level 2).
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/characters/hist-hero/history/1/restore")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let detail: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(
+        detail["envelope"]["character"]["class_levels"][0]["level"],
+        2
+    );
+
+    let _ = std::fs::remove_dir_all(characters_root);
+}

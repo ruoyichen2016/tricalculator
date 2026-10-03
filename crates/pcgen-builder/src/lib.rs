@@ -122,6 +122,19 @@ pub enum BuilderError {
     EquipmentBudgetExceeded { spent: f64, budget: f64 },
 }
 
+/// One revision in a character's undo/redo history.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CharacterVersion {
+    /// 1-based position from the oldest saved revision to the newest.
+    pub index: usize,
+    pub name: String,
+    pub total_level: u32,
+    /// Unix seconds when the snapshot was written.
+    pub saved_at_unix: i64,
+    /// Relative slot, e.g. `undo` or `redo`.
+    pub stack: String,
+}
+
 /// File-based character repository.
 ///
 /// One JSON file per character, named `<sanitized-id>.json` under `root`.
@@ -222,6 +235,82 @@ impl CharacterRepository {
             }
         }
         Ok(highest + 1)
+    }
+
+    fn snapshot_meta(&self, path: &Path, index: usize, stack: &str) -> Option<CharacterVersion> {
+        let bytes = fs::read(path).ok()?;
+        let envelope: NativeSaveEnvelope = serde_json::from_slice(&bytes).ok()?;
+        let saved_at_unix = fs::metadata(path)
+            .ok()
+            .and_then(|meta| meta.modified().ok())
+            .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|duration| duration.as_secs() as i64)
+            .unwrap_or(0);
+        Some(CharacterVersion {
+            index,
+            name: envelope.character.name.clone(),
+            total_level: envelope.character.total_level(),
+            saved_at_unix,
+            stack: stack.to_string(),
+        })
+    }
+
+    /// List the saved revisions available to `undo` and `redo`, oldest first.
+    pub fn history(&self, id: &str) -> Result<Vec<CharacterVersion>, BuilderError> {
+        let id = sanitize_id(id)?;
+        let mut versions = Vec::new();
+        for (index, path) in self
+            .snapshot_entries(&self.character_history_dir(&id))?
+            .iter()
+            .enumerate()
+        {
+            if let Some(version) = self.snapshot_meta(path, index + 1, "undo") {
+                versions.push(version);
+            }
+        }
+        for (index, path) in self
+            .snapshot_entries(&self.character_redo_dir(&id))?
+            .iter()
+            .enumerate()
+        {
+            if let Some(version) = self.snapshot_meta(path, index + 1, "redo") {
+                versions.push(version);
+            }
+        }
+        Ok(versions)
+    }
+
+    /// Restore the `index`-th revision of `id` (1-based, oldest first).
+    ///
+    /// The current live version is pushed onto the appropriate stack so the
+    /// jump itself can be undone.
+    pub fn restore_version(
+        &self,
+        id: &str,
+        index: usize,
+    ) -> Result<NativeSaveEnvelope, BuilderError> {
+        let id = sanitize_id(id)?;
+        if index == 0 {
+            return Err(BuilderError::NotFound(id));
+        }
+        let undo_dir = self.character_history_dir(&id);
+        let undo_entries = self.snapshot_entries(&undo_dir)?;
+        let (source, push_dir) = if index <= undo_entries.len() {
+            (undo_entries[index - 1].clone(), undo_dir.clone())
+        } else {
+            let redo_index = index - undo_entries.len();
+            let redo_dir = self.character_redo_dir(&id);
+            let redo_entries = self.snapshot_entries(&redo_dir)?;
+            if redo_index > redo_entries.len() {
+                return Err(BuilderError::NotFound(id));
+            }
+            (redo_entries[redo_index - 1].clone(), redo_dir)
+        };
+        let bytes = fs::read(&source)?;
+        let envelope: NativeSaveEnvelope = serde_json::from_slice(&bytes)?;
+        fs::remove_file(&source)?;
+        self.swap_live_version(&id, &bytes, Some(&push_dir))?;
+        Ok(envelope)
     }
 
     /// Number of saved revisions available to `undo` for `id`.
@@ -523,6 +612,39 @@ mod tests {
             ))
             .unwrap();
         assert!(!repository.can_redo("hero").unwrap());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn history_lists_versions_and_restore_jumps() {
+        let root = temp_root();
+        let repository = CharacterRepository::new(&root);
+        for level in 1..=4 {
+            repository
+                .save(&NativeSaveEnvelope::new(
+                    sample_character("hero", "Hero", level),
+                    "fp",
+                    None,
+                ))
+                .unwrap();
+        }
+        // Undo stack holds levels 1..3 (oldest first).
+        let versions = repository.history("hero").unwrap();
+        assert_eq!(versions.len(), 3);
+        assert_eq!(versions[0].total_level, 1);
+        assert_eq!(versions[2].total_level, 3);
+        assert_eq!(versions[2].stack, "undo");
+
+        // Jump straight back to the oldest revision.
+        let restored = repository.restore_version("hero", 1).unwrap();
+        assert_eq!(restored.character.total_level(), 1);
+        assert_eq!(repository.load("hero").unwrap().character.total_level(), 1);
+        // The jump pushed the previous live version (level 4) onto the stack.
+        assert!(repository
+            .history("hero")
+            .unwrap()
+            .iter()
+            .any(|version| version.total_level == 4));
         let _ = fs::remove_dir_all(root);
     }
 

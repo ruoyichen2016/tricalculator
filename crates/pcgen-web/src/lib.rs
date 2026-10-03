@@ -450,6 +450,10 @@ pub fn app(config: WebConfig) -> Router {
         .route("/api/characters/{id}/undo", post(undo_character))
         .route("/api/characters/{id}/redo", post(redo_character))
         .route("/api/characters/{id}/history", get(character_history))
+        .route(
+            "/api/characters/{id}/history/{index}/restore",
+            post(restore_character_version),
+        )
         .with_state(state)
 }
 
@@ -705,12 +709,32 @@ async fn character_history(
         Ok(depth) => depth,
         Err(error) => return api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
     };
+    let versions = match state.repository.history(&id) {
+        Ok(versions) => versions,
+        Err(error) => return api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
+    };
     Json(serde_json::json!({
         "id": id,
         "undo_depth": undo_depth,
         "redo_depth": redo_depth,
+        "versions": versions,
     }))
     .into_response()
+}
+
+/// Restore a specific revision of a character (1-based, oldest first).
+async fn restore_character_version(
+    State(state): State<AppState>,
+    AxumPath((id, index)): AxumPath<(String, usize)>,
+) -> impl IntoResponse {
+    match state.repository.restore_version(&id, index) {
+        Ok(envelope) => (StatusCode::OK, Json(evaluate_envelope(&state, envelope))).into_response(),
+        Err(BuilderError::NotFound(_)) => api_error(
+            StatusCode::NOT_FOUND,
+            format!("no revision {index} for character: {id}"),
+        ),
+        Err(error) => api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
+    }
 }
 
 /// Restore the version of a character saved before its most recent write.

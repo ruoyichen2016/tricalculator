@@ -94,6 +94,7 @@
     <button type="button" id="deleteCharacter">Delete</button>
     <button type="button" id="undoCharacter" class="ghost">Undo</button>
     <button type="button" id="redoCharacter" class="ghost">Redo</button>
+    <button type="button" id="historyCharacter" class="ghost">History</button>
     <button type="button" id="importCharacter">Import current .pcg</button>
   </div>
   <div class="row">
@@ -122,6 +123,10 @@
     <label><input type="checkbox" id="levelUpReplaceTemplates"> replace all templates</label>
   </div>
   <div id="levelUpTemplateRows" class="picker-rows"></div>
+  <div id="historyPanel" hidden>
+    <strong>Saved revisions</strong>
+    <div id="historyList" class="picker-rows"></div>
+  </div>
   <pre id="levelUpPreview"></pre>
   <iframe id="levelUpSheet" title="level-up preview sheet" style="width:100%;min-height:16rem;border:1px solid var(--line);border-radius:8px"></iframe>
   <p id="characterStatus"></p>
@@ -732,6 +737,65 @@ document.getElementById('redoCharacter').onclick = async () => {
     characterPreviewEl.textContent = JSON.stringify(detail.snapshot || detail.envelope, null, 2);
     sheetEl.srcdoc = detail.html || '';
     await loadCharacters();
+  } catch (error) {
+    characterStatusEl.className = 'error';
+    characterStatusEl.textContent = String(error);
+  }
+};
+
+document.getElementById('historyCharacter').onclick = async () => {
+  const id = characterListEl.value;
+  if (!id) return;
+  characterStatusEl.className = '';
+  characterStatusEl.textContent = 'Loading history…';
+  try {
+    const response = await fetch(`/api/characters/${encodeURIComponent(id)}/history`);
+    const data = await response.json();
+    if (!response.ok) {
+      characterStatusEl.className = 'error';
+      characterStatusEl.textContent = data.error || 'failed to load history';
+      return;
+    }
+    const list = document.getElementById('historyList');
+    const panel = document.getElementById('historyPanel');
+    list.innerHTML = '';
+    if (!data.versions || data.versions.length === 0) {
+      list.textContent = 'no saved revisions';
+    }
+    for (const version of data.versions || []) {
+      const row = document.createElement('div');
+      row.className = 'picker-row';
+      const when = version.saved_at_unix
+        ? new Date(version.saved_at_unix * 1000).toLocaleString()
+        : '—';
+      const label = document.createElement('span');
+      label.textContent = `#${version.index} · L${version.total_level} · ${version.stack} · ${when}`;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'ghost';
+      button.textContent = 'Restore';
+      button.onclick = async () => {
+        const restore = await fetch(
+          `/api/characters/${encodeURIComponent(id)}/history/${version.index}/restore`,
+          { method: 'POST' },
+        );
+        const detail = await restore.json();
+        if (!restore.ok) {
+          characterStatusEl.className = 'error';
+          characterStatusEl.textContent = detail.error || 'failed to restore';
+          return;
+        }
+        characterStatusEl.textContent = `Restored revision #${version.index}${describeHistory(detail)}`;
+        lastDiagnosticsPayload = detail;
+        characterPreviewEl.textContent = JSON.stringify(detail.snapshot || detail.envelope, null, 2);
+        sheetEl.srcdoc = detail.html || '';
+        await loadCharacters();
+      };
+      row.append(label, button);
+      list.appendChild(row);
+    }
+    panel.hidden = false;
+    characterStatusEl.textContent = `History: undo ${data.undo_depth}, redo ${data.redo_depth}`;
   } catch (error) {
     characterStatusEl.className = 'error';
     characterStatusEl.textContent = String(error);
