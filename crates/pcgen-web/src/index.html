@@ -881,7 +881,10 @@ document.getElementById('bundleFile').onchange = async (event) => {
       characterStatusEl.textContent = data.error || 'failed to import bundle';
       return;
     }
-    characterStatusEl.textContent = `Imported ${(data || []).length} character(s)`;
+    const count = (data.imported || []).length;
+    const warnings = (data.warnings || []).length;
+    characterStatusEl.textContent = `Imported ${count} character(s)`
+      + (warnings ? ` (${warnings} warning(s): ${data.warnings.join('; ')})` : '');
     await loadCharacters();
   } catch (error) {
     characterStatusEl.className = 'error';
@@ -1381,23 +1384,40 @@ function updatePointBuy() {
   pointBuyStatusEl.textContent = `Point buy: ${spent} / ${budget}`;
 }
 
-function computeSkillBudget() {
+function skillBudgetBreakdown() {
   const intScore = Number(document.getElementById('stat-INT')?.value || 10);
   const intMod = Math.floor((intScore - 10) / 2);
+  const rows = [];
   let budget = 0;
   advancement.forEach((frame, frameIndex) => {
     frame.lanes.forEach((lane, laneIndex) => {
       const cls = packClassesByUuid.get(lane.baseClass || lane.class)
         || packClassesById.get(lane.baseClass || lane.class);
       if (!cls) return;
-      const first = classLevelForLane(frameIndex, laneIndex) === 1;
+      const classLevel = classLevelForLane(frameIndex, laneIndex);
+      const first = classLevel === 1;
       const base = first
         ? (cls.skill_points_per_level || 0) * (cls.skill_multiplier || 4)
         : (cls.skill_points_per_level || 0);
-      budget += Math.max(1, base + intMod);
+      const points = Math.max(1, base + intMod);
+      budget += points;
+      rows.push({
+        level: frame.character_level,
+        className: cls.name || cls.id,
+        classLevel,
+        first,
+        base,
+        multiplier: cls.skill_multiplier || 1,
+        intMod,
+        points,
+      });
     });
   });
-  return budget;
+  return { budget, intMod, rows };
+}
+
+function computeSkillBudget() {
+  return skillBudgetBreakdown().budget;
 }
 
 function updateSkillPoints() {
@@ -2396,7 +2416,15 @@ function renderReviewSummary() {
   const abilitiesText = Array.from(abilityGroups.entries())
     .map(([category, list]) => `${category}: ${list.join(', ')}`)
     .join(' | ');
-  lines.push(`Skill points: ${spentSkill} / ${skillBudget}`);
+  const budgetBreakdown = skillBudgetBreakdown();
+  lines.push(`Skill points: ${spentSkill} / ${budgetBreakdown.budget}`);
+  for (const row of budgetBreakdown.rows) {
+    const sign = row.intMod >= 0 ? '+' : '';
+    const detail = row.first
+      ? `class base ${row.base} (×${row.multiplier}, first level) + INT ${sign}${row.intMod}`
+      : `class base ${row.base} + INT ${sign}${row.intMod}`;
+    lines.push(`  Lv ${row.level} ${row.className} (class level ${row.classLevel}): ${row.points} — ${detail}`);
+  }
   lines.push(`Skills: ${skillsText || '—'}`);
   const templatesText = templateSelections.map((entry) => entry.name).join(', ');
   lines.push(`Templates: ${templatesText || 'none'}`);

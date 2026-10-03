@@ -67,6 +67,8 @@
 - 历史版本附带相对当前版本的 `summary`（等级/职业/模板/能力**明细**），CLI 与 Web 历史面板均展示；
 - Web 新增 `GET/POST /api/characters/bundle` 批量导出/导入，面板提供 Export/Import bundle 按钮；
 - CLI 新增 `export-all` / `import-bundle` 批量打包命令；
+- bundle 导入前校验 schema/应用版本（新增 `validate_bundle` / `BundleReport`），不兼容 schema 拒绝，版本差异给出警告；
+- Review 技能点显示逐项来源（首级倍数 vs 普通级 + INT 调整）；
 - Web 建卡向导：技能点预算实时校验条（spent / budget / remaining，超支高亮），INT、职业、等级变化即时刷新；
 - Web 建卡向导：购点实时校验已有，`/api/preview` 的 `skill_points` 断言补充到测试；
 - 新增 `POST /api/characters/{id}/undo` 与 CLI `undo` 子命令（`--dry-run` 只打印），可反复还原最近两个版本；

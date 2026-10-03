@@ -989,12 +989,20 @@ fn main() -> Result<()> {
                 .with_context(|| "bundle has no `characters` array".to_string())?;
             let repository = CharacterRepository::new(&dir);
             let mut imported = 0usize;
+            let mut envelopes = Vec::new();
             for character in characters {
                 let envelope: NativeSaveEnvelope = serde_json::from_value(character.clone())
                     .with_context(|| {
                         format!("failed to parse a character in {}", bundle.display())
                     })?;
-                repository.save(&envelope)?;
+                envelopes.push(envelope);
+            }
+            let report = pcgen_builder::validate_bundle(&envelopes);
+            for warning in report.warnings() {
+                eprintln!("warning: {warning}");
+            }
+            for envelope in &envelopes {
+                repository.save(envelope)?;
                 imported += 1;
             }
             println!("imported {imported} character(s) into {}", dir.display());

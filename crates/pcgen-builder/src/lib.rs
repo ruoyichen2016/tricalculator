@@ -11,6 +11,8 @@ pub use creation::{
     apply_level_up, create_draft, equipment_cost, level_up_draft, preview_level_up,
     starting_gold_for_class, CreateRequest, CreateSpell, LevelUpLane, LevelUpRequest,
 };
+// `BundleReport`, `validate_bundle` and `validate_bundle_fingerprint` live in
+// this module and are exported at the crate root by virtue of being `pub`.
 
 use pcgen_engine::CharacterDraft;
 use serde::{Deserialize, Serialize};
@@ -233,6 +235,81 @@ fn summarize(revision: &CharacterDraft, current: &CharacterDraft) -> VersionSumm
             .cloned()
             .collect(),
     }
+}
+
+/// Validation result for a character bundle before importing it.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct BundleReport {
+    /// Characters whose schema is newer than this build supports.
+    pub unsupported: Vec<String>,
+    /// Characters written with a different rules fingerprint.
+    pub fingerprint_mismatch: Vec<String>,
+    /// Characters whose recorded application version differs.
+    pub version_mismatch: Vec<String>,
+}
+
+impl BundleReport {
+    /// Human-readable warnings; empty when the bundle looks fully compatible.
+    pub fn warnings(&self) -> Vec<String> {
+        let mut warnings = Vec::new();
+        if !self.unsupported.is_empty() {
+            warnings.push(format!(
+                "{} character(s) use an unsupported save schema: {}",
+                self.unsupported.len(),
+                self.unsupported.join(", ")
+            ));
+        }
+        if !self.fingerprint_mismatch.is_empty() {
+            warnings.push(format!(
+                "{} character(s) were created with a different rules fingerprint: {}",
+                self.fingerprint_mismatch.len(),
+                self.fingerprint_mismatch.join(", ")
+            ));
+        }
+        if !self.version_mismatch.is_empty() {
+            warnings.push(format!(
+                "{} character(s) were written by a different app version: {}",
+                self.version_mismatch.len(),
+                self.version_mismatch.join(", ")
+            ));
+        }
+        warnings
+    }
+
+    pub fn is_compatible(&self) -> bool {
+        self.unsupported.is_empty()
+    }
+}
+
+/// Compare a bundle of characters against the current build's expectations.
+pub fn validate_bundle(characters: &[NativeSaveEnvelope]) -> BundleReport {
+    let mut report = BundleReport::default();
+    for envelope in characters {
+        let id = envelope.character.id.clone();
+        if envelope.schema > SAVE_SCHEMA {
+            report.unsupported.push(id.clone());
+        }
+        if envelope.application_version != APPLICATION_VERSION {
+            report.version_mismatch.push(id.clone());
+        }
+    }
+    report
+}
+
+/// Compare a bundle against a specific rules fingerprint and report mismatches.
+pub fn validate_bundle_fingerprint(
+    characters: &[NativeSaveEnvelope],
+    fingerprint: &str,
+) -> BundleReport {
+    let mut report = validate_bundle(characters);
+    for envelope in characters {
+        if envelope.rules_fingerprint != fingerprint {
+            report
+                .fingerprint_mismatch
+                .push(envelope.character.id.clone());
+        }
+    }
+    report
 }
 
 /// File-based character repository.
@@ -809,6 +886,22 @@ mod tests {
         );
         assert!(summary.abilities_removed.is_empty());
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn validate_bundle_flags_schema_and_fingerprint() {
+        let ok = NativeSaveEnvelope::new(sample_character("ok", "Ok", 1), "fp", None);
+        let mut newer = NativeSaveEnvelope::new(sample_character("new", "New", 1), "fp", None);
+        newer.schema = SAVE_SCHEMA + 1;
+        let mut other_fp = NativeSaveEnvelope::new(sample_character("fp", "FP", 1), "other", None);
+        other_fp.application_version = "0.0.0".to_string();
+
+        let report = validate_bundle_fingerprint(&[ok, newer, other_fp], "fp");
+        assert_eq!(report.unsupported, vec!["new".to_string()]);
+        assert_eq!(report.fingerprint_mismatch, vec!["fp".to_string()]);
+        assert_eq!(report.version_mismatch, vec!["fp".to_string()]);
+        assert!(!report.is_compatible());
+        assert_eq!(report.warnings().len(), 3);
     }
 
     #[test]

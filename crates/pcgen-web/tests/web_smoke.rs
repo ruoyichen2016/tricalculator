@@ -1289,3 +1289,58 @@ async fn bundle_export_import_round_trip() {
 
     let _ = std::fs::remove_dir_all(characters_root);
 }
+
+#[tokio::test]
+async fn bundle_import_rejects_newer_schema() {
+    let config = character_config("bundle-schema");
+    let characters_root = config.characters_root.clone();
+    let app = app(config);
+
+    // Create a real character, export it, then bump its schema.
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/characters")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    r#"{"pcc":"campaign-mini/mini.pcc","pcg":"campaign-mini/mini_character.pcg","id":"future-hero"}"#,
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/characters/bundle")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let mut bundle: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    bundle["characters"][0]["schema"] = serde_json::json!(999);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/characters/bundle")
+                .header("content-type", "application/json")
+                .body(Body::from(bundle.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    let _ = std::fs::remove_dir_all(characters_root);
+}

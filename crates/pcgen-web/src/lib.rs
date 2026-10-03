@@ -531,6 +531,17 @@ async fn import_bundle(
     State(state): State<AppState>,
     Json(payload): Json<BundlePayload>,
 ) -> impl IntoResponse {
+    let report = pcgen_builder::validate_bundle(&payload.characters);
+    if !report.is_compatible() {
+        return api_error(
+            StatusCode::BAD_REQUEST,
+            format!(
+                "bundle contains unsupported saves: {}",
+                report.unsupported.join(", ")
+            ),
+        );
+    }
+    let warnings = report.warnings();
     let mut imported = Vec::new();
     for envelope in &payload.characters {
         if let Err(error) = state.repository.save(envelope) {
@@ -538,7 +549,14 @@ async fn import_bundle(
         }
         imported.push(summary_for(envelope));
     }
-    (StatusCode::CREATED, Json(imported)).into_response()
+    (
+        StatusCode::CREATED,
+        Json(serde_json::json!({
+            "imported": imported,
+            "warnings": warnings,
+        })),
+    )
+        .into_response()
 }
 
 async fn characters(State(state): State<AppState>) -> impl IntoResponse {
