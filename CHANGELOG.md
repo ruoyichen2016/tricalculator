@@ -74,6 +74,8 @@
 - 建卡向导支持保存/加载草稿（浏览器 localStorage），并支持导出/导入草稿文件；
 - `GET /api/characters?pcc=…` 按 campaign 规则指纹过滤角色列表；页面新增 “only current campaign” 开关控制是否过滤；
 - 角色卡支持打印友好样式（`@media print` 仅保留 sheet 并全宽显示）；
+- 建卡草稿支持 schema 迁移（`migrateCreateDraft`，旧格式自动升级）；
+- `GET /api/characters` 新增搜索参数 `q` / `class` / `min_level` / `max_level`，页面提供搜索框；
 - bundle 支持按规则指纹分组：`group_by_fingerprint` / `filter_by_fingerprint`，CLI `--list-groups` / `--pcc`，Web `GET /api/characters/bundle/groups`；
 - Web 建卡向导：技能点预算实时校验条（spent / budget / remaining，超支高亮），INT、职业、等级变化即时刷新；
 - Web 建卡向导：购点实时校验已有，`/api/preview` 的 `skill_points` 断言补充到测试；

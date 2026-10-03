@@ -71,6 +71,9 @@ pub struct CharacterSummary {
     pub race_id: String,
     pub total_level: u32,
     pub rules_fingerprint: String,
+    /// Distinct class ids present in the saved draft, oldest first.
+    #[serde(default)]
+    pub class_ids: Vec<String>,
 }
 
 #[derive(Debug, Error)]
@@ -647,14 +650,25 @@ impl CharacterRepository {
     }
 }
 
-fn summary(envelope: &NativeSaveEnvelope) -> CharacterSummary {
+/// Build a list summary for a native save envelope.
+pub fn summary(envelope: &NativeSaveEnvelope) -> CharacterSummary {
     let total_level = envelope.character.total_level();
+    let mut class_ids: Vec<String> = Vec::new();
+    for entry in &envelope.character.class_levels {
+        if !class_ids
+            .iter()
+            .any(|id| id.eq_ignore_ascii_case(&entry.class_id))
+        {
+            class_ids.push(entry.class_id.clone());
+        }
+    }
     CharacterSummary {
         id: envelope.character.id.clone(),
         name: envelope.character.name.clone(),
         race_id: envelope.character.race_id.clone(),
         total_level,
         rules_fingerprint: envelope.rules_fingerprint.clone(),
+        class_ids,
     }
 }
 

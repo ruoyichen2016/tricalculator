@@ -118,6 +118,13 @@
     <label title="Only list characters matching the selected campaign"><input type="checkbox" id="onlyCurrentCampaign"> only current campaign</label>
   </div>
   <div class="row">
+    <input id="characterSearch" placeholder="Search name / id">
+    <input id="characterClassFilter" placeholder="Class id">
+    <input id="characterMinLevel" type="number" min="1" placeholder="min Lv" style="width:5rem">
+    <input id="characterMaxLevel" type="number" min="1" placeholder="max Lv" style="width:5rem">
+    <button type="button" id="characterSearchBtn" class="ghost">Search</button>
+  </div>
+  <div class="row">
     <label for="levelUpClass">Level up</label>
     <select id="levelUpClass"></select>
     <label for="levelUpLevel">to level</label>
@@ -652,6 +659,14 @@ async function loadCharacters() {
     const params = new URLSearchParams();
     const onlyCurrent = document.getElementById('onlyCurrentCampaign').checked;
     if (onlyCurrent && pccEl.value) params.set('pcc', pccEl.value);
+    const search = document.getElementById('characterSearch').value.trim();
+    if (search) params.set('q', search);
+    const classFilter = document.getElementById('characterClassFilter').value.trim();
+    if (classFilter) params.set('class', classFilter);
+    const minLevel = Number(document.getElementById('characterMinLevel').value);
+    if (minLevel > 0) params.set('min_level', minLevel);
+    const maxLevel = Number(document.getElementById('characterMaxLevel').value);
+    if (maxLevel > 0) params.set('max_level', maxLevel);
     const suffix = params.toString() ? `?${params.toString()}` : '';
     const response = await fetch(`/api/characters${suffix}`);
     const list = await response.json();
@@ -1590,6 +1605,10 @@ async function loadPackOptions() {
 document.getElementById('loadPackOptions').onclick = loadPackOptions;
 pccEl.addEventListener('change', debounce(() => { loadPackOptions(); loadCharacters(); }, 400));
 document.getElementById('onlyCurrentCampaign').addEventListener('change', () => loadCharacters());
+document.getElementById('characterSearchBtn').addEventListener('click', () => loadCharacters());
+document.getElementById('characterSearch').addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') loadCharacters();
+});
 pccEl.addEventListener('input', debounce(() => loadPackOptions(), 800));
 raceSearchEl.addEventListener('input', debounce(filterRaceBases, 250));
 raceCategoryEl.addEventListener('change', filterRaceBases);
@@ -2605,7 +2624,7 @@ function serializeCreateDraft() {
     .filter((entry) => entry.ability)
     .map((entry) => ({ category: entry.category || 'Ability', ability: entry.ability }));
   return {
-    schema: 1,
+    schema: 2,
     pcc: pccEl.value,
     name: createNameEl.value,
     race: createRaceEl.value,
@@ -2633,12 +2652,65 @@ function serializeCreateDraft() {
   };
 }
 
+const CREATE_DRAFT_SCHEMA = 2;
+
+/// Upgrade an older draft to the current schema. Returns null when the version
+/// is unknown/newer than this build supports.
+function migrateCreateDraft(draft) {
+  if (!draft || typeof draft !== 'object') return null;
+  const version = Number(draft.schema || 1);
+  if (version > CREATE_DRAFT_SCHEMA) return null;
+  let migrated = { ...draft };
+  if (version < 2) {
+    // v1 stored `skills`/`abilities` as objects and `templates` as bare ids.
+    if (Array.isArray(migrated.skills)) {
+      // already a list
+    } else if (migrated.skills && typeof migrated.skills === 'object') {
+      migrated.skills = Object.entries(migrated.skills).map(([skill, rank]) => ({ skill, rank }));
+    } else {
+      migrated.skills = [];
+    }
+    if (Array.isArray(migrated.abilities)) {
+      // already a list
+    } else if (migrated.abilities && typeof migrated.abilities === 'object') {
+      migrated.abilities = Object.entries(migrated.abilities).map(([ability, category]) => ({
+        ability,
+        category,
+      }));
+    } else {
+      migrated.abilities = [];
+    }
+    if (Array.isArray(migrated.templates)) {
+      migrated.templates = migrated.templates.map((entry) =>
+        typeof entry === 'string' ? { id: entry, name: entry } : entry,
+      );
+    } else {
+      migrated.templates = [];
+    }
+    if (Array.isArray(migrated.advancement)) {
+      migrated.advancement = migrated.advancement.map((frame) => ({
+        character_level: frame.character_level,
+        lanes: (frame.lanes || []).map((lane) => ({
+          class: lane.class,
+          baseClass: lane.baseClass || lane.class,
+          archetype: lane.archetype || null,
+          substitution: lane.substitution || null,
+        })),
+      }));
+    }
+  }
+  migrated.schema = CREATE_DRAFT_SCHEMA;
+  return migrated;
+}
+
 function applyCreateDraft(draft) {
-  if (!draft || draft.schema !== 1) {
+  const migrated = migrateCreateDraft(draft);
+  if (!migrated) {
     createStatusEl.className = 'error';
     createStatusEl.textContent = 'Unsupported draft schema';
     return false;
   }
+  draft = migrated;
   createNameEl.value = draft.name || '';
   createModeEl.value = draft.mode || 'normal';
   createLevelEl.value = draft.level || 1;

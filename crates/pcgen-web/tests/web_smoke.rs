@@ -1487,3 +1487,71 @@ async fn characters_endpoint_filters_by_pcc_fingerprint() {
 
     let _ = std::fs::remove_dir_all(characters_root);
 }
+
+#[tokio::test]
+async fn characters_endpoint_supports_search_filters() {
+    let config = character_config("search");
+    let characters_root = config.characters_root.clone();
+    let app = app(config);
+
+    // Both import the same mini .pcg, so they share its level (2).
+    for (id, name) in [("fighter-one", "Aria"), ("wizard-two", "Borin")] {
+        let body = serde_json::json!({
+            "pcc": "campaign-mini/mini.pcc",
+            "pcg": "campaign-mini/mini_character.pcg",
+            "id": id,
+            "name": name,
+        });
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/characters")
+                    .header("content-type", "application/json")
+                    .body(Body::from(body.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::CREATED);
+    }
+
+    let cases = [
+        ("/api/characters?q=aria", vec!["fighter-one"]),
+        ("/api/characters?q=BORIN", vec!["wizard-two"]),
+        (
+            "/api/characters?class=Fighter",
+            vec!["fighter-one", "wizard-two"],
+        ),
+        ("/api/characters?min_level=3", vec![]),
+        (
+            "/api/characters?max_level=3",
+            vec!["fighter-one", "wizard-two"],
+        ),
+    ];
+    for (uri, expected) in cases {
+        let response = app
+            .clone()
+            .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK, "{uri}");
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let list: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        let mut ids: Vec<&str> = list
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| item["id"].as_str().unwrap())
+            .collect();
+        ids.sort();
+        let mut expected = expected;
+        expected.sort();
+        assert_eq!(ids, expected, "{uri}");
+    }
+
+    let _ = std::fs::remove_dir_all(characters_root);
+}

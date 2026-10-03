@@ -608,6 +608,17 @@ pub struct CharactersQuery {
     /// are listed.
     #[serde(default)]
     pub pcc: Option<String>,
+    /// Case-insensitive substring match on the character name or id.
+    #[serde(default)]
+    pub q: Option<String>,
+    /// Only characters with this class (case-insensitive, id).
+    #[serde(default)]
+    pub class: Option<String>,
+    /// Inclusive total-level bounds.
+    #[serde(default)]
+    pub min_level: Option<u32>,
+    #[serde(default)]
+    pub max_level: Option<u32>,
 }
 
 async fn characters(
@@ -632,6 +643,40 @@ async fn characters(
         }
         _ => list,
     };
+    let needle = query.q.as_deref().map(str::to_lowercase);
+    let class = query.class.as_deref().map(str::to_lowercase);
+    let list: Vec<_> = list
+        .into_iter()
+        .filter(|summary| {
+            if let Some(needle) = &needle {
+                if !summary.name.to_lowercase().contains(needle)
+                    && !summary.id.to_lowercase().contains(needle)
+                {
+                    return false;
+                }
+            }
+            if let Some(class) = &class {
+                if !summary
+                    .class_ids
+                    .iter()
+                    .any(|id| id.to_lowercase() == *class)
+                {
+                    return false;
+                }
+            }
+            if let Some(min) = query.min_level {
+                if summary.total_level < min {
+                    return false;
+                }
+            }
+            if let Some(max) = query.max_level {
+                if summary.total_level > max {
+                    return false;
+                }
+            }
+            true
+        })
+        .collect();
     (StatusCode::OK, Json(list)).into_response()
 }
 
@@ -1355,14 +1400,7 @@ fn class_options(pack: &pcgen_ir::CompiledRulePack) -> Vec<NamedOption> {
 }
 
 fn summary_for(envelope: &NativeSaveEnvelope) -> CharacterSummary {
-    let total_level = envelope.character.total_level();
-    CharacterSummary {
-        id: envelope.character.id.clone(),
-        name: envelope.character.name.clone(),
-        race_id: envelope.character.race_id.clone(),
-        total_level,
-        rules_fingerprint: envelope.rules_fingerprint.clone(),
-    }
+    pcgen_builder::summary(envelope)
 }
 
 fn stable_id(kind: &str, value: &str) -> String {
