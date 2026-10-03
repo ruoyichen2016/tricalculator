@@ -834,10 +834,12 @@ fn main() -> Result<()> {
             if dry_run {
                 println!("{}", serde_json::to_string_pretty(&restored)?);
             } else {
+                let remaining = repository.history_depth(&id).unwrap_or(0);
                 println!(
-                    "restored {} to level {}",
+                    "restored {} to level {} ({} more step(s) available)",
                     restored.character.name,
-                    restored.character.total_level()
+                    restored.character.total_level(),
+                    remaining
                 );
             }
         }

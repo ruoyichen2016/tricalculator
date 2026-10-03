@@ -145,6 +145,8 @@ pub struct CharacterDetail {
     pub snapshot: Option<serde_json::Value>,
     pub html: Option<String>,
     pub error: Option<String>,
+    /// Number of saved revisions available to undo.
+    pub undo_depth: usize,
 }
 
 #[derive(Debug, Serialize)]
@@ -496,6 +498,10 @@ async fn characters(State(state): State<AppState>) -> impl IntoResponse {
 /// Evaluate a native save and build the response returned when opening a
 /// character or applying a level-up.
 fn evaluate_envelope(state: &AppState, envelope: NativeSaveEnvelope) -> CharacterDetail {
+    let undo_depth = state
+        .repository
+        .history_depth(&envelope.character.id)
+        .unwrap_or(0);
     let (snapshot, html, error) = match envelope.pcc.as_deref() {
         Some(pcc) => {
             let pcc_path = resolve_path(&state.config.data_root, pcc);
@@ -522,6 +528,7 @@ fn evaluate_envelope(state: &AppState, envelope: NativeSaveEnvelope) -> Characte
         snapshot,
         html,
         error,
+        undo_depth,
     }
 }
 

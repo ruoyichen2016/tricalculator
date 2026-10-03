@@ -1019,7 +1019,7 @@ async fn undo_restores_previous_character_version() {
         2
     );
 
-    // Undo is repeatable: a second undo toggles back to level 3.
+    // Only one revision was saved, so the stack is empty now.
     let response = app
         .oneshot(
             Request::builder()
@@ -1030,7 +1030,7 @@ async fn undo_restores_previous_character_version() {
         )
         .await
         .unwrap();
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
 
     let _ = std::fs::remove_dir_all(characters_root);
 }
