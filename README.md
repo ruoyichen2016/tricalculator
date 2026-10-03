@@ -81,6 +81,7 @@ GET  /api/characters          # 原生角色列表
                              # 过滤参数：?pcc=…（规则指纹）、?q=…（名称/id）、?class=…、
                              # ?min_level=…、?max_level=…
                              # 页面上有 “only current campaign” 开关与搜索框
+                             # 搜索条件会写入地址栏（可分享/刷新保留）
 POST /api/characters          # 从 pcc + pcg 保存为原生角色
 GET  /api/characters/bundle   # 导出全部原生角色为一个 JSON bundle
 POST /api/characters/bundle   # 导入 bundle（覆盖同 id）；不兼容 schema 返回 400，

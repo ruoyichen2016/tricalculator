@@ -652,6 +652,43 @@ const characterListEl = document.getElementById('characterList');
 const characterStatusEl = document.getElementById('characterStatus');
 const characterPreviewEl = document.getElementById('characterPreview');
 
+function currentSearchState() {
+  return {
+    pcc: pccEl.value,
+    only: document.getElementById('onlyCurrentCampaign').checked,
+    q: document.getElementById('characterSearch').value.trim(),
+    cls: document.getElementById('characterClassFilter').value.trim(),
+    min: document.getElementById('characterMinLevel').value,
+    max: document.getElementById('characterMaxLevel').value,
+  };
+}
+
+/// Mirror the active pcc / search filters into the address bar so the view can
+/// be shared or restored on reload.
+function syncSearchToUrl(state = currentSearchState()) {
+  const params = new URLSearchParams();
+  if (state.pcc) params.set('pcc', state.pcc);
+  if (state.only) params.set('only', '1');
+  if (state.q) params.set('q', state.q);
+  if (state.cls) params.set('class', state.cls);
+  if (state.min) params.set('min_level', state.min);
+  if (state.max) params.set('max_level', state.max);
+  const query = params.toString();
+  const url = `${window.location.pathname}${query ? `?${query}` : ''}`;
+  window.history.replaceState(null, '', url);
+}
+
+/// Restore search controls from the current URL (used on first load).
+function restoreSearchFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('pcc')) pccEl.value = params.get('pcc');
+  document.getElementById('onlyCurrentCampaign').checked = params.get('only') === '1';
+  if (params.has('q')) document.getElementById('characterSearch').value = params.get('q');
+  if (params.has('class')) document.getElementById('characterClassFilter').value = params.get('class');
+  if (params.has('min_level')) document.getElementById('characterMinLevel').value = params.get('min_level');
+  if (params.has('max_level')) document.getElementById('characterMaxLevel').value = params.get('max_level');
+}
+
 async function loadCharacters() {
   characterStatusEl.className = '';
   characterStatusEl.textContent = 'Loading characters…';
@@ -683,6 +720,7 @@ async function loadCharacters() {
       characterListEl.appendChild(option);
     }
     characterStatusEl.textContent = `${list.length} native character(s)`;
+    syncSearchToUrl();
   } catch (error) {
     characterStatusEl.className = 'error';
     characterStatusEl.textContent = String(error);
@@ -1603,7 +1641,7 @@ async function loadPackOptions() {
 }
 
 document.getElementById('loadPackOptions').onclick = loadPackOptions;
-pccEl.addEventListener('change', debounce(() => { loadPackOptions(); loadCharacters(); }, 400));
+pccEl.addEventListener('change', debounce(() => { loadPackOptions(); loadCharacters(); autosaveDraft(); }, 400));
 document.getElementById('onlyCurrentCampaign').addEventListener('change', () => loadCharacters());
 document.getElementById('characterSearchBtn').addEventListener('click', () => loadCharacters());
 document.getElementById('characterSearch').addEventListener('keydown', (event) => {
@@ -1622,8 +1660,14 @@ removeLevelBtn.onclick = () => {
   createLevelEl.value = Math.max(1, Number(createLevelEl.value || 1) - 1);
   renderAdvancement();
 };
-createLevelEl.addEventListener('change', renderAdvancement);
-createModeEl.addEventListener('change', renderAdvancement);
+createLevelEl.addEventListener('change', () => { renderAdvancement(); autosaveDraft(); });
+createModeEl.addEventListener('change', () => { renderAdvancement(); autosaveDraft(); });
+createNameEl.addEventListener('input', autosaveDraft);
+createAlignmentEl.addEventListener('change', autosaveDraft);
+createBudgetEl.addEventListener('input', autosaveDraft);
+createGoldEl.addEventListener('input', autosaveDraft);
+createSpellsEl.addEventListener('input', autosaveDraft);
+createEquipmentEl.addEventListener('input', autosaveDraft);
 
 document.getElementById('standardArray').onclick = () => {
   const array = [15, 14, 13, 12, 10, 8];
@@ -1996,6 +2040,7 @@ function renderSkillRows() {
     skillRowsEl.appendChild(row);
   });
   updateSkillPoints();
+  renderReviewSummary();
 }
 
 function renderAbilityRows() {
@@ -2540,6 +2585,7 @@ function renderReviewSummary() {
     lines.push(`Replacement notes: ${replacementNotes.join(' | ')}`);
   }
   reviewSummaryEl.textContent = lines.join('\n');
+  if (typeof autosaveDraft === 'function') autosaveDraft();
 }
 
 function parseLineMap(text, valueParser) {
@@ -2614,6 +2660,29 @@ function buildCreateRequestPayload() {
     },
   };
 }
+
+let autosaveEnabled = true;
+
+const autosaveDraft = (() => {
+  let timer = null;
+  return () => {
+    if (!autosaveEnabled) return;
+    if (typeof serializeCreateDraft !== 'function') return;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      try {
+        const draft = serializeCreateDraft();
+        window.localStorage.setItem('pcgen-create-draft', JSON.stringify(draft));
+        window.localStorage.setItem('pcgen-create-draft-saved-at', String(Date.now()));
+        const stamp = new Date().toLocaleTimeString();
+        createStatusEl.className = '';
+        createStatusEl.textContent = `Draft autosaved ${stamp}`;
+      } catch (error) {
+        console.warn('autosave failed', error);
+      }
+    }, 800);
+  };
+})();
 
 function serializeCreateDraft() {
   const stats = readStats() || {};
@@ -2711,6 +2780,7 @@ function applyCreateDraft(draft) {
     return false;
   }
   draft = migrated;
+  autosaveEnabled = false;
   createNameEl.value = draft.name || '';
   createModeEl.value = draft.mode || 'normal';
   createLevelEl.value = draft.level || 1;
@@ -2755,6 +2825,7 @@ function applyCreateDraft(draft) {
   updatePointBuy();
   updateSkillPoints();
   renderReviewSummary();
+  autosaveEnabled = true;
   return true;
 }
 
@@ -2954,6 +3025,7 @@ document.querySelectorAll('.wizard-step [data-prev]').forEach((button) => {
 buildStatInputs();
 updatePointBuy();
 renderTables();
+restoreSearchFromUrl();
 loadCurated();
 loadCharacters();
 loadPackOptions();
