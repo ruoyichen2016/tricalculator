@@ -513,6 +513,7 @@ fn main() -> Result<()> {
                 equipment,
                 equipment_budget: equipment_budget.or(class_gold),
                 advancement: Vec::new(),
+                templates: Vec::new(),
                 deity,
                 domains,
             };

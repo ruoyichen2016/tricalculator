@@ -1059,8 +1059,8 @@ async fn pack_options(
     };
     let pack = &engine.pack;
     let options = PackOptions {
-        races: race_options(&pack),
-        classes: class_options(&pack),
+        races: race_options(pack),
+        classes: class_options(pack),
         skills: named_options(
             pack.skills.values(),
             |item| item.id.clone(),
@@ -1237,11 +1237,7 @@ async fn spell_search_options(
             page,
             page_size,
             total,
-            total_pages: if total == 0 {
-                0
-            } else {
-                (total + page_size as usize - 1) / page_size as usize
-            } as u32,
+            total_pages: total.div_ceil(page_size as usize) as u32,
         },
         items: items[start..end].to_vec(),
     })
@@ -1316,11 +1312,7 @@ async fn equipment_search_options(
             page,
             page_size,
             total,
-            total_pages: if total == 0 {
-                0
-            } else {
-                (total + page_size as usize - 1) / page_size as usize
-            } as u32,
+            total_pages: total.div_ceil(page_size as usize) as u32,
         },
         items: items[start..end].to_vec(),
     })
@@ -1393,7 +1385,11 @@ async fn race_search_options(
         .values()
         .filter(|race| {
             if let Some(category) = &query.category {
-                if !race.type_tags.iter().any(|tag| tag.eq_ignore_ascii_case(category)) {
+                if !race
+                    .type_tags
+                    .iter()
+                    .any(|tag| tag.eq_ignore_ascii_case(category))
+                {
                     return false;
                 }
             }
@@ -1431,7 +1427,7 @@ async fn race_search_options(
             page,
             page_size,
             total,
-            total_pages: if total == 0 { 0 } else { (total + page_size as usize - 1) / page_size as usize } as u32,
+            total_pages: total.div_ceil(page_size as usize) as u32,
         },
         items: items[start..end].to_vec(),
     })
@@ -1480,7 +1476,7 @@ async fn template_search_options(
             page,
             page_size,
             total,
-            total_pages: if total == 0 { 0 } else { (total + page_size as usize - 1) / page_size as usize } as u32,
+            total_pages: total.div_ceil(page_size as usize) as u32,
         },
         items: items[start..end].to_vec(),
     })
@@ -1549,11 +1545,7 @@ async fn ability_search_options(
             page,
             page_size,
             total,
-            total_pages: if total == 0 {
-                0
-            } else {
-                (total + page_size as usize - 1) / page_size as usize
-            } as u32,
+            total_pages: total.div_ceil(page_size as usize) as u32,
         },
         items: items[start..end].to_vec(),
     })
