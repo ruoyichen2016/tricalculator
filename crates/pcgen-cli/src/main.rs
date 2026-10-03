@@ -19,6 +19,12 @@ struct Cli {
     command: Command,
 }
 
+/// CLI subcommands.
+///
+/// The `Create` variant is much larger than the others, but this is a one-shot
+/// argv DTO, so the stack footprint does not matter; boxing the fields would
+/// only make the clap derive less readable.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Subcommand)]
 enum Command {
     /// Render a built-in Gestalt demo snapshot.
@@ -85,6 +91,9 @@ enum Command {
         level: u32,
         #[arg(long, default_value = "")]
         alignment: String,
+        /// Apply a creature template by id or name; repeat per template.
+        #[arg(long = "template")]
+        templates: Vec<String>,
         /// Stat assignment, e.g. `STR=14`; repeat per ability.
         #[arg(long = "stat")]
         stats: Vec<String>,
@@ -481,6 +490,7 @@ fn main() -> Result<()> {
             class_id,
             level,
             alignment,
+            templates,
             stats,
             point_buy,
             skills,
@@ -513,7 +523,7 @@ fn main() -> Result<()> {
                 equipment,
                 equipment_budget: equipment_budget.or(class_gold),
                 advancement: Vec::new(),
-                templates: Vec::new(),
+                templates,
                 deity,
                 domains,
             };

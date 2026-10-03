@@ -116,12 +116,14 @@ cargo run -p pcgen-cli -- create \
   --name "Hero" --race Human --class Fighter --level 3 --point-buy 25 \
   --stat STR=15 --stat DEX=14 --stat CON=13 --stat INT=12 --stat WIS=10 --stat CHA=8 \
   --skill Climb=4 --ability FEAT=Power Attack --equipment Longsword \
-  --starting-gold
+  --template Celestial --starting-gold
 
 # 写入原生存档并升级
 cargo run -p pcgen-cli -- create ... --out hero.json
 cargo run -p pcgen-cli -- level-up hero.json --pcc <pcc> --class Fighter --hp 6 --out hero2.json
 ```
+
+`--template` 可重复；模板按 id 或名称解析（大小写不敏感），未知模板会报错。
 
 ## 当前状态
 
