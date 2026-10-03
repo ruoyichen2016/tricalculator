@@ -341,6 +341,11 @@ async fn structured_option_search_endpoints_respond() {
         let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
         assert!(value["meta"].is_object(), "endpoint {uri} missing meta");
         assert!(value["items"].is_array(), "endpoint {uri} missing items");
+        if uri.contains("/abilities?") {
+            for item in value["items"].as_array().unwrap() {
+                assert!(item["requires"].is_array(), "ability item missing requires");
+            }
+        }
     }
 }
 

@@ -219,6 +219,8 @@ pub struct AbilityOptionDetail {
     pub name: String,
     pub category: Option<String>,
     pub type_tags: Vec<String>,
+    /// Prerequisite ability/feat names extracted from `requirements`.
+    pub requires: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -872,7 +874,6 @@ fn class_options(pack: &pcgen_ir::CompiledRulePack) -> Vec<NamedOption> {
     options
 }
 
-
 fn summary_for(envelope: &NativeSaveEnvelope) -> CharacterSummary {
     let total_level = envelope.character.total_level();
     CharacterSummary {
@@ -1193,6 +1194,48 @@ async fn equipment_search_options(
     .into_response()
 }
 
+fn collect_has_entity_keys(predicate: &pcgen_core::Predicate, out: &mut Vec<String>) {
+    use pcgen_core::Predicate;
+    match predicate {
+        Predicate::HasEntity { entity } => out.push(entity.key.clone()),
+        Predicate::All(items) | Predicate::Any(items) | Predicate::AtLeast { items, .. } => {
+            for item in items {
+                collect_has_entity_keys(item, out);
+            }
+        }
+        Predicate::Not(item) => collect_has_entity_keys(item, out),
+        _ => {}
+    }
+}
+
+fn ability_requires(
+    pack: &pcgen_ir::CompiledRulePack,
+    ability: &pcgen_core::domain::AbilityDefinition,
+) -> Vec<String> {
+    let entity = pack.entities.iter().find(|entity| {
+        entity.id.key.eq_ignore_ascii_case(&ability.id)
+            || entity.name.eq_ignore_ascii_case(&ability.name)
+    });
+    let Some(entity) = entity else {
+        return Vec::new();
+    };
+    let mut keys = Vec::new();
+    for requirement in &entity.requirements {
+        collect_has_entity_keys(requirement, &mut keys);
+    }
+    keys.sort();
+    keys.dedup();
+    keys.into_iter()
+        .filter(|key| {
+            pack.abilities.contains_key(key)
+                || pack
+                    .abilities
+                    .values()
+                    .any(|candidate| candidate.name.eq_ignore_ascii_case(key))
+        })
+        .collect()
+}
+
 async fn ability_search_options(
     State(state): State<AppState>,
     Query(query): Query<AbilityOptionsQuery>,
@@ -1243,6 +1286,7 @@ async fn ability_search_options(
             name: ability.name.clone(),
             category: ability.category.clone(),
             type_tags: ability.type_tags.clone(),
+            requires: ability_requires(pack, ability),
         })
         .collect();
     items.sort_by(|left, right| left.name.cmp(&right.name));

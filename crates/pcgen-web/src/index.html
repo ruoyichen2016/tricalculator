@@ -969,7 +969,11 @@ async function searchAbilities(reset = true) {
     for (const item of data.items || []) {
       const option = document.createElement('option');
       option.value = item.name || item.id;
-      option.textContent = item.name;
+      const requires = (item.requires || []).length
+        ? ` (requires: ${(item.requires || []).join(', ')})`
+        : '';
+      option.textContent = `${item.name}${requires}`;
+      option.title = `${item.name}${requires}`;
       abilityCandidateEl.appendChild(option);
     }
     abilityPagerEl.textContent = data.meta && data.meta.total
