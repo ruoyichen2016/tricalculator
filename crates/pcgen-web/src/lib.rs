@@ -1612,8 +1612,26 @@ async fn preview_character(
         Err(error) => return api_error(StatusCode::BAD_REQUEST, error.to_string()),
     };
     let snapshot = engine.evaluate(&draft);
+    let ecl = snapshot.total_level as i32
+        + engine
+            .pack
+            .races
+            .get(&draft.race_id)
+            .map(|race| race.level_adjustment)
+            .unwrap_or(0);
     Json(serde_json::json!({
         "ability_pool_usage": snapshot.ability_pool_usage,
+        "preview": {
+            "total_level": snapshot.total_level,
+            "ecl": ecl,
+            "stats": snapshot.stats,
+            "skill_points": snapshot.skill_points,
+            "feat_slots": snapshot.feat_slots,
+            "hit_points": snapshot.hit_points,
+            "base_attack_bonus": snapshot.base_attack_bonus,
+            "active_abilities": snapshot.active_abilities,
+            "templates": draft.templates,
+        },
         "diagnostics": snapshot.diagnostics,
     }))
     .into_response()

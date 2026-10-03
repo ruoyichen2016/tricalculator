@@ -737,6 +737,8 @@ const createEquipmentEl = document.getElementById('createEquipment');
 const createStatusEl = document.getElementById('createStatus');
 let lastDiagnosticsPayload = null;
 let previewAbilityPools = null;
+let previewSummary = null;
+let previewDiagnostics = [];
 
 const statKeys = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
 const pointBuyCost = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 6, 15: 8, 16: 10, 17: 13, 18: 16 };
@@ -1675,8 +1677,11 @@ async function refreshReviewPreview() {
     const data = await response.json();
     if (!response.ok) {
       previewAbilityPools = { error: data.error || 'preview failed' };
+      previewSummary = null;
     } else {
       previewAbilityPools = data.ability_pool_usage || {};
+      previewSummary = data.preview || null;
+      previewDiagnostics = data.diagnostics || [];
     }
   } catch (error) {
     previewAbilityPools = { error: String(error) };
@@ -1690,6 +1695,16 @@ function renderReviewSummary() {
   lines.push(`Race: ${createRaceEl.selectedOptions[0]?.textContent || createRaceEl.value}`);
   lines.push(`Mode: ${createModeEl.value === 'gestalt' ? 'Gestalt' : 'Normal'}`);
   lines.push(`Total levels: ${advancement.length}`);
+  if (previewSummary) {
+    lines.push(`ECL: ${previewSummary.ecl}`);
+    const statText = Object.entries(previewSummary.stats || {})
+      .map(([stat, value]) => `${stat} ${value}`)
+      .join(', ');
+    lines.push(`Final stats: ${statText || '—'}`);
+    lines.push(`Skill points total: ${previewSummary.skill_points ?? '—'}`);
+    lines.push(`Feat slots: ${previewSummary.feat_slots ?? '—'}`);
+    lines.push(`Template effects (active abilities): ${(previewSummary.active_abilities || []).join(', ') || '—'}`);
+  }
   const variantName = (id) => packVariants.find((item) => item.id === id)?.name || id;
   for (const frame of advancement) {
     const lanes = frame.lanes
@@ -1748,6 +1763,9 @@ function renderReviewSummary() {
       .map(([category, list]) => `${category}: ${list.length} selected`)
       .join(' | ');
     lines.push(`Resource pools: ${resourcePoolText || 'none'}`);
+  }
+  if (previewDiagnostics && previewDiagnostics.length > 0) {
+    lines.push(`Diagnostics: ${previewDiagnostics.join(' | ')}`);
   }
   const replacementNotes = advancement
     .flatMap((frame) => frame.lanes)

@@ -39,6 +39,8 @@
 - 新增 `GET /api/options/templates` 模板查询接口；
 - Templates 选择器：搜索 + 添加/移除模板，Review 显示模板列表；
 - `CreateRequest` 支持 `templates`，builder 校验并写入 `CharacterDraft.templates`；
+- `/api/preview` 返回 ECL、最终属性、技能点、专长槽、激活能力与诊断；
+- Review 显示 ECL、最终属性、技能点、专长槽、模板效果与合法性诊断；
   - 法术支持按职业法表/等级/领域/学派/关键词筛选；
   - 装备支持按类型/槽位/基础物品/关键词筛选；
   - 能力/专长支持按类别/类型/关键词筛选；
