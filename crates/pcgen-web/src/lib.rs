@@ -439,6 +439,10 @@ pub fn app(config: WebConfig) -> Router {
         .route("/api/preview", post(preview_character))
         .route("/api/characters", get(characters).post(create_character))
         .route(
+            "/api/characters/bundle",
+            get(export_bundle).post(import_bundle),
+        )
+        .route(
             "/api/characters/create",
             post(create_character_from_request),
         )
@@ -494,6 +498,47 @@ fn api_error(status: StatusCode, message: impl Into<String>) -> axum::response::
         }),
     )
         .into_response()
+}
+
+/// Download every saved character as a single JSON bundle.
+async fn export_bundle(State(state): State<AppState>) -> impl IntoResponse {
+    let summaries = match state.repository.list() {
+        Ok(list) => list,
+        Err(error) => return api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
+    };
+    let mut characters = Vec::new();
+    for summary in &summaries {
+        match state.repository.load(&summary.id) {
+            Ok(envelope) => characters.push(envelope),
+            Err(error) => return api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
+        }
+    }
+    Json(serde_json::json!({
+        "schema": pcgen_builder::SAVE_SCHEMA,
+        "application_version": pcgen_builder::APPLICATION_VERSION,
+        "characters": characters,
+    }))
+    .into_response()
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BundlePayload {
+    pub characters: Vec<NativeSaveEnvelope>,
+}
+
+/// Import a bundle of native saves, overwriting matching ids.
+async fn import_bundle(
+    State(state): State<AppState>,
+    Json(payload): Json<BundlePayload>,
+) -> impl IntoResponse {
+    let mut imported = Vec::new();
+    for envelope in &payload.characters {
+        if let Err(error) = state.repository.save(envelope) {
+            return api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string());
+        }
+        imported.push(summary_for(envelope));
+    }
+    (StatusCode::CREATED, Json(imported)).into_response()
 }
 
 async fn characters(State(state): State<AppState>) -> impl IntoResponse {

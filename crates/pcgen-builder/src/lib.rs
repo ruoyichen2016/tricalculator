@@ -134,9 +134,11 @@ pub struct VersionSummary {
     /// Templates present in the revision but not currently applied.
     pub templates_removed: Vec<String>,
     pub templates_added: Vec<String>,
-    /// Number of abilities added/removed relative to the current version.
-    pub abilities_added: usize,
-    pub abilities_removed: usize,
+    /// Ability entries present in the revision but not in the current version,
+    /// formatted as `CATEGORY: key`.
+    pub abilities_removed: Vec<String>,
+    /// Ability entries present in the current version but not in the revision.
+    pub abilities_added: Vec<String>,
 }
 
 impl VersionSummary {
@@ -147,8 +149,8 @@ impl VersionSummary {
             && self.classes_added.is_empty()
             && self.templates_removed.is_empty()
             && self.templates_added.is_empty()
-            && self.abilities_added == 0
-            && self.abilities_removed == 0
+            && self.abilities_added.is_empty()
+            && self.abilities_removed.is_empty()
     }
 }
 
@@ -198,7 +200,7 @@ fn summarize(revision: &CharacterDraft, current: &CharacterDraft) -> VersionSumm
         draft
             .abilities
             .iter()
-            .map(|(category, key)| format!("{category}:{key}").to_ascii_lowercase())
+            .map(|(category, key)| format!("{category}: {key}"))
             .collect()
     };
     let revision_abilities = ability_set(revision);
@@ -222,8 +224,14 @@ fn summarize(revision: &CharacterDraft, current: &CharacterDraft) -> VersionSumm
             .difference(&revision_templates)
             .cloned()
             .collect(),
-        abilities_added: revision_abilities.difference(&current_abilities).count(),
-        abilities_removed: current_abilities.difference(&revision_abilities).count(),
+        abilities_removed: revision_abilities
+            .difference(&current_abilities)
+            .cloned()
+            .collect(),
+        abilities_added: current_abilities
+            .difference(&revision_abilities)
+            .cloned()
+            .collect(),
     }
 }
 
@@ -769,6 +777,37 @@ mod tests {
         let second = versions.iter().find(|v| v.total_level == 2).unwrap();
         assert_eq!(second.summary.level_delta, -1);
         assert!(!second.summary.is_empty());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn history_summary_lists_ability_changes() {
+        let root = temp_root();
+        let repository = CharacterRepository::new(&root);
+        repository
+            .save(&NativeSaveEnvelope::new(
+                sample_character("hero", "Hero", 1),
+                "fp",
+                None,
+            ))
+            .unwrap();
+        let mut with_feat = sample_character("hero", "Hero", 1);
+        with_feat
+            .abilities
+            .push(("FEAT".to_string(), "Power Attack".to_string()));
+        repository
+            .save(&NativeSaveEnvelope::new(with_feat, "fp", None))
+            .unwrap();
+
+        // Live has the feat; the older revision does not.
+        let versions = repository.history("hero").unwrap();
+        assert_eq!(versions.len(), 1);
+        let summary = &versions[0].summary;
+        assert_eq!(
+            summary.abilities_added,
+            vec!["FEAT: Power Attack".to_string()]
+        );
+        assert!(summary.abilities_removed.is_empty());
         let _ = fs::remove_dir_all(root);
     }
 

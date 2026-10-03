@@ -220,6 +220,21 @@ enum Command {
         #[arg(long, default_value = "text")]
         format: String,
     },
+    /// Bundle every native character under a directory into one JSON file.
+    ExportAll {
+        /// Directory holding `<id>.json` character saves.
+        dir: PathBuf,
+        /// Bundle path to write (defaults to stdout).
+        #[arg(long)]
+        out: Option<PathBuf>,
+    },
+    /// Import a character bundle produced by `export-all`.
+    ImportBundle {
+        /// Bundle JSON file written by `export-all`.
+        bundle: PathBuf,
+        /// Directory to write `<id>.json` saves into.
+        dir: PathBuf,
+    },
 }
 
 fn demo_engine() -> Engine {
@@ -915,11 +930,11 @@ fn main() -> Result<()> {
                     if !summary.classes_added.is_empty() {
                         delta.push(format!("+class {}", summary.classes_added.join(",")));
                     }
-                    if summary.abilities_added > 0 {
-                        delta.push(format!("+{} ability", summary.abilities_added));
+                    if !summary.abilities_added.is_empty() {
+                        delta.push(format!("+ability {}", summary.abilities_added.join("; ")));
                     }
-                    if summary.abilities_removed > 0 {
-                        delta.push(format!("-{} ability", summary.abilities_removed));
+                    if !summary.abilities_removed.is_empty() {
+                        delta.push(format!("-ability {}", summary.abilities_removed.join("; ")));
                     }
                     let delta = if delta.is_empty() {
                         String::new()
@@ -932,6 +947,57 @@ fn main() -> Result<()> {
                     );
                 }
             }
+        }
+        Command::ExportAll { dir, out } => {
+            let repository = CharacterRepository::new(&dir);
+            let summaries = repository.list()?;
+            let mut characters = Vec::new();
+            for summary in &summaries {
+                characters.push(repository.load(&summary.id)?);
+            }
+            let bundle = serde_json::json!({
+                "schema": pcgen_builder::SAVE_SCHEMA,
+                "application_version": pcgen_builder::APPLICATION_VERSION,
+                "characters": characters,
+            });
+            let text = serde_json::to_string_pretty(&bundle)?;
+            match out {
+                Some(path) => {
+                    if let Some(parent) = path.parent() {
+                        std::fs::create_dir_all(parent)
+                            .with_context(|| format!("failed to create {}", parent.display()))?;
+                    }
+                    std::fs::write(&path, text)
+                        .with_context(|| format!("failed to write {}", path.display()))?;
+                    println!(
+                        "exported {} character(s) to {}",
+                        characters.len(),
+                        path.display()
+                    );
+                }
+                None => println!("{text}"),
+            }
+        }
+        Command::ImportBundle { bundle, dir } => {
+            let text = std::fs::read_to_string(&bundle)
+                .with_context(|| format!("failed to read {}", bundle.display()))?;
+            let value: serde_json::Value = serde_json::from_str(&text)
+                .with_context(|| format!("failed to parse {}", bundle.display()))?;
+            let characters = value
+                .get("characters")
+                .and_then(|value| value.as_array())
+                .with_context(|| "bundle has no `characters` array".to_string())?;
+            let repository = CharacterRepository::new(&dir);
+            let mut imported = 0usize;
+            for character in characters {
+                let envelope: NativeSaveEnvelope = serde_json::from_value(character.clone())
+                    .with_context(|| {
+                        format!("failed to parse a character in {}", bundle.display())
+                    })?;
+                repository.save(&envelope)?;
+                imported += 1;
+            }
+            println!("imported {imported} character(s) into {}", dir.display());
         }
     }
     Ok(())

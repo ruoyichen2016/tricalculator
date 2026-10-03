@@ -79,6 +79,8 @@ POST /api/recalculate  # { "pcc", "pcg", "overrides": { choices, abilities,
 POST /api/export       # 同上入参，返回可回写 .pcg 文本 + unresolved + pool usage
 GET  /api/characters          # 原生角色列表
 POST /api/characters          # 从 pcc + pcg 保存为原生角色
+GET  /api/characters/bundle   # 导出全部原生角色为一个 JSON bundle
+POST /api/characters/bundle   # 导入 bundle（覆盖同 id）
 POST /api/characters/create   # 按 CreateRequest 建卡并保存
 GET  /api/characters/{id}     # 读取原生角色 + snapshot + HTML sheet
 DELETE /api/characters/{id}   # 删除原生角色
@@ -171,6 +173,10 @@ cargo run -p pcgen-cli -- undo hero.json            # 还原
 cargo run -p pcgen-cli -- undo hero.json --dry-run  # 只打印还原结果
 cargo run -p pcgen-cli -- redo hero.json            # 重做最近一次撤销
 cargo run -p pcgen-cli -- history hero.json         # 列出可恢复版本（--format json 结构化）
+
+# 批量导出 / 导入
+cargo run -p pcgen-cli -- export-all <characters-root> --out bundle.json
+cargo run -p pcgen-cli -- import-bundle bundle.json <characters-root>
 ```
 
 `--template` 可重复；模板按 id 或名称解析（大小写不敏感），未知模板会报错。

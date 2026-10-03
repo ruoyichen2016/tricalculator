@@ -101,6 +101,9 @@
     <button type="button" id="redoCharacter" class="ghost">Redo</button>
     <button type="button" id="historyCharacter" class="ghost">History</button>
     <button type="button" id="importCharacter">Import current .pcg</button>
+    <button type="button" id="exportBundle" class="ghost">Export bundle</button>
+    <button type="button" id="importBundle" class="ghost">Import bundle</button>
+    <input type="file" id="bundleFile" accept="application/json" hidden>
   </div>
   <div class="row">
     <label for="levelUpClass">Level up</label>
@@ -791,8 +794,12 @@ document.getElementById('historyCharacter').onclick = async () => {
       if (summary.level_delta) deltaParts.push(`level ${summary.level_delta > 0 ? '+' : ''}${summary.level_delta}`);
       if ((summary.classes_removed || []).length) deltaParts.push(`-${summary.classes_removed.join(',')}`);
       if ((summary.classes_added || []).length) deltaParts.push(`+${summary.classes_added.join(',')}`);
-      if (summary.abilities_added) deltaParts.push(`+${summary.abilities_added} ability`);
-      if (summary.abilities_removed) deltaParts.push(`-${summary.abilities_removed} ability`);
+      if ((summary.abilities_added || []).length) {
+        deltaParts.push(`+ability ${summary.abilities_added.join('; ')}`);
+      }
+      if ((summary.abilities_removed || []).length) {
+        deltaParts.push(`-ability ${summary.abilities_removed.join('; ')}`);
+      }
       const label = document.createElement('span');
       label.textContent = `#${version.index} · L${version.total_level} · ${version.stack} · ${when}`
         + (deltaParts.length ? ` [${deltaParts.join(' ')}]` : '');
@@ -826,6 +833,61 @@ document.getElementById('historyCharacter').onclick = async () => {
   } catch (error) {
     characterStatusEl.className = 'error';
     characterStatusEl.textContent = String(error);
+  }
+};
+
+document.getElementById('exportBundle').onclick = async () => {
+  try {
+    const response = await fetch('/api/characters/bundle');
+    const data = await response.json();
+    if (!response.ok) {
+      characterStatusEl.className = 'error';
+      characterStatusEl.textContent = data.error || 'failed to export bundle';
+      return;
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'pcgen-characters.json';
+    link.click();
+    URL.revokeObjectURL(link.href);
+    characterStatusEl.textContent = `Exported ${(data.characters || []).length} character(s)`;
+  } catch (error) {
+    characterStatusEl.className = 'error';
+    characterStatusEl.textContent = String(error);
+  }
+};
+
+document.getElementById('importBundle').onclick = () => {
+  document.getElementById('bundleFile').click();
+};
+
+document.getElementById('bundleFile').onchange = async (event) => {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  characterStatusEl.className = '';
+  characterStatusEl.textContent = 'Importing bundle…';
+  try {
+    const text = await file.text();
+    const payload = JSON.parse(text);
+    const response = await fetch('/api/characters/bundle', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      characterStatusEl.className = 'error';
+      characterStatusEl.textContent = data.error || 'failed to import bundle';
+      return;
+    }
+    characterStatusEl.textContent = `Imported ${(data || []).length} character(s)`;
+    await loadCharacters();
+  } catch (error) {
+    characterStatusEl.className = 'error';
+    characterStatusEl.textContent = String(error);
+  } finally {
+    event.target.value = '';
   }
 };
 
