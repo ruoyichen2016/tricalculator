@@ -83,6 +83,16 @@
   .sheet-pair figcaption { font-weight: 600; font-size: .85rem; color: var(--muted); }
   .sheet-pair iframe { width: 100%; min-height: 18rem; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
   @media (max-width: 900px) { .sheet-pair { grid-template-columns: 1fr; } }
+
+  /* Print-friendly: only the rendered sheet, full width. */
+  #sheet { width: 100%; min-height: 28rem; border: 1px solid var(--line); border-radius: 8px; }
+  @media print {
+    body { background: #fff; }
+    body > *:not(#printRoot) { display: none !important; }
+    #printRoot { display: block !important; }
+    #printRoot iframe { width: 100%; min-height: 100vh; border: 0; }
+    .no-print { display: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -105,6 +115,7 @@
     <button type="button" id="exportBundle" class="ghost">Export bundle</button>
     <button type="button" id="importBundle" class="ghost">Import bundle</button>
     <input type="file" id="bundleFile" accept="application/json" hidden>
+    <label title="Only list characters matching the selected campaign"><input type="checkbox" id="onlyCurrentCampaign"> only current campaign</label>
   </div>
   <div class="row">
     <label for="levelUpClass">Level up</label>
@@ -369,11 +380,13 @@
 </div>
 
 <h2>Rendered HTML sheet</h2>
-<div class="row">
+<div class="row no-print">
   <button type="button" id="printSheet">Print sheet</button>
   <button type="button" id="copyDiagnostics">Copy diagnostics</button>
 </div>
-<iframe id="sheet" title="sheet"></iframe>
+<div id="printRoot">
+  <iframe id="sheet" title="sheet"></iframe>
+</div>
 
 <script>
 const form = document.getElementById('form');
@@ -637,7 +650,8 @@ async function loadCharacters() {
   characterStatusEl.textContent = 'Loading characters…';
   try {
     const params = new URLSearchParams();
-    if (pccEl.value) params.set('pcc', pccEl.value);
+    const onlyCurrent = document.getElementById('onlyCurrentCampaign').checked;
+    if (onlyCurrent && pccEl.value) params.set('pcc', pccEl.value);
     const suffix = params.toString() ? `?${params.toString()}` : '';
     const response = await fetch(`/api/characters${suffix}`);
     const list = await response.json();
@@ -1575,6 +1589,7 @@ async function loadPackOptions() {
 
 document.getElementById('loadPackOptions').onclick = loadPackOptions;
 pccEl.addEventListener('change', debounce(() => { loadPackOptions(); loadCharacters(); }, 400));
+document.getElementById('onlyCurrentCampaign').addEventListener('change', () => loadCharacters());
 pccEl.addEventListener('input', debounce(() => loadPackOptions(), 800));
 raceSearchEl.addEventListener('input', debounce(filterRaceBases, 250));
 raceCategoryEl.addEventListener('change', filterRaceBases);
@@ -2784,7 +2799,13 @@ document.getElementById('copyDiagnostics').onclick = async () => {
 };
 
 document.getElementById('printSheet').onclick = () => {
-  if (sheetEl.contentWindow) sheetEl.contentWindow.print();
+  // Printing the top window lets `@media print` promote the sheet to a
+  // full-page layout; fall back to the iframe when it is unavailable.
+  try {
+    window.print();
+  } catch (error) {
+    if (sheetEl.contentWindow) sheetEl.contentWindow.print();
+  }
 };
 
 function debounce(fn, delay = 250) {

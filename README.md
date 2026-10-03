@@ -78,6 +78,7 @@ POST /api/recalculate  # { "pcc", "pcg", "overrides": { choices, abilities,
                        #   active_states, class_subclasses, deity, domains } }
 POST /api/export       # 同上入参，返回可回写 .pcg 文本 + unresolved + pool usage
 GET  /api/characters          # 原生角色列表（可选 ?pcc=… 按该 campaign 规则指纹过滤）
+                             # 页面上有 “only current campaign” 开关控制是否启用过滤
 POST /api/characters          # 从 pcc + pcg 保存为原生角色
 GET  /api/characters/bundle   # 导出全部原生角色为一个 JSON bundle
 POST /api/characters/bundle   # 导入 bundle（覆盖同 id）；不兼容 schema 返回 400，
@@ -100,7 +101,8 @@ GET  /api/pack-options?pcc=…  # 种族 / 职业 / 技能 / 法术 / 装备候�
 建卡向导对购点预算与技能点预算做实时校验（超支高亮）。
 页面功能：curated PCG 下拉列表、choice 覆盖、ability pool 编辑、
 active state 输入，并展示 snapshot / choices / pools / diagnostics /
-HTML 角色卡。原生角色面板支持导入 / 打开 / 删除，以及升级：选择职业、
+HTML 角色卡。角色卡区域提供打印友好的单页布局（`@media print` 只保留 sheet）。
+原生角色面板支持导入 / 打开 / 删除，以及升级：选择职业、
 可填 HP、并用模板搜索选择器追加生物模板，升级后立即回写存档并刷新快照。
 
 一键开发检查（数据缺失时会明确切换到 no-data smoke）：
