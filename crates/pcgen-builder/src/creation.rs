@@ -80,6 +80,9 @@ pub struct CreateRequest {
     pub spells: Vec<CreateSpell>,
     #[serde(default)]
     pub equipment: Vec<String>,
+    /// Applied creature templates.
+    #[serde(default)]
+    pub templates: Vec<String>,
     /// Optional starting-gold budget; equipment cost is summed and checked.
     #[serde(default)]
     pub equipment_budget: Option<f64>,
@@ -160,6 +163,13 @@ pub fn create_draft(
         if spent > budget + 1e-9 {
             return Err(BuilderError::EquipmentBudgetExceeded { spent, budget });
         }
+    }
+
+    let mut templates = Vec::new();
+    for template in &request.templates {
+        let template_id = canonical_template(pack, template)
+            .ok_or_else(|| BuilderError::UnknownTemplate(template.clone()))?;
+        templates.push(template_id);
     }
 
     // Resolve class progression: either an explicit per-level advancement
@@ -328,6 +338,7 @@ pub fn create_draft(
         skills,
         spells,
         equipment,
+        templates,
         abilities,
         deity: request.deity.clone(),
         domains: request.domains.clone(),
@@ -648,6 +659,16 @@ fn canonical_equipment(pack: &CompiledRulePack, value: &str) -> Option<String> {
     pack.equipment
         .iter()
         .find(|(_, item)| item.name.eq_ignore_ascii_case(value))
+        .map(|(key, _)| key.clone())
+}
+
+fn canonical_template(pack: &CompiledRulePack, value: &str) -> Option<String> {
+    if pack.templates.contains_key(value) {
+        return Some(value.to_string());
+    }
+    pack.templates
+        .iter()
+        .find(|(_, template)| template.name.eq_ignore_ascii_case(value))
         .map(|(key, _)| key.clone())
 }
 

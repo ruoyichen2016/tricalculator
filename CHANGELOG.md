@@ -36,6 +36,9 @@
 - 新增 `GET /api/options/races` 结构化种族查询：类别/搜索/分页 + 种族详情；
 - 种族选择器重构：搜索 + 类别过滤 + 基础种族 + 变体 + 信息预览；
 - `RaceDefinition` 增加 `display_name`、`level_adjustment`；
+- 新增 `GET /api/options/templates` 模板查询接口；
+- Templates 选择器：搜索 + 添加/移除模板，Review 显示模板列表；
+- `CreateRequest` 支持 `templates`，builder 校验并写入 `CharacterDraft.templates`；
   - 法术支持按职业法表/等级/领域/学派/关键词筛选；
   - 装备支持按类型/槽位/基础物品/关键词筛选；
   - 能力/专长支持按类别/类型/关键词筛选；

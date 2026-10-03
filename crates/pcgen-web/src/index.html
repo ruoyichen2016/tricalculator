@@ -122,6 +122,13 @@
         <label for="createRaceVariant">Race Variant</label>
         <select id="createRaceVariant"></select>
         <div id="racePreview" class="race-preview"></div>
+        <label>Templates</label>
+        <div id="templateRows" class="picker-rows"></div>
+        <div class="row">
+          <input id="templateSearch" placeholder="Search template">
+          <select id="templateCandidate"></select>
+          <button type="button" id="addTemplateBtn" class="ghost">+ Add template</button>
+        </div>
         <label for="createAlignment">Alignment</label>
         <select id="createAlignment"></select>
         <label for="createGold">Starting gold</label>
@@ -663,6 +670,10 @@ const createRaceVariantEl = document.getElementById('createRaceVariant');
 const raceSearchEl = document.getElementById('raceSearch');
 const raceCategoryEl = document.getElementById('raceCategory');
 const racePreviewEl = document.getElementById('racePreview');
+const templateRowsEl = document.getElementById('templateRows');
+const templateSearchEl = document.getElementById('templateSearch');
+const templateCandidateEl = document.getElementById('templateCandidate');
+const addTemplateBtn = document.getElementById('addTemplateBtn');
 const createModeEl = document.getElementById('createMode');
 const createLevelEl = document.getElementById('createLevel');
 const levelListEl = document.getElementById('levelList');
@@ -708,6 +719,8 @@ let packAbilities = [];
 let packSpellOptions = [];
 let skillSelections = [];
 let abilitySelections = [];
+let templateSelections = [];
+let templatePage = 1;
 let abilityPage = 1;
 let spellPage = 1;
 let equipmentSelections = [];
@@ -865,6 +878,7 @@ async function loadPackOptions() {
     await searchAbilities();
     await searchSpells();
     await searchEquipment();
+    await searchTemplates();
     renderEquipmentRows();
     createStatusEl.textContent = `Options loaded: ${data.races.length} races, ${data.classes.length} classes`;
   } catch (error) {
@@ -985,6 +999,68 @@ function renderRacePreview() {
     `LA: ${selected.level_adjustment || 0}`,
   ].join('\n');
 }
+
+async function searchTemplates(reset = true) {
+  if (reset) templatePage = 1;
+  const params = new URLSearchParams({ pcc: pccEl.value, page: templatePage, page_size: 50 });
+  if (templateSearchEl.value) params.set('search', templateSearchEl.value.trim());
+  try {
+    const response = await fetch(`/api/options/templates?${params.toString()}`);
+    const data = await response.json();
+    if (!response.ok) {
+      templateCandidateEl.innerHTML = '';
+      return;
+    }
+    if (templatePage === 1) templateCandidateEl.innerHTML = '';
+    for (const item of data.items || []) {
+      const option = document.createElement('option');
+      option.value = item.id;
+      option.textContent = item.name;
+      option.dataset.uuid = item.uuid;
+      templateCandidateEl.appendChild(option);
+    }
+  } catch (error) {
+    templateCandidateEl.innerHTML = '';
+  }
+}
+
+function renderTemplateRows() {
+  templateRowsEl.innerHTML = '';
+  templateSelections.forEach((entry, index) => {
+    const row = document.createElement('div');
+    row.className = 'picker-row';
+    const name = document.createElement('span');
+    name.textContent = entry.name;
+    row.appendChild(name);
+    const spacer = document.createElement('span');
+    spacer.textContent = '';
+    row.appendChild(spacer);
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'remove-btn';
+    remove.textContent = '✕';
+    remove.addEventListener('click', () => {
+      templateSelections.splice(index, 1);
+      renderTemplateRows();
+      renderReviewSummary();
+    });
+    row.appendChild(remove);
+    templateRowsEl.appendChild(row);
+  });
+}
+
+addTemplateBtn.addEventListener('click', () => {
+  const option = templateCandidateEl.selectedOptions[0];
+  if (!option) return;
+  const id = option.value;
+  const name = option.textContent;
+  if (!id || templateSelections.some((entry) => entry.id === id)) return;
+  templateSelections.push({ id, name });
+  renderTemplateRows();
+  renderReviewSummary();
+});
+
+templateSearchEl.addEventListener('input', debounce(() => searchTemplates()));
 
 function buildVariantIndexes() {
   archetypesByClass.clear();
@@ -1652,6 +1728,8 @@ function renderReviewSummary() {
     .join(' | ');
   lines.push(`Skill points: ${spentSkill} / ${skillBudget}`);
   lines.push(`Skills: ${skillsText || '—'}`);
+  const templatesText = templateSelections.map((entry) => entry.name).join(', ');
+  lines.push(`Templates: ${templatesText || 'none'}`);
   lines.push(`Abilities: ${abilitiesText || 'none'}`);
   if (previewAbilityPools && previewAbilityPools.error) {
     lines.push(`Resource pools: error - ${previewAbilityPools.error}`);
@@ -1715,6 +1793,7 @@ function buildCreateRequestPayload() {
     .filter((entry) => entry.ability)
     .map((entry) => [entry.category || 'Ability', entry.ability]);
   const equipment = createEquipmentEl.value.split('\n').map((line) => line.trim()).filter(Boolean);
+  const templates = templateSelections.map((entry) => entry.id);
   const spells = createSpellsEl.value.split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
     const [name, level] = line.split('=').map((part) => part.trim());
     return { name, level: Number(level || '0'), times_memorized: 1 };
@@ -1745,6 +1824,7 @@ function buildCreateRequestPayload() {
       abilities,
       spells,
       equipment,
+      templates,
       equipment_budget: Number(createGoldEl.value),
       deity: null,
       domains: [],

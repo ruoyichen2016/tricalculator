@@ -278,6 +278,31 @@ pub struct EquipmentOptionsQuery {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct TemplateOptionsQuery {
+    pub pcc: String,
+    #[serde(default)]
+    pub search: Option<String>,
+    #[serde(default)]
+    pub page: Option<u32>,
+    #[serde(default)]
+    pub page_size: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TemplateOptionDetail {
+    pub uuid: String,
+    pub id: String,
+    pub name: String,
+    pub type_tags: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TemplateOptionsResponse {
+    pub items: Vec<TemplateOptionDetail>,
+    pub meta: PageMeta,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct RaceOptionsQuery {
     pub pcc: String,
     #[serde(default)]
@@ -397,6 +422,7 @@ pub fn app(config: WebConfig) -> Router {
         .route("/api/options/equipment", get(equipment_search_options))
         .route("/api/options/abilities", get(ability_search_options))
         .route("/api/options/races", get(race_search_options))
+        .route("/api/options/templates", get(template_search_options))
         .route("/api/preview", post(preview_character))
         .route("/api/characters", get(characters).post(create_character))
         .route(
@@ -1401,6 +1427,55 @@ async fn race_search_options(
     let end = (start + page_size as usize).min(total);
     Json(RaceOptionsResponse {
         categories: categories.into_iter().collect(),
+        meta: PageMeta {
+            page,
+            page_size,
+            total,
+            total_pages: if total == 0 { 0 } else { (total + page_size as usize - 1) / page_size as usize } as u32,
+        },
+        items: items[start..end].to_vec(),
+    })
+    .into_response()
+}
+
+async fn template_search_options(
+    State(state): State<AppState>,
+    Query(query): Query<TemplateOptionsQuery>,
+) -> impl IntoResponse {
+    let pcc_path = resolve_path(&state.config.data_root, &query.pcc);
+    let engine = match cached_engine(&state, &pcc_path) {
+        Ok(engine) => engine,
+        Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
+    };
+    let pack = &engine.pack;
+    let page = query.page.unwrap_or(1).max(1);
+    let page_size = query.page_size.unwrap_or(50).clamp(1, 200);
+    let search = query.search.as_deref().map(str::to_lowercase);
+    let mut items: Vec<TemplateOptionDetail> = pack
+        .templates
+        .values()
+        .filter(|template| {
+            if let Some(search) = &search {
+                if !template.name.to_lowercase().contains(search)
+                    && !template.id.to_lowercase().contains(search)
+                {
+                    return false;
+                }
+            }
+            true
+        })
+        .map(|template| TemplateOptionDetail {
+            uuid: stable_id("template", &template.id),
+            id: template.id.clone(),
+            name: template.name.clone(),
+            type_tags: template.type_tags.clone(),
+        })
+        .collect();
+    items.sort_by(|left, right| left.name.cmp(&right.name));
+    let total = items.len();
+    let start = ((page - 1) as usize * page_size as usize).min(total);
+    let end = (start + page_size as usize).min(total);
+    Json(TemplateOptionsResponse {
         meta: PageMeta {
             page,
             page_size,
