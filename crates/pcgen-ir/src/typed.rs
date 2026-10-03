@@ -292,6 +292,12 @@ fn parse_race(record: &RawRecord) -> RaceDefinition {
             }
         }
     }
+    race.serves_as = tag(record, "SERVESAS").and_then(|value| {
+        value
+            .split('|')
+            .find(|part| !part.is_empty() && !part.eq_ignore_ascii_case("RACE"))
+            .map(str::to_string)
+    });
     race.favored_class = tag(record, "FAVOREDCLASS").map(str::to_string);
     race.extra_skill_points_per_level =
         tag(record, "XTRASKILLPTSPERLVL").and_then(|value| value.trim().parse().ok());

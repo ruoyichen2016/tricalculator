@@ -113,6 +113,8 @@
         <input id="createName" value="New Hero">
         <label for="createRace">Race</label>
         <select id="createRace"></select>
+        <label for="createRaceVariant">Race Variant</label>
+        <select id="createRaceVariant"></select>
         <label for="createAlignment">Alignment</label>
         <select id="createAlignment"></select>
         <label for="createGold">Starting gold</label>
@@ -885,6 +887,18 @@ function classOptionName(classId) {
 
 function internalClassId(classId) {
   return packClassesByUuid.get(classId)?.id || classId;
+}
+
+function populateRaceVariants(baseUuid) {
+  createRaceVariantEl.innerHTML = '<option value="">— none —</option>';
+  const baseId = packRaces.find((race) => race.uuid === baseUuid || race.id === baseUuid)?.id || baseUuid;
+  const variants = raceVariantsByBase.get(baseId.toLowerCase()) || [];
+  for (const variant of variants) {
+    const option = document.createElement('option');
+    option.value = variant.uuid;
+    option.textContent = variant.name;
+    createRaceVariantEl.appendChild(option);
+  }
 }
 
 function buildVariantIndexes() {

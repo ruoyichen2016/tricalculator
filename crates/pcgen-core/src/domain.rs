@@ -182,6 +182,9 @@ pub struct RaceDefinition {
     pub favored_class: Option<String>,
     #[serde(default)]
     pub type_tags: Vec<String>,
+    /// PCGen `SERVESAS:RACE|X`: this race is a subrace/variant of `X`.
+    #[serde(default)]
+    pub serves_as: Option<String>,
     /// Number of hands (PCGen `HANDS:`); defaults to biped 2.
     #[serde(default = "default_hands")]
     pub hands: u32,
@@ -222,6 +225,7 @@ impl RaceDefinition {
             ability_adjustments: BTreeMap::new(),
             favored_class: None,
             type_tags: Vec::new(),
+            serves_as: None,
             hands: default_hands(),
             movement: BTreeMap::new(),
             templates: Vec::new(),

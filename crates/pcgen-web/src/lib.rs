@@ -873,6 +873,27 @@ fn named_options<T>(
     options
 }
 
+fn race_options(pack: &pcgen_ir::CompiledRulePack) -> Vec<NamedOption> {
+    let mut options: Vec<NamedOption> = pack
+        .races
+        .values()
+        .map(|race| NamedOption {
+            id: race.id.clone(),
+            name: race.name.clone(),
+            cost_gp: None,
+            starting_gold: None,
+            class_levels: None,
+            serves_as: race.serves_as.clone(),
+            uuid: stable_id("race", &race.id),
+            is_prestige: false,
+            skill_points_per_level: 0,
+            skill_multiplier: 1,
+        })
+        .collect();
+    options.sort_by(|left, right| left.name.cmp(&right.name));
+    options
+}
+
 fn class_options(pack: &pcgen_ir::CompiledRulePack) -> Vec<NamedOption> {
     let mut options: Vec<NamedOption> = pack
         .classes
@@ -964,11 +985,7 @@ async fn pack_options(
     };
     let pack = &engine.pack;
     let options = PackOptions {
-        races: named_options(
-            pack.races.values(),
-            |item| item.id.clone(),
-            |item| item.name.clone(),
-        ),
+        races: race_options(&pack),
         classes: class_options(&pack),
         skills: named_options(
             pack.skills.values(),
