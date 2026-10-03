@@ -122,7 +122,7 @@
         <label for="createRaceVariant">Race Variant</label>
         <select id="createRaceVariant"></select>
         <div id="racePreview" class="race-preview"></div>
-        <label for="dragonAge">Dragon Age</label>
+        <label for="dragonAge">Life Stage</label>
         <select id="dragonAge"><option value="">— none —</option></select>
         <label>Templates</label>
         <div id="templateRows" class="picker-rows"></div>
@@ -724,6 +724,8 @@ let skillSelections = [];
 let abilitySelections = [];
 let templateSelections = [];
 let templatePage = 1;
+let templateCatalog = [];
+const LIFESTAGE_KEYWORDS = ['wyrmling','very young','young','juvenile','young adult','adult','mature adult','old','very old','ancient','wyrm','great wyrm','elder','prime'];
 const DRAGON_AGE_CATEGORIES = ['Wyrmling','Very Young','Young','Juvenile','Young Adult','Adult','Mature Adult','Old','Very Old','Ancient','Wyrm','Great Wyrm'];
 let abilityPage = 1;
 let spellPage = 1;
@@ -885,6 +887,8 @@ async function loadPackOptions() {
     await searchSpells();
     await searchEquipment();
     await searchTemplates();
+    await loadTemplateCatalog();
+    populateLifeStage();
     renderEquipmentRows();
     createStatusEl.textContent = `Options loaded: ${data.races.length} races, ${data.classes.length} classes`;
   } catch (error) {
@@ -983,17 +987,33 @@ function populateRaceVariants(baseUuid) {
   renderRacePreview();
 }
 
-function populateDragonAge() {
+async function loadTemplateCatalog() {
+  try {
+    const params = new URLSearchParams({ pcc: pccEl.value, page_size: 500 });
+    const response = await fetch(`/api/options/templates?${params.toString()}`);
+    const data = await response.json();
+    templateCatalog = data.items || [];
+  } catch (error) {
+    templateCatalog = [];
+  }
+}
+
+function populateLifeStage() {
   const selected = raceCatalog.find((race) => race.uuid === createRaceVariantEl.value)
     || raceCatalog.find((race) => race.uuid === createRaceEl.value);
   const isDragon = selected && (selected.type_tags || []).some((tag) => tag.toLowerCase() === 'dragon');
-  dragonAgeEl.style.display = isDragon ? '' : 'none';
+  let candidates = templateCatalog.filter((template) =>
+    LIFESTAGE_KEYWORDS.some((keyword) => template.name.toLowerCase().includes(keyword))
+  );
+  if (isDragon && candidates.length === 0) {
+    candidates = DRAGON_AGE_CATEGORIES.map((name) => ({ id: name, name, uuid: '' }));
+  }
+  dragonAgeEl.style.display = candidates.length > 0 ? '' : 'none';
   dragonAgeEl.innerHTML = '<option value="">— none —</option>';
-  if (!isDragon) return;
-  for (const age of DRAGON_AGE_CATEGORIES) {
+  for (const candidate of candidates) {
     const option = document.createElement('option');
-    option.value = age;
-    option.textContent = age;
+    option.value = candidate.id;
+    option.textContent = candidate.name;
     dragonAgeEl.appendChild(option);
   }
 }
@@ -1011,7 +1031,7 @@ function renderRacePreview() {
   const adjustments = Object.entries(selected.ability_adjustments || {})
     .map(([stat, value]) => `${stat}${value >= 0 ? '+' : ''}${value}`)
     .join(', ');
-  populateDragonAge();
+  populateLifeStage();
   racePreviewEl.textContent = [
     `Name: ${selected.display_name || selected.name}`,
     `Type: ${(selected.type_tags || []).join(', ') || '—'}`,
@@ -1085,7 +1105,9 @@ addTemplateBtn.addEventListener('click', () => {
 templateSearchEl.addEventListener('input', debounce(() => searchTemplates()));
 dragonAgeEl.addEventListener('change', () => {
   const chosen = dragonAgeEl.value;
-  templateSelections = templateSelections.filter((entry) => !DRAGON_AGE_CATEGORIES.includes(entry.name));
+  templateSelections = templateSelections.filter((entry) =>
+    !LIFESTAGE_KEYWORDS.some((keyword) => entry.name.toLowerCase().includes(keyword))
+  );
   if (chosen) templateSelections.push({ id: chosen, name: chosen });
   renderTemplateRows();
   renderReviewSummary();
