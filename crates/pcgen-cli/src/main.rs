@@ -213,6 +213,13 @@ enum Command {
         #[arg(long)]
         dry_run: bool,
     },
+    /// List the saved revisions available to `undo` / `redo`.
+    History {
+        /// Native save envelope JSON (id is read from the character).
+        draft: PathBuf,
+        #[arg(long, default_value = "text")]
+        format: String,
+    },
 }
 
 fn demo_engine() -> Engine {
@@ -874,6 +881,34 @@ fn main() -> Result<()> {
                     reapplied.character.total_level(),
                     remaining
                 );
+            }
+        }
+        Command::History { draft, format } => {
+            let text = std::fs::read_to_string(&draft)
+                .with_context(|| format!("failed to read {}", draft.display()))?;
+            let envelope: NativeSaveEnvelope = serde_json::from_str(&text)
+                .with_context(|| format!("failed to parse {}", draft.display()))?;
+            let repository = CharacterRepository::new(
+                draft.parent().unwrap_or_else(|| std::path::Path::new(".")),
+            );
+            let id = envelope.character.id.clone();
+            let versions = repository.history(&id)?;
+            if format.eq_ignore_ascii_case("json") {
+                println!("{}", serde_json::to_string_pretty(&versions)?);
+            } else {
+                println!(
+                    "{}: {} revision(s) (undo {}, redo {})",
+                    id,
+                    versions.len(),
+                    repository.history_depth(&id)?,
+                    repository.redo_depth(&id)?
+                );
+                for version in &versions {
+                    println!(
+                        "  #{:<3} L{:<3} {:<5} {}",
+                        version.index, version.total_level, version.stack, version.name
+                    );
+                }
             }
         }
     }

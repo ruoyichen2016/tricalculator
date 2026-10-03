@@ -168,6 +168,7 @@ POST /api/characters/{id}/undo       # 无请求体；还原上一次写入前�
 cargo run -p pcgen-cli -- undo hero.json            # 还原
 cargo run -p pcgen-cli -- undo hero.json --dry-run  # 只打印还原结果
 cargo run -p pcgen-cli -- redo hero.json            # 重做最近一次撤销
+cargo run -p pcgen-cli -- history hero.json         # 列出可恢复版本（--format json 结构化）
 ```
 
 `--template` 可重复；模板按 id 或名称解析（大小写不敏感），未知模板会报错。
