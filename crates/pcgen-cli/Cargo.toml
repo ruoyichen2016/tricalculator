@@ -15,6 +15,9 @@ pcgen-import = { path = "../pcgen-import" }
 pcgen-ir = { path = "../pcgen-ir" }
 pcgen-output = { path = "../pcgen-output" }
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [[bin]]
 name = "pcgen"
 path = "src/main.rs"

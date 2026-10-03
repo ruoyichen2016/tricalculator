@@ -763,3 +763,106 @@ async fn builder_create_wizard_with_spell() {
 
     let _ = std::fs::remove_dir_all(characters_root);
 }
+
+#[tokio::test]
+async fn level_up_character_applies_class_and_reports_errors() {
+    let config = character_config("levelup");
+    let characters_root = config.characters_root.clone();
+    let app = app(config);
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/characters")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    r#"{"pcc":"campaign-mini/mini.pcc","pcg":"campaign-mini/mini_character.pcg","id":"mini-hero"}"#,
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/characters/mini-hero/level-up")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    r#"{"pcc":"campaign-mini/mini.pcc","request":{"class":"Fighter","hp_gained":7}}"#,
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let detail: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(
+        detail["envelope"]["character"]["class_levels"][0]["level"],
+        3
+    );
+    assert!(detail["snapshot"].is_object());
+
+    // Persisted: reopening the character keeps the new level.
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/characters/mini-hero")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let detail: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(
+        detail["envelope"]["character"]["class_levels"][0]["level"],
+        3
+    );
+
+    // Unknown class is a bad request and must not mutate the save.
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/characters/mini-hero/level-up")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    r#"{"pcc":"campaign-mini/mini.pcc","request":{"class":"NoSuchClass"}}"#,
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // Missing character is a 404.
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/characters/ghost/level-up")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    r#"{"pcc":"campaign-mini/mini.pcc","request":{"class":"Fighter"}}"#,
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+    let _ = std::fs::remove_dir_all(characters_root);
+}

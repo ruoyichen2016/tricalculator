@@ -48,6 +48,12 @@ enum Command {
         /// Case-insensitive substring filter on template id or name.
         #[arg(long)]
         search: Option<String>,
+        /// Only templates carrying this type tag (case-insensitive); repeatable.
+        #[arg(long = "type-tag")]
+        type_tags: Vec<String>,
+        /// Include CR / hit die / level adjustments / tags in the text output.
+        #[arg(long)]
+        with_details: bool,
         #[arg(long, default_value = "text")]
         format: String,
     },
@@ -301,7 +307,22 @@ fn parse_spells(values: &[String]) -> Vec<CreateSpell> {
         .collect()
 }
 
+/// Restore the default `SIGPIPE` behaviour on Unix so that piping output into
+/// e.g. `head` terminates quietly instead of panicking on a failed `println!`.
+#[cfg(unix)]
+fn reset_sigpipe() {
+    // SAFETY: `signal` with `SIG_DFL` is async-signal-safe and has no Rust-level
+    // invariants; it only restores the process default for `SIGPIPE`.
+    unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+    }
+}
+
+#[cfg(not(unix))]
+fn reset_sigpipe() {}
+
 fn main() -> Result<()> {
+    reset_sigpipe();
     let cli = Cli::parse();
     match cli.command {
         Command::Demo => {
@@ -436,20 +457,36 @@ fn main() -> Result<()> {
         Command::ListTemplates {
             pcc,
             search,
+            type_tags,
+            with_details,
             format,
         } => {
             let (pack, _) =
                 compile_pcc(&pcc).with_context(|| format!("failed to import {}", pcc.display()))?;
             let needle = search.as_deref().map(str::to_lowercase);
+            let type_filters: Vec<String> =
+                type_tags.iter().map(|tag| tag.to_lowercase()).collect();
             let matches: Vec<_> = pack
                 .templates
                 .values()
-                .filter(|template| match &needle {
-                    Some(needle) => {
-                        template.id.to_lowercase().contains(needle)
-                            || template.name.to_lowercase().contains(needle)
+                .filter(|template| {
+                    if let Some(needle) = &needle {
+                        if !template.id.to_lowercase().contains(needle)
+                            && !template.name.to_lowercase().contains(needle)
+                        {
+                            return false;
+                        }
                     }
-                    None => true,
+                    if !type_filters.is_empty()
+                        && !template.type_tags.iter().any(|tag| {
+                            type_filters
+                                .iter()
+                                .any(|filter| tag.eq_ignore_ascii_case(filter))
+                        })
+                    {
+                        return false;
+                    }
+                    true
                 })
                 .collect();
             if format.eq_ignore_ascii_case("json") {
@@ -473,6 +510,10 @@ fn main() -> Result<()> {
             } else {
                 println!("templates: {}", matches.len());
                 for template in matches {
+                    if !with_details {
+                        println!("{}\t{}", template.id, template.name);
+                        continue;
+                    }
                     let mut details = Vec::new();
                     if let Some(hit_die) = &template.hit_die_override {
                         details.push(format!("hitdie={hit_die}"));

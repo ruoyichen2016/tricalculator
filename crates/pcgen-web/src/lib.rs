@@ -12,8 +12,8 @@ use axum::{
     Json, Router,
 };
 use pcgen_builder::{
-    create_draft, starting_gold_for_class, BuilderError, CharacterRepository, CharacterSummary,
-    CreateRequest, NativeSaveEnvelope,
+    create_draft, level_up_draft, starting_gold_for_class, BuilderError, CharacterRepository,
+    CharacterSummary, CreateRequest, LevelUpRequest, NativeSaveEnvelope,
 };
 use pcgen_engine::{CharacterDraft, DraftClassLevel, DraftSpell, Engine};
 use pcgen_import::{compile_pcc, parse_pcg_draft_file, PcgDraft};
@@ -377,6 +377,12 @@ pub struct CreateFromRequest {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct LevelUpFromRequest {
+    pub pcc: String,
+    pub request: LevelUpRequest,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct PreviewRequest {
     pub pcc: String,
     pub request: CreateRequest,
@@ -433,6 +439,7 @@ pub fn app(config: WebConfig) -> Router {
             "/api/characters/{id}",
             get(character).delete(delete_character),
         )
+        .route("/api/characters/{id}/level-up", post(level_up_character))
         .with_state(state)
 }
 
@@ -482,49 +489,85 @@ async fn characters(State(state): State<AppState>) -> impl IntoResponse {
     }
 }
 
+/// Evaluate a native save and build the response returned when opening a
+/// character or applying a level-up.
+fn evaluate_envelope(state: &AppState, envelope: NativeSaveEnvelope) -> CharacterDetail {
+    let (snapshot, html, error) = match envelope.pcc.as_deref() {
+        Some(pcc) => {
+            let pcc_path = resolve_path(&state.config.data_root, pcc);
+            match cached_engine(state, &pcc_path) {
+                Ok(engine) => {
+                    let evaluated = engine.evaluate(&envelope.character);
+                    let snapshot = render_json(&evaluated)
+                        .ok()
+                        .and_then(|text| serde_json::from_str(&text).ok());
+                    let html = Some(render_html(&evaluated));
+                    (snapshot, html, None)
+                }
+                Err(error) => (None, None, Some(error)),
+            }
+        }
+        None => (
+            None,
+            None,
+            Some("native character has no pcc path".to_string()),
+        ),
+    };
+    CharacterDetail {
+        envelope,
+        snapshot,
+        html,
+        error,
+    }
+}
+
 async fn character(
     State(state): State<AppState>,
     AxumPath(id): AxumPath<String>,
 ) -> impl IntoResponse {
     match state.repository.load(&id) {
-        Ok(envelope) => {
-            let (snapshot, html, error) = match envelope.pcc.as_deref() {
-                Some(pcc) => {
-                    let pcc_path = resolve_path(&state.config.data_root, pcc);
-                    match cached_engine(&state, &pcc_path) {
-                        Ok(engine) => {
-                            let evaluated = engine.evaluate(&envelope.character);
-                            let snapshot = render_json(&evaluated)
-                                .ok()
-                                .and_then(|text| serde_json::from_str(&text).ok());
-                            let html = Some(render_html(&evaluated));
-                            (snapshot, html, None)
-                        }
-                        Err(error) => (None, None, Some(error)),
-                    }
-                }
-                None => (
-                    None,
-                    None,
-                    Some("native character has no pcc path".to_string()),
-                ),
-            };
-            (
-                StatusCode::OK,
-                Json(CharacterDetail {
-                    envelope,
-                    snapshot,
-                    html,
-                    error,
-                }),
-            )
-                .into_response()
-        }
+        Ok(envelope) => (StatusCode::OK, Json(evaluate_envelope(&state, envelope))).into_response(),
         Err(BuilderError::NotFound(_)) => {
             api_error(StatusCode::NOT_FOUND, format!("character not found: {id}"))
         }
         Err(error) => api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
     }
+}
+
+/// Apply one level (and optional creature templates) to a saved character.
+async fn level_up_character(
+    State(state): State<AppState>,
+    AxumPath(id): AxumPath<String>,
+    Json(body): Json<LevelUpFromRequest>,
+) -> impl IntoResponse {
+    let mut envelope = match state.repository.load(&id) {
+        Ok(envelope) => envelope,
+        Err(BuilderError::NotFound(_)) => {
+            return api_error(StatusCode::NOT_FOUND, format!("character not found: {id}"))
+        }
+        Err(error) => return api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
+    };
+    let pcc_path = resolve_path(&state.config.data_root, &body.pcc);
+    let engine = match cached_engine(&state, &pcc_path) {
+        Ok(engine) => engine,
+        Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
+    };
+    let pack = &engine.pack;
+    let mut request = body.request;
+    request.class_id = resolve_class_id(pack, &request.class_id);
+    if let Err(error) = level_up_draft(pack, &mut envelope.character, &request) {
+        return api_error(StatusCode::BAD_REQUEST, error.to_string());
+    }
+    envelope.pcc = Some(relativize(
+        &state.config.data_root,
+        &pcc_path.to_string_lossy(),
+    ));
+    envelope.rules_fingerprint = engine.pack.header.rules_fingerprint.clone();
+    envelope.data_ref = engine.pack.header.data_ref.clone();
+    if let Err(error) = state.repository.save(&envelope) {
+        return api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string());
+    }
+    (StatusCode::OK, Json(evaluate_envelope(&state, envelope))).into_response()
 }
 
 async fn delete_character(

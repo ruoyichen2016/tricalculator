@@ -42,6 +42,9 @@
 - CLI `create` 新增可重复的 `--template` 参数，直接应用生物模板（按 id 或名称解析）；
 - CLI `level-up` 新增 `--template`，可给已有角色追加生物模板（重复模板自动去重）；
 - CLI 新增 `list-templates` 子命令：列出 `.pcc` 中的生物模板，支持 `--search` 过滤与 `--format json`；
+- `list-templates` 新增 `--type-tag`（按类型标签过滤，可重复）与 `--with-details`（文本输出附带 CR/命骰/等级调整/标签）；
+- Web 新增 `POST /api/characters/{id}/level-up`：给原生角色升级并可选追加模板，返回更新后的 snapshot 与 HTML sheet；
+- Web 原生角色面板新增升级区：职业选择 + HP 输入 + 模板搜索选择器，升级后自动回写并刷新预览；
 - `/api/preview` 返回 ECL、最终属性、技能点、专长槽、激活能力与诊断；
 - Review 显示 ECL、最终属性、技能点、专长槽、模板效果与合法性诊断；
 - Dragon Age 选择器扩展为 Life Stage：除龙外，其他生物若有幼体/成年体/古代体等年龄模板也会显示并纳入 Templates；

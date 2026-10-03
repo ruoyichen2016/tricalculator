@@ -82,12 +82,14 @@ POST /api/characters          # 从 pcc + pcg 保存为原生角色
 POST /api/characters/create   # 按 CreateRequest 建卡并保存
 GET  /api/characters/{id}     # 读取原生角色 + snapshot + HTML sheet
 DELETE /api/characters/{id}   # 删除原生角色
+POST /api/characters/{id}/level-up  # 升级角色（LevelUpRequest），可追加模板并回写存档
 GET  /api/pack-options?pcc=…  # 种族 / 职业 / 技能 / 法术 / 装备候选
 ```
 
 页面功能：curated PCG 下拉列表、choice 覆盖、ability pool 编辑、
 active state 输入，并展示 snapshot / choices / pools / diagnostics /
-HTML 角色卡。
+HTML 角色卡。原生角色面板支持导入 / 打开 / 删除，以及升级：选择职业、
+可填 HP、并用模板搜索选择器追加生物模板，升级后立即回写存档并刷新快照。
 
 一键开发检查（数据缺失时会明确切换到 no-data smoke）：
 
@@ -122,8 +124,9 @@ cargo run -p pcgen-cli -- create \
 cargo run -p pcgen-cli -- create ... --out hero.json
 cargo run -p pcgen-cli -- level-up hero.json --pcc <pcc> --class Fighter --hp 6 --out hero2.json
 
-# 查询可用生物模板（可按 id / 名称子串过滤，--format json 输出结构化数据）
+# 查询可用生物模板（--search 按 id/名称过滤；--type-tag 按类型过滤；--format json 输出结构化数据）
 cargo run -p pcgen-cli -- list-templates --pcc <pcc> --search celestial
+cargo run -p pcgen-cli -- list-templates --pcc <pcc> --type-tag Undead --with-details
 
 # 升级时追加模板（可重复）
 cargo run -p pcgen-cli -- level-up hero.json --pcc <pcc> --class Fighter --hp 6 \
