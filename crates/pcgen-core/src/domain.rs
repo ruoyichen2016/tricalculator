@@ -172,6 +172,11 @@ impl TemplateDefinition {
 pub struct RaceDefinition {
     pub id: String,
     pub name: String,
+    /// `OUTPUTNAME:` display name; falls back to `name`.
+    #[serde(default)]
+    pub display_name: String,
+    #[serde(default)]
+    pub level_adjustment: i32,
     #[serde(default)]
     pub size: String,
     #[serde(default)]
@@ -217,9 +222,12 @@ fn default_hands() -> u32 {
 
 impl RaceDefinition {
     pub fn new(id: impl Into<String>, name: impl Into<String>) -> Self {
+        let name = name.into();
         Self {
             id: id.into(),
-            name: name.into(),
+            name: name.clone(),
+            display_name: name,
+            level_adjustment: 0,
             size: "M".to_string(),
             speed_feet: 30,
             ability_adjustments: BTreeMap::new(),

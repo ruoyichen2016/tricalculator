@@ -54,6 +54,7 @@
   .advancement-summary { margin-top: .5rem; display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; }
   .advancement-summary .chip { background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: .1rem .6rem; font-size: .85rem; }
   .pager-hint { font-size: .8rem; color: var(--muted); min-height: 1rem; margin: .15rem 0; }
+  .race-preview { border: 1px solid var(--line); border-radius: 8px; padding: .5rem; background: #f8fafc; font-size: .85rem; margin-top: .25rem; white-space: pre-wrap; }
   .picker-rows { display: grid; gap: .35rem; margin: .25rem 0; }
   .picker-row { display: grid; grid-template-columns: 1fr 6rem 2rem; gap: .4rem; align-items: center; }
   .picker-row.remove { grid-template-columns: 1fr 6rem 2rem; }
@@ -112,10 +113,15 @@
       <div>
         <label for="createName">Name</label>
         <input id="createName" value="New Hero">
+        <label for="raceSearch">Race search</label>
+        <input id="raceSearch" placeholder="Search race">
+        <label for="raceCategory">Race type</label>
+        <select id="raceCategory"><option value="">All types</option></select>
         <label for="createRace">Race</label>
         <select id="createRace"></select>
         <label for="createRaceVariant">Race Variant</label>
         <select id="createRaceVariant"></select>
+        <div id="racePreview" class="race-preview"></div>
         <label for="createAlignment">Alignment</label>
         <select id="createAlignment"></select>
         <label for="createGold">Starting gold</label>
@@ -653,6 +659,10 @@ document.getElementById('importCharacter').onclick = async () => {
 
 const createNameEl = document.getElementById('createName');
 const createRaceEl = document.getElementById('createRace');
+const createRaceVariantEl = document.getElementById('createRaceVariant');
+const raceSearchEl = document.getElementById('raceSearch');
+const raceCategoryEl = document.getElementById('raceCategory');
+const racePreviewEl = document.getElementById('racePreview');
 const createModeEl = document.getElementById('createMode');
 const createLevelEl = document.getElementById('createLevel');
 const levelListEl = document.getElementById('levelList');
@@ -682,6 +692,9 @@ const spellLevelEl = document.getElementById('spellLevel');
 const spellCandidatesEl = document.getElementById('spellCandidates');
 const spellSearchEl = document.getElementById('spellSearch');
 const spellPagerEl = document.getElementById('spellPager');
+let packRaces = [];
+let raceCatalog = [];
+let raceCategories = [];
 let packClasses = [];
 let packClassesByUuid = new Map();
 let packClassesById = new Map();
@@ -836,13 +849,14 @@ async function loadPackOptions() {
       createStatusEl.textContent = data.error || 'failed to load pack options';
       return;
     }
-    fillSelect(createRaceEl, data.races, true);
+    packRaces = data.races || [];
     fillSelect(createAlignmentEl, data.alignments);
     packClasses = data.classes || [];
     packVariants = data.variants || [];
     buildVariantIndexes();
     packSkills = data.skills || [];
     packAbilityCategories = data.ability_categories || [];
+    await loadRaceOptions();
     populateSkillPicker();
     renderSkillRows();
     renderAbilityRows();
@@ -862,6 +876,10 @@ async function loadPackOptions() {
 document.getElementById('loadPackOptions').onclick = loadPackOptions;
 pccEl.addEventListener('change', debounce(() => loadPackOptions(), 400));
 pccEl.addEventListener('input', debounce(() => loadPackOptions(), 800));
+raceSearchEl.addEventListener('input', debounce(filterRaceBases, 250));
+raceCategoryEl.addEventListener('change', filterRaceBases);
+createRaceEl.addEventListener('change', () => populateRaceVariants(createRaceEl.value));
+createRaceVariantEl.addEventListener('change', renderRacePreview);
 addLevelBtn.onclick = () => {
   createLevelEl.value = Math.min(20, Number(createLevelEl.value || 1) + 1);
   renderAdvancement();
@@ -891,16 +909,81 @@ function internalClassId(classId) {
   return packClassesByUuid.get(classId)?.id || classId;
 }
 
+async function loadRaceOptions() {
+  try {
+    const params = new URLSearchParams({ pcc: pccEl.value, page_size: 500 });
+    const response = await fetch(`/api/options/races?${params.toString()}`);
+    const data = await response.json();
+    if (!response.ok) {
+      createStatusEl.className = 'error';
+      createStatusEl.textContent = data.error || 'failed to load race options';
+      return;
+    }
+    raceCatalog = data.items || [];
+    raceCategories = data.categories || [];
+    raceCategoryEl.innerHTML = '<option value="">All types</option>';
+    for (const category of raceCategories) {
+      const option = document.createElement('option');
+      option.value = category;
+      option.textContent = category;
+      raceCategoryEl.appendChild(option);
+    }
+    filterRaceBases();
+  } catch (error) {
+    createStatusEl.className = 'error';
+    createStatusEl.textContent = String(error);
+  }
+}
+
+function filterRaceBases() {
+  const search = raceSearchEl.value.trim().toLowerCase();
+  const category = raceCategoryEl.value;
+  const bases = raceCatalog.filter((race) => {
+    if (race.serves_as) return false;
+    if (category && !race.type_tags.some((tag) => tag.toLowerCase() === category.toLowerCase())) return false;
+    if (search && !race.display_name.toLowerCase().includes(search) && !race.name.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  fillSelect(createRaceEl, bases, true);
+  populateRaceVariants(createRaceEl.value);
+  renderRacePreview();
+}
+
 function populateRaceVariants(baseUuid) {
   createRaceVariantEl.innerHTML = '<option value="">— none —</option>';
-  const baseId = packRaces.find((race) => race.uuid === baseUuid || race.id === baseUuid)?.id || baseUuid;
-  const variants = raceVariantsByBase.get(baseId.toLowerCase()) || [];
+  const base = raceCatalog.find((race) => race.uuid === baseUuid || race.id === baseUuid);
+  const baseId = base?.id || baseUuid;
+  const variants = raceCatalog.filter((race) => race.serves_as && race.serves_as.toLowerCase() === baseId.toLowerCase());
   for (const variant of variants) {
     const option = document.createElement('option');
     option.value = variant.uuid;
-    option.textContent = variant.name;
+    option.textContent = variant.display_name || variant.name;
     createRaceVariantEl.appendChild(option);
   }
+  renderRacePreview();
+}
+
+function renderRacePreview() {
+  const selected = raceCatalog.find((race) => race.uuid === createRaceVariantEl.value)
+    || raceCatalog.find((race) => race.uuid === createRaceEl.value);
+  if (!selected) {
+    racePreviewEl.textContent = '';
+    return;
+  }
+  const speed = Object.entries(selected.speed || {})
+    .map(([mode, feet]) => `${mode} ${feet} ft`)
+    .join(', ');
+  const adjustments = Object.entries(selected.ability_adjustments || {})
+    .map(([stat, value]) => `${stat}${value >= 0 ? '+' : ''}${value}`)
+    .join(', ');
+  racePreviewEl.textContent = [
+    `Name: ${selected.display_name || selected.name}`,
+    `Type: ${(selected.type_tags || []).join(', ') || '—'}`,
+    `Size: ${selected.size || '—'}`,
+    `Speed: ${speed || '—'}`,
+    `Ability adj: ${adjustments || '—'}`,
+    `LA: ${selected.level_adjustment || 0}`,
+  ].join('\n');
 }
 
 function buildVariantIndexes() {

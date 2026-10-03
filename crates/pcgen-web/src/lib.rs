@@ -278,6 +278,41 @@ pub struct EquipmentOptionsQuery {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct RaceOptionsQuery {
+    pub pcc: String,
+    #[serde(default)]
+    pub category: Option<String>,
+    #[serde(default)]
+    pub search: Option<String>,
+    #[serde(default)]
+    pub page: Option<u32>,
+    #[serde(default)]
+    pub page_size: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct RaceOptionDetail {
+    pub uuid: String,
+    pub id: String,
+    pub name: String,
+    pub display_name: String,
+    pub serves_as: Option<String>,
+    pub type_tags: Vec<String>,
+    pub size: String,
+    pub speed: std::collections::BTreeMap<String, u32>,
+    pub ability_adjustments: std::collections::BTreeMap<String, i32>,
+    pub favored_class: Option<String>,
+    pub level_adjustment: i32,
+}
+
+#[derive(Debug, Serialize)]
+pub struct RaceOptionsResponse {
+    pub categories: Vec<String>,
+    pub items: Vec<RaceOptionDetail>,
+    pub meta: PageMeta,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct AbilityOptionsQuery {
     pub pcc: String,
     #[serde(default)]
@@ -361,6 +396,7 @@ pub fn app(config: WebConfig) -> Router {
         .route("/api/options/spells", get(spell_search_options))
         .route("/api/options/equipment", get(equipment_search_options))
         .route("/api/options/abilities", get(ability_search_options))
+        .route("/api/options/races", get(race_search_options))
         .route("/api/preview", post(preview_character))
         .route("/api/characters", get(characters).post(create_character))
         .route(
@@ -889,7 +925,7 @@ fn race_options(pack: &pcgen_ir::CompiledRulePack) -> Vec<NamedOption> {
         .values()
         .map(|race| NamedOption {
             id: race.id.clone(),
-            name: race.name.clone(),
+            name: race.display_name.clone(),
             cost_gp: None,
             starting_gold: None,
             class_levels: None,
@@ -1305,6 +1341,75 @@ fn ability_requires(
                     .any(|candidate| candidate.name.eq_ignore_ascii_case(key))
         })
         .collect()
+}
+
+async fn race_search_options(
+    State(state): State<AppState>,
+    Query(query): Query<RaceOptionsQuery>,
+) -> impl IntoResponse {
+    let pcc_path = resolve_path(&state.config.data_root, &query.pcc);
+    let engine = match cached_engine(&state, &pcc_path) {
+        Ok(engine) => engine,
+        Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
+    };
+    let pack = &engine.pack;
+    let page = query.page.unwrap_or(1).max(1);
+    let page_size = query.page_size.unwrap_or(50).clamp(1, 200);
+    let search = query.search.as_deref().map(str::to_lowercase);
+    let mut categories: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    for race in pack.races.values() {
+        for tag in &race.type_tags {
+            categories.insert(tag.clone());
+        }
+    }
+    let mut items: Vec<RaceOptionDetail> = pack
+        .races
+        .values()
+        .filter(|race| {
+            if let Some(category) = &query.category {
+                if !race.type_tags.iter().any(|tag| tag.eq_ignore_ascii_case(category)) {
+                    return false;
+                }
+            }
+            if let Some(search) = &search {
+                if !race.name.to_lowercase().contains(search)
+                    && !race.display_name.to_lowercase().contains(search)
+                    && !race.id.to_lowercase().contains(search)
+                {
+                    return false;
+                }
+            }
+            true
+        })
+        .map(|race| RaceOptionDetail {
+            uuid: stable_id("race", &race.id),
+            id: race.id.clone(),
+            name: race.name.clone(),
+            display_name: race.display_name.clone(),
+            serves_as: race.serves_as.clone(),
+            type_tags: race.type_tags.clone(),
+            size: race.size.clone(),
+            speed: race.movement.clone(),
+            ability_adjustments: race.ability_adjustments.clone(),
+            favored_class: race.favored_class.clone(),
+            level_adjustment: race.level_adjustment,
+        })
+        .collect();
+    items.sort_by(|left, right| left.display_name.cmp(&right.display_name));
+    let total = items.len();
+    let start = ((page - 1) as usize * page_size as usize).min(total);
+    let end = (start + page_size as usize).min(total);
+    Json(RaceOptionsResponse {
+        categories: categories.into_iter().collect(),
+        meta: PageMeta {
+            page,
+            page_size,
+            total,
+            total_pages: if total == 0 { 0 } else { (total + page_size as usize - 1) / page_size as usize } as u32,
+        },
+        items: items[start..end].to_vec(),
+    })
+    .into_response()
 }
 
 async fn ability_search_options(

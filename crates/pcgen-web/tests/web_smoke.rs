@@ -369,6 +369,7 @@ async fn structured_option_search_endpoints_respond() {
         "/api/options/spells?pcc=campaign-mini/mini.pcc",
         "/api/options/equipment?pcc=campaign-mini/mini.pcc",
         "/api/options/abilities?pcc=campaign-mini/mini.pcc",
+        "/api/options/races?pcc=campaign-mini/mini.pcc",
     ] {
         let response = app
             .clone()

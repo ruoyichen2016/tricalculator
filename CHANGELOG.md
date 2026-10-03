@@ -33,6 +33,9 @@
 - 替代优先级：替代等级（特殊）优先于 Archetype（一般），UI 提示覆盖关系但不阻止创建；
 - Review 显示能力类别计数与资源池统计，Add Skill/Ability 增加即时反馈；
 - 新增 `POST /api/preview`：按当前创建请求返回服务端计算的 `ability_pool_usage`，Review 显示精确 spent / available / remaining；
+- 新增 `GET /api/options/races` 结构化种族查询：类别/搜索/分页 + 种族详情；
+- 种族选择器重构：搜索 + 类别过滤 + 基础种族 + 变体 + 信息预览；
+- `RaceDefinition` 增加 `display_name`、`level_adjustment`；
   - 法术支持按职业法表/等级/领域/学派/关键词筛选；
   - 装备支持按类型/槽位/基础物品/关键词筛选；
   - 能力/专长支持按类别/类型/关键词筛选；

@@ -292,6 +292,10 @@ fn parse_race(record: &RawRecord) -> RaceDefinition {
             }
         }
     }
+    race.display_name = tag(record, "OUTPUTNAME").unwrap_or(&race.name).to_string();
+    race.level_adjustment = tag(record, "LEVELADJUSTMENT")
+        .and_then(|value| value.parse::<i32>().ok())
+        .unwrap_or(0);
     race.serves_as = tag(record, "SERVESAS").and_then(|value| {
         value
             .split('|')
