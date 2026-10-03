@@ -181,7 +181,15 @@
     <button type="button" id="loadDraftBtn" class="ghost">Load draft</button>
     <button type="button" id="exportDraftBtn" class="ghost">Export draft</button>
     <button type="button" id="importDraftBtn" class="ghost">Import draft</button>
+    <button type="button" id="draftLibraryBtn" class="ghost">Draft library</button>
     <input type="file" id="draftFile" accept="application/json" hidden>
+  </div>
+  <div id="draftLibraryPanel" hidden style="border:1px solid var(--line);border-radius:8px;padding:.6rem;margin:.4rem 0;background:#fafbff">
+    <div class="row">
+      <input id="draftLibraryName" placeholder="Draft name">
+      <button type="button" id="saveNamedDraftBtn" class="ghost">Save as…</button>
+    </div>
+    <div id="draftLibraryList" class="picker-rows"></div>
   </div>
 
   <div class="wizard-step" id="step-basic">
@@ -1358,6 +1366,9 @@ document.getElementById('levelUpBtn').onclick = async () => {
 };
 
 const createNameEl = document.getElementById('createName');
+const draftLibraryPanelEl = document.getElementById('draftLibraryPanel');
+const draftLibraryNameEl = document.getElementById('draftLibraryName');
+const draftLibraryListEl = document.getElementById('draftLibraryList');
 const createRaceEl = document.getElementById('createRace');
 const createRaceVariantEl = document.getElementById('createRaceVariant');
 const raceSearchEl = document.getElementById('raceSearch');
@@ -2828,6 +2839,89 @@ function applyCreateDraft(draft) {
   autosaveEnabled = true;
   return true;
 }
+
+const DRAFT_LIBRARY_KEY = 'pcgen-create-drafts';
+
+function readDraftLibrary() {
+  try {
+    const raw = window.localStorage.getItem(DRAFT_LIBRARY_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function writeDraftLibrary(library) {
+  window.localStorage.setItem(DRAFT_LIBRARY_KEY, JSON.stringify(library));
+}
+
+function renderDraftLibrary() {
+  const library = readDraftLibrary();
+  const names = Object.keys(library).sort();
+  draftLibraryListEl.innerHTML = '';
+  if (names.length === 0) {
+    draftLibraryListEl.textContent = 'no saved drafts';
+    return;
+  }
+  for (const name of names) {
+    const row = document.createElement('div');
+    row.className = 'picker-row';
+    const label = document.createElement('span');
+    const savedAt = library[name].saved_at_unix
+      ? new Date(library[name].saved_at_unix * 1000).toLocaleString()
+      : '—';
+    label.textContent = `${name} · ${savedAt}`;
+    const load = document.createElement('button');
+    load.type = 'button';
+    load.className = 'ghost';
+    load.textContent = 'Load';
+    load.onclick = () => {
+      if (applyCreateDraft(library[name].draft)) {
+        createStatusEl.className = '';
+        createStatusEl.textContent = `Loaded draft “${name}”`;
+      }
+    };
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'ghost';
+    remove.textContent = 'Delete';
+    remove.onclick = () => {
+      const next = readDraftLibrary();
+      delete next[name];
+      writeDraftLibrary(next);
+      renderDraftLibrary();
+    };
+    row.append(label, load, remove);
+    draftLibraryListEl.appendChild(row);
+  }
+}
+
+document.getElementById('draftLibraryBtn').onclick = () => {
+  draftLibraryPanelEl.hidden = !draftLibraryPanelEl.hidden;
+  if (!draftLibraryPanelEl.hidden) {
+    draftLibraryNameEl.value = createNameEl.value || '';
+    renderDraftLibrary();
+  }
+};
+
+document.getElementById('saveNamedDraftBtn').onclick = () => {
+  const name = (draftLibraryNameEl.value || createNameEl.value || '').trim();
+  if (!name) {
+    createStatusEl.className = 'error';
+    createStatusEl.textContent = 'Draft name is required';
+    return;
+  }
+  const library = readDraftLibrary();
+  library[name] = {
+    saved_at_unix: Math.floor(Date.now() / 1000),
+    draft: serializeCreateDraft(),
+  };
+  writeDraftLibrary(library);
+  renderDraftLibrary();
+  createStatusEl.className = '';
+  createStatusEl.textContent = `Saved draft “${name}”`;
+};
 
 document.getElementById('saveDraftBtn').onclick = () => {
   try {
