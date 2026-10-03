@@ -1,8 +1,8 @@
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
 use pcgen_builder::{
-    create_draft, level_up_draft, starting_gold_for_class, CreateRequest, CreateSpell,
-    LevelUpRequest, NativeSaveEnvelope,
+    create_draft, level_up_draft, preview_level_up, starting_gold_for_class, CreateRequest,
+    CreateSpell, LevelUpLane, LevelUpRequest, NativeSaveEnvelope,
 };
 use pcgen_core::{AdvancementFrame, AdvancementLane};
 use pcgen_engine::{CharacterDraft, ClassProgress, DraftClassLevel, DraftSpell, Engine};
@@ -175,6 +175,15 @@ enum Command {
         /// Subclass / specialty selection applied to this level.
         #[arg(long)]
         subclass: Option<String>,
+        /// Extra Gestalt/multiclass lane, e.g. `--lane Wizard`; repeatable.
+        #[arg(long = "lane")]
+        lanes: Vec<String>,
+        /// HP gained for the matching `--lane` (same order); repeatable.
+        #[arg(long = "lane-hp")]
+        lane_hp: Vec<i32>,
+        /// Print the resulting snapshot without writing the save.
+        #[arg(long)]
+        preview: bool,
         /// Write the updated envelope here; otherwise print JSON to stdout.
         #[arg(long)]
         out: Option<PathBuf>,
@@ -254,6 +263,19 @@ fn demo_draft() -> CharacterDraft {
         domains: Vec::new(),
         deity_domains: Vec::new(),
     }
+}
+
+/// Pair repeatable `--lane` classes with repeatable `--lane-hp` values.
+fn build_lanes(classes: &[String], hit_points: &[i32]) -> Vec<LevelUpLane> {
+    classes
+        .iter()
+        .enumerate()
+        .map(|(index, class_id)| LevelUpLane {
+            class_id: class_id.clone(),
+            hp_gained: hit_points.get(index).copied(),
+            ..LevelUpLane::default()
+        })
+        .collect()
 }
 
 fn parse_pairs(values: &[String]) -> Result<BTreeMap<String, i32>> {
@@ -694,6 +716,9 @@ fn main() -> Result<()> {
             archetype,
             substitution_level,
             subclass,
+            lanes,
+            lane_hp,
+            preview,
             out,
         } => {
             let text = std::fs::read_to_string(&draft)
@@ -713,7 +738,14 @@ fn main() -> Result<()> {
                 archetype,
                 substitution_level,
                 subclass,
+                lanes: build_lanes(&lanes, &lane_hp),
             };
+            if preview {
+                let preview_draft = preview_level_up(&pack, &envelope.character, &request, None)?;
+                let snapshot = Engine::new(pack).evaluate(&preview_draft);
+                println!("{}", render_json(&snapshot)?);
+                return Ok(());
+            }
             level_up_draft(&pack, &mut envelope.character, &request)?;
             envelope.pcc = Some(pcc.display().to_string());
             envelope.rules_fingerprint = pack.header.rules_fingerprint.clone();

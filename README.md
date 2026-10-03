@@ -82,7 +82,8 @@ POST /api/characters          # 从 pcc + pcg 保存为原生角色
 POST /api/characters/create   # 按 CreateRequest 建卡并保存
 GET  /api/characters/{id}     # 读取原生角色 + snapshot + HTML sheet
 DELETE /api/characters/{id}   # 删除原生角色
-POST /api/characters/{id}/level-up  # 升级角色（LevelUpRequest），可追加模板并回写存档
+POST /api/characters/{id}/level-up  # 升级角色（LevelUpRequest）；preview:true 时只预演不保存
+                                   # 支持 archetype / 替代等级 / 子职业 / 模板覆盖，以及 lanes[] 多职业
 GET  /api/pack-options?pcc=…  # 种族 / 职业 / 技能 / 法术 / 装备候选
 ```
 
@@ -136,6 +137,23 @@ cargo run -p pcgen-cli -- level-up hero.json --pcc <pcc> --class Fighter --hp 6 
 cargo run -p pcgen-cli -- level-up hero.json --pcc <pcc> --class Cleric --hp 6 \
   --archetype "Cloistered Cleric" --substitution-level "Cleric Substitution ~ level 2" \
   --subclass "Weapon Master" --template Celestial --replace-templates --out hero2.json
+```
+
+### 升级预览与多职业
+
+```bash
+# 只预演、不写盘：打印升级后的 snapshot
+cargo run -p pcgen-cli -- level-up hero.json --pcc <pcc> --class Fighter --hp 6 --preview
+
+# Gestalt / 同一角色等级推进第二个职业 lane
+cargo run -p pcgen-cli -- level-up hero.json --pcc <pcc> --class Fighter --hp 6 \
+  --lane Wizard --lane-hp 3 --out hero2.json
+```
+
+```text
+POST /api/characters/{id}/level-up   # { pcc, request, preview? }
+  request.lanes: [{ "class": "...", "hp_gained": 3, "archetype": ..., }]  # 多职业
+  preview: true -> 返回 { preview, character, snapshot, html }，不写盘
 ```
 
 `--template` 可重复；模板按 id 或名称解析（大小写不敏感），未知模板会报错。

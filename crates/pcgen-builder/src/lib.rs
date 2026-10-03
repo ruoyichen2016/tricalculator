@@ -8,8 +8,8 @@ pub mod creation;
 pub mod point_buy;
 
 pub use creation::{
-    create_draft, equipment_cost, level_up_draft, starting_gold_for_class, CreateRequest,
-    CreateSpell, LevelUpRequest,
+    apply_level_up, create_draft, equipment_cost, level_up_draft, preview_level_up,
+    starting_gold_for_class, CreateRequest, CreateSpell, LevelUpLane, LevelUpRequest,
 };
 
 use pcgen_engine::CharacterDraft;

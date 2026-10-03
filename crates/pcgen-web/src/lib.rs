@@ -12,8 +12,8 @@ use axum::{
     Json, Router,
 };
 use pcgen_builder::{
-    create_draft, level_up_draft, starting_gold_for_class, BuilderError, CharacterRepository,
-    CharacterSummary, CreateRequest, LevelUpRequest, NativeSaveEnvelope,
+    create_draft, level_up_draft, preview_level_up, starting_gold_for_class, BuilderError,
+    CharacterRepository, CharacterSummary, CreateRequest, LevelUpRequest, NativeSaveEnvelope,
 };
 use pcgen_engine::{CharacterDraft, DraftClassLevel, DraftSpell, Engine};
 use pcgen_import::{compile_pcc, parse_pcg_draft_file, PcgDraft};
@@ -380,6 +380,9 @@ pub struct CreateFromRequest {
 pub struct LevelUpFromRequest {
     pub pcc: String,
     pub request: LevelUpRequest,
+    /// When true, compute the level-up and return the result without saving.
+    #[serde(default)]
+    pub preview: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -554,7 +557,27 @@ async fn level_up_character(
     };
     let pack = &engine.pack;
     let mut request = body.request;
-    request.class_id = resolve_class_id(pack, &request.class_id);
+    map_level_up_request(pack, &mut request);
+    if body.preview {
+        let preview = match preview_level_up(pack, &envelope.character, &request, None) {
+            Ok(preview) => preview,
+            Err(error) => return api_error(StatusCode::BAD_REQUEST, error.to_string()),
+        };
+        let evaluated = engine.evaluate(&preview);
+        let snapshot: Option<serde_json::Value> = render_json(&evaluated)
+            .ok()
+            .and_then(|text| serde_json::from_str(text.as_str()).ok());
+        return (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "preview": true,
+                "character": preview,
+                "snapshot": snapshot,
+                "html": render_html(&evaluated),
+            })),
+        )
+            .into_response();
+    }
     if let Err(error) = level_up_draft(pack, &mut envelope.character, &request) {
         return api_error(StatusCode::BAD_REQUEST, error.to_string());
     }
@@ -568,6 +591,14 @@ async fn level_up_character(
         return api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string());
     }
     (StatusCode::OK, Json(evaluate_envelope(&state, envelope))).into_response()
+}
+
+/// Resolve class ids coming from the UI (uuid or key) across all lanes.
+fn map_level_up_request(pack: &pcgen_ir::CompiledRulePack, request: &mut LevelUpRequest) {
+    request.class_id = resolve_class_id(pack, &request.class_id);
+    for lane in &mut request.lanes {
+        lane.class_id = resolve_class_id(pack, &lane.class_id);
+    }
 }
 
 async fn delete_character(

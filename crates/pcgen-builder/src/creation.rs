@@ -119,6 +119,10 @@ pub struct LevelUpRequest {
     /// Optional subclass / specialty selection for this level.
     #[serde(default)]
     pub subclass: Option<String>,
+    /// Extra class lanes to advance in the same character level (Gestalt).
+    /// `class_id` / `hp_gained` still describe the primary lane.
+    #[serde(default)]
+    pub lanes: Vec<LevelUpLane>,
 }
 
 /// Build a `CharacterDraft` from a creation request, validating against the
@@ -363,6 +367,28 @@ pub fn create_draft(
     Ok(draft)
 }
 
+/// One class-lane to advance during a single character level.
+///
+/// A normal character has one lane; a Gestalt character has one lane per
+/// parallel class progression.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct LevelUpLane {
+    #[serde(rename = "class")]
+    pub class_id: String,
+    /// Explicit HP gained for this lane; defaults to the class hit-die average.
+    #[serde(default)]
+    pub hp_gained: Option<i32>,
+    /// Optional archetype / alternate ability variant id for this lane.
+    #[serde(default)]
+    pub archetype: Option<String>,
+    /// Optional substitution-level variant id for this lane.
+    #[serde(default)]
+    pub substitution_level: Option<String>,
+    /// Optional subclass / specialty selection for this lane.
+    #[serde(default)]
+    pub subclass: Option<String>,
+}
+
 /// Resolve a variant id by key or case-insensitive match, erroring when absent.
 fn resolve_variant(
     pack: &CompiledRulePack,
@@ -448,35 +474,56 @@ fn sync_draft_class_levels(draft: &mut CharacterDraft) {
     }
 }
 
-/// Apply one level of `request.class_id` to an existing draft.
-pub fn level_up_draft(
+/// Resolve the ordered list of lanes to advance for a level-up request.
+///
+/// `request.class_id` is always the primary lane; any extra `lanes` are
+/// appended for Gestalt/multiclass progression.  A single lane keeps the
+/// legacy behaviour of tracking per-level HP inside `class_levels`.
+fn collect_level_up_lanes(request: &LevelUpRequest) -> Vec<LevelUpLane> {
+    let mut lanes = Vec::new();
+    if !request.class_id.trim().is_empty() || request.lanes.is_empty() {
+        lanes.push(LevelUpLane {
+            class_id: request.class_id.clone(),
+            hp_gained: request.hp_gained,
+            archetype: request.archetype.clone(),
+            substitution_level: request.substitution_level.clone(),
+            subclass: request.subclass.clone(),
+        });
+    }
+    for lane in &request.lanes {
+        lanes.push(lane.clone());
+    }
+    lanes
+}
+
+/// Advance one lane's class-level totals and, when the lane carries variant or
+/// subclass choices, append a matching advancement frame so the engine resolves
+/// the same variants the create wizard would.
+fn apply_level_up_lane(
     pack: &CompiledRulePack,
     draft: &mut CharacterDraft,
-    request: &LevelUpRequest,
+    lane: &LevelUpLane,
+    frame_level_hint: Option<u32>,
 ) -> Result<(), BuilderError> {
-    let class_id = canonical_class(pack, &request.class_id)
-        .ok_or_else(|| BuilderError::UnknownClass(request.class_id.clone()))?;
-    if draft.total_level() >= 20 {
-        return Err(BuilderError::InvalidLevel(draft.total_level() + 1));
-    }
-    if let Some(entry) = draft
+    let class_id = canonical_class(pack, &lane.class_id)
+        .ok_or_else(|| BuilderError::UnknownClass(lane.class_id.clone()))?;
+    let gained = lane
+        .hp_gained
+        .unwrap_or_else(|| average_hit_die(pack, &class_id));
+
+    let next_level = if let Some(entry) = draft
         .class_levels
         .iter_mut()
         .find(|entry| entry.class_id.eq_ignore_ascii_case(&class_id))
     {
         entry.level += 1;
-        let gained = request
-            .hp_gained
-            .unwrap_or_else(|| average_hit_die(pack, &class_id));
-        if !entry.hit_points_by_level.is_empty() || request.hp_gained.is_some() {
+        if !entry.hit_points_by_level.is_empty() || lane.hp_gained.is_some() {
             entry.hit_points_by_level.push(gained);
         } else {
             entry.hit_points_gained += gained;
         }
+        entry.level
     } else {
-        let gained = request
-            .hp_gained
-            .unwrap_or_else(|| average_hit_die(pack, &class_id));
         draft.class_levels.push(DraftClassLevel {
             class_id: class_id.clone(),
             level: 1,
@@ -484,67 +531,136 @@ pub fn level_up_draft(
             hit_points_by_level: vec![gained],
             experience_gained: 0,
         });
-    }
+        1
+    };
 
-    // Per-level lane metadata (archetype / substitution / subclass).  When
-    // present we also append an advancement frame so the engine resolves the
-    // same variants the create wizard would, then resync class-level totals.
-    let gained_hp = request
-        .hp_gained
-        .unwrap_or_else(|| average_hit_die(pack, &class_id));
-    if request.archetype.is_some()
-        || request.substitution_level.is_some()
-        || request.subclass.is_some()
-    {
-        let next_level = draft
-            .class_levels
-            .iter()
-            .find(|entry| entry.class_id.eq_ignore_ascii_case(&class_id))
-            .map(|entry| entry.level)
-            .unwrap_or(1)
-            .max(1);
-        if let Some(archetype) = &request.archetype {
-            let variant = resolve_variant(pack, archetype)?;
-            if let Some(applies_to) = &variant.applies_to {
-                if !applies_to.eq_ignore_ascii_case(&class_id) {
-                    return Err(BuilderError::UnknownVariant(archetype.clone()));
-                }
+    if let Some(archetype) = &lane.archetype {
+        let variant = resolve_variant(pack, archetype)?;
+        if let Some(applies_to) = &variant.applies_to {
+            if !applies_to.eq_ignore_ascii_case(&class_id) {
+                return Err(BuilderError::UnknownVariant(archetype.clone()));
             }
         }
-        let mut lane = AdvancementLane::new(
-            LaneId::primary(),
-            class_id.clone(),
-            next_level,
-            gained_hp,
-            0,
-        );
-        if let Some(archetype) = &request.archetype {
-            lane = lane.with_archetype(archetype.clone());
+    }
+
+    let has_variant =
+        lane.archetype.is_some() || lane.substitution_level.is_some() || lane.subclass.is_some();
+    if has_variant {
+        let mut advancement_lane =
+            AdvancementLane::new(LaneId::primary(), class_id.clone(), next_level, gained, 0);
+        if let Some(archetype) = &lane.archetype {
+            advancement_lane = advancement_lane.with_archetype(archetype.clone());
         }
-        if let Some(substitution) = &request.substitution_level {
+        if let Some(substitution) = &lane.substitution_level {
             let variant_id = resolve_substitution_level(pack, &class_id, next_level, substitution)?;
-            lane = lane.with_substitution_level(variant_id);
+            advancement_lane = advancement_lane.with_substitution_level(variant_id);
         }
-        if let Some(subclass) = &request.subclass {
-            lane = lane.with_subclass(subclass.clone());
+        if let Some(subclass) = &lane.subclass {
+            advancement_lane = advancement_lane.with_subclass(subclass.clone());
         }
-        let frame_level = draft
-            .advancement
-            .iter()
-            .map(|frame| frame.character_level)
-            .max()
-            .unwrap_or(0)
-            + 1;
+        let frame_level = frame_level_hint.unwrap_or_else(|| {
+            draft
+                .advancement
+                .iter()
+                .map(|frame| frame.character_level)
+                .max()
+                .unwrap_or(0)
+                + 1
+        });
         draft
             .advancement
-            .push(AdvancementFrame::new(frame_level, vec![lane]));
+            .push(AdvancementFrame::new(frame_level, vec![advancement_lane]));
         sync_draft_class_levels(draft);
     }
-    if let Some(subclass) = &request.subclass {
+
+    if let Some(subclass) = &lane.subclass {
         draft
             .class_subclasses
             .insert(class_id.clone(), subclass.clone());
     }
+    Ok(())
+}
+
+/// Apply one character level to `draft`.
+///
+/// `advancement` overrides the per-level lane choices when non-empty (used for
+/// application and preview); otherwise the request's single-class fields and
+/// `lanes` are used.  Errors leave `draft` unspecified — callers should work on
+/// a clone when the original must be preserved (see [`preview_level_up`]).
+pub fn apply_level_up(
+    pack: &CompiledRulePack,
+    draft: &mut CharacterDraft,
+    request: &LevelUpRequest,
+    advancement: Option<AdvancementFrame>,
+) -> Result<(), BuilderError> {
+    if draft.total_level() >= 20 {
+        return Err(BuilderError::InvalidLevel(draft.total_level() + 1));
+    }
+    let frame_level = draft
+        .advancement
+        .iter()
+        .map(|frame| frame.character_level)
+        .max()
+        .unwrap_or(0)
+        + 1;
+
+    if let Some(frame) = advancement {
+        for lane in &frame.lanes {
+            let class_id = canonical_class(pack, &lane.class_id)
+                .ok_or_else(|| BuilderError::UnknownClass(lane.class_id.clone()))?;
+            // An explicit frame carries the absolute class level per lane.
+            if let Some(entry) = draft
+                .class_levels
+                .iter_mut()
+                .find(|entry| entry.class_id.eq_ignore_ascii_case(&class_id))
+            {
+                entry.level = lane.class_level.max(entry.level);
+                if entry.hit_points_by_level.len() as u32 >= entry.level {
+                    entry.hit_points_by_level =
+                        entry.hit_points_by_level[..entry.level as usize].to_vec();
+                } else {
+                    while (entry.hit_points_by_level.len() as u32) < entry.level {
+                        entry
+                            .hit_points_by_level
+                            .push(average_hit_die(pack, &class_id));
+                    }
+                }
+            } else {
+                draft.class_levels.push(DraftClassLevel {
+                    class_id: class_id.clone(),
+                    level: lane.class_level.max(1),
+                    hit_points_gained: 0,
+                    hit_points_by_level: Vec::new(),
+                    experience_gained: 0,
+                });
+            }
+            if let Some(subclass) = &lane.subclass {
+                draft
+                    .class_subclasses
+                    .insert(class_id.clone(), subclass.clone());
+            }
+        }
+        // Rebuild class-level totals from the authoritative advancement chain.
+        draft.advancement.push(frame);
+        sync_draft_class_levels(draft);
+    } else {
+        let lanes = collect_level_up_lanes(request);
+        for lane in &lanes {
+            apply_level_up_lane(pack, draft, lane, Some(frame_level))?;
+        }
+    }
+
+    // Skills, abilities and spells are shared across all lanes; attribute them
+    // to the primary class for spell-list validation.
+    let primary_class_id = canonical_class(pack, &request.class_id)
+        .or_else(|| {
+            request
+                .lanes
+                .iter()
+                .find_map(|lane| canonical_class(pack, &lane.class_id))
+        })
+        .ok_or_else(|| BuilderError::UnknownClass(request.class_id.clone()))?;
+
     for (name, ranks) in &request.skills {
         if *ranks < 0.0 {
             return Err(BuilderError::InvalidSkillRank(name.clone()));
@@ -564,8 +680,10 @@ pub fn level_up_draft(
     for spell in &request.spells {
         let name = canonical_spell(pack, &spell.name)
             .ok_or_else(|| BuilderError::UnknownSpell(spell.name.clone()))?;
-        let class_level = spell_level_for_class(pack, &name, &class_id)
-            .ok_or_else(|| BuilderError::SpellNotOnClassList(name.clone(), class_id.clone()))?;
+        let class_level =
+            spell_level_for_class(pack, &name, &primary_class_id).ok_or_else(|| {
+                BuilderError::SpellNotOnClassList(name.clone(), primary_class_id.clone())
+            })?;
         let level = if spell.level > 0 {
             spell.level
         } else {
@@ -574,11 +692,12 @@ pub fn level_up_draft(
         draft.spells.push(DraftSpell {
             name: spell_display_name(pack, &name),
             level,
-            class_id: Some(class_id.clone()),
+            class_id: Some(primary_class_id.clone()),
             times_memorized: spell.times_memorized,
             book: spell.book.clone(),
         });
     }
+
     let mut resolved_templates = Vec::new();
     for template in &request.templates {
         let template_id = canonical_template(pack, template)
@@ -604,6 +723,30 @@ pub fn level_up_draft(
         }
     }
     Ok(())
+}
+
+/// Apply one level to an existing draft in place.
+pub fn level_up_draft(
+    pack: &CompiledRulePack,
+    draft: &mut CharacterDraft,
+    request: &LevelUpRequest,
+) -> Result<(), BuilderError> {
+    apply_level_up(pack, draft, request, None)
+}
+
+/// Compute the result of a level-up without persisting it.
+///
+/// Template replacement and `replace_templates` are applied to the returned
+/// draft exactly as they would be on a real level-up.
+pub fn preview_level_up(
+    pack: &CompiledRulePack,
+    draft: &CharacterDraft,
+    request: &LevelUpRequest,
+    advancement: Option<AdvancementFrame>,
+) -> Result<CharacterDraft, BuilderError> {
+    let mut preview = draft.clone();
+    apply_level_up(pack, &mut preview, request, advancement)?;
+    Ok(preview)
 }
 
 /// Deterministic 3.5e starting gold by class name (average of the DMG roll).
@@ -1381,6 +1524,77 @@ mod tests {
         };
         level_up_draft(&pack, &mut draft, &request).unwrap();
         assert!(draft.templates.is_empty());
+    }
+
+    #[test]
+    fn level_up_advances_two_lanes_in_one_level() {
+        let pack = sample_pack();
+        let mut draft = create_draft(
+            &pack,
+            &CreateRequest {
+                name: "Gestalt".to_string(),
+                race: "Human".to_string(),
+                class_id: "Fighter".to_string(),
+                level: 1,
+                ..CreateRequest::default()
+            },
+        )
+        .unwrap();
+        let request = LevelUpRequest {
+            class_id: "Fighter".to_string(),
+            hp_gained: Some(6),
+            lanes: vec![LevelUpLane {
+                class_id: "Wizard".to_string(),
+                hp_gained: Some(3),
+                ..LevelUpLane::default()
+            }],
+            ..LevelUpRequest::default()
+        };
+        level_up_draft(&pack, &mut draft, &request).unwrap();
+        // A gestalt level adds one level to each lane; the raw sum of class
+        // levels is 3 for a single character level.
+        assert_eq!(draft.total_level(), 3);
+        let fighter = draft
+            .class_levels
+            .iter()
+            .find(|entry| entry.class_id == "Fighter")
+            .unwrap();
+        let wizard = draft
+            .class_levels
+            .iter()
+            .find(|entry| entry.class_id == "Wizard")
+            .unwrap();
+        assert_eq!(fighter.level, 2);
+        assert_eq!(wizard.level, 1);
+    }
+
+    #[test]
+    fn preview_level_up_does_not_mutate_source() {
+        let pack = sample_pack();
+        let draft = create_draft(
+            &pack,
+            &CreateRequest {
+                name: "Hero".to_string(),
+                race: "Human".to_string(),
+                class_id: "Fighter".to_string(),
+                level: 1,
+                templates: vec!["Celestial".to_string()],
+                ..CreateRequest::default()
+            },
+        )
+        .unwrap();
+        let request = LevelUpRequest {
+            class_id: "Fighter".to_string(),
+            templates: Vec::new(),
+            replace_templates: true,
+            ..LevelUpRequest::default()
+        };
+        let preview = preview_level_up(&pack, &draft, &request, None).unwrap();
+        assert_eq!(preview.total_level(), 2);
+        assert!(preview.templates.is_empty());
+        // Source draft is untouched.
+        assert_eq!(draft.total_level(), 1);
+        assert_eq!(draft.templates, vec!["Celestial".to_string()]);
     }
 
     #[test]
