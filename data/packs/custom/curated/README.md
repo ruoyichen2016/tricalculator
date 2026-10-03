@@ -34,6 +34,9 @@ PCGEN_DATA_ROOT="$PWD/data/packs/custom/curated/my_pack" ./run-web.sh
   - 已修正编码（UTF-8）与文件名大小写引用；
   - 入口 `data/_all_35e3e.pcc`；
   - `variants=96`，`error_diagnostics=0`。
+- `bahamut-all-35e3e/` 与 `bahamut35e-wotc-supplements/` 已补充：
+  - **Lightbringer Cleric**：Cleric 1 级替代等级；
+  - 包含 Destroy Undead / True Daylight / Positive Healing 三个替代能力。
 - `bahamut35e-wotc-supplements/`：3.5e WotC 扩展集合。
   - 包含 Core + 全部 WotC supplement；
   - 入口 `data/35e/wotc_supplements.pcc`；
