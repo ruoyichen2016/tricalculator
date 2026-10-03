@@ -77,7 +77,7 @@ GET  /api/curated      # curated cohort 列表 + repeatable abilities
 POST /api/recalculate  # { "pcc", "pcg", "overrides": { choices, abilities,
                        #   active_states, class_subclasses, deity, domains } }
 POST /api/export       # 同上入参，返回可回写 .pcg 文本 + unresolved + pool usage
-GET  /api/characters          # 原生角色列表
+GET  /api/characters          # 原生角色列表（可选 ?pcc=… 按该 campaign 规则指纹过滤）
 POST /api/characters          # 从 pcc + pcg 保存为原生角色
 GET  /api/characters/bundle   # 导出全部原生角色为一个 JSON bundle
 POST /api/characters/bundle   # 导入 bundle（覆盖同 id）；不兼容 schema 返回 400，

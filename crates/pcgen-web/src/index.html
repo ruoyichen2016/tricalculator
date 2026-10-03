@@ -161,6 +161,8 @@
     <button type="button" class="wizard-step-btn" data-step="review">Review</button>
     <button type="button" id="saveDraftBtn" class="ghost">Save draft</button>
     <button type="button" id="loadDraftBtn" class="ghost">Load draft</button>
+    <button type="button" id="exportDraftBtn" class="ghost">Export draft</button>
+    <button type="button" id="importDraftBtn" class="ghost">Import draft</button>
     <input type="file" id="draftFile" accept="application/json" hidden>
   </div>
 
@@ -634,7 +636,10 @@ async function loadCharacters() {
   characterStatusEl.className = '';
   characterStatusEl.textContent = 'Loading characters…';
   try {
-    const response = await fetch('/api/characters');
+    const params = new URLSearchParams();
+    if (pccEl.value) params.set('pcc', pccEl.value);
+    const suffix = params.toString() ? `?${params.toString()}` : '';
+    const response = await fetch(`/api/characters${suffix}`);
     const list = await response.json();
     if (!response.ok) {
       characterStatusEl.className = 'error';
@@ -1569,7 +1574,7 @@ async function loadPackOptions() {
 }
 
 document.getElementById('loadPackOptions').onclick = loadPackOptions;
-pccEl.addEventListener('change', debounce(() => loadPackOptions(), 400));
+pccEl.addEventListener('change', debounce(() => { loadPackOptions(); loadCharacters(); }, 400));
 pccEl.addEventListener('input', debounce(() => loadPackOptions(), 800));
 raceSearchEl.addEventListener('input', debounce(filterRaceBases, 250));
 raceCategoryEl.addEventListener('change', filterRaceBases);
@@ -2692,6 +2697,44 @@ document.getElementById('loadDraftBtn').onclick = () => {
   } catch (error) {
     createStatusEl.className = 'error';
     createStatusEl.textContent = String(error);
+  }
+};
+
+document.getElementById('exportDraftBtn').onclick = () => {
+  try {
+    const draft = serializeCreateDraft();
+    const blob = new Blob([JSON.stringify(draft, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${(draft.name || 'pcgen').replace(/\s+/g, '-').toLowerCase()}-draft.json`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    createStatusEl.className = '';
+    createStatusEl.textContent = 'Draft exported';
+  } catch (error) {
+    createStatusEl.className = 'error';
+    createStatusEl.textContent = String(error);
+  }
+};
+
+document.getElementById('importDraftBtn').onclick = () => {
+  document.getElementById('draftFile').click();
+};
+
+document.getElementById('draftFile').onchange = async (event) => {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    if (applyCreateDraft(JSON.parse(text))) {
+      createStatusEl.className = '';
+      createStatusEl.textContent = `Draft imported from ${file.name}`;
+    }
+  } catch (error) {
+    createStatusEl.className = 'error';
+    createStatusEl.textContent = String(error);
+  } finally {
+    event.target.value = '';
   }
 };
 

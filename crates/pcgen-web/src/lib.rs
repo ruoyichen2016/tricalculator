@@ -602,11 +602,37 @@ async fn import_bundle(
         .into_response()
 }
 
-async fn characters(State(state): State<AppState>) -> impl IntoResponse {
-    match state.repository.list() {
-        Ok(list) => (StatusCode::OK, Json(list)).into_response(),
-        Err(error) => api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
-    }
+#[derive(Debug, Deserialize)]
+pub struct CharactersQuery {
+    /// When set, only characters matching this campaign's rules fingerprint
+    /// are listed.
+    #[serde(default)]
+    pub pcc: Option<String>,
+}
+
+async fn characters(
+    State(state): State<AppState>,
+    Query(query): Query<CharactersQuery>,
+) -> impl IntoResponse {
+    let list = match state.repository.list() {
+        Ok(list) => list,
+        Err(error) => return api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
+    };
+    let list = match query.pcc.as_deref() {
+        Some(pcc) if !pcc.trim().is_empty() => {
+            let pcc_path = resolve_path(&state.config.data_root, pcc);
+            let engine = match cached_engine(&state, &pcc_path) {
+                Ok(engine) => engine,
+                Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
+            };
+            let fingerprint = engine.pack.header.rules_fingerprint.clone();
+            list.into_iter()
+                .filter(|summary| summary.rules_fingerprint == fingerprint)
+                .collect()
+        }
+        _ => list,
+    };
+    (StatusCode::OK, Json(list)).into_response()
 }
 
 /// Evaluate a native save and build the response returned when opening a
