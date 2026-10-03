@@ -230,6 +230,7 @@
 
   <div class="wizard-step" id="step-skills" hidden>
     <label>Skills</label>
+    <p id="skillPointStatus"></p>
     <div id="skillRows" class="picker-rows"></div>
     <div class="row">
       <select id="skillCandidate"></select>
@@ -1206,6 +1207,7 @@ const createBudgetEl = document.getElementById('createBudget');
 const statInputsEl = document.getElementById('statInputs');
 const pointBuyStatusEl = document.getElementById('pointBuyStatus');
 const skillRowsEl = document.getElementById('skillRows');
+const skillPointStatusEl = document.getElementById('skillPointStatus');
 const abilityRowsEl = document.getElementById('abilityRows');
 const skillCandidateEl = document.getElementById('skillCandidate');
 const skillRankEl = document.getElementById('skillRank');
@@ -1275,7 +1277,10 @@ function buildStatInputs() {
     input.max = '18';
     input.value = '10';
     input.id = `stat-${key}`;
-    input.addEventListener('input', updatePointBuy);
+    input.addEventListener('input', () => {
+      updatePointBuy();
+      updateSkillPoints();
+    });
     label.appendChild(input);
     statInputsEl.appendChild(label);
   }
@@ -1312,6 +1317,35 @@ function updatePointBuy() {
   const budget = Number(createBudgetEl.value) || 0;
   pointBuyStatusEl.className = spent > budget ? 'error' : '';
   pointBuyStatusEl.textContent = `Point buy: ${spent} / ${budget}`;
+}
+
+function computeSkillBudget() {
+  const intScore = Number(document.getElementById('stat-INT')?.value || 10);
+  const intMod = Math.floor((intScore - 10) / 2);
+  let budget = 0;
+  advancement.forEach((frame, frameIndex) => {
+    frame.lanes.forEach((lane, laneIndex) => {
+      const cls = packClassesByUuid.get(lane.baseClass || lane.class)
+        || packClassesById.get(lane.baseClass || lane.class);
+      if (!cls) return;
+      const first = classLevelForLane(frameIndex, laneIndex) === 1;
+      const base = first
+        ? (cls.skill_points_per_level || 0) * (cls.skill_multiplier || 4)
+        : (cls.skill_points_per_level || 0);
+      budget += Math.max(1, base + intMod);
+    });
+  });
+  return budget;
+}
+
+function updateSkillPoints() {
+  if (!skillPointStatusEl) return;
+  const budget = computeSkillBudget();
+  const spent = skillSelections.reduce((sum, entry) => sum + (entry.rank || 0), 0);
+  const remaining = budget - spent;
+  skillPointStatusEl.className = remaining < 0 ? 'error' : '';
+  skillPointStatusEl.textContent = `Skill points: ${spent} / ${budget}`
+    + (remaining >= 0 ? ` (remaining ${remaining})` : ` (over by ${-remaining})`);
 }
 
 function fillSelect(element, options, useUuid = false) {
@@ -1767,6 +1801,7 @@ function renderSkillRows() {
     select.value = entry.skill || '';
     select.addEventListener('change', () => {
       entry.skill = select.value;
+      updateSkillPoints();
       renderReviewSummary();
     });
     row.appendChild(select);
@@ -1777,6 +1812,7 @@ function renderSkillRows() {
     rank.value = entry.rank ?? 1;
     rank.addEventListener('input', () => {
       entry.rank = Math.max(0, Number(rank.value) || 0);
+      updateSkillPoints();
       renderReviewSummary();
     });
     row.appendChild(rank);
@@ -1788,12 +1824,14 @@ function renderSkillRows() {
     remove.addEventListener('click', () => {
       skillSelections.splice(index, 1);
       renderSkillRows();
+      updateSkillPoints();
       renderReviewSummary();
     });
     row.appendChild(remove);
 
     skillRowsEl.appendChild(row);
   });
+  updateSkillPoints();
 }
 
 function renderAbilityRows() {
@@ -1826,6 +1864,7 @@ addSkillRowBtn.addEventListener('click', () => {
   if (!skill) return;
   skillSelections.push({ skill, rank: Math.max(0, Number(skillRankEl.value) || 1) });
   renderSkillRows();
+  updateSkillPoints();
   renderReviewSummary();
 });
 
@@ -2227,6 +2266,7 @@ function renderAdvancement() {
   renderLevelList();
   renderLevelEditor();
   updateAdvancementSummary();
+  updateSkillPoints();
   renderReviewSummary();
 }
 
@@ -2283,20 +2323,7 @@ function renderReviewSummary() {
       .join(' + ');
     lines.push(`Lv ${frame.character_level}: ${lanes || '—'}`);
   }
-  const intScore = Number(document.getElementById('stat-INT')?.value || 10);
-  const intMod = Math.floor((intScore - 10) / 2);
-  let skillBudget = 0;
-  advancement.forEach((frame, frameIndex) => {
-    frame.lanes.forEach((lane, laneIndex) => {
-      const cls = packClassesByUuid.get(lane.baseClass || lane.class) || packClassesById.get(lane.baseClass || lane.class);
-      if (!cls) return;
-      const first = classLevelForLane(frameIndex, laneIndex) === 1;
-      const base = first
-        ? (cls.skill_points_per_level || 0) * (cls.skill_multiplier || 4)
-        : (cls.skill_points_per_level || 0);
-      skillBudget += Math.max(1, base + intMod);
-    });
-  });
+  const skillBudget = computeSkillBudget();
   const spentSkill = skillSelections.reduce((sum, entry) => sum + (entry.rank || 0), 0);
   const skillsText = skillSelections.map((entry) => `${entry.skill}=${entry.rank}`).join(', ');
   const abilityGroups = new Map();

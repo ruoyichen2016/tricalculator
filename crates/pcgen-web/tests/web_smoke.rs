@@ -360,6 +360,8 @@ async fn preview_returns_ability_pool_usage() {
         .unwrap();
     let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert!(value["ability_pool_usage"].is_object());
+    // The preview also reports the derived skill-point budget for validation.
+    assert!(value["preview"]["skill_points"].is_number());
 }
 
 #[tokio::test]

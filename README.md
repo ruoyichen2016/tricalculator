@@ -92,6 +92,7 @@ POST /api/characters/{id}/history/{n}/restore  # 跳转到第 n 个历史版本�
 GET  /api/pack-options?pcc=…  # 种族 / 职业 / 技能 / 法术 / 装备候选
 ```
 
+建卡向导对购点预算与技能点预算做实时校验（超支高亮）。
 页面功能：curated PCG 下拉列表、choice 覆盖、ability pool 编辑、
 active state 输入，并展示 snapshot / choices / pools / diagnostics /
 HTML 角色卡。原生角色面板支持导入 / 打开 / 删除，以及升级：选择职业、
