@@ -317,6 +317,12 @@ pub struct CreateFromRequest {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct PreviewRequest {
+    pub pcc: String,
+    pub request: CreateRequest,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct ExportRequest {
     pub pcc: String,
     pub pcg: String,
@@ -355,6 +361,7 @@ pub fn app(config: WebConfig) -> Router {
         .route("/api/options/spells", get(spell_search_options))
         .route("/api/options/equipment", get(equipment_search_options))
         .route("/api/options/abilities", get(ability_search_options))
+        .route("/api/preview", post(preview_character))
         .route("/api/characters", get(characters).post(create_character))
         .route(
             "/api/characters/create",
@@ -1406,6 +1413,30 @@ fn map_create_request_classes(pack: &pcgen_ir::CompiledRulePack, request: &mut C
             lane.class = resolve_class_id(pack, &lane.class);
         }
     }
+}
+
+async fn preview_character(
+    State(state): State<AppState>,
+    Json(body): Json<PreviewRequest>,
+) -> impl IntoResponse {
+    let pcc_path = resolve_path(&state.config.data_root, &body.pcc);
+    let engine = match cached_engine(&state, &pcc_path) {
+        Ok(engine) => engine,
+        Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
+    };
+    let pack = &engine.pack;
+    let mut request = body.request;
+    map_create_request_classes(pack, &mut request);
+    let draft = match create_draft(pack, &request) {
+        Ok(draft) => draft,
+        Err(error) => return api_error(StatusCode::BAD_REQUEST, error.to_string()),
+    };
+    let snapshot = engine.evaluate(&draft);
+    Json(serde_json::json!({
+        "ability_pool_usage": snapshot.ability_pool_usage,
+        "diagnostics": snapshot.diagnostics,
+    }))
+    .into_response()
 }
 
 async fn create_character_from_request(

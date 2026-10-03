@@ -322,6 +322,47 @@ async fn pack_options_endpoint_lists_definitions() {
 }
 
 #[tokio::test]
+async fn preview_returns_ability_pool_usage() {
+    let body = serde_json::json!({
+        "pcc": "campaign-mini/mini.pcc",
+        "request": {
+            "id": "",
+            "name": "Preview Hero",
+            "race": "Human",
+            "class": "Fighter",
+            "level": 1,
+            "alignment": "NG",
+            "campaign": "campaign-mini/mini.pcc",
+            "stats": {},
+            "point_buy_budget": null,
+            "skills": {},
+            "abilities": [],
+            "spells": [],
+            "equipment": [],
+            "deity": null,
+            "domains": []
+        }
+    });
+    let response = app(mini_config())
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/preview")
+                .header("content-type", "application/json")
+                .body(Body::from(body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert!(value["ability_pool_usage"].is_object());
+}
+
+#[tokio::test]
 async fn structured_option_search_endpoints_respond() {
     let app = app(mini_config());
     for uri in [

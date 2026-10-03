@@ -710,6 +710,7 @@ const equipmentPagerEl = document.getElementById('equipmentPager');
 const createEquipmentEl = document.getElementById('createEquipment');
 const createStatusEl = document.getElementById('createStatus');
 let lastDiagnosticsPayload = null;
+let previewAbilityPools = null;
 
 const statKeys = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
 const pointBuyCost = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 6, 15: 8, 16: 10, 17: 13, 18: 16 };
@@ -1502,6 +1503,28 @@ function renderAdvancement() {
   renderReviewSummary();
 }
 
+async function refreshReviewPreview() {
+  const request = buildCreateRequestPayload();
+  if (!request) return;
+  previewAbilityPools = null;
+  try {
+    const response = await fetch('/api/preview', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      previewAbilityPools = { error: data.error || 'preview failed' };
+    } else {
+      previewAbilityPools = data.ability_pool_usage || {};
+    }
+  } catch (error) {
+    previewAbilityPools = { error: String(error) };
+  }
+  renderReviewSummary();
+}
+
 function renderReviewSummary() {
   const lines = [];
   lines.push(`Name: ${createNameEl.value}`);
@@ -1547,10 +1570,24 @@ function renderReviewSummary() {
   lines.push(`Skill points: ${spentSkill} / ${skillBudget}`);
   lines.push(`Skills: ${skillsText || '—'}`);
   lines.push(`Abilities: ${abilitiesText || 'none'}`);
-  const resourcePoolText = Array.from(abilityGroups.entries())
-    .map(([category, list]) => `${category}: ${list.length} selected`)
-    .join(' | ');
-  lines.push(`Resource pools: ${resourcePoolText || 'none'}`);
+  if (previewAbilityPools && previewAbilityPools.error) {
+    lines.push(`Resource pools: error - ${previewAbilityPools.error}`);
+  } else if (previewAbilityPools && Object.keys(previewAbilityPools).length > 0) {
+    const poolText = Object.entries(previewAbilityPools)
+      .map(([poolId, pool]) => {
+        const total = pool.pool ?? 0;
+        const spent = pool.spent ?? 0;
+        const remaining = total - spent;
+        return `${poolId}: ${spent} / ${total} (remaining ${remaining})`;
+      })
+      .join(' | ');
+    lines.push(`Resource pools: ${poolText}`);
+  } else {
+    const resourcePoolText = Array.from(abilityGroups.entries())
+      .map(([category, list]) => `${category}: ${list.length} selected`)
+      .join(' | ');
+    lines.push(`Resource pools: ${resourcePoolText || 'none'}`);
+  }
   const replacementNotes = advancement
     .flatMap((frame) => frame.lanes)
     .map(laneReplacementNotice)
@@ -1584,13 +1621,9 @@ document.getElementById('addSpellLine').onclick = () => {
     ? `${createSpellsEl.value.trim()}\n${line}`
     : line;
 };
-document.getElementById('createCharacterBtn').onclick = async () => {
+function buildCreateRequestPayload() {
   const stats = readStats();
-  if (!stats) {
-    createStatusEl.className = 'error';
-    createStatusEl.textContent = 'Stats must be integers';
-    return;
-  }
+  if (!stats) return null;
   const skills = {};
   for (const entry of skillSelections) {
     if (entry.skill) skills[entry.skill] = entry.rank ?? 1;
@@ -1603,7 +1636,7 @@ document.getElementById('createCharacterBtn').onclick = async () => {
     const [name, level] = line.split('=').map((part) => part.trim());
     return { name, level: Number(level || '0'), times_memorized: 1 };
   });
-  const advancement = advancement.map((frame) => ({
+  const advancementPayload = advancement.map((frame) => ({
     character_level: frame.character_level,
     lanes: frame.lanes.map((lane) => ({
       class: lane.class,
@@ -1611,8 +1644,8 @@ document.getElementById('createCharacterBtn').onclick = async () => {
       substitution_level: lane.substitution || null,
     })),
   }));
-  const primaryClass = advancement[0]?.lanes[0]?.class || '';
-  const request = {
+  const primaryClass = advancementPayload[0]?.lanes[0]?.class || '';
+  return {
     pcc: pccEl.value,
     request: {
       id: '',
@@ -1620,13 +1653,13 @@ document.getElementById('createCharacterBtn').onclick = async () => {
       race: createRaceEl.value,
       class: primaryClass,
       level: Number(createLevelEl.value),
-      advancement,
+      advancement: advancementPayload,
       alignment: createAlignmentEl.value,
       campaign: pccEl.value,
       stats,
       point_buy_budget: Number(createBudgetEl.value),
       skills,
-      abilities: abilities.map((line) => line.split('=').map((part) => part.trim())),
+      abilities,
       spells,
       equipment,
       equipment_budget: Number(createGoldEl.value),
@@ -1634,6 +1667,15 @@ document.getElementById('createCharacterBtn').onclick = async () => {
       domains: [],
     },
   };
+}
+
+document.getElementById('createCharacterBtn').onclick = async () => {
+  const request = buildCreateRequestPayload();
+  if (!request) {
+    createStatusEl.className = 'error';
+    createStatusEl.textContent = 'Stats must be integers';
+    return;
+  }
   createStatusEl.className = '';
   createStatusEl.textContent = 'Creating…';
   try {
@@ -1691,7 +1733,10 @@ function showCreateStep(step) {
   document.querySelectorAll('.wizard-step-btn').forEach((button) => {
     button.classList.toggle('active', button.dataset.step === step);
   });
-  if (step === 'review') renderReviewSummary();
+  if (step === 'review') {
+    renderReviewSummary();
+    refreshReviewPreview();
+  }
 }
 
 document.querySelectorAll('.wizard-step-btn').forEach((button) => {
