@@ -31,6 +31,7 @@
 - class / race 选项新增 `type_tags`；
 - 冲突处理：`SUBSTITUTIONLEVEL` 支持 `REPLACES`；前端检测 Archetype / Variant 与替代等级是否替换同一能力；
 - 替代优先级：替代等级（特殊）优先于 Archetype（一般），UI 提示覆盖关系但不阻止创建；
+- Review 显示能力类别计数与资源池统计，Add Skill/Ability 增加即时反馈；
   - 法术支持按职业法表/等级/领域/学派/关键词筛选；
   - 装备支持按类型/槽位/基础物品/关键词筛选；
   - 能力/专长支持按类别/类型/关键词筛选；

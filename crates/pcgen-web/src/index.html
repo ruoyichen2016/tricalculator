@@ -1546,7 +1546,11 @@ function renderReviewSummary() {
     .join(' | ');
   lines.push(`Skill points: ${spentSkill} / ${skillBudget}`);
   lines.push(`Skills: ${skillsText || '—'}`);
-  lines.push(`Abilities: ${abilitiesText || '—'}`);
+  lines.push(`Abilities: ${abilitiesText || 'none'}`);
+  const resourcePoolText = Array.from(abilityGroups.entries())
+    .map(([category, list]) => `${category}: ${list.length} selected`)
+    .join(' | ');
+  lines.push(`Resource pools: ${resourcePoolText || 'none'}`);
   const replacementNotes = advancement
     .flatMap((frame) => frame.lanes)
     .map(laneReplacementNotice)
