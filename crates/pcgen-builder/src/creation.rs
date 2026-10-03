@@ -107,6 +107,18 @@ pub struct LevelUpRequest {
     /// Creature templates appended while leveling up.
     #[serde(default)]
     pub templates: Vec<String>,
+    /// Replace the draft's template list instead of appending to it.
+    #[serde(default)]
+    pub replace_templates: bool,
+    /// Optional archetype / alternate ability variant id for this level.
+    #[serde(default)]
+    pub archetype: Option<String>,
+    /// Optional substitution-level variant id for this level.
+    #[serde(default)]
+    pub substitution_level: Option<String>,
+    /// Optional subclass / specialty selection for this level.
+    #[serde(default)]
+    pub subclass: Option<String>,
 }
 
 /// Build a `CharacterDraft` from a creation request, validating against the
@@ -351,6 +363,91 @@ pub fn create_draft(
     Ok(draft)
 }
 
+/// Resolve a variant id by key or case-insensitive match, erroring when absent.
+fn resolve_variant(
+    pack: &CompiledRulePack,
+    value: &str,
+) -> Result<pcgen_core::VariantDefinition, BuilderError> {
+    pack.variants
+        .get(value)
+        .or_else(|| {
+            pack.variants
+                .iter()
+                .find(|(key, _)| key.eq_ignore_ascii_case(value))
+                .map(|(_, variant)| variant)
+        })
+        .cloned()
+        .ok_or_else(|| BuilderError::UnknownVariant(value.to_string()))
+}
+
+/// Validate a substitution-level variant for `class_id` at `class_level`,
+/// returning its canonical id.
+fn resolve_substitution_level(
+    pack: &CompiledRulePack,
+    class_id: &str,
+    class_level: u32,
+    value: &str,
+) -> Result<String, BuilderError> {
+    let variant = resolve_variant(pack, value)?;
+    if let Some(applies_to) = &variant.applies_to {
+        if !applies_to.eq_ignore_ascii_case(class_id) {
+            return Err(BuilderError::InvalidSubstitutionLevel {
+                class: class_id.to_string(),
+                level: class_level,
+                variant: variant.id.clone(),
+            });
+        }
+    }
+    let variant_level = substitution_level_value(&variant.id).ok_or_else(|| {
+        BuilderError::InvalidSubstitutionLevel {
+            class: class_id.to_string(),
+            level: class_level,
+            variant: variant.id.clone(),
+        }
+    })?;
+    if variant_level != class_level {
+        return Err(BuilderError::InvalidSubstitutionLevel {
+            class: class_id.to_string(),
+            level: class_level,
+            variant: variant.id.clone(),
+        });
+    }
+    Ok(variant.id.clone())
+}
+
+/// Update class-level totals so they stay consistent after editing a lane.
+fn sync_draft_class_levels(draft: &mut CharacterDraft) {
+    let mut totals: BTreeMap<String, u32> = BTreeMap::new();
+    for frame in &draft.advancement {
+        for lane in &frame.lanes {
+            let entry = totals.entry(lane.class_id.clone()).or_insert(0);
+            if *entry < lane.class_level {
+                *entry = lane.class_level;
+            }
+        }
+    }
+    draft
+        .class_levels
+        .retain(|entry| totals.get(&entry.class_id).is_some_and(|level| *level > 0));
+    for (class_id, level) in &totals {
+        if let Some(entry) = draft
+            .class_levels
+            .iter_mut()
+            .find(|entry| entry.class_id.eq_ignore_ascii_case(class_id))
+        {
+            entry.level = *level;
+        } else {
+            draft.class_levels.push(DraftClassLevel {
+                class_id: class_id.clone(),
+                level: *level,
+                hit_points_gained: 0,
+                hit_points_by_level: Vec::new(),
+                experience_gained: 0,
+            });
+        }
+    }
+}
+
 /// Apply one level of `request.class_id` to an existing draft.
 pub fn level_up_draft(
     pack: &CompiledRulePack,
@@ -388,6 +485,66 @@ pub fn level_up_draft(
             experience_gained: 0,
         });
     }
+
+    // Per-level lane metadata (archetype / substitution / subclass).  When
+    // present we also append an advancement frame so the engine resolves the
+    // same variants the create wizard would, then resync class-level totals.
+    let gained_hp = request
+        .hp_gained
+        .unwrap_or_else(|| average_hit_die(pack, &class_id));
+    if request.archetype.is_some()
+        || request.substitution_level.is_some()
+        || request.subclass.is_some()
+    {
+        let next_level = draft
+            .class_levels
+            .iter()
+            .find(|entry| entry.class_id.eq_ignore_ascii_case(&class_id))
+            .map(|entry| entry.level)
+            .unwrap_or(1)
+            .max(1);
+        if let Some(archetype) = &request.archetype {
+            let variant = resolve_variant(pack, archetype)?;
+            if let Some(applies_to) = &variant.applies_to {
+                if !applies_to.eq_ignore_ascii_case(&class_id) {
+                    return Err(BuilderError::UnknownVariant(archetype.clone()));
+                }
+            }
+        }
+        let mut lane = AdvancementLane::new(
+            LaneId::primary(),
+            class_id.clone(),
+            next_level,
+            gained_hp,
+            0,
+        );
+        if let Some(archetype) = &request.archetype {
+            lane = lane.with_archetype(archetype.clone());
+        }
+        if let Some(substitution) = &request.substitution_level {
+            let variant_id = resolve_substitution_level(pack, &class_id, next_level, substitution)?;
+            lane = lane.with_substitution_level(variant_id);
+        }
+        if let Some(subclass) = &request.subclass {
+            lane = lane.with_subclass(subclass.clone());
+        }
+        let frame_level = draft
+            .advancement
+            .iter()
+            .map(|frame| frame.character_level)
+            .max()
+            .unwrap_or(0)
+            + 1;
+        draft
+            .advancement
+            .push(AdvancementFrame::new(frame_level, vec![lane]));
+        sync_draft_class_levels(draft);
+    }
+    if let Some(subclass) = &request.subclass {
+        draft
+            .class_subclasses
+            .insert(class_id.clone(), subclass.clone());
+    }
     for (name, ranks) in &request.skills {
         if *ranks < 0.0 {
             return Err(BuilderError::InvalidSkillRank(name.clone()));
@@ -422,15 +579,28 @@ pub fn level_up_draft(
             book: spell.book.clone(),
         });
     }
+    let mut resolved_templates = Vec::new();
     for template in &request.templates {
         let template_id = canonical_template(pack, template)
             .ok_or_else(|| BuilderError::UnknownTemplate(template.clone()))?;
-        if !draft
-            .templates
+        if !resolved_templates
             .iter()
-            .any(|existing| existing == &template_id)
+            .any(|existing: &String| existing.eq_ignore_ascii_case(&template_id))
         {
-            draft.templates.push(template_id);
+            resolved_templates.push(template_id);
+        }
+    }
+    if request.replace_templates {
+        draft.templates = resolved_templates;
+    } else {
+        for template_id in resolved_templates {
+            if !draft
+                .templates
+                .iter()
+                .any(|existing| existing.eq_ignore_ascii_case(&template_id))
+            {
+                draft.templates.push(template_id);
+            }
         }
     }
     Ok(())
@@ -1123,6 +1293,94 @@ mod tests {
         level_up_draft(&pack, &mut draft, &request).unwrap();
         assert_eq!(draft.templates, vec!["Celestial".to_string()]);
         assert_eq!(draft.total_level(), 2);
+    }
+
+    #[test]
+    fn level_up_applies_archetype_and_subclass() {
+        let pack = sample_pack();
+        let mut draft = create_draft(
+            &pack,
+            &CreateRequest {
+                name: "Hero".to_string(),
+                race: "Human".to_string(),
+                class_id: "Fighter".to_string(),
+                level: 1,
+                ..CreateRequest::default()
+            },
+        )
+        .unwrap();
+        let request = LevelUpRequest {
+            class_id: "Fighter".to_string(),
+            archetype: Some("Two-Handed Fighter".to_string()),
+            subclass: Some("Weapon Master".to_string()),
+            hp_gained: Some(6),
+            ..LevelUpRequest::default()
+        };
+        level_up_draft(&pack, &mut draft, &request).unwrap();
+        assert_eq!(draft.advancement.len(), 1);
+        let lane = &draft.advancement[0].lanes[0];
+        assert_eq!(lane.class_id, "Fighter");
+        assert_eq!(lane.class_level, 2);
+        assert_eq!(lane.archetype.as_deref(), Some("Two-Handed Fighter"));
+        assert_eq!(lane.subclass.as_deref(), Some("Weapon Master"));
+        assert_eq!(draft.class_levels[0].level, 2);
+        assert_eq!(
+            draft.class_subclasses.get("Fighter").map(String::as_str),
+            Some("Weapon Master")
+        );
+    }
+
+    #[test]
+    fn level_up_rejects_substitution_for_wrong_level() {
+        let pack = sample_pack();
+        let mut draft = create_draft(
+            &pack,
+            &CreateRequest {
+                name: "Hero".to_string(),
+                race: "Human".to_string(),
+                class_id: "Wizard".to_string(),
+                level: 1,
+                ..CreateRequest::default()
+            },
+        )
+        .unwrap();
+        // The only substitution variant in the sample pack targets level 1,
+        // but this level-up advances the Wizard to level 2.
+        let request = LevelUpRequest {
+            class_id: "Wizard".to_string(),
+            substitution_level: Some("Wizard Substitution ~ level 1".to_string()),
+            ..LevelUpRequest::default()
+        };
+        assert!(matches!(
+            level_up_draft(&pack, &mut draft, &request),
+            Err(BuilderError::InvalidSubstitutionLevel { .. })
+        ));
+    }
+
+    #[test]
+    fn level_up_replace_templates_clears_existing() {
+        let pack = sample_pack();
+        let mut draft = create_draft(
+            &pack,
+            &CreateRequest {
+                name: "Hero".to_string(),
+                race: "Human".to_string(),
+                class_id: "Fighter".to_string(),
+                level: 1,
+                templates: vec!["Celestial".to_string()],
+                ..CreateRequest::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(draft.templates, vec!["Celestial".to_string()]);
+        let request = LevelUpRequest {
+            class_id: "Fighter".to_string(),
+            templates: Vec::new(),
+            replace_templates: true,
+            ..LevelUpRequest::default()
+        };
+        level_up_draft(&pack, &mut draft, &request).unwrap();
+        assert!(draft.templates.is_empty());
     }
 
     #[test]

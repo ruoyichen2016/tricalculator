@@ -131,10 +131,18 @@ cargo run -p pcgen-cli -- list-templates --pcc <pcc> --type-tag Undead --with-de
 # 升级时追加模板（可重复）
 cargo run -p pcgen-cli -- level-up hero.json --pcc <pcc> --class Fighter --hp 6 \
   --template Celestial --out hero2.json
+
+# 升级到指定职业等级，并选择 archetype / 替代等级 / 子职业
+cargo run -p pcgen-cli -- level-up hero.json --pcc <pcc> --class Cleric --hp 6 \
+  --archetype "Cloistered Cleric" --substitution-level "Cleric Substitution ~ level 2" \
+  --subclass "Weapon Master" --template Celestial --replace-templates --out hero2.json
 ```
 
 `--template` 可重复；模板按 id 或名称解析（大小写不敏感），未知模板会报错。
-`create` 与 `level-up` 都支持 `--template`，`level-up` 追加已应用的模板不会重复。
+`create` 与 `level-up` 都支持 `--template`，`level-up` 追加已应用的模板不会重复；
+加 `--replace-templates` 会用本次的模板列表替换旧列表。
+`level-up` 还支持 `--archetype` / `--substitution-level` / `--subclass`，为本次升级写入
+lane 级选择（替代等级会按目标职业等级校验）。
 
 ## 当前状态
 

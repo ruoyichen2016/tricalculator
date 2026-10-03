@@ -97,13 +97,24 @@
   <div class="row">
     <label for="levelUpClass">Level up</label>
     <select id="levelUpClass"></select>
+    <label for="levelUpLevel">to level</label>
+    <input id="levelUpLevel" type="number" min="1" max="20" value="2" style="width:4rem">
     <input id="levelUpHp" type="number" min="1" placeholder="HP" style="width:5rem">
     <button type="button" id="levelUpBtn">Level up</button>
+  </div>
+  <div class="row">
+    <label for="levelUpArchetype">Archetype</label>
+    <select id="levelUpArchetype"></select>
+    <label for="levelUpSubstitution">Substitution</label>
+    <select id="levelUpSubstitution"></select>
+    <label for="levelUpSubclass">Subclass</label>
+    <input id="levelUpSubclass" placeholder="e.g. Weapon Master" style="width:10rem">
   </div>
   <div class="row">
     <input id="levelUpTemplateSearch" placeholder="Search template">
     <select id="levelUpTemplateCandidate"></select>
     <button type="button" id="addLevelUpTemplateBtn" class="ghost">+ Add template</button>
+    <label><input type="checkbox" id="levelUpReplaceTemplates"> replace all templates</label>
   </div>
   <div id="levelUpTemplateRows" class="picker-rows"></div>
   <p id="characterStatus"></p>
@@ -684,6 +695,9 @@ document.getElementById('importCharacter').onclick = async () => {
 };
 
 const levelUpClassEl = document.getElementById('levelUpClass');
+const levelUpArchetypeEl = document.getElementById('levelUpArchetype');
+const levelUpSubstitutionEl = document.getElementById('levelUpSubstitution');
+const levelUpSubclassEl = document.getElementById('levelUpSubclass');
 const levelUpTemplateSearchEl = document.getElementById('levelUpTemplateSearch');
 const levelUpTemplateCandidateEl = document.getElementById('levelUpTemplateCandidate');
 const levelUpTemplateRowsEl = document.getElementById('levelUpTemplateRows');
@@ -701,6 +715,7 @@ function populateLevelUpClasses() {
     levelUpClassEl.appendChild(item);
   }
   if (current) levelUpClassEl.value = current;
+  populateLevelUpVariants();
 }
 
 async function searchLevelUpTemplates() {
@@ -743,6 +758,30 @@ function renderLevelUpTemplateRows() {
   });
 }
 
+function populateLevelUpVariants() {
+  if (!levelUpArchetypeEl) return;
+  const classId = levelUpClassEl.value;
+  const target = Number(document.getElementById('levelUpLevel').value) || 2;
+  levelUpArchetypeEl.innerHTML = '<option value="">— none —</option>';
+  levelUpSubstitutionEl.innerHTML = '<option value="">— none —</option>';
+  for (const variant of variantOptionsForClass(classId)) {
+    const option = document.createElement('option');
+    option.value = variant.id;
+    if (variant.kind === 'substitution') {
+      if (variant.level === target) {
+        option.textContent = `${variant.name} (Substitution L${variant.level})`;
+        levelUpSubstitutionEl.appendChild(option);
+      }
+    } else {
+      option.textContent = `${variant.name} (Archetype)`;
+      levelUpArchetypeEl.appendChild(option);
+    }
+  }
+}
+
+levelUpClassEl.addEventListener('change', populateLevelUpVariants);
+document.getElementById('levelUpLevel').addEventListener('input', populateLevelUpVariants);
+
 document.getElementById('addLevelUpTemplateBtn').onclick = () => {
   const option = levelUpTemplateCandidateEl.selectedOptions[0];
   if (!option) return;
@@ -771,6 +810,13 @@ document.getElementById('levelUpBtn').onclick = async () => {
     class: levelUpClassEl.value,
     templates: levelUpTemplates.map((entry) => entry.id),
   };
+  if (levelUpArchetypeEl.value) request.archetype = levelUpArchetypeEl.value;
+  if (levelUpSubstitutionEl.value) request.substitution_level = levelUpSubstitutionEl.value;
+  const subclass = levelUpSubclassEl.value.trim();
+  if (subclass) request.subclass = subclass;
+  if (document.getElementById('levelUpReplaceTemplates').checked) {
+    request.replace_templates = true;
+  }
   const hp = Number(document.getElementById('levelUpHp').value);
   if (hp > 0) request.hp_gained = hp;
   characterStatusEl.className = '';

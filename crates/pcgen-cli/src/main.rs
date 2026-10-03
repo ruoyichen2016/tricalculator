@@ -163,6 +163,18 @@ enum Command {
         /// Apply an additional creature template by id or name; repeat per template.
         #[arg(long = "template")]
         templates: Vec<String>,
+        /// Replace the template list with `--template` instead of appending.
+        #[arg(long)]
+        replace_templates: bool,
+        /// Archetype / alternate ability variant id applied to this level.
+        #[arg(long)]
+        archetype: Option<String>,
+        /// Substitution-level variant id applied to this level.
+        #[arg(long)]
+        substitution_level: Option<String>,
+        /// Subclass / specialty selection applied to this level.
+        #[arg(long)]
+        subclass: Option<String>,
         /// Write the updated envelope here; otherwise print JSON to stdout.
         #[arg(long)]
         out: Option<PathBuf>,
@@ -678,6 +690,10 @@ fn main() -> Result<()> {
             abilities,
             spells,
             templates,
+            replace_templates,
+            archetype,
+            substitution_level,
+            subclass,
             out,
         } => {
             let text = std::fs::read_to_string(&draft)
@@ -693,6 +709,10 @@ fn main() -> Result<()> {
                 abilities: parse_key_value_pairs(&abilities)?,
                 spells: parse_spells(&spells),
                 templates,
+                replace_templates,
+                archetype,
+                substitution_level,
+                subclass,
             };
             level_up_draft(&pack, &mut envelope.character, &request)?;
             envelope.pcc = Some(pcc.display().to_string());
