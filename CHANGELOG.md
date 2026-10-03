@@ -40,6 +40,8 @@
 - Templates 选择器：搜索 + 添加/移除模板，Review 显示模板列表；
 - `CreateRequest` 支持 `templates`，builder 校验并写入 `CharacterDraft.templates`；
 - CLI `create` 新增可重复的 `--template` 参数，直接应用生物模板（按 id 或名称解析）；
+- CLI `level-up` 新增 `--template`，可给已有角色追加生物模板（重复模板自动去重）；
+- CLI 新增 `list-templates` 子命令：列出 `.pcc` 中的生物模板，支持 `--search` 过滤与 `--format json`；
 - `/api/preview` 返回 ECL、最终属性、技能点、专长槽、激活能力与诊断；
 - Review 显示 ECL、最终属性、技能点、专长槽、模板效果与合法性诊断；
 - Dragon Age 选择器扩展为 Life Stage：除龙外，其他生物若有幼体/成年体/古代体等年龄模板也会显示并纳入 Templates；

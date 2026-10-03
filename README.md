@@ -121,9 +121,17 @@ cargo run -p pcgen-cli -- create \
 # 写入原生存档并升级
 cargo run -p pcgen-cli -- create ... --out hero.json
 cargo run -p pcgen-cli -- level-up hero.json --pcc <pcc> --class Fighter --hp 6 --out hero2.json
+
+# 查询可用生物模板（可按 id / 名称子串过滤，--format json 输出结构化数据）
+cargo run -p pcgen-cli -- list-templates --pcc <pcc> --search celestial
+
+# 升级时追加模板（可重复）
+cargo run -p pcgen-cli -- level-up hero.json --pcc <pcc> --class Fighter --hp 6 \
+  --template Celestial --out hero2.json
 ```
 
 `--template` 可重复；模板按 id 或名称解析（大小写不敏感），未知模板会报错。
+`create` 与 `level-up` 都支持 `--template`，`level-up` 追加已应用的模板不会重复。
 
 ## 当前状态
 

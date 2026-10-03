@@ -41,6 +41,16 @@ enum Command {
         #[arg(long, default_value_t = 0)]
         top: usize,
     },
+    /// List creature templates available in a `.pcc` campaign.
+    ListTemplates {
+        #[arg(long)]
+        pcc: PathBuf,
+        /// Case-insensitive substring filter on template id or name.
+        #[arg(long)]
+        search: Option<String>,
+        #[arg(long, default_value = "text")]
+        format: String,
+    },
     /// Parse a `.pcg` file into draft JSON.
     ParsePcg {
         pcg: PathBuf,
@@ -144,6 +154,9 @@ enum Command {
         abilities: Vec<String>,
         #[arg(long = "spell")]
         spells: Vec<String>,
+        /// Apply an additional creature template by id or name; repeat per template.
+        #[arg(long = "template")]
+        templates: Vec<String>,
         /// Write the updated envelope here; otherwise print JSON to stdout.
         #[arg(long)]
         out: Option<PathBuf>,
@@ -420,6 +433,73 @@ fn main() -> Result<()> {
                 }
             }
         }
+        Command::ListTemplates {
+            pcc,
+            search,
+            format,
+        } => {
+            let (pack, _) =
+                compile_pcc(&pcc).with_context(|| format!("failed to import {}", pcc.display()))?;
+            let needle = search.as_deref().map(str::to_lowercase);
+            let matches: Vec<_> = pack
+                .templates
+                .values()
+                .filter(|template| match &needle {
+                    Some(needle) => {
+                        template.id.to_lowercase().contains(needle)
+                            || template.name.to_lowercase().contains(needle)
+                    }
+                    None => true,
+                })
+                .collect();
+            if format.eq_ignore_ascii_case("json") {
+                let rows: Vec<serde_json::Value> = matches
+                    .iter()
+                    .map(|template| {
+                        serde_json::json!({
+                            "id": template.id,
+                            "name": template.name,
+                            "type_tags": template.type_tags,
+                            "hit_die_override": template.hit_die_override,
+                            "add_levels": template.add_levels,
+                            "challenge_rating": template.traits.challenge_rating,
+                            "damage_reduction": template.traits.damage_reduction,
+                            "spell_resistance": template.traits.spell_resistance,
+                            "stat_minimums": template.stat_minimums,
+                        })
+                    })
+                    .collect();
+                println!("{}", serde_json::to_string_pretty(&rows)?);
+            } else {
+                println!("templates: {}", matches.len());
+                for template in matches {
+                    let mut details = Vec::new();
+                    if let Some(hit_die) = &template.hit_die_override {
+                        details.push(format!("hitdie={hit_die}"));
+                    }
+                    if let Some(cr) = &template.traits.challenge_rating {
+                        details.push(format!("cr={cr}"));
+                    }
+                    if !template.add_levels.is_empty() {
+                        let levels = template
+                            .add_levels
+                            .iter()
+                            .map(|(class, count)| format!("{class}+{count}"))
+                            .collect::<Vec<_>>()
+                            .join(",");
+                        details.push(format!("addlevel={levels}"));
+                    }
+                    if !template.type_tags.is_empty() {
+                        details.push(format!("tags={}", template.type_tags.join(",")));
+                    }
+                    if details.is_empty() {
+                        println!("{}\t{}", template.id, template.name);
+                    } else {
+                        println!("{}\t{}\t{}", template.id, template.name, details.join(" "));
+                    }
+                }
+            }
+        }
         Command::ParsePcg { pcg, format } => {
             let draft = parse_pcg_draft_file(&pcg)
                 .with_context(|| format!("failed to read {}", pcg.display()))?;
@@ -556,6 +636,7 @@ fn main() -> Result<()> {
             skills,
             abilities,
             spells,
+            templates,
             out,
         } => {
             let text = std::fs::read_to_string(&draft)
@@ -570,6 +651,7 @@ fn main() -> Result<()> {
                 skills: parse_skill_pairs(&skills)?,
                 abilities: parse_key_value_pairs(&abilities)?,
                 spells: parse_spells(&spells),
+                templates,
             };
             level_up_draft(&pack, &mut envelope.character, &request)?;
             envelope.pcc = Some(pcc.display().to_string());

@@ -104,6 +104,9 @@ pub struct LevelUpRequest {
     pub abilities: Vec<(String, String)>,
     #[serde(default)]
     pub spells: Vec<CreateSpell>,
+    /// Creature templates appended while leveling up.
+    #[serde(default)]
+    pub templates: Vec<String>,
 }
 
 /// Build a `CharacterDraft` from a creation request, validating against the
@@ -418,6 +421,17 @@ pub fn level_up_draft(
             times_memorized: spell.times_memorized,
             book: spell.book.clone(),
         });
+    }
+    for template in &request.templates {
+        let template_id = canonical_template(pack, template)
+            .ok_or_else(|| BuilderError::UnknownTemplate(template.clone()))?;
+        if !draft
+            .templates
+            .iter()
+            .any(|existing| existing == &template_id)
+        {
+            draft.templates.push(template_id);
+        }
     }
     Ok(())
 }
@@ -736,6 +750,10 @@ mod tests {
         magic_missile.class_levels.insert("Fighter".to_string(), 1);
         pack.spells
             .insert("Magic Missile".to_string(), magic_missile);
+        pack.templates.insert(
+            "Celestial".to_string(),
+            pcgen_core::domain::TemplateDefinition::new("Celestial", "Celestial"),
+        );
         pack
     }
 
@@ -1063,5 +1081,72 @@ mod tests {
         assert_eq!(draft.total_level(), 2);
         assert_eq!(draft.class_levels[0].hit_points_by_level, vec![5, 6]);
         assert_eq!(draft.skills.get("Climb"), Some(&2.0));
+    }
+
+    #[test]
+    fn create_resolves_templates_by_name() {
+        let pack = sample_pack();
+        let draft = create_draft(
+            &pack,
+            &CreateRequest {
+                name: "Hero".to_string(),
+                race: "Human".to_string(),
+                class_id: "Fighter".to_string(),
+                level: 1,
+                templates: vec!["celestial".to_string()],
+                ..CreateRequest::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(draft.templates, vec!["Celestial".to_string()]);
+    }
+
+    #[test]
+    fn level_up_appends_templates_without_duplicates() {
+        let pack = sample_pack();
+        let mut draft = create_draft(
+            &pack,
+            &CreateRequest {
+                name: "Hero".to_string(),
+                race: "Human".to_string(),
+                class_id: "Fighter".to_string(),
+                level: 1,
+                ..CreateRequest::default()
+            },
+        )
+        .unwrap();
+        let request = LevelUpRequest {
+            class_id: "Fighter".to_string(),
+            templates: vec!["Celestial".to_string(), "celestial".to_string()],
+            ..LevelUpRequest::default()
+        };
+        level_up_draft(&pack, &mut draft, &request).unwrap();
+        assert_eq!(draft.templates, vec!["Celestial".to_string()]);
+        assert_eq!(draft.total_level(), 2);
+    }
+
+    #[test]
+    fn level_up_rejects_unknown_template() {
+        let pack = sample_pack();
+        let mut draft = create_draft(
+            &pack,
+            &CreateRequest {
+                name: "Hero".to_string(),
+                race: "Human".to_string(),
+                class_id: "Fighter".to_string(),
+                level: 1,
+                ..CreateRequest::default()
+            },
+        )
+        .unwrap();
+        let request = LevelUpRequest {
+            class_id: "Fighter".to_string(),
+            templates: vec!["NoSuchTemplate".to_string()],
+            ..LevelUpRequest::default()
+        };
+        assert!(matches!(
+            level_up_draft(&pack, &mut draft, &request),
+            Err(BuilderError::UnknownTemplate(_))
+        ));
     }
 }
