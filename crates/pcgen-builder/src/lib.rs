@@ -114,6 +114,8 @@ pub enum BuilderError {
         level: u32,
         variant: String,
     },
+    #[error("skill points exceeded: spent {spent:.2} > available {budget}")]
+    SkillPointsExceeded { spent: f64, budget: u32 },
     #[error("equipment budget exceeded: spent {spent:.2} > budget {budget:.2}")]
     EquipmentBudgetExceeded { spent: f64, budget: f64 },
 }

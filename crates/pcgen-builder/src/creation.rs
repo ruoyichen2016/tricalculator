@@ -277,6 +277,16 @@ pub fn create_draft(
         });
     }
 
+    let intelligence_modifier = intelligence_modifier(&stats);
+    let skill_budget = skill_point_budget(pack, &advancement, &class_levels, intelligence_modifier);
+    let spent_skill_points: f64 = skills.values().sum();
+    if spent_skill_points > f64::from(skill_budget) + 1e-9 {
+        return Err(BuilderError::SkillPointsExceeded {
+            spent: spent_skill_points,
+            budget: skill_budget,
+        });
+    }
+
     let mut spells = Vec::new();
     for spell in &request.spells {
         let name = canonical_spell(pack, &spell.name)
@@ -529,6 +539,86 @@ fn canonical_class(pack: &CompiledRulePack, value: &str) -> Option<String> {
         .iter()
         .find(|(_, class)| class.name.eq_ignore_ascii_case(value))
         .map(|(key, _)| key.clone())
+}
+
+fn intelligence_modifier(stats: &BTreeMap<String, i32>) -> i32 {
+    stats
+        .get("INT")
+        .copied()
+        .map(|score| (score - 10) / 2)
+        .unwrap_or(0)
+}
+
+fn progression_for_class<'a>(
+    pack: &'a CompiledRulePack,
+    class_id: &str,
+) -> Option<&'a pcgen_core::domain::ClassProgression> {
+    if let Some(progression) = pack.progressions.get(class_id) {
+        return Some(progression);
+    }
+    pack.progressions
+        .iter()
+        .find(|(key, _)| key.eq_ignore_ascii_case(class_id))
+        .map(|(_, progression)| progression)
+}
+
+fn skill_point_budget(
+    pack: &CompiledRulePack,
+    advancement: &[AdvancementFrame],
+    class_levels: &[DraftClassLevel],
+    intelligence_modifier: i32,
+) -> u32 {
+    let mut budget: u32 = 0;
+    if !advancement.is_empty() {
+        for frame in advancement {
+            for lane in &frame.lanes {
+                let first = lane.class_level == 1;
+                let mut points = 0i32;
+                if let Some(progression) = progression_for_class(pack, &lane.class_id) {
+                    points = if first {
+                        progression.first_level_skill_points as i32
+                    } else {
+                        progression.skill_points_per_level as i32
+                    };
+                } else if let Some(class) = pack.classes.get(&lane.class_id) {
+                    points = if first {
+                        (class.skill_points_per_level as i32)
+                            .saturating_mul(class.skill_multiplier.unwrap_or(4) as i32)
+                    } else {
+                        class.skill_points_per_level as i32
+                    };
+                }
+                budget = budget.saturating_add((points + intelligence_modifier).max(1) as u32);
+            }
+        }
+    } else {
+        for entry in class_levels {
+            let mut points = 0i32;
+            if let Some(progression) = progression_for_class(pack, &entry.class_id) {
+                let first_total = (progression.first_level_skill_points as i32
+                    + intelligence_modifier)
+                    .max(1) as u32;
+                let per_level = (progression.skill_points_per_level as i32 + intelligence_modifier)
+                    .max(1) as u32;
+                if entry.level > 0 {
+                    budget = budget
+                        .saturating_add(first_total + (entry.level - 1).saturating_mul(per_level));
+                }
+                continue;
+            } else if let Some(class) = pack.classes.get(&entry.class_id) {
+                points = class.skill_points_per_level as i32;
+            }
+            let first_total = (points + intelligence_modifier).max(1) as u32;
+            let per_level = (points + intelligence_modifier).max(1) as u32;
+            if entry.level > 0 {
+                budget = budget
+                    .saturating_add(first_total + (entry.level - 1).saturating_mul(per_level));
+            } else {
+                budget = budget.saturating_add(first_total);
+            }
+        }
+    }
+    budget
 }
 
 fn canonical_skill(pack: &CompiledRulePack, value: &str) -> Option<String> {

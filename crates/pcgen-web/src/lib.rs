@@ -163,6 +163,10 @@ pub struct NamedOption {
     pub uuid: String,
     #[serde(default)]
     pub is_prestige: bool,
+    #[serde(default)]
+    pub skill_points_per_level: u32,
+    #[serde(default)]
+    pub skill_multiplier: u32,
 }
 
 #[derive(Debug, Serialize)]
@@ -861,6 +865,8 @@ fn named_options<T>(
             serves_as: None,
             uuid: stable_id("option", &id(&value)),
             is_prestige: false,
+            skill_points_per_level: 0,
+            skill_multiplier: 1,
         })
         .collect();
     options.sort_by(|left, right| left.name.cmp(&right.name));
@@ -880,6 +886,8 @@ fn class_options(pack: &pcgen_ir::CompiledRulePack) -> Vec<NamedOption> {
             serves_as: class.serves_as.clone(),
             uuid: stable_id("class", &class.id),
             is_prestige: class.is_prestige,
+            skill_points_per_level: class.skill_points_per_level,
+            skill_multiplier: class.skill_multiplier.unwrap_or(4),
         })
         .collect();
     options.sort_by(|left, right| left.name.cmp(&right.name));
@@ -1356,8 +1364,21 @@ fn resolve_class_id(pack: &pcgen_ir::CompiledRulePack, value: &str) -> String {
         .unwrap_or_else(|| value.to_string())
 }
 
+fn resolve_race_id(pack: &pcgen_ir::CompiledRulePack, value: &str) -> String {
+    if pack.races.contains_key(value) {
+        return value.to_string();
+    }
+    let uuid = value;
+    pack.races
+        .iter()
+        .find(|(_, race)| stable_id("option", &race.id) == uuid)
+        .map(|(id, _)| id.clone())
+        .unwrap_or_else(|| value.to_string())
+}
+
 fn map_create_request_classes(pack: &pcgen_ir::CompiledRulePack, request: &mut CreateRequest) {
     request.class_id = resolve_class_id(pack, &request.class_id);
+    request.race = resolve_race_id(pack, &request.race);
     for frame in &mut request.advancement {
         for lane in &mut frame.lanes {
             lane.class = resolve_class_id(pack, &lane.class);

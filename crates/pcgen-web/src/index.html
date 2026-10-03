@@ -761,11 +761,11 @@ function updatePointBuy() {
   pointBuyStatusEl.textContent = `Point buy: ${spent} / ${budget}`;
 }
 
-function fillSelect(element, options) {
+function fillSelect(element, options, useUuid = false) {
   element.innerHTML = '';
   for (const option of options || []) {
     const item = document.createElement('option');
-    item.value = option.id;
+    item.value = useUuid ? (option.uuid || option.id) : option.id;
     item.textContent = option.name;
     if (option.starting_gold !== undefined) {
       item.dataset.startingGold = option.starting_gold;
@@ -832,7 +832,7 @@ async function loadPackOptions() {
       createStatusEl.textContent = data.error || 'failed to load pack options';
       return;
     }
-    fillSelect(createRaceEl, data.races);
+    fillSelect(createRaceEl, data.races, true);
     fillSelect(createAlignmentEl, data.alignments);
     packClasses = data.classes || [];
     packVariants = data.variants || [];
@@ -1433,8 +1433,31 @@ function renderReviewSummary() {
       .join(' + ');
     lines.push(`Lv ${frame.character_level}: ${lanes || '—'}`);
   }
+  const intScore = Number(document.getElementById('stat-INT')?.value || 10);
+  const intMod = Math.floor((intScore - 10) / 2);
+  let skillBudget = 0;
+  advancement.forEach((frame, frameIndex) => {
+    frame.lanes.forEach((lane, laneIndex) => {
+      const cls = packClassesByUuid.get(lane.baseClass || lane.class) || packClassesById.get(lane.baseClass || lane.class);
+      if (!cls) return;
+      const first = classLevelForLane(frameIndex, laneIndex) === 1;
+      const base = first
+        ? (cls.skill_points_per_level || 0) * (cls.skill_multiplier || 4)
+        : (cls.skill_points_per_level || 0);
+      skillBudget += Math.max(1, base + intMod);
+    });
+  });
+  const spentSkill = skillSelections.reduce((sum, entry) => sum + (entry.rank || 0), 0);
   const skillsText = skillSelections.map((entry) => `${entry.skill}=${entry.rank}`).join(', ');
-  const abilitiesText = abilitySelections.map((entry) => `${entry.category}: ${entry.ability}`).join(', ');
+  const abilityGroups = new Map();
+  abilitySelections.forEach((entry) => {
+    if (!abilityGroups.has(entry.category || 'Ability')) abilityGroups.set(entry.category || 'Ability', []);
+    abilityGroups.get(entry.category || 'Ability').push(entry.ability);
+  });
+  const abilitiesText = Array.from(abilityGroups.entries())
+    .map(([category, list]) => `${category}: ${list.join(', ')}`)
+    .join(' | ');
+  lines.push(`Skill points: ${spentSkill} / ${skillBudget}`);
   lines.push(`Skills: ${skillsText || '—'}`);
   lines.push(`Abilities: ${abilitiesText || '—'}`);
   reviewSummaryEl.textContent = lines.join('\n');
