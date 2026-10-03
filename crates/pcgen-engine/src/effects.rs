@@ -1141,30 +1141,10 @@ fn predicate_holds(
                 .iter()
                 .any(|item| item == category || item.contains(category))
         }),
-        Predicate::Deity { names, min_count } => {
-            let active_deities: Vec<String> = std::iter::once(draft.deity.as_deref())
-                .flatten()
-                .chain(
-                    draft
-                        .advancement
-                        .iter()
-                        .flat_map(|frame| frame.lanes.iter())
-                        .filter_map(|lane| lane.deity.as_deref()),
-                )
-                .map(normalized)
-                .collect();
-            let matched = names
-                .iter()
-                .filter(|candidate| {
-                    active_deities.iter().any(|deity| {
-                        deity == *candidate
-                            || deity.contains(candidate.as_str())
-                            || (candidate.starts_with("pantheon.")
-                                && deity.contains(candidate.trim_start_matches("pantheon.")))
-                    })
-                })
-                .count();
-            matched as u32 >= *min_count
+        Predicate::Deity { .. } => {
+            // Temporary: deity prerequisites are disabled until the deity
+            // selection/faith pipeline is fully adapted to the new UI.
+            true
         }
         Predicate::Domain { names } => names.iter().any(|name| {
             state
