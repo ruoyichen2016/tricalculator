@@ -355,6 +355,7 @@ fn parse_class(record: &RawRecord) -> ClassDefinition {
         .unwrap_or_default();
     class.requires_spellbook =
         tag(record, "SPELLBOOK").is_some_and(|value| value.eq_ignore_ascii_case("YES"));
+    class.type_tags = type_tags(record);
     class.serves_as = tag(record, "SERVESAS").and_then(|value| {
         value
             .split('|')

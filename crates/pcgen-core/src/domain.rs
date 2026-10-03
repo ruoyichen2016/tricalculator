@@ -246,6 +246,7 @@ pub struct ClassDefinition {
     #[serde(default)]
     pub description: String,
     #[serde(default)]
+    pub type_tags: Vec<String>,
     pub is_prestige: bool,
     #[serde(default)]
     pub is_psionic: bool,
@@ -358,6 +359,7 @@ impl ClassDefinition {
             id: id.into(),
             name: name.into(),
             description: String::new(),
+            type_tags: Vec::new(),
             is_prestige: false,
             is_psionic: false,
             serves_as: None,

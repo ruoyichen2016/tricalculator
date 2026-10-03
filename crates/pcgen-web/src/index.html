@@ -1022,6 +1022,51 @@ async function searchAbilities(reset = true) {
   }
 }
 
+function renderSkillRows() {
+  skillRowsEl.innerHTML = '';
+  skillSelections.forEach((entry, index) => {
+    const row = document.createElement('div');
+    row.className = 'picker-row';
+
+    const select = document.createElement('select');
+    for (const skill of packSkills) {
+      const option = document.createElement('option');
+      option.value = skill.name || skill.id;
+      option.textContent = skill.name;
+      select.appendChild(option);
+    }
+    select.value = entry.skill || '';
+    select.addEventListener('change', () => {
+      entry.skill = select.value;
+      renderReviewSummary();
+    });
+    row.appendChild(select);
+
+    const rank = document.createElement('input');
+    rank.type = 'number';
+    rank.min = '0';
+    rank.value = entry.rank ?? 1;
+    rank.addEventListener('input', () => {
+      entry.rank = Math.max(0, Number(rank.value) || 0);
+      renderReviewSummary();
+    });
+    row.appendChild(rank);
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'remove-btn';
+    remove.textContent = '✕';
+    remove.addEventListener('click', () => {
+      skillSelections.splice(index, 1);
+      renderSkillRows();
+      renderReviewSummary();
+    });
+    row.appendChild(remove);
+
+    skillRowsEl.appendChild(row);
+  });
+}
+
 function renderAbilityRows() {
   abilityRowsEl.innerHTML = '';
   abilitySelections.forEach((entry, index) => {

@@ -167,6 +167,8 @@ pub struct NamedOption {
     pub skill_points_per_level: u32,
     #[serde(default)]
     pub skill_multiplier: u32,
+    #[serde(default)]
+    pub type_tags: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -867,6 +869,7 @@ fn named_options<T>(
             is_prestige: false,
             skill_points_per_level: 0,
             skill_multiplier: 1,
+            type_tags: Vec::new(),
         })
         .collect();
     options.sort_by(|left, right| left.name.cmp(&right.name));
@@ -888,6 +891,7 @@ fn race_options(pack: &pcgen_ir::CompiledRulePack) -> Vec<NamedOption> {
             is_prestige: false,
             skill_points_per_level: 0,
             skill_multiplier: 1,
+            type_tags: race.type_tags.clone(),
         })
         .collect();
     options.sort_by(|left, right| left.name.cmp(&right.name));
@@ -909,6 +913,7 @@ fn class_options(pack: &pcgen_ir::CompiledRulePack) -> Vec<NamedOption> {
             is_prestige: class.is_prestige,
             skill_points_per_level: class.skill_points_per_level,
             skill_multiplier: class.skill_multiplier.unwrap_or(4),
+            type_tags: class.type_tags.clone(),
         })
         .collect();
     options.sort_by(|left, right| left.name.cmp(&right.name));
