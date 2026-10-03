@@ -18,6 +18,8 @@
 - 修复 `.MOD` 显示：class 显示名自动剥离 `.MOD` 后缀；
 - 修复职业变体混入主职业列表：`serves_as` 变体只出现在 Class Variant 下拉，不再出现在主职业下拉；
 - 增加 `.pcc` 自动刷新：切换或修改 `pcc` 后自动重新拉取 pack-options / spells / equipment / abilities，无需手动点击刷新；
+- 修复 `CLASS:X.MOD` 丢失当前职业上下文：Lightbringer Cleric 现在正确挂到 Cleric 1 级替代等级；
+- 主职业列表不再混入 `serves_as` 变体和 prestige 进阶职业；灵能/进阶变体不再出现在基础职业下拉；
   - 法术支持按职业法表/等级/领域/学派/关键词筛选；
   - 装备支持按类型/槽位/基础物品/关键词筛选；
   - 能力/专长支持按类别/类型/关键词筛选；

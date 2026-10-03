@@ -24,7 +24,14 @@ pub fn apply_record_patches(records: &[RawRecord]) -> Vec<RawRecord> {
         }
 
         if name.ends_with(".MOD") {
-            if let Some(&index) = index_by_key.get(&map_key) {
+            // For CLASS blocks the `.MOD` line is also the header that
+            // carries `current_class` into following `SUBSTITUTIONCLASS` /
+            // `SUBSTITUTIONLEVEL` rows.  Keep it in the stream; typed
+            // lowering's `merge_class` applies it to the base class.
+            if category == "CLASS" {
+                output.push(record.clone());
+                index_by_key.insert(map_key, output.len() - 1);
+            } else if let Some(&index) = index_by_key.get(&map_key) {
                 let mut base = output[index].clone();
                 merge_tags_with_clear(&mut base.tags, &record.tags);
                 output[index] = base;
@@ -115,19 +122,25 @@ mod tests {
             record("Fighter.COPY=Knight", "CLASS", &[("MAXLEVEL", "10")]),
         ];
         let patched = apply_record_patches(&records);
-        assert_eq!(patched.len(), 2);
+        // CLASS `.MOD` rows are intentionally kept as headers so substitution
+        // blocks can retain `current_class`; typed lowering merges them later.
+        assert_eq!(patched.len(), 3);
         let fighter = patched
             .iter()
-            .find(|record| record.key == "Fighter")
+            .find(|record| record.key == "Fighter" && !record.name.ends_with(".MOD"))
             .expect("fighter");
         assert!(fighter
             .tags
             .iter()
-            .any(|tag| tag.name == "TYPE" && tag.value == "Prestige"));
-        assert!(!fighter
+            .any(|tag| tag.name == "TYPE" && tag.value == "Base"));
+        let fighter_mod = patched
+            .iter()
+            .find(|record| record.name == "Fighter.MOD")
+            .expect("fighter mod header");
+        assert!(fighter_mod
             .tags
             .iter()
-            .any(|tag| tag.name == "TYPE" && tag.value == "Base"));
+            .any(|tag| tag.name == "TYPE" && tag.value == "Prestige"));
         let knight = patched
             .iter()
             .find(|record| record.key == "Knight")

@@ -161,6 +161,8 @@ pub struct NamedOption {
     pub serves_as: Option<String>,
     /// Stable UI-facing identifier; internal PCGen key stays in `id`.
     pub uuid: String,
+    #[serde(default)]
+    pub is_prestige: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -858,6 +860,7 @@ fn named_options<T>(
             class_levels: None,
             serves_as: None,
             uuid: stable_id("option", &id(&value)),
+            is_prestige: false,
         })
         .collect();
     options.sort_by(|left, right| left.name.cmp(&right.name));
@@ -876,6 +879,7 @@ fn class_options(pack: &pcgen_ir::CompiledRulePack) -> Vec<NamedOption> {
             class_levels: None,
             serves_as: class.serves_as.clone(),
             uuid: stable_id("class", &class.id),
+            is_prestige: class.is_prestige,
         })
         .collect();
     options.sort_by(|left, right| left.name.cmp(&right.name));

@@ -1144,7 +1144,7 @@ equipmentTypeFilterEl.addEventListener('change', () => {
 });
 
 function defaultLane(laneIndex) {
-  const baseClasses = packClasses.filter((option) => !option.serves_as);
+  const baseClasses = packClasses.filter((option) => !option.serves_as && !option.is_prestige);
   return {
     class: baseClasses[laneIndex]?.uuid || baseClasses[0]?.uuid || '',
     archetype: '',
@@ -1254,7 +1254,7 @@ function renderLevelEditor() {
 
     const selectedClassOption = packClassesByUuid.get(lane.class) || packClassesById.get(lane.class);
     const classSelect = document.createElement('select');
-    for (const option of packClasses.filter((candidate) => !candidate.serves_as)) {
+    for (const option of packClasses.filter((candidate) => !candidate.serves_as && !candidate.is_prestige)) {
       const item = document.createElement('option');
       item.value = option.uuid;
       item.textContent = option.name;
