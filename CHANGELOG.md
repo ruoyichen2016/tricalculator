@@ -29,6 +29,7 @@
 - 种族支持“基础种族 + 种族变体”：`SERVESAS:RACE|...` 的亚种只出现在 Race Variant 下拉；
 - 恢复 `renderSkillRows`，修复 Add Skill / Review 技能显示失效；
 - class / race 选项新增 `type_tags`；
+- 冲突处理：`SUBSTITUTIONLEVEL` 支持 `REPLACES`；前端检测 Archetype / Variant 与替代等级是否替换同一能力，冲突时显示错误并阻止创建；
   - 法术支持按职业法表/等级/领域/学派/关键词筛选；
   - 装备支持按类型/槽位/基础物品/关键词筛选；
   - 能力/专长支持按类别/类型/关键词筛选；

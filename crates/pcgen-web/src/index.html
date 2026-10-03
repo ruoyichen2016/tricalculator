@@ -1294,6 +1294,25 @@ function fillVariantOptions(select, classId, kind, level, selected) {
   }
 }
 
+function normalizedVariantValue(value) {
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function findVariantById(id) {
+  return packVariants.find((variant) => variant.id === id);
+}
+
+function laneConflict(lane) {
+  const archetype = findVariantById(lane.archetype);
+  const substitution = findVariantById(lane.substitution);
+  if (!archetype || !substitution) return null;
+  const archetypeReplaces = (archetype.replaces || []).map(normalizedVariantValue);
+  const substitutionReplaces = (substitution.replaces || []).map(normalizedVariantValue);
+  const overlap = archetypeReplaces.filter((value) => substitutionReplaces.includes(value));
+  if (overlap.length === 0) return null;
+  return `Conflicts: both replace ${overlap.join(', ')}`;
+}
+
 function renderLevelEditor() {
   const frameIndex = selectedLevel - 1;
   const frame = advancement[frameIndex];
@@ -1439,6 +1458,14 @@ function renderLevelEditor() {
     });
     editor.appendChild(substitutionSelect);
 
+    const conflict = laneConflict(lane);
+    if (conflict) {
+      const warning = document.createElement('p');
+      warning.className = 'error';
+      warning.textContent = conflict;
+      editor.appendChild(warning);
+    }
+
     levelEditorEl.appendChild(editor);
   });
 
@@ -1519,6 +1546,13 @@ function renderReviewSummary() {
   lines.push(`Skill points: ${spentSkill} / ${skillBudget}`);
   lines.push(`Skills: ${skillsText || '—'}`);
   lines.push(`Abilities: ${abilitiesText || '—'}`);
+  const conflicts = advancement
+    .flatMap((frame) => frame.lanes)
+    .map(laneConflict)
+    .filter(Boolean);
+  if (conflicts.length > 0) {
+    lines.push(`Conflicts: ${conflicts.join(' | ')}`);
+  }
   reviewSummaryEl.textContent = lines.join('\n');
 }
 
@@ -1595,6 +1629,15 @@ document.getElementById('createCharacterBtn').onclick = async () => {
       domains: [],
     },
   };
+  const conflicts = advancement
+    .flatMap((frame) => frame.lanes)
+    .map(laneConflict)
+    .filter(Boolean);
+  if (conflicts.length > 0) {
+    createStatusEl.className = 'error';
+    createStatusEl.textContent = conflicts.join(' | ');
+    return;
+  }
   createStatusEl.className = '';
   createStatusEl.textContent = 'Creating…';
   try {

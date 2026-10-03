@@ -955,6 +955,15 @@ fn parse_substitution_variant(
         substitution.to_string(),
     );
     variant.applies_to = class_id.map(str::to_string);
+    for replaces in tags(record, "REPLACES") {
+        variant.replaces.extend(
+            replaces
+                .split([',', '|'])
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string),
+        );
+    }
     variant.grants = ability_grants(record);
     variant.class_skills = sample_class_skills(record);
     variant.bonus_tags = tags(record, "BONUS")
