@@ -1,5 +1,11 @@
 ## Unreleased
 
+### PF 1e as 3.5e extension (ALPHA)
+
+- 新增 `extensions/pf35e/`：把 PF Core Rulebook 的 Cleric / Fighter / Wizard 用 3.5e 语法重写，`GAMEMODE:35e`，通过 `PCC:` 挂在 RSRD 之上；
+- 新增 `scripts/package_pf35e_extension.py`（生成可加载扩展）与 `scripts/pf35e_extension_gate.py`（验收：分类/职业数/BAB/豁免，无数据时显式 SKIP）；
+- 新增设计文档 `docs/PF35E_EXTENSION.md`，明确有损项（CMB/CMD、1:1 技能点、favored class、archetype 等）与许可；
+- `PRODUCT_SCOPE.md`：区分「PF 结果级（仍 deferred）」与「PF 作为 3.5e 扩展（已提供 ALPHA）」；
 ### M9-9：Web 建卡支持逐级多职业、格式塔与替代能力（进行中）
 
 - `CreateRequest` 新增 `advancement` 字段，可显式描述每个角色等级的 class lane；

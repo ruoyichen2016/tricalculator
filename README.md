@@ -197,6 +197,18 @@ cargo run -p pcgen-cli -- delete <characters-root> --all --dry-run
 `level-up` 还支持 `--archetype` / `--substitution-level` / `--subclass`，为本次升级写入
 lane 级选择（替代等级会按目标职业等级校验）。
 
+## PF 1e 作为 3.5e 扩展（ALPHA）
+
+`extensions/pf35e/` 把 Pathfinder 内容**用 3.5e 语法重写**，以扩展形式挂 RSRD：
+
+```bash
+python3 scripts/package_pf35e_extension.py   # 生成可加载 pcc
+PCGEN_BIN=target/debug/pcgen python3 scripts/pf35e_extension_gate.py
+```
+
+无 RSRD 数据时 gate 显式 SKIP（退出码 2）。范围、有损项与许可见
+[`docs/PF35E_EXTENSION.md`](docs/PF35E_EXTENSION.md)。
+
 ## 当前状态
 
 当前实现是架构骨架加核心切片，已经包含：

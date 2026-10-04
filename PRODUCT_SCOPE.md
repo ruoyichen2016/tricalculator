@@ -3,7 +3,9 @@
 ## 目标
 
 - D&D 3.0 / 3.5e 个人角色规则引擎。
-- Pathfinder 1e：**正式延后（可复议）**；纳入前置条件见 `ROADMAP.md` P4-DEC-3。
+- Pathfinder 1e **结果级**：正式延后（可复议），见 `ROADMAP.md` P4-DEC-3。
+- Pathfinder 1e **作为 3.5e 扩展（重写，有损）**：已提供 ALPHA 切片，
+  见 [`docs/PF35E_EXTENSION.md`](docs/PF35E_EXTENSION.md)。
 - 玩家角色 1–20 级。
 - 属性、种族、职业、专长、技能、豁免、BAB、AC、HP、装备、法术、灵能。
 - Gestalt、双进阶职业、archetype/substitution、faith/divine lanes。

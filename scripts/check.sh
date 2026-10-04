@@ -26,6 +26,7 @@ m9_smoke="$ROOT/target/m9-smoke-character.json"
 rm -f "$m9_smoke" "${m9_smoke}.2"
 
 if bash scripts/check_testdata.sh --quiet >/dev/null 2>&1; then
+    PCGEN_BIN="$pcgen_bin" python3 scripts/pf35e_extension_gate.py
     python3 scripts/cohort_matrix.py --check
     python3 scripts/deep_field_oracle.py --check
     # broad oracle runs once inside coverage_gate.py (structured JSON).

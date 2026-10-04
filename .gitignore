@@ -21,3 +21,7 @@
 /data/packs/custom/curated/*
 !/data/packs/custom/curated/README.md
 
+
+# generated PF-as-3.5e extension materialisation lives under raw/ data,
+# never in the repo
+extensions/pf35e/**/rsrd_pf35e.pcc

@@ -1,0 +1,16 @@
+CAMPAIGN:Pathfinder 1e as 3.5e Extension (rewrite)
+KEY:rsrd-pf35e-extension
+GAMEMODE:35e
+TYPE:PathfinderExtension
+BOOKTYPE:Supplement
+STATUS:ALPHA
+SOURCELONG:Pathfinder Roleplaying Game (rewritten in 3.5e syntax)
+SOURCESHORT:PF35E
+SOURCEDATE:2026-10
+ISOGL:YES
+INFOTEXT:Pathfinder content rewritten by this project into 3.5e PCGen syntax. Not a copy of the official PCGen Pathfinder dataset. See docs/PF35E_EXTENSION.md for scope and known gaps.
+
+# Layer this extension on top of the 3.5e RSRD.
+PCC:@@RSRD_PCC@@
+CLASS:data/pf35e_classes.lst
+ABILITY:data/pf35e_abilities.lst

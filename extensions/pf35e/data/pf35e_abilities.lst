@@ -1,0 +1,10 @@
+# Pathfinder-as-3.5e extension: class features expressed as 3.5e abilities.
+# Descriptive only for now; mechanics that need PF-only semantics are gaps
+# documented in ../../docs/PF35E_EXTENSION.md.
+
+Channel EnergyTYPE:SpecialQuality.SupernaturalDESC:Cleric: channel positive or negative energy (PF CRB p.40).
+BraveryTYPE:ExtraordinaryDESC:Fighter: +1 morale bonus vs fear at 2nd, improving every 4 levels.
+Armor TrainingTYPE:ExtraordinaryDESC:Fighter: reduce armor check penalty / raise max Dex at 3rd and later.
+Weapon TrainingTYPE:ExtraordinaryDESC:Fighter: +1 attack/damage with a weapon group at 5th and later.
+Arcane BondTYPE:SupernaturalDESC:Wizard: bond with an item or familiar.
+Arcane SchoolTYPE:SpecialQualityDESC:Wizard: specialist school powers.
