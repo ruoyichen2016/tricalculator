@@ -1,10 +1,10 @@
-# Pathfinder-as-3.5e extension: class features expressed as 3.5e abilities.
-# Descriptive only for now; mechanics that need PF-only semantics are gaps
-# documented in ../../docs/PF35E_EXTENSION.md.
+# Pathfinder-as-3.5e extension: class features referenced by the variants.
+# Descriptive entries (no numeric mechanics) so sheets can name them.
 
-Channel EnergyTYPE:SpecialQuality.SupernaturalDESC:Cleric: channel positive or negative energy (PF CRB p.40).
-BraveryTYPE:ExtraordinaryDESC:Fighter: +1 morale bonus vs fear at 2nd, improving every 4 levels.
-Armor TrainingTYPE:ExtraordinaryDESC:Fighter: reduce armor check penalty / raise max Dex at 3rd and later.
-Weapon TrainingTYPE:ExtraordinaryDESC:Fighter: +1 attack/damage with a weapon group at 5th and later.
-Arcane BondTYPE:SupernaturalDESC:Wizard: bond with an item or familiar.
-Arcane SchoolTYPE:SpecialQualityDESC:Wizard: specialist school powers.
+Cloistered Cleric	TYPE:SpecialQuality.Extraordinary	DESC:Lore (PF Cloistered Cleric): knowledge bonuses and extra skill points.
+Weapon Training	TYPE:Extraordinary	DESC:Fighter: +1 attack/damage with a chosen weapon group at 5th, improving every 4 levels.
+Weapon Guard	TYPE:Extraordinary	DESC:Fighter: +1 CMD/AC vs disarm and sunder at 9th, improving later.
+Armor Training	TYPE:Extraordinary	DESC:Fighter: reduce armor check penalty and raise max Dex at 3rd, improving every 4 levels.
+Armor Mastery	TYPE:Extraordinary	DESC:Fighter: DR 5/- while wearing armor at 19th, DR 10/- at 20th.
+Arcane School	TYPE:SpecialQuality	DESC:Wizard: specialist school with granted powers and opposed schools.
+Arcane Bond	TYPE:Supernatural	DESC:Wizard: bond with an item or a familiar.

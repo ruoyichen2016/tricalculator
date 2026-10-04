@@ -197,17 +197,29 @@ cargo run -p pcgen-cli -- delete <characters-root> --all --dry-run
 `level-up` 还支持 `--archetype` / `--substitution-level` / `--subclass`，为本次升级写入
 lane 级选择（替代等级会按目标职业等级校验）。
 
-## PF 1e 作为 3.5e 扩展（ALPHA）
+## PF 1e 作为 3.5e 扩展（变体层，ALPHA）
 
-`extensions/pf35e/` 把 Pathfinder 内容**用 3.5e 语法重写**，以扩展形式挂 RSRD：
+`extensions/pf35e/` 只补 Pathfinder 的 **archetype / 职业变体**（用 3.5e 语法
+重写），以扩展形式挂在 RSRD 之上；基础职业复用 RSRD——PF 在这些职业的
+HD / BAB / 豁免上与 3.5e 一致，重写没有意义：
 
 ```bash
 python3 scripts/package_pf35e_extension.py   # 生成可加载 pcc
 PCGEN_BIN=target/debug/pcgen python3 scripts/pf35e_extension_gate.py
+# -> pf35e extension gate passed (4 variants layered on the RSRD,
+#    64 classes unchanged, variants accepted/rejected by level-up)
+
+# 排查某个变体为什么没生效（目标打不中会显示 UNRESOLVED）：
+target/debug/pcgen list-variants --pcc <pcc> --class Fighter
 ```
 
-无 RSRD 数据时 gate 显式 SKIP（退出码 2）。范围、有损项与许可见
+验收分四层：**layering**（扩展不改动 RSRD 的职业数、叠加后无 pending tag）、
+**parsing**（每个变体都进入 `CompiledRulePack.variants`）、**behaviour**
+（`level-up --archetype` 接受合法变体、拒绝未知或跨职业的变体）、
+**semantics**（每个 `REPLACES` 目标都真的命中职业特性行——解析成功不等于生效）。
+`REPLACES` 的寻址方式、CLI 排查工具与有损项见
 [`docs/PF35E_EXTENSION.md`](docs/PF35E_EXTENSION.md)。
+无 RSRD 数据时 gate 显式 SKIP（退出码 2）。
 
 ## 当前状态
 

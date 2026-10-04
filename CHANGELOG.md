@@ -1,11 +1,87 @@
 ## Unreleased
 
-### PF 1e as 3.5e extension (ALPHA)
+### 修复：`SUBCLASS:` 行被当成职业头，导致特性行整批丢失
 
-- 新增 `extensions/pf35e/`：把 PF Core Rulebook 的 Cleric / Fighter / Wizard 用 3.5e 语法重写，`GAMEMODE:35e`，通过 `PCC:` 挂在 RSRD 之上；
-- 新增 `scripts/package_pf35e_extension.py`（生成可加载扩展）与 `scripts/pf35e_extension_gate.py`（验收：分类/职业数/BAB/豁免，无数据时显式 SKIP）；
-- 新增设计文档 `docs/PF35E_EXTENSION.md`，明确有损项（CMB/CMD、1:1 技能点、favored class、archetype 等）与许可；
-- `PRODUCT_SCOPE.md`：区分「PF 结果级（仍 deferred）」与「PF 作为 3.5e 扩展（已提供 ALPHA）」；
+- **修复** `build_typed_definitions` 的 `current_class` 游标：`SUBCLASS:` /
+  `SUBCLASSLEVEL:` 行（如 RSRD 的 8 个法师学派）描述的是**当前职业的专精**，
+  不是新职业。此前它们落进"类头"分支，把 `current_class` 改写成
+  `SUBCLASS:Abjurer` 之类，于是**紧随其后的等级行全部挂到了伪职业上**；
+- 实测影响：RSRD `Wizard` 特性行 **0 → 7**、`Dragon Disciple` **0 → 9**；
+  Fighter / Cleric 因等级行在 `SUBCLASS:` 之前而侥幸未受影响；
+  `pack.classes` 里的伪职业（`SUBCLASS:*` / `SUBCLASSLEVEL:*`）已消失；
+- 数值门禁此前全绿是因为 Wizard 的 BAB/豁免来自 `CLASS:` 头行的 `BONUS:`
+  公式，不依赖特性行——特性列表从未被断言过；
+- 新增回归测试 `crates/pcgen-ir/tests/class_specialty_rows.rs`（3 case，含
+  "无专精行的职业不受影响"反例）；修正两个把旧行为写进断言的测试
+  （`stage2_equipment_spell`、`stage3_choice_pool`）；
+- `coverage_gate.py` 的 DS-3E `classes` / `progressions` 下界 45 → 43，
+  因为其中 2 个本来就是 `SUBCLASS:` 伪职业（真实职业清单未变）。
+
+### 修复：`REPLACES` 从未真正生效（变体只加不减）
+
+- **根因**：引擎里特性是结构化行
+  `Fighter Class Feature|AUTOMATIC|Fighter ~ Bonus Feats|!PREABILITY:1,...`，
+  而 `apply_to_features` 用 `eq_ignore_ascii_case` 做**全串相等**，与
+  `REPLACES:Fighter Bonus Feat` 这类字面名永远匹配不上：4 个变体实测
+  `removed=0`；
+- `pcgen_core` 新增共享匹配器：`feature_name`（取最后一个非谓词 `|` 段、
+  剥离 `Class ~ ` 前缀）、`feature_match_key`（忽略大小写/空格/下划线/
+  连字符/括号）、`ReplaceTarget`（`TYPE=<tag>` 锚点寻址 + 名字回退、
+  容忍单复数漂移）、`line_owner`；
+- `extensions/pf35e/data/pf35e_variants.lst` 的 `REPLACES` 改用 `TYPE=`
+  ACF 锚点（`TYPE=FighterBonusFeat` / `TYPE=WizardFamiliar`）；Cleric 熟练行
+  在 RSRD 里没有 ACF 标签，用规范化名字 `Cleric ~ Weapon and Armor Proficiency`；
+- 修复后实测：Weapon Master / Armor Master 移除 `Fighter ~ Bonus Feats`、
+  School Specialist 移除 `Wizard ~ Familiar`、Cloistered Cleric 移除
+  `Cleric ~ Weapon and Armor Proficiency`，各自只移除该一条并保留其余；
+- **修复 UI 分叉**：Web 侧 `matches_features` 原先用"子串包含"匹配**未清洗的
+  原始字符串**，与引擎语义不同，导致 Cloistered Cleric / School Specialist
+  被 `index.html` 直接隐藏（而引擎照加）。现改为复用同一套
+  `ReplaceTarget` 匹配（`variant_matches_class_features`）；
+- CLI 新增 `list-variants` 子命令：列出变体并标注每个 `REPLACES` 目标是否
+  **真的命中**职业特性行（打不中显示 `UNRESOLVED(...)`），`--format json`
+  提供 `all_targets_resolved`；
+- 新增同名变体冲突诊断：两个变体替换同一锚点时在 snapshot `diagnostics`
+  里报告"结果未定义"，而不是静默取后者；
+- gate 新增第 4 层 semantics：断言每个 `REPLACES` 目标可解析（防止再出现
+  "解析成功但打不中"的变体）。
+
+### 其它
+
+- `pcgen-web` 的规则包缓存改为 **路径 + 数据文件最新 mtime** 作键，并清理同
+  路径的旧条目：开发中重新生成扩展 `.pcc` / 改 `.lst` 不再需要重启服务
+  （此前缓存永不失效）；新增 2 个测试；
+- `evaluate_class_formula` 的 4 条正则改用 `OnceLock` 缓存：该函数在每个职业
+  每个等级、每个派生值上都会被调用，此前每次调用都重新编译正则；新增等价性
+  与具体数值断言测试防止重构走样。
+
+### PF 1e as 3.5e extension（变体层，ALPHA）
+
+- `extensions/pf35e/` 改为**只提供变体层**：PF 的基础职业在 3.5e RSRD 里已存在且
+  HD/BAB/豁免进度完全一致，重写没有意义；真正的差异是 archetype。
+  新增 `data/pf35e_variants.lst`（`TYPE:Archetype` + `APPLIESTO` / `REPLACES` /
+  `GRANTS` / `CSKILL`，4 个变体），删除 `data/pf35e_classes.lst`；
+- `data/pf35e_abilities.lst` 改为变体引用的描述性能力条目，并修复此前每行缺少
+  Tab 分隔（整行被当成一个名字）的问题；
+- `scripts/pf35e_extension_gate.py` 重写为三层验收：layering（`game_mode == 35e`、
+  职业数与 RSRD 相同、definition 增量可归因、叠加后无 pending tag）、
+  parsing（每个变体进入 `CompiledRulePack.variants`）、behaviour
+  （`create` → `level-up --archetype` 接受并算对 BAB；未知 archetype 与
+  跨职业变体被拒绝；`evaluate` 产出 snapshot）；无数据时仍以退出码 2 显式 SKIP；
+- **修复**：变体记录的 `APPLIESTO` / `REPLACES` / `GRANTS` 已由 `parse_variant`
+  消费，但仍被计入 legacy pending，叠加 RSRD 后产生 17 个假 pending tag；
+  现在 lowering 阶段显式豁免（新增回归测试 `crates/pcgen-ir/tests/variant_tags.rs`）；
+- **修复**：变体记录同时进入 `abilities` 与 `variants`，导致同一个 archetype
+  被算成一条能力；现在只进入 `variants`，`pack.abilities` 回到真实能力清单；
+- **修复**：CLI `--out` 路径自 undo 功能（`CharacterRepository` 统一命名
+  `<id>.json`）起被静默忽略，`create --out target/m9-smoke-character.json`
+  实际写出 `target/smoke.json`，导致 `scripts/check.sh` 的 M9 smoke 失败；
+  新增 `CharacterRepository::with_live_path` 固定 CLI 指定的路径（history 仍按
+  角色 id 归档），并去掉重复打印的路径；
+- **修复**：`create` / `level-up --out` 会把输出路径打印两次；
+- 更新 `docs/PF35E_EXTENSION.md`（变体层设计、验收三层、覆盖度账目）与
+  `PRODUCT_SCOPE.md` 的表述；
+
 ### M9-9：Web 建卡支持逐级多职业、格式塔与替代能力（进行中）
 
 - `CreateRequest` 新增 `advancement` 字段，可显式描述每个角色等级的 class lane；
