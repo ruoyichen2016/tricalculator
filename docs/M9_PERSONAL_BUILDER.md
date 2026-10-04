@@ -51,7 +51,9 @@
 6. 输出 HTML 角色卡可打印；
 7. 可导入 / 导出 `.pcg`；
 8. 核心数值与 PCGen csheet 对照一致；
-9. 现有 207 tests / coverage gate 15/15 / deep-field 49/0 保持全绿；
+9. 门禁保持全绿：`cargo test --workspace`（293）、`coverage_gate.py`
+   15/15、deep-field 7 case / 49 gated 字段 / 0 缺口。验收基线以
+   `ROADMAP.md`「当前状态」为准（本行数字随实现增长，不再复述固定值）；
 10. 二次操作响应 < 1s（首次编译后可缓存）。
 
 ## 4. 架构落点

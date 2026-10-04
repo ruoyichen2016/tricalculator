@@ -47,6 +47,9 @@ Linux / macOS：
 
 ## 质量证据
 
+> 以下数字描述 **2026-09-29 的 0.1.0 冻结快照**，不代表当前 HEAD。
+> 当前状态以 [`ROADMAP.md`](ROADMAP.md)「当前状态」一节为准。
+
 - `cargo test --workspace`：227 passed；
 - `coverage_gate.py`：15 pass / 0 fail / 0 skip；
 - primary broad cohort：25/25 Java-gated；

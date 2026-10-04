@@ -8,11 +8,12 @@
 ## 当前状态（最近验证：固定数据 + 全量门禁）
 
 - 工作区：9 crate（core / formula / ir / import / engine / builder / output / cli / web）。
-- 测试：`cargo test --workspace` **227 passed**。
+- 测试：`cargo test --workspace` **293 passed**（`scripts/check.sh` 额外再跑一次
+  `pcgen-web`，合计 327）。
 - DS-3E（回归代理，`srdbasic.pcc`）：3,779 entities，23,723 tag occurrences，
   lowered 3,267；legacy pending 0；unsupported 0；
   **semantic completion 100.0%**。
-- DS-35E（主验收，`_rsrd_basics.pcc`）：15,741 entities，
+- DS-35E（主验收，`_rsrd_basics.pcc`）：15,761 entities，
   lowered 8,196；legacy pending 0；unsupported pending 0
   （仅 2 个 `PRETEXT` allowlisted）；**semantic completion 100.0%**。
 - DS-PSI（灵能验收，`_rsrd_psionics.pcc`）：1,570 entities，
@@ -35,7 +36,8 @@
 ## M9：个人建卡器（进行中）
 
 > 目标：自用 + 普通朋友用，Web 建卡替代 PCGen；范围见
-> [`docs/M9_PERSONAL_BUILDER.md`](docs/M9_PERSONAL_BUILDER.md)。
+> [`docs/M9_PERSONAL_BUILDER.md`](docs/M9_PERSONAL_BUILDER.md)，
+> 逐项执行状态见 [`docs/M9_LOOP.md`](docs/M9_LOOP.md)。
 
 - [x] M9-0 范围冻结：购点 / 3.0+3.5e / 打包数据 / Web 优先 / 无随机 KIT。
 - [x] M9-1 原生存档 + 角色仓库 + Web 角色管理
@@ -53,6 +55,68 @@
   - [x] M9-6b 法术书编辑（class list 校验 + 法术候选）
   - [x] M9-6c output sheet 深化
 - [x] M9-7 最终 release / beta 扩展（0.1.0 发布冻结）
+- [ ] M9-8 beta 反馈迭代（未开始，依赖 M9-5b）
+- [x] M9-9 Web 建卡支持逐级多职业、格式塔与替代能力
+  - [x] 创建流程改为步骤条 + 主从式编辑器（Basic → Advancement →
+        Skills/Feats → Spells/Equipment → Review），Normal / Gestalt 模式
+  - [x] 每个等级、每个 lane 可选职业 / archetype / 替代等级 / 子职业
+  - [x] `CreateRequest.advancement` 显式描述逐级 lane；`create_draft` 支持
+        多职业、Gestalt 双 lane、prestige 覆盖
+  - [x] 升级：`LevelUpRequest.lanes[]` 多 lane、`preview_level_up` 预演
+        （不改动原 draft）、`delta` 差异与并排 sheet 对比
+  - [x] 撤销 / 重做 / 历史：`.history/<id>/` 多步回退，`undo` / `redo` /
+        `history` CLI 与 Web 接口，`history/{n}/restore` 跳转指定版本
+  - [x] 角色 bundle：导出 / 导入 / 批量删除 / 按规则指纹分组
+  - [x] 建卡草稿：localStorage 自动保存、命名草稿库、整包导出导入、
+        schema 迁移
+  - [x] 搜索式选择器：法术 / 装备 / 能力专长 / 种族 / 模板，
+        条件持久化到 URL
+  - [x] 实时预算校验：购点、技能点（超支阻止进入 Review）
+  - [x] 冲突处理：archetype 与替代等级替换同一能力时提示优先级
+        （替代等级优先）
+  - [x] 性能：Web 层 `CompiledRulePack` 内存缓存（按「路径 + 数据文件
+        mtime」失效，见下节修复）
+
+> M9-8 是唯一未开始的项，它依赖 M9-5b（真实 beta 反馈），
+> 属于产品反馈循环而非代码欠账。
+
+## M9 后续修复：变体语义与导入正确性
+
+> M9-9 期间暴露的缺陷，均已修复并有回归测试与门禁覆盖。
+
+- [x] **`SUBCLASS:` 行被当成职业头**（导入层）：`SUBCLASS:` /
+      `SUBCLASSLEVEL:` 描述的是*当前职业*的专精，此前落入"类头"分支并把
+      `current_class` 改写，导致紧随其后的等级行全部挂到伪职业上。
+      RSRD `Wizard` 特性行 **0 → 7**、`Dragon Disciple` **0 → 9**；
+      `pack.classes` 不再出现 `SUBCLASS:*` 伪职业。
+      测试：`crates/pcgen-ir/tests/class_specialty_rows.rs`。
+- [x] **`REPLACES` 从未真正生效**：`apply_to_features` 用整串相等比较结构化
+      特性行，任何字面名都匹配不上（4 个变体实测 `removed=0`）。改为
+      `pcgen_core::ReplaceTarget`：`TYPE=<ACF 标签>` 锚点寻址 + 规范化名字
+      回退（忽略大小写/空格/下划线/连字符/括号/所有者前缀/单复数）。
+- [x] **UI 与引擎语义分叉**：Web 侧 `matches_features` 曾用子串匹配未清洗的
+      原始字符串，会把 Cloistered Cleric / School Specialist 直接隐藏，而引擎
+      照加。现与引擎共用同一套匹配。
+- [x] **`GRANTS` 等级语义**：新增 `GrantedFeature`，`GRANTS:<feature>|PRECLASS:1,<Class>=<level>`
+      在达到该职业等级后才加入特性列表（无守卫 = 1 级，同 PCGen 对裸
+      `ABILITY` 的处理）；`REPLACES` 不受等级影响。测试：
+      `crates/pcgen-engine/tests/variant_grant_levels.rs`。
+- [x] **`GRANTS` 导入分片**：值此前按 `,` 与 `|` 一并切分，会把
+      `PRECLASS:1,Fighter=5` 打散；`split_grant_entries` 保留守卫与特性的关联。
+- [x] **变体记录重复计数**：变体是职业变体而非可选能力，此前同时进入
+      `abilities` 与 `variants`；其 `APPLIESTO`/`REPLACES`/`GRANTS` 也已由
+      `parse_variant` 消费，不再计入 legacy pending（此前叠加 RSRD 会产生
+      17 个假 pending tag）。
+- [x] **CLI `--out` 被静默忽略**：自 undo 引入 `CharacterRepository` 统一命名
+      后，`create --out <path>` 实际写到 `<id>.json`，导致 `check.sh` 的 M9
+      smoke 失败。新增 `with_live_path` 固定用户指定路径，history 仍按 id 归档。
+- [x] **Web 规则包缓存永不失效**：改为「路径 + 数据文件最新 mtime」作键，
+      重新生成扩展 `.pcc` 后不再需要重启服务。
+- [x] **`evaluate_class_formula` 每次调用重编译 4 条正则**：改用 `OnceLock`。
+
+> PF 1e 作为 3.5e 扩展的变体层（4 个 archetype）也在本轮落地，
+> 详见 [`docs/PF35E_EXTENSION.md`](docs/PF35E_EXTENSION.md)；
+> 其结果级 profile 仍按 P4-DEC-3 deferred。
 
 ## P0：口径冻结（阶段 0，已完成）
 
