@@ -354,8 +354,8 @@ fn save_envelope(path: &std::path::Path, envelope: &NativeSaveEnvelope) -> Resul
             .with_context(|| format!("failed to create {}", parent.display()))?;
     }
     let root = path.parent().unwrap_or_else(|| std::path::Path::new("."));
-    let repository = CharacterRepository::new(root);
-    repository
+    CharacterRepository::new(root)
+        .with_live_path(path)
         .save(envelope)
         .with_context(|| format!("failed to write {}", path.display()))?;
     Ok(())
@@ -943,7 +943,6 @@ fn main() -> Result<()> {
                 .with_pcc(Some(pcc.display().to_string()));
                 save_envelope(&path, &envelope)?;
                 println!("{}", path.display());
-                println!("{}", path.display());
             } else {
                 let snapshot = Engine::new(pack).evaluate(&draft);
                 let output_format = OutputFormat::from_name(&format).unwrap_or(OutputFormat::Json);
@@ -1018,7 +1017,6 @@ fn main() -> Result<()> {
             if let Some(path) = out {
                 save_envelope(&path, &envelope)?;
                 println!("{}", path.display());
-                println!("{}", path.display());
             } else {
                 println!("{}", serde_json::to_string_pretty(&envelope)?);
             }
@@ -1030,7 +1028,8 @@ fn main() -> Result<()> {
                 .with_context(|| format!("failed to parse {}", draft.display()))?;
             let repository = CharacterRepository::new(
                 draft.parent().unwrap_or_else(|| std::path::Path::new(".")),
-            );
+            )
+            .with_live_path(&draft);
             let id = envelope.character.id.clone();
             if !repository.can_undo(&id)? {
                 bail!("no previous version for character: {id}");
@@ -1055,7 +1054,8 @@ fn main() -> Result<()> {
                 .with_context(|| format!("failed to parse {}", draft.display()))?;
             let repository = CharacterRepository::new(
                 draft.parent().unwrap_or_else(|| std::path::Path::new(".")),
-            );
+            )
+            .with_live_path(&draft);
             let id = envelope.character.id.clone();
             if !repository.can_redo(&id)? {
                 bail!("nothing to redo for character: {id}");
@@ -1080,7 +1080,8 @@ fn main() -> Result<()> {
                 .with_context(|| format!("failed to parse {}", draft.display()))?;
             let repository = CharacterRepository::new(
                 draft.parent().unwrap_or_else(|| std::path::Path::new(".")),
-            );
+            )
+            .with_live_path(&draft);
             let id = envelope.character.id.clone();
             let versions = repository.history(&id)?;
             if format.eq_ignore_ascii_case("json") {

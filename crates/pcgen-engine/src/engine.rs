@@ -2559,26 +2559,41 @@ fn collect_divine_tracks(draft: &CharacterDraft) -> Vec<DivineTrack> {
     tracks
 }
 
+/// Compiled once per process: this function runs per class level per derived
+/// value (BAB, saves, progressions), so compiling a regex per call dominated
+/// the cost of short formulas.
+fn class_formula_regexes() -> &'static (regex::Regex, regex::Regex, regex::Regex, regex::Regex) {
+    static REGEXES: std::sync::OnceLock<(regex::Regex, regex::Regex, regex::Regex, regex::Regex)> =
+        std::sync::OnceLock::new();
+    REGEXES.get_or_init(|| {
+        (
+            regex::Regex::new(r#"classlevel\s*\(\s*["']?[^"')]*["']?\s*\)"#)
+                .expect("classlevel pattern is valid"),
+            regex::Regex::new(r"\bTL\b").expect("TL pattern is valid"),
+            regex::Regex::new(r"\bCL\b").expect("CL pattern is valid"),
+            regex::Regex::new(r#"var\s*\(\s*["']?([^"')]+)["']?\s*\)"#)
+                .expect("var() pattern is valid"),
+        )
+    })
+}
+
 pub(crate) fn evaluate_class_formula(
     formula: &str,
     class_level: u32,
     total_level: u32,
     variables: &BTreeMap<String, i32>,
 ) -> i32 {
+    let (classlevel, total, class, var_call) = class_formula_regexes();
     let mut normalized = formula.to_string();
-    let classlevel = regex::Regex::new(r#"classlevel\s*\(\s*["']?[^"')]*["']?\s*\)"#).unwrap();
     normalized = classlevel
         .replace_all(&normalized, class_level.to_string())
         .to_string();
-    let total = regex::Regex::new(r"\bTL\b").unwrap();
     normalized = total
         .replace_all(&normalized, total_level.to_string())
         .to_string();
-    let class = regex::Regex::new(r"\bCL\b").unwrap();
     normalized = class
         .replace_all(&normalized, class_level.to_string())
         .to_string();
-    let var_call = regex::Regex::new(r#"var\s*\(\s*["']?([^"')]+)["']?\s*\)"#).unwrap();
     normalized = var_call
         .replace_all(&normalized, |captures: &regex::Captures| {
             let name = captures[1].trim();
@@ -2594,4 +2609,64 @@ pub(crate) fn evaluate_class_formula(
     )
     .map(|value| value as i32)
     .unwrap_or(0)
+}
+
+#[cfg(test)]
+mod class_formula_tests {
+    use super::evaluate_class_formula;
+    use std::collections::BTreeMap;
+
+    fn variables() -> BTreeMap<String, i32> {
+        let mut variables = BTreeMap::new();
+        variables.insert("Foo".to_string(), 7);
+        variables
+    }
+
+    #[test]
+    fn cached_regexes_keep_identical_results() {
+        // Equivalence guard for the `OnceLock` cache: repeated evaluation must
+        // return exactly what the first call did, and the patterns must still
+        // match after being compiled once per process.
+        let variables = variables();
+        let cases = [
+            ("classlevel()", 5, 9),
+            ("classlevel(\"APPLIEDAS=NONEPIC\")/2+2", 5, 9),
+            ("TL*2", 5, 9),
+            ("CL+1", 5, 9),
+            ("var(\"Foo\")+3", 5, 9),
+            ("classlevel()/3", 5, 9),
+            ("TL + CL", 5, 9),
+        ];
+        for (formula, class_level, total_level) in cases {
+            let first = evaluate_class_formula(formula, class_level, total_level, &variables);
+            for _ in 0..50 {
+                assert_eq!(
+                    evaluate_class_formula(formula, class_level, total_level, &variables),
+                    first,
+                    "formula `{formula}` changed across calls"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn class_formula_rewrites_match_expected_values() {
+        let variables = variables();
+        assert_eq!(evaluate_class_formula("classlevel()", 5, 9, &variables), 5);
+        assert_eq!(
+            evaluate_class_formula("classlevel()/2+2", 5, 9, &variables),
+            4
+        );
+        assert_eq!(evaluate_class_formula("TL*2", 5, 9, &variables), 18);
+        assert_eq!(evaluate_class_formula("CL+1", 5, 9, &variables), 6);
+        assert_eq!(
+            evaluate_class_formula("var(\"Foo\")+3", 5, 9, &variables),
+            10
+        );
+        // An unknown variable resolves to 0 rather than failing.
+        assert_eq!(
+            evaluate_class_formula("var(\"Missing\")", 5, 9, &variables),
+            0
+        );
+    }
 }

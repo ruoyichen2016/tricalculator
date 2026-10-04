@@ -462,8 +462,51 @@ pub fn app(config: WebConfig) -> Router {
         .with_state(state)
 }
 
+/// Cache key for a compiled pack: the resolved path plus the newest
+/// modification time across the campaign file and every `.lst`/`.pcc` it pulls
+/// in, so editing or regenerating data invalidates the entry instead of
+/// requiring a server restart.
+fn pack_cache_key(pcc_path: &Path) -> String {
+    let mut newest = std::fs::metadata(pcc_path)
+        .and_then(|meta| meta.modified())
+        .ok();
+    let root = pcc_path.parent().unwrap_or_else(|| Path::new("."));
+    let mut stack = vec![root.to_path_buf()];
+    while let Some(dir) = stack.pop() {
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                stack.push(path);
+                continue;
+            }
+            let is_data = path
+                .extension()
+                .and_then(|value| value.to_str())
+                .is_some_and(|ext| {
+                    ext.eq_ignore_ascii_case("lst") || ext.eq_ignore_ascii_case("pcc")
+                });
+            if !is_data {
+                continue;
+            }
+            if let Ok(modified) = entry.metadata().and_then(|meta| meta.modified()) {
+                if newest.is_none_or(|current| modified > current) {
+                    newest = Some(modified);
+                }
+            }
+        }
+    }
+    let stamp = newest
+        .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|duration| duration.as_nanos())
+        .unwrap_or(0);
+    format!("{}@{stamp}", pcc_path.to_string_lossy())
+}
+
 fn cached_engine(state: &AppState, pcc_path: &Path) -> Result<Arc<Engine>, String> {
-    let key = pcc_path.to_string_lossy().to_string();
+    let key = pack_cache_key(pcc_path);
     if let Some(engine) = state
         .pack_cache
         .lock()
@@ -475,11 +518,15 @@ fn cached_engine(state: &AppState, pcc_path: &Path) -> Result<Arc<Engine>, Strin
     }
     let (pack, _) = compile_pcc(pcc_path).map_err(|error| error.to_string())?;
     let engine = Arc::new(Engine::new(pack));
-    state
+    let mut cache = state
         .pack_cache
         .lock()
-        .map_err(|_| "pack cache lock poisoned".to_string())?
-        .insert(key, engine.clone());
+        .map_err(|_| "pack cache lock poisoned".to_string())?;
+    // Drop stale entries for the same campaign so the map cannot grow without
+    // bound as data files change during a session.
+    let prefix = format!("{}@", pcc_path.to_string_lossy());
+    cache.retain(|existing, _| !existing.starts_with(&prefix));
+    cache.insert(key, engine.clone());
     Ok(engine)
 }
 
@@ -2165,5 +2212,116 @@ pub fn draft_from_pcg(draft: PcgDraft) -> CharacterDraft {
         deity: draft.deity,
         domains: draft.domains,
         deity_domains: draft.deity_domains,
+    }
+}
+
+#[cfg(test)]
+mod variant_visibility_tests {
+    use super::*;
+    use pcgen_core::VariantDefinition;
+
+    fn fighter_features() -> Vec<String> {
+        vec![
+            "Fighter Class Feature|AUTOMATIC|Fighter ~ Weapon and Armor Proficiency|!PREABILITY:1,CATEGORY=ACF,TYPE.FighterProficiencies".to_string(),
+            "Fighter Class Feature|AUTOMATIC|Fighter ~ Bonus Feats|!PREABILITY:1,CATEGORY=ACF,TYPE.FighterBonusFeat,TYPE.FighterBonusFeats".to_string(),
+        ]
+    }
+
+    #[test]
+    fn type_addressed_variant_is_visible() {
+        let variant = VariantDefinition {
+            id: "Weapon Master".to_string(),
+            name: "Weapon Master".to_string(),
+            applies_to: Some("Fighter".to_string()),
+            replaces: vec!["TYPE=FighterBonusFeat".to_string()],
+            ..VariantDefinition::default()
+        };
+        assert!(
+            variant_matches_class_features(&variant, &fighter_features()),
+            "a variant whose REPLACES resolves must stay selectable in the UI"
+        );
+    }
+
+    #[test]
+    fn unresolvable_variant_is_hidden() {
+        // A target the class does not have must not be offered.
+        let variant = VariantDefinition {
+            id: "Bogus".to_string(),
+            name: "Bogus".to_string(),
+            applies_to: Some("Fighter".to_string()),
+            replaces: vec!["TYPE=NoSuchAnchor".to_string()],
+            ..VariantDefinition::default()
+        };
+        assert!(!variant_matches_class_features(
+            &variant,
+            &fighter_features()
+        ));
+    }
+
+    #[test]
+    fn variant_without_replaces_is_always_visible() {
+        let variant = VariantDefinition {
+            id: "Pure Addition".to_string(),
+            name: "Pure Addition".to_string(),
+            applies_to: Some("Fighter".to_string()),
+            ..VariantDefinition::default()
+        };
+        assert!(variant_matches_class_features(&variant, &[]));
+    }
+
+    #[test]
+    fn plain_name_target_is_visible_against_the_progression_line() {
+        // Regression: the old substring matcher hid Cleric/Wizard variants.
+        let variant = VariantDefinition {
+            id: "Cloistered Cleric".to_string(),
+            name: "Cloistered Cleric".to_string(),
+            applies_to: Some("Cleric".to_string()),
+            replaces: vec!["Cleric ~ Weapon and Armor Proficiency".to_string()],
+            ..VariantDefinition::default()
+        };
+        let cleric = vec![
+            "Cleric Class Feature|AUTOMATIC|Cleric ~ Weapon and Armor Proficiency".to_string(),
+            "Cleric Class Feature|AUTOMATIC|Cleric ~ Aura".to_string(),
+        ];
+        assert!(variant_matches_class_features(&variant, &cleric));
+    }
+}
+
+#[cfg(test)]
+mod pack_cache_tests {
+    use super::*;
+
+    #[test]
+    fn cache_key_changes_when_a_data_file_changes() {
+        let dir = std::env::temp_dir().join(format!("pcgen-cache-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let pcc = dir.join("campaign.pcc");
+        let lst = dir.join("campaign.lst");
+        std::fs::write(&pcc, "CAMPAIGN:x\n").unwrap();
+        std::fs::write(&lst, "A\n").unwrap();
+
+        let before = pack_cache_key(&pcc);
+        // Touch the .lst so its mtime moves past the previous key.
+        std::thread::sleep(std::time::Duration::from_millis(1100));
+        std::fs::write(&lst, "B\n").unwrap();
+        let after = pack_cache_key(&pcc);
+
+        assert_ne!(
+            before, after,
+            "editing a .lst file must invalidate the cached pack"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn cache_key_is_stable_without_changes() {
+        let dir = std::env::temp_dir().join(format!("pcgen-cache-stable-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let pcc = dir.join("campaign.pcc");
+        std::fs::write(&pcc, "CAMPAIGN:x\n").unwrap();
+        assert_eq!(pack_cache_key(&pcc), pack_cache_key(&pcc));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

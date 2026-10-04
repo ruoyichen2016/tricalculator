@@ -346,11 +346,24 @@ pub fn validate_bundle_fingerprint(
 #[derive(Debug, Clone)]
 pub struct CharacterRepository {
     root: PathBuf,
+    /// When set, the character's live file is exactly this path instead of
+    /// `<root>/<sanitized-id>.json`.  The CLI pins the path the user passed to
+    /// `--out`; history stays keyed by character id under `<root>/.history/`.
+    live_path: Option<PathBuf>,
 }
 
 impl CharacterRepository {
     pub fn new(root: impl Into<PathBuf>) -> Self {
-        Self { root: root.into() }
+        Self {
+            root: root.into(),
+            live_path: None,
+        }
+    }
+
+    /// Pin this repository's live file to `path`.
+    pub fn with_live_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.live_path = Some(path.into());
+        self
     }
 
     pub fn root(&self) -> &Path {
@@ -360,8 +373,11 @@ impl CharacterRepository {
     pub fn save(&self, envelope: &NativeSaveEnvelope) -> Result<(), BuilderError> {
         fs::create_dir_all(&self.root)?;
         let id = sanitize_id(&envelope.character.id)?;
-        let final_path = self.root.join(format!("{id}.json"));
-        let temporary = self.root.join(format!(".{id}.json.tmp"));
+        let final_path = self.path_for(&id)?;
+        if let Some(parent) = final_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        let temporary = final_path.with_file_name(format!(".{id}.json.tmp"));
         let bytes = serde_json::to_vec_pretty(envelope)?;
         fs::write(&temporary, bytes)?;
         if final_path.exists() {
@@ -415,7 +431,7 @@ impl CharacterRepository {
         bytes: &[u8],
         push_dir: Option<&Path>,
     ) -> Result<(), BuilderError> {
-        let current = self.root.join(format!("{id}.json"));
+        let current = self.path_for(id)?;
         if let Some(dir) = push_dir {
             if current.exists() {
                 fs::create_dir_all(dir)?;
@@ -423,7 +439,7 @@ impl CharacterRepository {
                 fs::copy(&current, dir.join(format!("{next:06}.json")))?;
             }
         }
-        let temporary = self.root.join(format!(".{id}.json.tmp"));
+        let temporary = current.with_file_name(format!(".{}.tmp", id));
         fs::write(&temporary, bytes)?;
         fs::rename(&temporary, &current)?;
         Ok(())
@@ -646,6 +662,9 @@ impl CharacterRepository {
     }
 
     fn path_for(&self, id: &str) -> Result<PathBuf, BuilderError> {
+        if let Some(path) = &self.live_path {
+            return Ok(path.clone());
+        }
         Ok(self.root.join(format!("{}.json", sanitize_id(id)?)))
     }
 }
@@ -740,6 +759,48 @@ mod tests {
         repository.save(&envelope).unwrap();
         let loaded = repository.load("hero-1").unwrap();
         assert_eq!(loaded, envelope);
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn live_path_pins_the_file_name_and_keeps_undo_history() {
+        // The CLI passes the exact `--out` path; the repository must write that
+        // file (not `<root>/<id>.json`) while history stays keyed by id.
+        let root = temp_root();
+        let pinned = root.join("m9-smoke-character.json");
+        let repository = CharacterRepository::new(&root).with_live_path(&pinned);
+
+        repository
+            .save(&NativeSaveEnvelope::new(
+                sample_character("hero", "Hero", 1),
+                "fp",
+                None,
+            ))
+            .unwrap();
+        assert!(pinned.exists(), "pinned path should be written");
+        assert!(
+            !root.join("hero.json").exists(),
+            "canonical id file must not be created when a live path is pinned"
+        );
+        assert_eq!(
+            repository.load("hero").unwrap().character.total_level(),
+            1,
+            "load must read the pinned file"
+        );
+
+        repository
+            .save(&NativeSaveEnvelope::new(
+                sample_character("hero", "Hero", 2),
+                "fp",
+                None,
+            ))
+            .unwrap();
+        assert_eq!(repository.load("hero").unwrap().character.total_level(), 2);
+        assert!(repository.can_undo("hero").unwrap());
+
+        let restored = repository.undo("hero").unwrap();
+        assert_eq!(restored.character.total_level(), 1);
+        assert_eq!(repository.load("hero").unwrap().character.total_level(), 1);
         let _ = fs::remove_dir_all(root);
     }
 
