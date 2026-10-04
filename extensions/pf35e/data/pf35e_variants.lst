@@ -1,0 +1,34 @@
+# Pathfinder-as-3.5e extension: PF class *variants* only.
+#
+# Base classes (Cleric/Fighter/Wizard/...) already exist in the 3.5e RSRD, so
+# we do NOT rewrite them.  PF's real difference vs 3.5e is a set of variant /
+# archetype features that replace or add class features.  They are written with
+# the 3.5e variant tags the engine already understands:
+#   TYPE:Archetype       -> marks the record as a variant
+#   APPLIESTO:<class>    -> class the variant attaches to
+#   REPLACES:<target>    -> class feature(s) removed (repeatable)
+#   GRANTS:<feature>     -> class feature(s) added (repeatable)
+#   CSKILL:<a|b>         -> extra class skills
+#
+# REPLACES targets are addressed in two ways:
+#   TYPE=<tag>   - the ACF type tag PCGen itself puts on a feature it declares
+#                  replaceable, e.g.
+#                    Fighter Class Feature|AUTOMATIC|Fighter ~ Bonus Feats|!PREABILITY:1,...,TYPE.FighterBonusFeat
+#                  This is the stable anchor: it survives display-name edits in
+#                  the dataset.
+#   <name>       - a display name, normalized for case / spacing / owner prefix
+#                  / plural.  Used where the RSRD declares no ACF type tag
+#                  (the Cleric proficiency row carries none).
+# Tags MUST be tab-separated (PCGen .lst format).
+# Provenance: Pathfinder RPG Core Rulebook (Paizo), OGL / Community Use.
+# Independent rewrite; not a copy of the official PCGen Pathfinder dataset.
+
+# --- Cleric variants ---
+Cloistered Cleric	TYPE:Archetype	APPLIESTO:Cleric	REPLACES:Cleric ~ Weapon and Armor Proficiency	GRANTS:Cloistered Cleric	CSKILL:Knowledge (Arcana)|Knowledge (History)|Knowledge (Religion)|Spellcraft|Linguistics
+
+# --- Fighter variants ---
+Weapon Master	TYPE:Archetype	APPLIESTO:Fighter	REPLACES:TYPE=FighterBonusFeat	GRANTS:Weapon Training	GRANTS:Weapon Guard
+Armor Master	TYPE:Archetype	APPLIESTO:Fighter	REPLACES:TYPE=FighterBonusFeat	GRANTS:Armor Training	GRANTS:Armor Mastery
+
+# --- Wizard variants ---
+School Specialist	TYPE:Archetype	APPLIESTO:Wizard	REPLACES:TYPE=WizardFamiliar	GRANTS:Arcane School	GRANTS:Arcane Bond

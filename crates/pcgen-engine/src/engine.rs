@@ -807,6 +807,51 @@ impl Engine {
             }
         }
         diagnostics.extend(self.faith_checks(draft));
+        diagnostics.extend(self.variant_checks(draft));
+        diagnostics
+    }
+
+    /// Diagnose variant selections that cannot be applied as written.
+    ///
+    /// Two lanes can legitimately pick different archetypes, but two variants
+    /// that replace the *same* feature on the same class leave the result
+    /// undefined (whichever is applied last wins), so it is reported instead of
+    /// silently resolved.
+    fn variant_checks(&self, draft: &CharacterDraft) -> Vec<String> {
+        let mut diagnostics = Vec::new();
+        for frame in &draft.advancement {
+            for lane in &frame.lanes {
+                let variants = self.variants_for(lane, &lane.class_id);
+                if variants.len() < 2 {
+                    continue;
+                }
+                for (index, left) in variants.iter().enumerate() {
+                    for right in variants.iter().skip(index + 1) {
+                        let left_targets = left.replace_targets();
+                        let overlap: Vec<&str> = left_targets
+                            .iter()
+                            .filter(|target| {
+                                right.replace_targets().iter().any(|other| other == *target)
+                            })
+                            .map(|target| match target {
+                                pcgen_core::ReplaceTarget::TypeTag(tag) => tag.as_str(),
+                                pcgen_core::ReplaceTarget::Name(name) => name.as_str(),
+                            })
+                            .collect();
+                        if !overlap.is_empty() {
+                            diagnostics.push(format!(
+                                "variants `{}` and `{}` both replace `{}` on class `{}`; \
+                                 the result is undefined",
+                                left.name,
+                                right.name,
+                                overlap.join("`, `"),
+                                lane.class_id
+                            ));
+                        }
+                    }
+                }
+            }
+        }
         diagnostics
     }
 

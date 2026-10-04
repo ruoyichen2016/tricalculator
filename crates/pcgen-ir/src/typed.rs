@@ -106,10 +106,15 @@ pub fn build_typed_definitions(records: &[RawRecord]) -> TypedDefinitions {
                     .insert(equipment_modifier.id.clone(), equipment_modifier);
             }
             "ABILITY" => {
-                let ability = parse_ability(record);
-                typed.abilities.insert(ability.id.clone(), ability);
+                // A variant (`TYPE:Archetype` / `TYPE:Substitution*`) is a class
+                // variant, not a selectable ability.  Keep it only in
+                // `typed.variants` so `pack.abilities` stays a true ability
+                // inventory instead of double-counting every variant.
                 if let Some(variant) = parse_variant(record) {
                     typed.variants.insert(variant.id.clone(), variant);
+                } else {
+                    let ability = parse_ability(record);
+                    typed.abilities.insert(ability.id.clone(), ability);
                 }
             }
             "ABILITYCATEGORY" => {
@@ -1043,13 +1048,20 @@ fn parse_ability_category(record: &RawRecord) -> pcgen_core::AbilityCategoryDefi
     }
 }
 
-fn parse_variant(record: &RawRecord) -> Option<VariantDefinition> {
-    let record_type_tags = type_tags(record);
-    let is_variant = record_type_tags.iter().any(|tag| {
+/// True when an `ABILITY` record declares itself a variant through its `TYPE`.
+///
+/// Shared with the lowering coverage pass in `rulepack`: the tags this parser
+/// consumes (`APPLIESTO` / `REPLACES` / `GRANTS`) must not also be reported as
+/// un-lowered legacy tags.
+pub(crate) fn is_variant_record(record: &RawRecord) -> bool {
+    type_tags(record).iter().any(|tag| {
         let tag = tag.to_ascii_lowercase();
         tag.contains("archetype") || tag.contains("substitution")
-    });
-    if !is_variant {
+    })
+}
+
+fn parse_variant(record: &RawRecord) -> Option<VariantDefinition> {
+    if !is_variant_record(record) {
         return None;
     }
     let mut variant = VariantDefinition::new(record.key.clone(), record.name.clone());

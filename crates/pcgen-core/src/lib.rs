@@ -53,5 +53,5 @@ pub use rules::{
 pub use tagclass::{
     bucket_for_unsupported, classify as classify_tag, is_allowlisted, TagBucket, TagClass,
 };
-pub use variants::VariantDefinition;
+pub use variants::{feature_match_key, feature_name, line_owner, ReplaceTarget, VariantDefinition};
 pub use vocab::{ChoiceKind, EntityCategory};

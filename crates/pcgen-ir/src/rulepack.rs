@@ -146,17 +146,31 @@ pub fn lower_records(
                 None
             };
 
+        // `TYPE:Archetype` / `TYPE:Substitution*` marks an ABILITY as a
+        // variant; `parse_variant` then consumes its `APPLIESTO`, `REPLACES`
+        // and `GRANTS` tags.  Those must not also be reported as legacy.
+        let variant_record = effective_category.eq_ignore_ascii_case("ABILITY")
+            && crate::typed::is_variant_record(record);
+        let is_consumed = |tag_name: &str| {
+            consumed_legacy_tag(&effective_category, tag_name)
+                || (variant_record
+                    && matches!(
+                        tag_name.to_ascii_uppercase().as_str(),
+                        "APPLIESTO" | "REPLACES" | "GRANTS"
+                    ))
+        };
+
         let legacy_tags: Vec<String> = record
             .tags
             .iter()
-            .filter(|tag| {
-                !known_tag(&tag.name) && !consumed_legacy_tag(&effective_category, &tag.name)
-            })
+            .filter(|tag| !known_tag(&tag.name) && !is_consumed(&tag.name))
             .map(|tag| format!("{}:{}", tag.name, tag.value))
             .collect();
-        for tag in record.tags.iter().filter(|tag| {
-            !known_tag(&tag.name) && !consumed_legacy_tag(&effective_category, &tag.name)
-        }) {
+        for tag in record
+            .tags
+            .iter()
+            .filter(|tag| !known_tag(&tag.name) && !is_consumed(&tag.name))
+        {
             coverage.record_legacy_tag(&tag.name);
         }
         let provenance = Provenance::new(

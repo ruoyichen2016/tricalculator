@@ -104,3 +104,75 @@ fn variant_faith_and_prestige_are_enforced() {
         .iter()
         .any(|diagnostic| diagnostic.contains("lane slots")));
 }
+
+#[test]
+fn overlapping_archetypes_are_reported_as_undefined() {
+    // Two archetypes that replace the same ACF anchor cannot both apply.
+    let records = vec![
+        record(
+            "ABILITY",
+            "Weapon Master",
+            "Weapon Master",
+            &[
+                ("TYPE", "Archetype"),
+                ("APPLIESTO", "Fighter"),
+                ("REPLACES", "TYPE=FighterBonusFeat"),
+            ],
+        ),
+        record(
+            "ABILITY",
+            "Armor Master",
+            "Armor Master",
+            &[
+                ("TYPE", "Archetype"),
+                ("APPLIESTO", "Fighter"),
+                ("REPLACES", "TYPE=FighterBonusFeat"),
+            ],
+        ),
+        record(
+            "CLASS",
+            "Fighter",
+            "CLASS:Fighter",
+            &[("HD", "10")],
+        ),
+        record(
+            "CLASS",
+            "1",
+            "1",
+            &[(
+                "ABILITY",
+                "Fighter Class Feature|AUTOMATIC|Fighter ~ Bonus Feats|!PREABILITY:1,CATEGORY=ACF,TYPE.FighterBonusFeat",
+            )],
+        ),
+    ];
+    let (pack, _) = lower_records(
+        Some("35e".to_string()),
+        vec!["overlap".to_string()],
+        &records,
+    );
+
+    let lane = AdvancementLane::new(
+        pcgen_core::LaneId::primary(),
+        "Fighter".to_string(),
+        1,
+        6,
+        0,
+    )
+    .with_archetype("Weapon Master".to_string())
+    .with_substitution_level("Armor Master".to_string());
+    let draft = CharacterDraft {
+        race_id: "Human".to_string(),
+        advancement: vec![AdvancementFrame::new(1, vec![lane])],
+        ..CharacterDraft::default()
+    };
+
+    let snapshot = Engine::new(pack).evaluate(&draft);
+    assert!(
+        snapshot
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.contains("both replace")),
+        "overlap was not diagnosed: {:?}",
+        snapshot.diagnostics
+    );
+}

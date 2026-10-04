@@ -1425,14 +1425,28 @@ fn stable_id(kind: &str, value: &str) -> String {
     )
 }
 
-fn normalized_feature(value: &str) -> String {
-    value
-        .trim()
-        .to_ascii_lowercase()
-        .replace([' ', '-', '_'], "")
+/// True when `variant`'s `REPLACES` targets actually resolve against the
+/// class's own feature lines.
+///
+/// This shares [`pcgen_core::ReplaceTarget`] with the engine: the UI must not
+/// decide visibility with different matching rules than the one that applies
+/// the variant, or it will hide variants the engine would happily apply (and
+/// vice versa).
+fn variant_matches_class_features(
+    variant: &pcgen_core::VariantDefinition,
+    features: &[String],
+) -> bool {
+    if variant.replaces.is_empty() {
+        return true;
+    }
+    variant.replace_targets().iter().any(|target| {
+        features
+            .iter()
+            .any(|line| target.matches_feature_line(line))
+    })
 }
 
-fn class_feature_names(pack: &pcgen_ir::CompiledRulePack, class_id: &str) -> Vec<String> {
+fn class_feature_lines(pack: &pcgen_ir::CompiledRulePack, class_id: &str) -> Vec<String> {
     let mut features = Vec::new();
     if let Some(class) = pack.classes.get(class_id) {
         for abilities in class.level_abilities.values() {
@@ -1475,10 +1489,8 @@ async fn pack_options(
             |item| item.name.clone(),
         ),
         variants: {
-            let mut class_features_cache: std::collections::HashMap<
-                String,
-                std::collections::BTreeSet<String>,
-            > = std::collections::HashMap::new();
+            let mut class_features_cache: std::collections::HashMap<String, Vec<String>> =
+                std::collections::HashMap::new();
             pack.variants
                 .values()
                 .map(|variant| {
@@ -1487,30 +1499,17 @@ async fn pack_options(
                     } else {
                         "archetype"
                     };
-                    let class_features: std::collections::BTreeSet<String> = variant
+                    let class_features: Vec<String> = variant
                         .applies_to
                         .as_deref()
                         .map(|class_id| {
                             class_features_cache
                                 .entry(class_id.to_ascii_lowercase())
-                                .or_insert_with(|| {
-                                    class_feature_names(pack, class_id)
-                                        .into_iter()
-                                        .map(|feature| normalized_feature(&feature))
-                                        .collect()
-                                })
+                                .or_insert_with(|| class_feature_lines(pack, class_id))
                                 .clone()
                         })
                         .unwrap_or_default();
-                    let matches_features = variant.replaces.is_empty()
-                        || variant.replaces.iter().any(|replaced| {
-                            let wanted = normalized_feature(replaced);
-                            class_features.iter().any(|feature| {
-                                feature == &wanted
-                                    || feature.contains(&wanted)
-                                    || wanted.contains(feature)
-                            })
-                        });
+                    let matches_features = variant_matches_class_features(variant, &class_features);
                     VariantOption {
                         id: variant.id.clone(),
                         name: variant.name.clone(),

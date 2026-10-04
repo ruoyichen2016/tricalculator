@@ -57,6 +57,20 @@ enum Command {
         #[arg(long, default_value = "text")]
         format: String,
     },
+    /// List archetype / substitution variants and whether their `REPLACES`
+    /// targets actually resolve against the class's own feature lines.
+    ListVariants {
+        #[arg(long)]
+        pcc: PathBuf,
+        /// Case-insensitive substring filter on variant id or name.
+        #[arg(long)]
+        search: Option<String>,
+        /// Only variants applying to this class (case-insensitive).
+        #[arg(long = "class")]
+        class_id: Option<String>,
+        #[arg(long, default_value = "text")]
+        format: String,
+    },
     /// Parse a `.pcg` file into draft JSON.
     ParsePcg {
         pcg: PathBuf,
@@ -580,6 +594,147 @@ fn main() -> Result<()> {
                         coverage.tag_occurrences,
                         coverage.known_tag_occurrences,
                         coverage.legacy_tags
+                    );
+                }
+            }
+        }
+        Command::ListVariants {
+            pcc,
+            search,
+            class_id,
+            format,
+        } => {
+            let (pack, _) =
+                compile_pcc(&pcc).with_context(|| format!("failed to import {}", pcc.display()))?;
+            let needle = search.as_deref().map(str::to_lowercase);
+            let matches: Vec<_> = pack
+                .variants
+                .values()
+                .filter(|variant| {
+                    if let Some(needle) = &needle {
+                        if !variant.id.to_lowercase().contains(needle)
+                            && !variant.name.to_lowercase().contains(needle)
+                        {
+                            return false;
+                        }
+                    }
+                    if let Some(class_id) = &class_id {
+                        if !variant
+                            .applies_to
+                            .as_deref()
+                            .is_some_and(|applies| applies.eq_ignore_ascii_case(class_id))
+                        {
+                            return false;
+                        }
+                    }
+                    true
+                })
+                .collect();
+
+            // Resolve each `REPLACES` target against the class's own features.
+            // This is the check that catches a variant which parses fine but
+            // silently removes nothing.
+            let mut features_cache: std::collections::HashMap<String, Vec<String>> =
+                std::collections::HashMap::new();
+            let mut resolve = |variant: &pcgen_core::VariantDefinition| {
+                let features = variant
+                    .applies_to
+                    .as_deref()
+                    .map(|class_id| {
+                        features_cache
+                            .entry(class_id.to_ascii_lowercase())
+                            .or_insert_with(|| {
+                                let mut lines = Vec::new();
+                                for key in [class_id.to_string(), format!("CLASS:{class_id}")] {
+                                    if let Some(class) = pack.classes.get(&key) {
+                                        for abilities in class.level_abilities.values() {
+                                            lines.extend(abilities.iter().cloned());
+                                        }
+                                    }
+                                    if let Some(progression) = pack.progressions.get(&key) {
+                                        let max_level = progression
+                                            .features_by_level
+                                            .keys()
+                                            .max()
+                                            .copied()
+                                            .unwrap_or(20);
+                                        lines.extend(progression.features_up_to(max_level));
+                                    }
+                                }
+                                lines
+                            })
+                            .clone()
+                    })
+                    .unwrap_or_default();
+                variant
+                    .replace_targets()
+                    .into_iter()
+                    .map(|target| {
+                        let resolved = features
+                            .iter()
+                            .any(|line| target.matches_feature_line(line));
+                        let label = match &target {
+                            pcgen_core::ReplaceTarget::TypeTag(tag) => format!("TYPE={tag}"),
+                            pcgen_core::ReplaceTarget::Name(name) => name.clone(),
+                        };
+                        (label, resolved)
+                    })
+                    .collect::<Vec<_>>()
+            };
+
+            if format.eq_ignore_ascii_case("json") {
+                let rows: Vec<serde_json::Value> = matches
+                    .iter()
+                    .map(|variant| {
+                        let targets = resolve(variant);
+                        serde_json::json!({
+                            "id": variant.id,
+                            "name": variant.name,
+                            "applies_to": variant.applies_to,
+                            "replaces": variant.replaces,
+                            "grants": variant.grants,
+                            "class_skills": variant.class_skills,
+                            "replace_targets": targets
+                                .iter()
+                                .map(|(label, resolved)| serde_json::json!({
+                                    "target": label,
+                                    "resolved": resolved,
+                                }))
+                                .collect::<Vec<_>>(),
+                            "all_targets_resolved": targets.iter().all(|(_, resolved)| *resolved),
+                        })
+                    })
+                    .collect();
+                println!("{}", serde_json::to_string_pretty(&rows)?);
+            } else {
+                println!("variants: {}", matches.len());
+                for variant in matches {
+                    let targets = resolve(variant);
+                    let unresolved: Vec<&String> = targets
+                        .iter()
+                        .filter(|(_, resolved)| !resolved)
+                        .map(|(label, _)| label)
+                        .collect();
+                    let status = if targets.is_empty() || unresolved.is_empty() {
+                        "ok".to_string()
+                    } else {
+                        format!(
+                            "UNRESOLVED({})",
+                            unresolved
+                                .iter()
+                                .map(|label| label.as_str())
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        )
+                    };
+                    println!(
+                        "{}\t{}\tapplies_to={}\treplaces={}\tgrants={}\t{}",
+                        variant.id,
+                        variant.name,
+                        variant.applies_to.as_deref().unwrap_or("-"),
+                        variant.replaces.len(),
+                        variant.grants.len(),
+                        status
                     );
                 }
             }
