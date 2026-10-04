@@ -35,7 +35,8 @@ pub fn build_typed_definitions(records: &[RawRecord]) -> TypedDefinitions {
             );
             typed.creature_trait_records.insert(key, record_traits);
         }
-        match record.category.to_ascii_uppercase().as_str() {
+        let category_upper = record.category.to_ascii_uppercase();
+        match category_upper.as_str() {
             "CLASS" => {
                 if let Some(substitution) = record.name.strip_prefix("SUBSTITUTIONCLASS:") {
                     current_substitution = Some(substitution.trim().to_string());
@@ -53,6 +54,15 @@ pub fn build_typed_definitions(records: &[RawRecord]) -> TypedDefinitions {
                         );
                         typed.variants.insert(variant.id.clone(), variant);
                     }
+                    continue;
+                }
+                // `SUBCLASS:` / `SUBCLASSLEVEL:` describe a specialty of the
+                // *current* class.  They must not be parsed as class headers:
+                // doing so moves `current_class` onto the specialty, and every
+                // level row that follows is then attached to it instead of to
+                // the real class (RSRD Wizard / Dragon Disciple lost all of
+                // their class features that way).
+                if is_class_specialty_row(&record.name) {
                     continue;
                 }
                 if record.name.trim().parse::<u32>().is_ok() {
@@ -325,6 +335,21 @@ fn parse_race(record: &RawRecord) -> RaceDefinition {
         }
     }
     race
+}
+
+/// True for `SUBCLASS:` / `SUBCLASSLEVEL:` rows, which refine the current class
+/// rather than declaring a new one.
+///
+/// These appear *inside* a class block in the RSRD (e.g. the eight Wizard
+/// schools precede the Wizard level progression).  They carry no class header
+/// of their own, so treating them as headers corrupts `current_class` and
+/// silently detaches every following level row.
+fn is_class_specialty_row(name: &str) -> bool {
+    let name = name.trim();
+    let upper = name.to_ascii_uppercase();
+    upper.starts_with("SUBCLASS:")
+        || upper.starts_with("SUBCLASSLEVEL:")
+        || upper.starts_with("SUBCLASS.")
 }
 
 fn parse_class(record: &RawRecord) -> ClassDefinition {

@@ -632,7 +632,13 @@ def main(argv: list[str] | None = None) -> int:
                 },
                 typed={
                     "races": (">=", 60),
-                    "classes": (">=", 45),
+                    # 45 -> 43: `SUBCLASS:` / `SUBCLASSLEVEL:` rows are
+                    # specialties of the current class, not classes.  They used
+                    # to be parsed as class headers (which also detached the
+                    # following level rows from the real class); with that fixed
+                    # the two pseudo-classes in this dataset are gone.  The real
+                    # class inventory is unchanged.
+                    "classes": (">=", 43),
                     "skills": (">=", 90),
                     "spells": (">=", 500),
                     "equipment": (">=", 400),
@@ -640,7 +646,7 @@ def main(argv: list[str] | None = None) -> int:
                     "deities": (">=", 2),
                     "domains": (">=", 20),
                     "spell_effects": (">=", 10),
-                    "progressions": (">=", 45),
+                    "progressions": (">=", 43),
                 },
                 zero_tags=[
                     "PREVARNEQ",

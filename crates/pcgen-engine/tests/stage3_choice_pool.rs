@@ -154,11 +154,15 @@ fn choices_resolve_from_draft_and_unresolved_choices_are_diagnosed() {
 
 #[test]
 fn subclass_choice_and_repeatable_ability_metadata_reach_snapshot() {
+    // Real RSRD shape: the `SUBCLASS:` row carries `CHOICE` and sits *inside*
+    // the class block (Wizard's schools follow the Wizard headers).  The
+    // specialty is not a class of its own, so it must not shadow the class.
     let records = vec![
+        record("CLASS", "Wizard", &[("HD", "4")]),
         record(
             "CLASS",
             "SUBCLASS:Abjurer",
-            &[("CHOICE", "SCHOOL|Abjuration")],
+            &[("CHOICE", "SCHOOL|Abjuration"), ("COST", "2")],
         ),
         record(
             "ABILITY",
@@ -175,11 +179,12 @@ fn subclass_choice_and_repeatable_ability_metadata_reach_snapshot() {
         vec!["stage3-subclass".to_string()],
         &records,
     );
-    let snapshot = Engine::new(pack).evaluate(&CharacterDraft::default());
-    assert_eq!(
-        snapshot.class_choices.get("SUBCLASS:Abjurer"),
-        Some(&"SCHOOL|Abjuration".to_string())
+    assert!(
+        !pack.classes.contains_key("SUBCLASS:Abjurer"),
+        "SUBCLASS row must not become a class: {:?}",
+        pack.classes.keys().collect::<Vec<_>>()
     );
+    let snapshot = Engine::new(pack).evaluate(&CharacterDraft::default());
     assert!(snapshot
         .repeatable_abilities
         .iter()

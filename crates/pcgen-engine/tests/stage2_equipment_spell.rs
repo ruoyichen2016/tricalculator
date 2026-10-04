@@ -181,7 +181,11 @@ fn added_domains_with_pretemplate_condition_reach_snapshot() {
 
 #[test]
 fn prohibited_cost_and_donotadd_are_typed_and_visible() {
+    // `SUBCLASS:` rows carry `PROHIBITCOST` in the real RSRD (Psion schools).
+    // The cost is consumed by the lowering pass into entity metadata; the
+    // specialty row itself is *not* a class and must not become one.
     let records = vec![
+        record("CLASS", "Psion", &[("HD", "4")]),
         record("CLASS", "SUBCLASS:Egoist", &[("PROHIBITCOST", "2")]),
         record("CLASS", "Fighter", &[("HD", "10")]),
         record_key(
@@ -199,7 +203,11 @@ fn prohibited_cost_and_donotadd_are_typed_and_visible() {
     for tag in ["PROHIBITCOST", "DONOTADD"] {
         assert!(!report.coverage.legacy_pending_by_tag.contains_key(tag));
     }
-    assert_eq!(pack.classes["SUBCLASS:Egoist"].prohibited_cost, Some(2));
+    assert!(
+        !pack.classes.contains_key("SUBCLASS:Egoist"),
+        "SUBCLASS row must not become a class: {:?}",
+        pack.classes.keys().collect::<Vec<_>>()
+    );
     assert!(pack.classes["Fighter"]
         .level_do_not_add
         .get(&1)
