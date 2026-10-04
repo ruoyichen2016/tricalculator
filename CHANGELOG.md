@@ -1,5 +1,25 @@
 ## Unreleased
 
+### 许可：补齐 `LICENSE` / `NOTICE` 与数据包许可文件
+
+- 新增 `LICENSE`（LGPL-2.1 全文，与 `Cargo.toml` 的 `license = "LGPL-2.1"`
+  一致，也与上游 PCGen 代码许可一致）；
+- 新增 `NOTICE.md`，明确本仓库三类许可**不可混为一谈**：
+  `crates/`+`scripts/`+文档为 LGPL-2.1；`raw/` 与 `data/packs/` 为
+  OGL 1.0a + PCGen 数据条款；`extensions/pf35e/`（含 `.lst` 数据）为独立
+  重写、依 Paizo OGL / Community Use；并附 OGL §15 要求保留的署名片段
+  （逐条与 RSRD `OGL.txt` 校对）与商标声明；
+- **修复数据包不带许可文本**：`package_datapack.py` 此前只在 `pack.json`
+  里写一个 `license` 字符串，包内没有任何许可条文。现在每个包根目录会生成
+  `NOTICE.md`（含署名与商标），并指向该包数据树内实际存在的 `OGL.txt`
+  路径（rsrd35 / srd30 各自不同，已逐一核对）；
+- `scripts/test_package.py` 新增许可检查：`LICENSE`/`NOTICE.md` 必须存在、
+  `LICENSE` 必须是 LGPL-2.1 正文、`Cargo.toml` 的 license 必须与之一致、
+  打包脚本必须真的写出 NOTICE 且引用的 OGL 路径按包正确（已用变异测试
+  验证这两类检查会失败）；
+- `README.md` 增加「许可」一节；`docs/M9_LOOP.md` 不再把「无 LICENSE 文件」
+  列为已知风险；`docs/M9_PACKAGING.md` 说明数据包许可文件。
+
 ### 特性：`GRANTS` 支持职业等级
 
 - 变体追加的特性现在可以声明获得等级，写法沿用 PCGen 在真实 archetype 的

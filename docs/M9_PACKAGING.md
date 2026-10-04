@@ -69,7 +69,11 @@ PCGEN_DATA_ROOT=.../data/packs/srd30 ./run-web.sh
 - 不支持随机 KIT；
 - 装备购买与官方 output sheet 兼容仍在收敛；
 - 首次加载 `.pcc` 需要数秒编译规则包；
-- 数据包分发需遵守 PCGen / OGL 许可。
+- 数据包分发需遵守 OGL 1.0a / PCGen 数据条款：`package_datapack.py` 会在包根
+  写入 `NOTICE.md`（含必须保留的 OGL §15 署名与商标声明），OGL 全文随数据树
+  一同复制（rsrd35 为 `data/35e/wizards_of_the_coast/rsrd/OGL.txt`，
+  srd30 为 `data/3e/wizards_of_the_coast/srd/OGL.txt`）。
+  仓库自身的许可划分见 [`NOTICE.md`](../NOTICE.md)。
 
 ## 6. 故障排查
 

@@ -57,6 +57,58 @@ def data_ref(source: Path) -> str | None:
     return None
 
 
+def write_pack_notice(out: Path, pack_id: str, spec: dict, source: Path) -> None:
+    """Drop a top-level notice into the pack.
+
+    The OGL text travels inside the copied data tree, but a redistributor
+    unpacking a data pack should not have to go looking for it.
+    """
+    ref = data_ref(source) or "unknown"
+    # Each SRD tree ships its own OGL.txt; point at the one actually included.
+    ogl_path = {
+        "rsrd35": "data/35e/wizards_of_the_coast/rsrd/OGL.txt",
+        "srd30": "data/3e/wizards_of_the_coast/srd/OGL.txt",
+    }.get(pack_id, "OGL.txt")
+    notice = f"""# {spec['name']} — 数据包许可
+
+本数据包（pack id `{pack_id}`）是 **游戏数据**，不是 pcgen-rust 的源码，
+因此**不适用** pcgen-rust 的 LGPL-2.1 许可。
+
+## 许可
+
+Open Game License v1.0a。完整条文随包提供：`{ogl_path}`。
+
+## 必须保留的署名（OGL §15）
+
+```text
+Open Game License v 1.0a Copyright 2000, Wizards of the Coast, Inc.
+
+System Reference Document Copyright 2000-2003, Wizards of the Coast, Inc.;
+Authors Jonathan Tweet, Monte Cook, Skip Williams, Rich Baker, Andy Collins,
+David Noonan, Rich Redman, Bruce R. Cordell, John D. Rateliff, Thomas Reid,
+James Wyatt, based on original material by E. Gary Gygax and Dave Arneson.
+
+PCGen dataset conversion for the System Reference Document
+Copyright 2001-2003, PCgen Data team (Including, but not limited to
+Bryan McRoberts, Rob Reed (Mynex), Eric Beaudoin, Andrew McDougall
+(Tir Gwaith), Ian Dale, Paul W. King, Chris Chandler (Barak),
+Sigurdur H. Olafsson)
+```
+
+## 来源
+
+- 上游：PCGen project (`PCGen/pcgen`)
+- ref：`{ref}`
+- 本项目源码的许可与完整说明见仓库根目录 `NOTICE.md`。
+
+## 商标
+
+`Dungeons & Dragons`、`d20 System` 是 Wizards of the Coast, Inc. 的商标。
+本数据包与 Wizards of the Coast 无隶属关系，未获其背书。
+"""
+    (out / "NOTICE.md").write_text(notice, encoding="utf-8")
+
+
 def build_pack(pack_id: str, source: Path, out: Path, dry_run: bool, make_zip: bool) -> int:
     spec = PACKS[pack_id]
     entry = source / spec["entry"]
@@ -95,6 +147,7 @@ def build_pack(pack_id: str, source: Path, out: Path, dry_run: bool, make_zip: b
         if dst.exists():
             shutil.rmtree(dst)
         shutil.copytree(src, dst)
+    write_pack_notice(out, pack_id, spec, source)
     (out / "pack.json").write_text(
         json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )

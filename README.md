@@ -5,6 +5,15 @@ PCGen-Rust 是围绕统一 Rule IR、`CharacterDraft` / `CharacterSnapshot`
 
 旧实现完整保存在 [`../reference/pcgen-rust-archive`](../reference/pcgen-rust-archive)。
 
+## 许可
+
+- **源码**（`crates/`、`scripts/`、文档）：[LGPL-2.1](LICENSE)；
+- **游戏数据**（`raw/`、`data/packs/`）：OGL 1.0a + PCGen 数据条款；
+- **PF 变体扩展**（`extensions/pf35e/`，含 `.lst` 数据）：本项目独立重写，
+  Paizo 内容依 OGL / Community Use。
+
+三类许可的范围、必须保留的 OGL 署名片段与商标声明见 [`NOTICE.md`](NOTICE.md)。
+
 ## 架构文档
 
 - [`ARCHITECTURE.md`](ARCHITECTURE.md)
