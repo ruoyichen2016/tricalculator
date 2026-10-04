@@ -79,6 +79,7 @@
 - 搜索条件（pcc / 开关 / 搜索框 / 等级范围）持久化到 URL，刷新可恢复；
 - 建卡向导支持自动保存草稿到 localStorage（防抖，状态栏显示 autosaved 时间）；
 - 新增命名草稿库（Draft library）：可保存多份命名草稿、按名加载/删除；
+- 草稿库支持整包导出/导入（JSON，导入时校验并跳过不兼容草稿，按名合并）；
 - bundle 支持按规则指纹分组：`group_by_fingerprint` / `filter_by_fingerprint`，CLI `--list-groups` / `--pcc`，Web `GET /api/characters/bundle/groups`；
 - Web 建卡向导：技能点预算实时校验条（spent / budget / remaining，超支高亮），INT、职业、等级变化即时刷新；
 - Web 建卡向导：购点实时校验已有，`/api/preview` 的 `skill_points` 断言补充到测试；
