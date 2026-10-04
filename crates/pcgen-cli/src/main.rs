@@ -693,6 +693,15 @@ fn main() -> Result<()> {
                             "applies_to": variant.applies_to,
                             "replaces": variant.replaces,
                             "grants": variant.grants,
+                            "grant_entries": variant
+                                .grant_entries()
+                                .iter()
+                                .map(|grant| serde_json::json!({
+                                    "name": grant.name,
+                                    "level": grant.level,
+                                    "class_id": grant.class_id,
+                                }))
+                                .collect::<Vec<_>>(),
                             "class_skills": variant.class_skills,
                             "replace_targets": targets
                                 .iter()
@@ -733,7 +742,17 @@ fn main() -> Result<()> {
                         variant.name,
                         variant.applies_to.as_deref().unwrap_or("-"),
                         variant.replaces.len(),
-                        variant.grants.len(),
+                        // Show each grant with the level it is gained at, so an
+                        // ungated grant (level 1) is visible at a glance.
+                        variant
+                            .grant_entries()
+                            .iter()
+                            .map(|grant| match grant.level {
+                                Some(level) => format!("{}@{}", grant.name, level),
+                                None => format!("{}@1", grant.name),
+                            })
+                            .collect::<Vec<_>>()
+                            .join(","),
                         status
                     );
                 }

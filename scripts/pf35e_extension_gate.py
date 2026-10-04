@@ -209,6 +209,34 @@ def main() -> int:
                 "an archetype that replaces nothing is inert"
             )
 
+    # --- 2c. grant levels --------------------------------------------------
+    # A grant that should be level-gated must carry a `PRECLASS` guard, and the
+    # guard must survive import as a level rather than being shredded.  Known
+    # PF values are asserted so a regression to "everything at level 1" fails
+    # here instead of silently shipping a wrong progression.
+    expected_grant_levels = {
+        "Weapon Master": {"Weapon Training": 5, "Weapon Guard": 9},
+        "Armor Master": {"Armor Training": 3, "Armor Mastery": 19},
+    }
+    for row in variant_rows:
+        entries = {
+            entry["name"]: entry["level"] for entry in row.get("grant_entries", [])
+        }
+        for name, want in expected_grant_levels.get(row["name"], {}).items():
+            got = entries.get(name)
+            if got != want:
+                failures.append(
+                    f"variant `{row['name']}` grants `{name}` at level {got}, want {want}"
+                )
+        # Every grant must expose a level decision: either an explicit guard or
+        # level 1 by PCGen's default.
+        for entry in row.get("grant_entries", []):
+            if entry["level"] is not None and entry["level"] < 1:
+                failures.append(
+                    f"variant `{row['name']}` grants `{entry['name']}` at "
+                    f"invalid level {entry['level']}"
+                )
+
     # `evaluate` runs against a built-in demo pack, so semantics can only be
     # checked through the campaign-aware commands above.
     probe = ROOT / "target" / "pf35e-gate"

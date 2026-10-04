@@ -65,18 +65,37 @@ extensions/pf35e/
 4 个变体，全部走引擎已有的 variant 机制。`REPLACES` 用 `TYPE=` 寻址
 （见 §3.4），替换目标都经过"能真正命中"的验收：
 
-| 变体 | 适用职业 | 替换（已核实命中） | 追加 |
+| 变体 | 适用职业 | 替换（已核实命中） | 追加（@ 为获得该特性的职业等级） |
 |---|---|---|---|
-| Cloistered Cleric | Cleric | `Cleric ~ Weapon and Armor Proficiency` | Cloistered Cleric |
-| Weapon Master | Fighter | `TYPE=FighterBonusFeat` → `Fighter ~ Bonus Feats` | Weapon Training / Weapon Guard |
-| Armor Master | Fighter | `TYPE=FighterBonusFeat` → `Fighter ~ Bonus Feats` | Armor Training / Armor Mastery |
-| School Specialist | Wizard | `TYPE=WizardFamiliar` → `Wizard ~ Familiar` | Arcane School / Arcane Bond |
+| Cloistered Cleric | Cleric | `Cleric ~ Weapon and Armor Proficiency` | Cloistered Cleric@1 |
+| Weapon Master | Fighter | `TYPE=FighterBonusFeat` → `Fighter ~ Bonus Feats` | Weapon Training@5 / Weapon Guard@9 |
+| Armor Master | Fighter | `TYPE=FighterBonusFeat` → `Fighter ~ Bonus Feats` | Armor Training@3 / Armor Mastery@19 |
+| School Specialist | Wizard | `TYPE=WizardFamiliar` → `Wizard ~ Familiar` | Arcane School@1 / Arcane Bond@1 |
 
 `data/pf35e_abilities.lst` 为上述变体引用的能力名提供描述性条目，
 使角色卡能显示名称（无数值机制）。
 
 Cleric 那一项用名字寻址而非 `TYPE=`：RSRD 的 Cleric 熟练行**没有** ACF
 类型标签（Fighter/Wizard/Sorcerer 有），所以用规范化名字作为回退。
+
+### 3.2.1 等级化 `GRANTS`
+
+追加的特性可以声明获得等级，写法与 PCGen 在真实 archetype 的 `ABILITY:`
+行上使用的 `PRECLASS` 守卫一致：
+
+```text
+GRANTS:Weapon Training|PRECLASS:1,Fighter=5
+```
+
+- 没有守卫 = 1 级即可用（等同 PCGen 对裸 `ABILITY` 标签的处理）；
+- 引擎在 `features_for_class` 里按 lane 的当前职业等级过滤，
+  所以 1 级 Weapon Master 不会提前列出 Weapon Training；
+- `REPLACES` **不受等级影响**：被替换掉的特性全程消失。
+
+```bash
+target/debug/pcgen list-variants --pcc <pcc>
+# Weapon Master  ...  grants=Weapon Training@5,Weapon Guard@9  ok
+```
 
 ### 3.3 `REPLACES` 的寻址方式
 
@@ -152,11 +171,13 @@ Gate 分四层（详见脚本 docstring）：
 | CMB / CMD | 不表达 | 战斗数值缺这两项 |
 | 1:1 技能点（跨职 1 点） | 用 3.5e `SKILLMULTIPLIER:4` 语义 → **不一致** | 技能点与 PF 原版不同 |
 | favored class bonus | 不表达 | 每级可选奖励缺失 |
-| **`GRANTS` 没有等级语义** | 追加的特性从 1 级起就出现在特性列表里 | PF 里 `Weapon Training` 是 5 级、`Armor Training` 是 3 级；本扩展把它们一律当作 1 级特性，**等级曲线不对** |
-| archetype 的等级化替换 | 用已有 variant 机制近似（按 ACF 锚点替换） | 替换是整条特性行级别，不能表达"只替换该特性的某几个等级" |
+| archetype 的等级化**替换** | 替换是整条特性行级别，不带等级 | 不能表达"只替换该特性的某几个等级"；`REPLACES` 一旦命中就全程移除（这是 PF archetype 的常见语义，但不等价于所有情况） |
 | bloodline / mystery / school 专有能力 | 描述性 ability，不实现数值 | 仅文本 |
 | PF 专有职业（Alchemist 等） | 不重写 | 缺失（3.5e 无对应职业） |
 | PF `.pcg` 存档 | 不兼容 | 需按 3.5e `.pcg` 另存 |
+
+> **等级化 `GRANTS` 已支持**（不再是有损项）：`GRANTS:<feature>|PRECLASS:1,<Class>=<level>`
+> 会在该职业等级达到后才把特性加入列表，见 §3.2。
 
 **因此：本扩展产出的 PF 角色是"3.5e 化的近似卡"，不是 PF 官方的等价结果。**
 任何以"PF 正确性"为标准的验收都不适用。

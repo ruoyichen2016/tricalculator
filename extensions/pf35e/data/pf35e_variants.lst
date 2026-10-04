@@ -19,6 +19,13 @@
 #   <name>       - a display name, normalized for case / spacing / owner prefix
 #                  / plural.  Used where the RSRD declares no ACF type tag
 #                  (the Cleric proficiency row carries none).
+#
+# GRANTS may name the class level the feature is gained at, written the way
+# PCGen writes it on a real archetype's ABILITY line:
+#   GRANTS:Weapon Training|PRECLASS:1,Fighter=5
+# Without the guard the feature applies from class level 1, which is what PCGen
+# does for a bare ABILITY tag.  Levels below are PF Core Rulebook values.
+#
 # Tags MUST be tab-separated (PCGen .lst format).
 # Provenance: Pathfinder RPG Core Rulebook (Paizo), OGL / Community Use.
 # Independent rewrite; not a copy of the official PCGen Pathfinder dataset.
@@ -27,8 +34,8 @@
 Cloistered Cleric	TYPE:Archetype	APPLIESTO:Cleric	REPLACES:Cleric ~ Weapon and Armor Proficiency	GRANTS:Cloistered Cleric	CSKILL:Knowledge (Arcana)|Knowledge (History)|Knowledge (Religion)|Spellcraft|Linguistics
 
 # --- Fighter variants ---
-Weapon Master	TYPE:Archetype	APPLIESTO:Fighter	REPLACES:TYPE=FighterBonusFeat	GRANTS:Weapon Training	GRANTS:Weapon Guard
-Armor Master	TYPE:Archetype	APPLIESTO:Fighter	REPLACES:TYPE=FighterBonusFeat	GRANTS:Armor Training	GRANTS:Armor Mastery
+Weapon Master	TYPE:Archetype	APPLIESTO:Fighter	REPLACES:TYPE=FighterBonusFeat	GRANTS:Weapon Training|PRECLASS:1,Fighter=5	GRANTS:Weapon Guard|PRECLASS:1,Fighter=9
+Armor Master	TYPE:Archetype	APPLIESTO:Fighter	REPLACES:TYPE=FighterBonusFeat	GRANTS:Armor Training|PRECLASS:1,Fighter=3	GRANTS:Armor Mastery|PRECLASS:1,Fighter=19
 
 # --- Wizard variants ---
-School Specialist	TYPE:Archetype	APPLIESTO:Wizard	REPLACES:TYPE=WizardFamiliar	GRANTS:Arcane School	GRANTS:Arcane Bond
+School Specialist	TYPE:Archetype	APPLIESTO:Wizard	REPLACES:TYPE=WizardFamiliar	GRANTS:Arcane School|PRECLASS:1,Wizard=1	GRANTS:Arcane Bond|PRECLASS:1,Wizard=1

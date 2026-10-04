@@ -163,6 +163,81 @@ fn singular(key: &str) -> &str {
         .unwrap_or(key)
 }
 
+/// A feature a variant grants, optionally from a given class level.
+///
+/// PCGen encodes the level of a granted feature inside the `ABILITY:` value
+/// with a `PRECLASS` guard, e.g.
+///
+/// ```text
+/// ABILITY:Special Ability|AUTOMATIC|Dancing Blade ~ Panache and Deeds|PRECLASS:1,Fighter=2
+/// ```
+///
+/// The `GRANTS:` tag used by this project's extension mirrors that convention
+/// so level information survives the import:
+///
+/// ```text
+/// GRANTS:Weapon Training|PRECLASS:1,Fighter=5
+/// ```
+///
+/// A grant without a `PRECLASS` guard applies from class level 1.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GrantedFeature {
+    /// Feature name as it should appear in the feature list.
+    pub name: String,
+    /// Class level the feature is gained at; `None` means level 1.
+    pub level: Option<u32>,
+    /// Class the guard names, when one was given.
+    pub class_id: Option<String>,
+}
+
+impl GrantedFeature {
+    pub fn parse(raw: &str) -> Self {
+        let mut parts = raw.split('|').map(str::trim);
+        let name = parts.next().unwrap_or_default().trim().to_string();
+        let mut level = None;
+        let mut class_id = None;
+        for part in parts {
+            let Some(rest) = strip_preclass(part) else {
+                continue;
+            };
+            // `PRECLASS:1,Fighter=5` -> count, then `Class=level` pairs.
+            for entry in rest.split(',') {
+                let Some((class, value)) = entry.split_once('=') else {
+                    continue;
+                };
+                let class = class.trim();
+                if class.is_empty() {
+                    continue;
+                }
+                if let Ok(parsed) = value.trim().parse::<u32>() {
+                    level = Some(level.map_or(parsed, |current: u32| current.max(parsed)));
+                    class_id = Some(class.to_string());
+                }
+            }
+        }
+        Self {
+            name,
+            level,
+            class_id,
+        }
+    }
+
+    /// True when the feature is available at `class_level`.
+    pub fn applies_at(&self, class_level: u32) -> bool {
+        self.level.is_none_or(|level| class_level >= level)
+    }
+}
+
+/// Strip the `PRECLASS:` / `!PRECLASS:` prefix from a tag fragment.
+fn strip_preclass(part: &str) -> Option<&str> {
+    let part = part.trim();
+    let part = part.strip_prefix('!').unwrap_or(part);
+    let rest = part
+        .strip_prefix("PRECLASS:")
+        .or_else(|| part.strip_prefix("preclass:"))?;
+    Some(rest.trim())
+}
+
 /// A typed replacement rule for an archetype or substitution level.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct VariantDefinition {
@@ -214,6 +289,26 @@ impl VariantDefinition {
             .collect()
     }
 
+    /// The `GRANTS:` entries parsed into level-scoped grants.
+    pub fn grant_entries(&self) -> Vec<GrantedFeature> {
+        self.grants
+            .iter()
+            .map(|entry| GrantedFeature::parse(entry))
+            .collect()
+    }
+
+    /// Feature names this variant grants at or below `class_level`.
+    ///
+    /// A grant with no level applies from class level 1, matching PCGen, where
+    /// an `ABILITY:` tag without a `PRECLASS` guard is unconditional.
+    pub fn grants_at_level(&self, class_level: u32) -> Vec<String> {
+        self.grant_entries()
+            .into_iter()
+            .filter(|grant| grant.applies_at(class_level))
+            .map(|grant| grant.name)
+            .collect()
+    }
+
     /// True when `line` is one of the features this variant replaces.
     pub fn replaces_feature_line(&self, line: &str) -> bool {
         self.replace_targets()
@@ -226,21 +321,40 @@ impl VariantDefinition {
         !self.replaces.is_empty()
     }
 
-    pub fn apply_to_features(&self, base: Vec<String>) -> Vec<String> {
+    /// Apply this variant to a class's features up to `class_level`.
+    ///
+    /// `REPLACES` removes the addressed feature lines; `GRANTS` appends the
+    /// features whose level has been reached.  Use this instead of
+    /// [`Self::apply_to_features`] whenever the class level is known, so a
+    /// feature PF grants at 5th level does not appear at 1st.
+    pub fn apply_to_features_at_level(&self, base: Vec<String>, class_level: u32) -> Vec<String> {
+        let mut features = self.remove_replaced(base);
+        features.extend(self.grants_at_level(class_level));
+        features
+    }
+
+    /// `REPLACES` only, ignoring grants.
+    fn remove_replaced(&self, base: Vec<String>) -> Vec<String> {
         if self.replaces.is_empty() {
-            let mut features = base;
-            features.extend(self.grants.iter().cloned());
-            return features;
+            return base;
         }
         let targets = self.replace_targets();
-        let mut features: Vec<String> = base
-            .into_iter()
+        base.into_iter()
             .filter(|feature| {
                 !targets.iter().any(|target| {
                     target.matches_feature_line(feature) || target.matches_feature_name(feature)
                 })
             })
-            .collect();
+            .collect()
+    }
+
+    /// Apply this variant treating every grant as available.
+    ///
+    /// Level-blind: it is the right call only when the class level is unknown
+    /// (there is no level to compare against).  Prefer
+    /// [`Self::apply_to_features_at_level`].
+    pub fn apply_to_features(&self, base: Vec<String>) -> Vec<String> {
+        let mut features = self.remove_replaced(base);
         features.extend(self.grants.iter().cloned());
         features
     }

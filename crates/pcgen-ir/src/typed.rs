@@ -1016,6 +1016,46 @@ fn parse_substitution_variant(
     variant
 }
 
+/// Split a `GRANTS:` value into grant entries, keeping each feature together
+/// with its `PRECLASS:` guard.
+///
+/// `|` is overloaded: it separates a feature from its guard
+/// (`Weapon Training|PRECLASS:1,Fighter=5`) *and* separates multiple grants
+/// (`A|B`).  A comma likewise separates the guard's own count from its
+/// `Class=level` pairs.  A fragment is therefore treated as the start of a new
+/// grant only when it is neither a predicate guard nor part of one.
+fn split_grant_entries(value: &str) -> Vec<String> {
+    let mut entries: Vec<String> = Vec::new();
+    for fragment in value.split('|') {
+        let fragment = fragment.trim();
+        if fragment.is_empty() {
+            continue;
+        }
+        let starts_guard = crate::tags::is_predicate_tag(fragment);
+        match entries.last_mut() {
+            // `PRECLASS:1,Fighter=5` arrives as its own `|` fragment; append it
+            // to the feature it guards.
+            Some(current) if starts_guard => {
+                current.push('|');
+                current.push_str(fragment);
+            }
+            // A bare `Fighter=5` continuation of a guard already being built.
+            Some(current)
+                if current
+                    .rsplit('|')
+                    .next()
+                    .is_some_and(crate::tags::is_predicate_tag)
+                    && !fragment.contains('|') =>
+            {
+                current.push(',');
+                current.push_str(fragment);
+            }
+            _ => entries.push(fragment.to_string()),
+        }
+    }
+    entries
+}
+
 fn parse_ability(record: &RawRecord) -> pcgen_core::AbilityDefinition {
     pcgen_core::AbilityDefinition {
         id: entity_key(record),
@@ -1078,13 +1118,7 @@ fn parse_variant(record: &RawRecord) -> Option<VariantDefinition> {
         );
     }
     for grants in tags(record, "GRANTS") {
-        variant.grants.extend(
-            grants
-                .split([',', '|'])
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .map(str::to_string),
-        );
+        variant.grants.extend(split_grant_entries(grants));
     }
     for skill in tags(record, "CSKILL") {
         variant.class_skills.extend(

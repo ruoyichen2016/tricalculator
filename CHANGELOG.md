@@ -1,5 +1,33 @@
 ## Unreleased
 
+### 特性：`GRANTS` 支持职业等级
+
+- 变体追加的特性现在可以声明获得等级，写法沿用 PCGen 在真实 archetype 的
+  `ABILITY:` 行上使用的 `PRECLASS` 守卫：
+  `GRANTS:Weapon Training|PRECLASS:1,Fighter=5`；无守卫即 1 级可用
+  （等同 PCGen 对裸 `ABILITY` 标签的处理）；
+- `pcgen-core` 新增 `GrantedFeature`（`name` / `level` / `class_id`，
+  `applies_at(level)`）与 `VariantDefinition::{grant_entries, grants_at_level,
+  apply_to_features_at_level}`；`apply_to_features` 保留为"等级未知"时的
+  等级无关入口；
+- 引擎 `features_for_class` 改为按 lane 的当前职业等级过滤：1 级 Weapon
+  Master 不再提前列出 `Weapon Training`（PF 是 5 级）；`REPLACES` 不受等级
+  影响，被替换的特性全程消失；
+- **修复导入分片**：`GRANTS` 值此前按 `,` 与 `|` 一并切分，会把
+  `PRECLASS:1,Fighter=5` 打散成 `PRECLASS:1`、`Fighter=5`。现在
+  `split_grant_entries` 会识别守卫片段并与之合并，同时保持 `A|B` 这种
+  无守卫的并列写法可用；
+- 扩展数据的等级取 PF Core Rulebook 值：Weapon Training@5 / Weapon Guard@9、
+  Armor Training@3 / Armor Mastery@19、Arcane School@1 / Arcane Bond@1；
+- `list-variants` 文本与 JSON 都输出等级（`Weapon Training@5` /
+  `grant_entries[].level`）；
+- gate 新增一层：断言已知的 PF 等级值，等级回归到"一律 1 级"会直接 FAIL
+  （已用变异测试验证）；
+- 新增 4 个等级门控回归测试
+  （`crates/pcgen-engine/tests/variant_grant_levels.rs`）；
+- 文档：`docs/PF35E_EXTENSION.md` 的等级有损项已移除（改为"已支持"），
+  另将"archetype 的等级化**替换**"单独列明为仍存在的有损项。
+
 ### 修复：`SUBCLASS:` 行被当成职业头，导致特性行整批丢失
 
 - **修复** `build_typed_definitions` 的 `current_class` 游标：`SUBCLASS:` /

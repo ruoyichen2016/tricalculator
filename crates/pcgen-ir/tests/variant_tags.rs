@@ -135,3 +135,56 @@ fn variant_tags_on_non_ability_records_stay_legacy() {
         Some(&1)
     );
 }
+
+#[test]
+fn grant_entries_keep_prerclass_guards_and_still_split_plain_lists() {
+    // `|` is overloaded: it separates a feature from its guard *and* separates
+    // multiple grants.  Both forms must survive import.
+    let r = record(
+        "ABILITY",
+        "Weapon Master",
+        &[
+            ("TYPE", "Archetype"),
+            ("APPLIESTO", "Fighter"),
+            ("GRANTS", "Weapon Training|PRECLASS:1,Fighter=5"),
+            ("GRANTS", "Weapon Guard|PRECLASS:1,Fighter=9"),
+            // plain pipe-separated list, no guards
+            ("GRANTS", "Alpha|Beta"),
+        ],
+    );
+    let (pack, _) = lower(r);
+    let variant = pack.variants.get("Weapon Master").expect("variant");
+
+    assert!(
+        variant
+            .grants
+            .iter()
+            .any(|g| g == "Weapon Training|PRECLASS:1,Fighter=5"),
+        "guard was shredded: {:?}",
+        variant.grants
+    );
+    assert!(
+        variant.grants.iter().any(|g| g == "Alpha") && variant.grants.iter().any(|g| g == "Beta"),
+        "plain pipe-separated grants lost: {:?}",
+        variant.grants
+    );
+
+    // A bare name (no guard) is available from level 1.
+    let entries = variant.grant_entries();
+    let alpha = entries.iter().find(|g| g.name == "Alpha").expect("Alpha");
+    assert_eq!(alpha.level, None);
+    assert!(alpha.applies_at(1));
+
+    let training = entries
+        .iter()
+        .find(|g| g.name == "Weapon Training")
+        .expect("Weapon Training");
+    assert_eq!(training.level, Some(5));
+    assert_eq!(training.class_id.as_deref(), Some("Fighter"));
+    assert!(
+        !training.applies_at(4),
+        "granted at 5th, must not apply at 4th"
+    );
+    assert!(training.applies_at(5));
+    assert!(training.applies_at(9), "must still apply above its level");
+}

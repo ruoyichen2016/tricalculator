@@ -1888,8 +1888,11 @@ impl pcgen_core::ClassProgressSource for Engine {
     fn features_for_class(&self, lane: &AdvancementLane, class_id: &str) -> Option<Vec<String>> {
         let base = self.features_up_to_level(class_id, lane.class_level)?;
         let variants = self.variants_for(lane, class_id);
+        // Level-aware: a variant's `GRANTS` may name the level it is gained at
+        // (`Weapon Training|PRECLASS:1,Fighter=5`), which must not surface at
+        // 1st level.
         Some(variants.iter().fold(base, |features, variant| {
-            variant.apply_to_features(features)
+            variant.apply_to_features_at_level(features, lane.class_level)
         }))
     }
 
