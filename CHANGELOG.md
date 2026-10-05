@@ -1,5 +1,30 @@
 ## Unreleased
 
+### 修复：消除"同一判定写两份"的隐患（`SUBSTITUTIONCLASS:` 同类 bug）
+
+上一轮发现 Wizard 特性全失效的根因是**职业头判定在两处各写一份、只修了一份**。
+本轮针对这一类隐患做了排查与收敛：
+
+- **新增 `is_class_header_row`，两处共用**：`rulepack.rs` 与 `typed.rs` 各自的
+  职业头判定合并为一个函数，杜绝再次漂移。两遍扫描在 `.MOD` 上的策略差异
+  **是有意的**（`rulepack` 不把 `.MOD` 当职业头；typed 保留无 base 的游离 `.MOD`
+  以免静默丢源），因此该差异保留在调用方，并写进注释；
+- **修复同类的 `SUBSTITUTIONCLASS:` bug（潜在，6+ 个第三方文件受影响）**：
+  `rulepack.rs` 同样没有排除 `SUBSTITUTIONCLASS:` / `SUBSTITUTIONLEVEL:` 行，
+  这些行会把 `current_class` 改成 `SUBSTITUTIONCLASS:...`，其后的等级行被命名成
+  `SUBSTITUTIONCLASS:...#1`，于是该职业等级行永远匹配不上。RSRD 不含此类行
+  （所以验收集看不出来），但 3.5e 第三方资料有 6 个文件使用，Pathfinder 有 1 个。
+  实测修复前键为 `SUBSTITUTIONCLASS:Lesser Elemental Theurge Option#1`；
+- **合并重复的 ACF 判定**：`is_acf_record` 与 `is_variant_record` 尾部是同一段
+  逻辑，现由前者作为唯一定义，后者调用它；
+- 新增回归测试 `substitution_rows_do_not_move_the_class_cursor`
+  （已验证：去掉修复即失败，报错信息正是上面那个键）。
+
+> 排查结论：`current_*` 游标仅 `rulepack.rs` / `typed.rs` 两处（均已修）；
+> 无同名重复谓词；其余 `"ACF"` 字面量（如 `applies_to` 的池名判定）问的是
+> 另一个问题，非重复实现。
+
+
 ### 修复：Wizard 的全部职业特性从未激活（`SUBCLASSLEVEL:` 行被当作职业头）
 
 `lower_records` 里有**两份**职业头判定逻辑，此前只修了 `typed.rs` 那份。另一份

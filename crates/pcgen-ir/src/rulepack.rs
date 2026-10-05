@@ -115,11 +115,9 @@ pub fn lower_records(
         // `<specialty>#<level>` instead of `<class>#<level>` and its class
         // features never activated for the class.  The RSRD Wizard, whose eight
         // schools precede its level rows, lost every class feature that way.
-        let is_class_header = category == "CLASS"
-            && record.name.trim().parse::<u32>().is_err()
+        let is_class_header = crate::typed::is_class_header_row(record)
             && !record.name.contains(".MOD")
-            && !record.name.contains(".COPY=")
-            && !crate::typed::is_class_specialty_row(&record.name);
+            && !record.name.contains(".COPY=");
         if is_class_header {
             current_class = Some(record.key.clone());
         }

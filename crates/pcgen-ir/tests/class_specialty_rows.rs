@@ -232,3 +232,42 @@ fn level_row_entities_are_keyed_by_their_class() {
         "the level-1 familiar grant is not on wizard#1: {granted:?}"
     );
 }
+
+/// `SUBSTITUTIONCLASS:` rows are the same hazard as `SUBCLASS:` rows: they
+/// refine the class in scope and must not become the cursor.
+///
+/// The RSRD carries none, so this went unnoticed there, but third-party 3.5e
+/// books use them (Secrets of Theurgy, the Pathfinder campaign setting), and a
+/// level row keyed after the substitution class never matches its own class.
+#[test]
+fn substitution_rows_do_not_move_the_class_cursor() {
+    let records = vec![
+        record("CLASS:Theurge", &[("HD", "4"), ("MAXLEVEL", "10")]),
+        record(
+            "SUBSTITUTIONCLASS:Lesser Elemental Theurge Option",
+            &[("COST", "1")],
+        ),
+        record(
+            "1",
+            &[("ABILITY", "Special Ability|AUTOMATIC|Elemental Turning")],
+        ),
+    ];
+    let pack = lower(&records);
+
+    let level_entities: Vec<&str> = pack
+        .entities
+        .iter()
+        .filter(|entity| format!("{:?}", entity.category).contains("ClassLevel"))
+        .map(|entity| entity.id.key.as_str())
+        .collect();
+    assert!(
+        level_entities.iter().any(|key| key.ends_with("Theurge#1")),
+        "level row was keyed after the substitution class; got {level_entities:?}"
+    );
+    assert!(
+        !level_entities
+            .iter()
+            .any(|key| key.to_lowercase().contains("substitutionclass")),
+        "substitution class became the cursor; got {level_entities:?}"
+    );
+}

@@ -71,7 +71,7 @@ pub fn build_typed_definitions(records: &[RawRecord]) -> TypedDefinitions {
                             parse_class_level_row(class, record);
                         }
                     }
-                } else if !record.name.contains(".COPY=") {
+                } else if is_class_header_row(record) && !record.name.contains(".COPY=") {
                     // A `.MOD` with a base is merged by the patch pass.  A
                     // remaining `.MOD` has no base; keep it as a typed
                     // definition so the source is not silently lost.
@@ -349,6 +349,32 @@ fn parse_race(record: &RawRecord) -> RaceDefinition {
 /// schools precede the Wizard level progression).  They carry no class header
 /// of their own, so treating them as headers corrupts `current_class` and
 /// silently detaches every following level row.
+/// True when a `CLASS` record is a class *header* rather than a level row or a
+/// refinement of the class already in scope.
+///
+/// Both lowering passes have to decide this, and each previously carried its
+/// own copy of the test.  That is precisely how the RSRD Wizard lost every
+/// class feature: one copy learned to skip `SUBCLASS:` / `SUBCLASSLEVEL:` rows
+/// and the other did not, so the cursor moved onto the specialty and the level
+/// rows were keyed after it.  Keeping the decision in one place is what stops
+/// the two from drifting apart again.
+///
+/// Callers layer their own `.MOD` / `.COPY=` policy on top, because the two
+/// passes differ there deliberately: `rulepack` ignores such rows as headers,
+/// while the typed pass keeps a stray `.MOD` (one with no base to merge into)
+/// so its source is not silently dropped.
+pub(crate) fn is_class_header_row(record: &RawRecord) -> bool {
+    if !record.category.eq_ignore_ascii_case("CLASS") {
+        return false;
+    }
+    let name = record.name.trim();
+    !name.is_empty()
+        && name.parse::<u32>().is_err()
+        && !name.starts_with("SUBSTITUTIONCLASS:")
+        && !name.starts_with("SUBSTITUTIONLEVEL:")
+        && !is_class_specialty_row(name)
+}
+
 pub(crate) fn is_class_specialty_row(name: &str) -> bool {
     let name = name.trim();
     let upper = name.to_ascii_uppercase();
@@ -1110,7 +1136,7 @@ pub(crate) fn is_variant_record(record: &RawRecord) -> bool {
         return true;
     }
     // 3.5e ACF: the pool is declared in `CATEGORY:` rather than `TYPE:`.
-    tag(record, "CATEGORY").is_some_and(|value| value.trim().eq_ignore_ascii_case("ACF"))
+    is_acf_record(record)
 }
 
 fn parse_variant(record: &RawRecord) -> Option<VariantDefinition> {
@@ -1152,6 +1178,9 @@ fn parse_variant(record: &RawRecord) -> Option<VariantDefinition> {
 }
 
 /// True when the record's pool is the 3.5e alternate-class-feature pool.
+///
+/// This is the one definition of "is an ACF"; [`is_variant_record`] builds on
+/// it so the two can never disagree about what the ACF pool is.
 fn is_acf_record(record: &RawRecord) -> bool {
     tag(record, "CATEGORY").is_some_and(|value| value.trim().eq_ignore_ascii_case("ACF"))
 }
