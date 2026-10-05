@@ -1240,6 +1240,31 @@ impl Engine {
         })
     }
 
+    /// True when `class_id` grants divine domain spell slots.
+    ///
+    /// SRD, Cleric: a cleric "gains one domain spell slot for each spell level
+    /// she can cast", which is the `+1` in the class table's Spells per Day
+    /// column.  The base `CAST:` progression does not include it, so it is
+    /// added on top.  Druids and similar divine casters have no domain slots.
+    fn has_domain_slots(&self, draft: &CharacterDraft, class_id: &str) -> bool {
+        let has_domains = collect_divine_tracks(draft).iter().any(|track| {
+            track.class_id.eq_ignore_ascii_case(class_id) && !track.domains.is_empty()
+        });
+        if has_domains {
+            return true;
+        }
+        // Domains can also come from the draft directly (deity_domains), which
+        // is how the Web wizard writes them.
+        !draft.deity_domains.is_empty()
+            && self
+                .class(class_id)
+                .is_some_and(|class| class.spellcasting_ability.is_some())
+            && draft
+                .class_levels
+                .iter()
+                .any(|entry| entry.class_id.eq_ignore_ascii_case(class_id))
+    }
+
     fn spellcasting(
         &self,
         draft: &CharacterDraft,
@@ -1335,6 +1360,25 @@ impl Engine {
             if let Some(slots) = class.spell_slots.get(&effective_level) {
                 for (level, count) in slots.iter().enumerate() {
                     spell_slots.insert(format!("{}|{}", class.id, level), *count);
+                }
+            }
+            // SRD, Cleric: "A cleric [...] gains one domain spell slot for each
+            // spell level she can cast" — the `+1` in the Cleric table's
+            // "Spells per Day" column.  It is a slot the cleric must fill from
+            // one of her domains, and it is absent from the base `CAST:` table,
+            // so it has to be added here.
+            //
+            // https://www.d20srd.org/srd/classes/cleric.htm
+            if self.has_domain_slots(draft, &class.id) {
+                if let Some(slots) = class.spell_slots.get(&effective_level) {
+                    for (level, count) in slots.iter().enumerate() {
+                        if level == 0 || *count == 0 {
+                            continue;
+                        }
+                        let key = format!("{}|{}", class.id, level);
+                        let entry = spell_slots.entry(key).or_insert(*count);
+                        *entry = (*entry).max(*count + 1);
+                    }
                 }
             }
             if let Some(known) = class.spells_known.get(&effective_level) {

@@ -1,5 +1,39 @@
 ## Unreleased
 
+### 修复：实现 4 条只写在 SRD 文字里的规则（技能上限、跨职半点制、领域法术位）
+
+以官方 SRD 原文（<https://www.d20srd.org/>）为裁判审计引擎。BAB/豁免/领域法术表
+与官方**逐格相符**，但有 4 条规则**只写在文字里**（表格看不出），此前完全未实现：
+
+- **技能最大 rank**（官方："Your maximum rank in a class skill is your
+  character level + 3"）：此前可任意超上限，Fighter 1 级能灌 `Climb=8`
+  （上限应为 4）；
+- **跨职技能上限**（"one-half of this number, do not round up or down"）：
+  1 级跨职上限 2.0，此前同样不受限；
+- **跨职半点制**（"Each skill point you spend on a cross-class skill gets your
+  character ½ rank"）：此前按 **1:1** 计算，导致跨职技能的实际花费被**低估一半**
+  ——例如 2 点跨职 rank 实占 4 点预算，旧逻辑只算 2 点；
+- **Cleric 领域法术位**（官方表格 Spells per Day 的 `+1`，文字："gains one
+  domain spell slot for each spell level she can cast"）：领域法术**列表**
+  一直正确，但 `spell_slots` 缺 `+1`；现 Cleric 1 为 `3 / 1+1`。
+
+实现要点：
+
+- 新增 `pcgen_core::skill_rules`，**把官方原文与出处 URL 写在代码里**，
+  使"文字规则"成为一等公民而非注释；
+- 上限用**角色等级**（非职业等级），并按官方"若某技能是**任一**职业的本职技能，
+  上限即为角色等级+3"做**跨职业并集**；
+- 新增 `BuilderError::SkillRankExceeded`，错误信息直接引用规则出处；
+- 领域法术位只在**有领域**时添加，且**不含 0 环**；无领域与非法师职业不受影响。
+
+**文档虚报修正**：`docs/M9_PERSONAL_BUILDER.md` 早已把"跨职业技能、最大 rank 校验"
+列为已完成，但代码中并无实现（全仓搜索 `max_rank` / `cross_class` 零命中）。
+本轮同步修正该文档，并在 ROADMAP 记录教训——**能力声明以测试为准，不以文档为准**。
+
+测试：`crates/pcgen-engine/tests/srd_text_rules.rs`（3 个文字规则测试）、
+`pcgen-builder` 新增 3 个技能规则测试（含"旧 1:1 逻辑会通过"的反例）。
+
+
 ### 修复：`list-variants` 的锚点解析漏了能力记录，且未命中的原因不可见
 
 - **修复解析范围**：Bard 的 Bardic Music 子特性

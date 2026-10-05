@@ -124,6 +124,11 @@ pub enum BuilderError {
     },
     #[error("skill points exceeded: spent {spent:.2} > available {budget}")]
     SkillPointsExceeded { spent: f64, budget: u32 },
+    #[error(
+        "skill {skill} has {ranks:.1} ranks, over the maximum of {max:.1} \
+         (SRD: max rank is character level + 3, or half that for a cross-class skill)"
+    )]
+    SkillRankExceeded { skill: String, ranks: f64, max: f64 },
     #[error("equipment budget exceeded: spent {spent:.2} > budget {budget:.2}")]
     EquipmentBudgetExceeded { spent: f64, budget: f64 },
 }

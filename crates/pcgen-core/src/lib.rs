@@ -17,6 +17,7 @@ pub mod progression;
 pub mod psionics;
 pub mod rational;
 pub mod rules;
+pub mod skill_rules;
 pub mod tagclass;
 pub mod variants;
 pub mod vocab;

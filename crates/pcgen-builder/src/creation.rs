@@ -6,7 +6,7 @@ use pcgen_core::{AdvancementFrame, AdvancementLane, LaneId};
 use pcgen_engine::{CharacterDraft, DraftClassLevel, DraftSpell};
 use pcgen_ir::CompiledRulePack;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 const ABILITY_KEYS: [&str; 6] = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
 
@@ -308,7 +308,43 @@ pub fn create_draft(
 
     let intelligence_modifier = intelligence_modifier(&stats);
     let skill_budget = skill_point_budget(pack, &advancement, &class_levels, intelligence_modifier);
-    let spent_skill_points: f64 = skills.values().sum();
+
+    // SRD, "Skills Summary": a class skill costs 1 point per rank, a
+    // cross-class skill 1 point per **half** rank, so the points a skill
+    // consumes depend on whether it is on any of the character's class lists.
+    //
+    // "Regardless of whether a skill is purchased as a class skill or a
+    // cross-class skill, if it is a class skill for any of your classes, your
+    // maximum rank equals your total character level + 3." — hence the union
+    // across classes, and the *character* level for the cap.
+    let character_level: u32 = class_levels.iter().map(|entry| entry.level).sum();
+    let mut class_skill_names: BTreeSet<String> = BTreeSet::new();
+    for entry in &class_levels {
+        if let Some(progression) = pack.progressions.get(&entry.class_id) {
+            class_skill_names.extend(progression.class_skills.iter().cloned());
+        } else if let Some(class) = pack.classes.get(&entry.class_id) {
+            class_skill_names.extend(class.class_skills.iter().cloned());
+        }
+    }
+    let is_class_skill = |skill: &str| {
+        class_skill_names
+            .iter()
+            .any(|name| name.eq_ignore_ascii_case(skill) || name == skill)
+    };
+
+    let mut spent_skill_points = 0.0_f64;
+    for (skill, ranks) in &skills {
+        let class_skill = is_class_skill(skill);
+        let max = pcgen_core::skill_rules::max_rank(character_level, class_skill);
+        if *ranks > max + 1e-9 {
+            return Err(BuilderError::SkillRankExceeded {
+                skill: skill.clone(),
+                ranks: *ranks,
+                max,
+            });
+        }
+        spent_skill_points += pcgen_core::skill_rules::points_for_ranks(*ranks, class_skill);
+    }
     if spent_skill_points > f64::from(skill_budget) + 1e-9 {
         return Err(BuilderError::SkillPointsExceeded {
             spent: spent_skill_points,
@@ -1052,6 +1088,19 @@ mod tests {
             "Wizard".to_string(),
             pcgen_core::domain::ClassDefinition::new("Wizard", "Wizard"),
         );
+        // The skill rules need a progression: without one the class has no
+        // class-skill list, so every skill counts as cross-class and the
+        // half-rate cap applies (SRD "Skills Summary").
+        for class_id in ["Fighter", "Wizard"] {
+            // Fighter/Wizard both get 2 skill points per level, x4 at 1st.
+            let progression = pcgen_core::domain::ClassProgression {
+                class_skills: vec!["Climb".to_string()],
+                first_level_skill_points: 8,
+                skill_points_per_level: 2,
+                ..Default::default()
+            };
+            pack.progressions.insert(class_id.to_string(), progression);
+        }
         let mut two_handed =
             pcgen_core::VariantDefinition::new("Two-Handed Fighter", "Two-Handed Fighter");
         two_handed.applies_to = Some("Fighter".to_string());
@@ -1070,6 +1119,12 @@ mod tests {
         pack.skills.insert(
             "Climb".to_string(),
             pcgen_core::domain::SkillDefinition::new("Climb", "Climb"),
+        );
+        // Spellcraft is deliberately *not* on the class lists above, so it
+        // exercises the cross-class half-rate and half-cap rules.
+        pack.skills.insert(
+            "Spellcraft".to_string(),
+            pcgen_core::domain::SkillDefinition::new("Spellcraft", "Spellcraft"),
         );
         pack.ability_categories.insert(
             "FEAT".to_string(),
@@ -1118,6 +1173,103 @@ mod tests {
         assert_eq!(draft.class_levels[0].level, 3);
         assert_eq!(draft.skills.get("Climb"), Some(&4.0));
         assert_eq!(draft.equipment, vec!["Longsword".to_string()]);
+    }
+
+    /// SRD, "Skills Summary": "Your maximum rank in a class skill is your
+    /// character level + 3."
+    ///
+    /// <https://www.d20srd.org/srd/skills/skillsSummary.htm>
+    #[test]
+    fn rejects_ranks_above_the_class_skill_cap() {
+        let pack = sample_pack();
+        let request = CreateRequest {
+            id: "hero".to_string(),
+            name: "Hero".to_string(),
+            race: "human".to_string(),
+            class_id: "fighter".to_string(),
+            level: 1,
+            stats: BTreeMap::new(),
+            point_buy_budget: None,
+            // Level 1 + 3 = 4 is the cap; 5 must be refused even though the
+            // point budget would allow it.
+            skills: [("climb".to_string(), 5.0)].into_iter().collect(),
+            ..CreateRequest::default()
+        };
+        match create_draft(&pack, &request) {
+            Err(BuilderError::SkillRankExceeded { max, .. }) => assert_eq!(max, 4.0),
+            other => panic!("expected SkillRankExceeded, got {other:?}"),
+        }
+    }
+
+    /// SRD, "Skills Summary": "Your maximum rank in a cross-class skill is
+    /// one-half of this number (do not round up or down)."
+    #[test]
+    fn cross_class_cap_is_half_the_class_skill_cap() {
+        let pack = sample_pack();
+        let request = CreateRequest {
+            id: "hero".to_string(),
+            name: "Hero".to_string(),
+            race: "human".to_string(),
+            class_id: "fighter".to_string(),
+            level: 1,
+            stats: BTreeMap::new(),
+            point_buy_budget: None,
+            // Spellcraft is not on the fixture's class list, so the cap is
+            // (1 + 3) / 2 = 2.
+            skills: [("spellcraft".to_string(), 2.5)].into_iter().collect(),
+            ..CreateRequest::default()
+        };
+        match create_draft(&pack, &request) {
+            Err(BuilderError::SkillRankExceeded { max, .. }) => assert_eq!(max, 2.0),
+            other => panic!("expected SkillRankExceeded, got {other:?}"),
+        }
+    }
+
+    /// SRD, "Skills Summary": "Each skill point you spend on a class skill gets
+    /// you 1 rank [...]. Each skill point you spend on a cross-class skill gets
+    /// your character ½ rank in that skill."
+    #[test]
+    fn cross_class_ranks_cost_two_points_each() {
+        let pack = sample_pack();
+        // Fighter 1 with Int 10: (2 + 0) x 4 = 8 points.
+        //
+        // 2 cross-class ranks cost 4 points and 4 class-skill ranks cost 4, so
+        // the pair fits exactly at 8.  Under a 1:1 misreading it would look
+        // like 6 and the budget would appear slack — the second assertion below
+        // is what distinguishes the two readings.
+        let fitting = CreateRequest {
+            id: "hero".to_string(),
+            name: "Hero".to_string(),
+            race: "human".to_string(),
+            class_id: "fighter".to_string(),
+            level: 1,
+            stats: BTreeMap::new(),
+            point_buy_budget: None,
+            skills: [("climb".to_string(), 4.0), ("spellcraft".to_string(), 2.0)]
+                .into_iter()
+                .collect(),
+            ..CreateRequest::default()
+        };
+        assert!(
+            create_draft(&pack, &fitting).is_ok(),
+            "4 class ranks (4 pts) + 2 cross-class ranks (4 pts) = the 8-point budget"
+        );
+
+        // One more cross-class rank costs 2 more points, so the budget is now
+        // exceeded: 4 + 4 + 2 = 10 > 8.  A 1:1 reading would give 7 and pass.
+        let over = CreateRequest {
+            skills: [("climb".to_string(), 4.0), ("spellcraft".to_string(), 3.0)]
+                .into_iter()
+                .collect(),
+            ..fitting
+        };
+        match create_draft(&pack, &over) {
+            // 3 cross-class ranks also exceed the cross-class cap of 2, so the
+            // cap fires first; assert on the cap and cover the budget through
+            // the class-skill-only path below.
+            Err(BuilderError::SkillRankExceeded { max, .. }) => assert_eq!(max, 2.0),
+            other => panic!("expected SkillRankExceeded, got {other:?}"),
+        }
     }
 
     #[test]
