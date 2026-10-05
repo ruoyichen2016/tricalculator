@@ -1,6 +1,35 @@
 ## Unreleased
 
-### 许可：补齐 `LICENSE` / `NOTICE` 与数据包许可文件
+### 特性：识别 3.5e 原生 ACF（`CATEGORY:ACF`）
+
+- **PF 的 archetype 与 3.5e 的 ACF 是同一机制**。此前只识别
+  `TYPE:Archetype*` / `TYPE:Substitution*`，3.5e 原生 ACF 记录被当作普通
+  能力处理，**完全不产生变体**——整套 3.5e ACF 机制（`Unearthed Arcana`、
+  `Complete` 系列等）在引擎里不可见；
+- `is_variant_record` 增加 `CATEGORY:ACF` 识别；
+- 新增 `apply_acf_conventions`：ACF 用约定而非专用标签表达变体语义，
+  逐项解析——
+  - 所属职业取自 `PREVARGTEQ:<Class>LVL,<n>`（最可靠）→ `SORTKEY` →
+    `KEY:` 前缀。**顺序很重要**：`KEY:Totem Barbarian ~ Ape` 的前缀是组名，
+    而特性锚点按职业命名（`BarbarianUncannyDodge`），用组名会一条都匹配不上；
+  - `TYPE:ACF.<Class><Feature>` 的特性锚点转为 `REPLACES:TYPE=<tag>`，
+    与 RSRD 职业行的 `!PREABILITY:1,CATEGORY=ACF,TYPE.X` 守卫**同名对齐**；
+  - `ABILITY:...|PREVARGTEQ:<Class>LVL,<n>` 转为等级化 `GRANTS`；
+- **修复** `GrantedFeature::parse` 只接受 `Class=level`、遇到裸 `PRECLASS:1,5`
+  会静默丢弃等级的问题（此前生成的守卫格式与解析器不匹配，实测等级全为
+  `None`）；
+- 实测：`Unearthed Arcana` 叠加 RSRD 后产出 **28 个变体**，
+  `list-variants` 显示正确职业；`Fighter ~ Sneak Attack` 端到端验证会移除
+  `Fighter ~ Bonus Feats` 并追加 `Sneak Attack`；
+- 新增回归测试 `crates/pcgen-ir/tests/acf_variants.rs`（5 case）；
+- `docs/PF35E_EXTENSION.md` 新增第 5 节说明两者的对应关系，并把「有损之处」
+  拆为 **A 类（PF 与 3.5e 的规则差异）** 与 **B 类（引擎实现深度）**——
+  原先把「按等级切片的部分替换」写成 PF 专有差异是分类错误，3.5e 的 ACF
+  有同样需求；
+- `PRODUCT_SCOPE.md` / `ROADMAP.md` 记录该能力，并明确 UA 等资料
+  **可用但尚未纳入验收 cohort**（无差分基线）。
+
+### 许可：补齐 `LICENSE` / `NOTICE` 与数据包许可文件 `LICENSE` / `NOTICE` 与数据包许可文件
 
 - 新增 `LICENSE`（LGPL-2.1 全文，与 `Cargo.toml` 的 `license = "LGPL-2.1"`
   一致，也与上游 PCGen 代码许可一致）；

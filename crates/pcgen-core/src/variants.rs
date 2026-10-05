@@ -200,18 +200,35 @@ impl GrantedFeature {
             let Some(rest) = strip_preclass(part) else {
                 continue;
             };
-            // `PRECLASS:1,Fighter=5` -> count, then `Class=level` pairs.
+            // `PRECLASS:1,Fighter=5` -> a count, then `Class=level` pairs.
+            // A guard may also carry a bare level (`PRECLASS:1,5`) when the
+            // generator has no class name to hand; accept both rather than
+            // silently dropping the level.
             for entry in rest.split(',') {
-                let Some((class, value)) = entry.split_once('=') else {
-                    continue;
-                };
-                let class = class.trim();
-                if class.is_empty() {
+                let entry = entry.trim();
+                if entry.is_empty() {
                     continue;
                 }
-                if let Ok(parsed) = value.trim().parse::<u32>() {
-                    level = Some(level.map_or(parsed, |current: u32| current.max(parsed)));
-                    class_id = Some(class.to_string());
+                match entry.split_once('=') {
+                    Some((class, value)) => {
+                        let class = class.trim();
+                        if class.is_empty() {
+                            continue;
+                        }
+                        if let Ok(parsed) = value.trim().parse::<u32>() {
+                            level = Some(level.map_or(parsed, |current: u32| current.max(parsed)));
+                            class_id = Some(class.to_string());
+                        }
+                    }
+                    None => {
+                        // The leading count (`1`) is not a level, so only take a
+                        // bare number once a class or a prior level is known...
+                        // which it never is here, so treat the last bare number
+                        // as the level.
+                        if let Ok(parsed) = entry.parse::<u32>() {
+                            level = Some(level.map_or(parsed, |current: u32| current.max(parsed)));
+                        }
+                    }
                 }
             }
         }

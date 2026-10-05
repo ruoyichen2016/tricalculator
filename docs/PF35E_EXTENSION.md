@@ -164,25 +164,75 @@ Gate 分四层（详见脚本 docstring）：
 
 ## 4. 有损之处（明确声明）
 
-以下 PF 规则**无法**用 3.5e 语法无损表达，本扩展不做或只做近似：
+本节区分两类"有损"，**不要混为一谈**：
+
+- **A 类：PF 与 3.5e 的规则差异**——3.5e 语法本身表达不了，任何实现都无解；
+- **B 类：本引擎当前的实现深度**——3.5e 能表达，是我们还没做。
+
+### A 类：PF 与 3.5e 的规则差异
 
 | PF 特性 | 处理 | 影响 |
 |---|---|---|
-| CMB / CMD | 不表达 | 战斗数值缺这两项 |
+| CMB / CMD | 3.5e 无对应规则 | 战斗数值缺这两项 |
 | 1:1 技能点（跨职 1 点） | 用 3.5e `SKILLMULTIPLIER:4` 语义 → **不一致** | 技能点与 PF 原版不同 |
-| favored class bonus | 不表达 | 每级可选奖励缺失 |
-| archetype 的等级化**替换** | 替换是整条特性行级别，不带等级 | 不能表达"只替换该特性的某几个等级"；`REPLACES` 一旦命中就全程移除（这是 PF archetype 的常见语义，但不等价于所有情况） |
-| bloodline / mystery / school 专有能力 | 描述性 ability，不实现数值 | 仅文本 |
-| PF 专有职业（Alchemist 等） | 不重写 | 缺失（3.5e 无对应职业） |
-| PF `.pcg` 存档 | 不兼容 | 需按 3.5e `.pcg` 另存 |
+| favored class bonus | 3.5e 无对应规则 | 每级可选奖励缺失 |
+| bloodline / mystery / school 的数值能力 | 描述性 ability，不实现数值 | 仅文本 |
+| PF 专有职业（Alchemist 等） | 3.5e 无对应职业 | 缺失 |
+| PF `.pcg` 存档 | 格式与 3.5e 不同 | 需按 3.5e `.pcg` 另存 |
 
-> **等级化 `GRANTS` 已支持**（不再是有损项）：`GRANTS:<feature>|PRECLASS:1,<Class>=<level>`
-> 会在该职业等级达到后才把特性加入列表，见 §3.2。
+### B 类：引擎当前实现深度
+
+| 能力 | 状态 | 说明 |
+|---|---|---|
+| 按锚点替换整条特性行 | ✅ 已支持 | `REPLACES:TYPE=<ACF 标签>` / 名字回退 |
+| 等级化追加特性 | ✅ 已支持 | `GRANTS:<feature>\|PRECLASS:1,<Class>=<n>` |
+| **按等级切片的部分替换** | ⚠️ 未支持 | `REPLACES` 一旦命中即**整条**移除，不能只替换该特性的某几个等级（如 `Armor Training` 只在 3/7/11/15 级递增）。这**不是 PF 特有问题**——3.5e 的 ACF 同样需要它 |
+| PF 专长 / 法术重写 | ⚠️ 未开始 | 工作量大，建议按 book 分批 |
+
+> B 类第 3 项此前被错误地写成"PF archetype 的等级化替换"，暗示这是 PF 独有
+> 的差异。实际上 3.5e 的 ACF 机制有同样需求（见 §5），所以它是**引擎实现
+> 边界**，不是 PF 扩展的固有限制。
 
 **因此：本扩展产出的 PF 角色是"3.5e 化的近似卡"，不是 PF 官方的等价结果。**
 任何以"PF 正确性"为标准的验收都不适用。
 
-## 5. 与其它路线的关系
+**因此：本扩展产出的 PF 角色是"3.5e 化的近似卡"，不是 PF 官方的等价结果。**
+任何以"PF 正确性"为标准的验收都不适用。
+
+## 5. archetype 与 3.5e ACF 是同一个机制
+
+**PF 的 archetype 并不是外来概念，它对应 3.5e 的 ACF（Alternate Class
+Feature，替代职业特性）**。两者都表达"用新特性换掉职业原有特性"，只是
+PCGen 里的写法不同：
+
+| 概念 | PF 数据集 | 3.5e（如 Unearthed Arcana） |
+|---|---|---|
+| 变体记录 | `CATEGORY:Archetype` | `CATEGORY:ACF` |
+| 标记 | `TYPE:Archetype.<Class>Archetype` | `TYPE:ACF.<Class><Feature>` |
+| 被替换的特性 | `REPLACES:` 标签 | **类型标签本身**（`TYPE:ACF.ClericTurnUndead`） |
+| 追加特性 | `ABILITY:` + `PRECLASS` | `ABILITY:` + `PREVARGTEQ:<Class>LVL,<n>` |
+
+关键点：**两侧的锚点是同一组名字**。RSRD 的职业行用
+
+```text
+1	ABILITY:Barbarian Class Feature|AUTOMATIC|Barbarian ~ Fast Movement|!PREABILITY:1,CATEGORY=ACF,TYPE.BarbarianFastMovement
+```
+
+守卫"此特性可被替代"，而 UA 的 ACF 记录用
+`TYPE:...BarbarianFastMovement` 声明"我要替代它"。所以
+`REPLACES:TYPE=BarbarianFastMovement` 这种寻址方式**不是近似，而是
+3.5e ACF 机制的原生用法**。
+
+引擎据此识别两种方言（`pcgen_ir::is_variant_record`）：`TYPE:Archetype*` /
+`TYPE:Substitution*`，或 `CATEGORY:ACF`。ACF 记录的 `applies_to` 取自
+`PREVARGTEQ:<Class>LVL`（最可靠）、`SORTKEY`，最后才回退到 `KEY:` 前缀——
+因为 `KEY:Totem Barbarian ~ Ape` 的前缀是**组名**而非职业名，而特性锚点是
+按职业命名的（`BarbarianUncannyDodge`）。
+
+> 因此 PF 扩展落在 `GAMEMODE:35e` 上是**概念同源**而非勉强套用：
+> 3e/3.5e 生态本来就有这套机制（`Unearthed Arcana`、`Complete` 系列等）。
+
+## 6. 与其它路线的关系
 
 - **不替代** `P7` 的 `GameSystemProfile`：若将来要做**结果级** PF（CMB/CMD、
   1:1 技能点、favored class），正确路径是独立 profile（`P5` deferred 的原结论），
@@ -190,14 +240,14 @@ Gate 分四层（详见脚本 docstring）：
 - 本扩展是一个**务实的中间态**：让 PF 的 archetype 差异能进现有引擎、
   能编辑部组建卡，并诚实地把差距写在文档里。
 
-## 6. 后续可选工作（按需）
+## 7. 后续可选工作（按需）
 
 1. 继续补充 PF 核心 archetype（Rogue / Barbarian / Bard / Druid / Sorcerer …）；
 2. PF 专长/法术重写（工作量大，建议按 book 分批）；
 3. 给扩展补独立 coverage 报告（复用 `import-report`）；
 4. 若产品确认要结果级 PF，再回到 `P7` profile 路线。
 
-## 7. 许可
+## 8. 许可
 
 Pathfinder 内容属 Paizo，依 OGL / Community Use Policy 使用；本扩展是
 **独立重写**，不复制官方 PCGen Pathfinder 数据集文件。分发时需保留

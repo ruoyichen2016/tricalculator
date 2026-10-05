@@ -1088,16 +1088,29 @@ fn parse_ability_category(record: &RawRecord) -> pcgen_core::AbilityCategoryDefi
     }
 }
 
-/// True when an `ABILITY` record declares itself a variant through its `TYPE`.
+/// True when an `ABILITY` record declares a class variant.
 ///
-/// Shared with the lowering coverage pass in `rulepack`: the tags this parser
-/// consumes (`APPLIESTO` / `REPLACES` / `GRANTS`) must not also be reported as
-/// un-lowered legacy tags.
+/// Two dialects express the same idea:
+///
+/// * Pathfinder names it *archetype* and marks the record with
+///   `TYPE:Archetype.<Class>Archetype`.
+/// * 3.5e names it *ACF* (alternate class feature) and marks the record with
+///   `CATEGORY:ACF`, carrying the displaced feature names as type tags
+///   (`TYPE:Totem Barbarian.SpecialQuality.BarbarianRage...`).  The RSRD class
+///   rows guard the replaceable feature with the matching
+///   `!PREABILITY:1,CATEGORY=ACF,TYPE.BarbarianRage`, so the type-tag anchors
+///   line up on both sides.
+///
+/// `TYPE:Substitution*` covers PCGen's substitution levels.
 pub(crate) fn is_variant_record(record: &RawRecord) -> bool {
-    type_tags(record).iter().any(|tag| {
+    if type_tags(record).iter().any(|tag| {
         let tag = tag.to_ascii_lowercase();
         tag.contains("archetype") || tag.contains("substitution")
-    })
+    }) {
+        return true;
+    }
+    // 3.5e ACF: the pool is declared in `CATEGORY:` rather than `TYPE:`.
+    tag(record, "CATEGORY").is_some_and(|value| value.trim().eq_ignore_ascii_case("ACF"))
 }
 
 fn parse_variant(record: &RawRecord) -> Option<VariantDefinition> {
@@ -1132,7 +1145,181 @@ fn parse_variant(record: &RawRecord) -> Option<VariantDefinition> {
     // Native PCGen archetypes usually express granted abilities through
     // ABILITY/AUTO tags rather than an explicit GRANTS tag.
     variant.grants.extend(ability_grants(record));
+    if is_acf_record(record) {
+        apply_acf_conventions(record, &mut variant);
+    }
     Some(variant)
+}
+
+/// True when the record's pool is the 3.5e alternate-class-feature pool.
+fn is_acf_record(record: &RawRecord) -> bool {
+    tag(record, "CATEGORY").is_some_and(|value| value.trim().eq_ignore_ascii_case("ACF"))
+}
+
+/// Fill in the fields a 3.5e ACF expresses through convention rather than
+/// dedicated tags.
+///
+/// An ACF record looks like:
+///
+/// ```text
+/// Ape
+/// KEY:Totem Barbarian ~ Ape
+/// CATEGORY:ACF
+/// TYPE:Totem Barbarian.SpecialQuality.BarbarianUncannyDodge.BarbarianTrapSense...
+/// ABILITY:Barbarian Class Feature|AUTOMATIC|Ape Totem ~ Climb (Half)|PREVARGTEQ:BarbarianLVL,1
+/// ```
+///
+/// * the first type tag names the ACF group (`Totem Barbarian`), whose first
+///   word is the class it applies to;
+/// * tags shaped `<Class><Feature>` are the displaced class features — the same
+///   anchors the RSRD class rows guard with `!PREABILITY:1,CATEGORY=ACF,TYPE.X`,
+///   so they are addressed as `TYPE=` targets;
+/// * grants carry their level in a `PREVARGTEQ:<Class>LVL,<n>` guard.
+fn apply_acf_conventions(record: &RawRecord, variant: &mut VariantDefinition) {
+    // `TYPE:` mixes three kinds of tag:
+    //   descriptors     - the pool itself (`ACF`, `Internal`) or quality words
+    //   feature anchors - `<Class><Feature>` namespaced by the owning class
+    //                     (`ClericTurnUndead`), which is exactly what the RSRD
+    //                     class row guards with
+    //                     `!PREABILITY:1,CATEGORY=ACF,TYPE.ClericTurnUndead`
+    //   group tags      - a named ACF family (`Totem Barbarian`)
+    let descriptors = [
+        "acf",
+        "internal",
+        "specialquality",
+        "specialattack",
+        "extraordinary",
+        "supernatural",
+        "spelllike",
+        "classfeature",
+        "classfeatures",
+    ];
+    let type_tags = type_tags(record);
+    // The owning class, most authoritative source first:
+    //   `PREVARGTEQ:BarbarianLVL,5` names the class outright (`Barbarian`);
+    //   `SORTKEY:Cleric` is PCGen's own sort hint;
+    //   `KEY:Cleric ~ Smite Evil` gives an owner, which for an ACF family is a
+    //   group (`Totem Barbarian`) rather than the class itself.
+    // The class matters: the displaced-feature anchors are namespaced by it
+    // (`BarbarianUncannyDodge`), so a group name would match nothing.
+    let class_hint = level_variable_class(record)
+        .or_else(|| tag(record, "SORTKEY").map(str::to_string))
+        .or_else(|| {
+            let owner = record.key.split_once('~').map(|(owner, _)| owner.trim())?;
+            // `Totem Barbarian` -> `Barbarian`: a trailing word that is itself a
+            // known class prefix of some anchor tag.
+            let last = owner.split_whitespace().last().unwrap_or(owner);
+            let has_anchor = type_tags.iter().any(|tag| {
+                let lower = tag.to_ascii_lowercase();
+                let probe = last.to_ascii_lowercase();
+                lower.starts_with(&probe) && lower.len() > probe.len() && !tag.contains(' ')
+            });
+            Some(if has_anchor {
+                last.to_string()
+            } else {
+                owner.to_string()
+            })
+        })
+        .or_else(|| {
+            type_tags
+                .iter()
+                .find(|tag| !descriptors.contains(&tag.to_ascii_lowercase().as_str()))
+                .and_then(|group| group.split_whitespace().next())
+                .map(str::to_string)
+        });
+
+    let owner = class_hint.unwrap_or_default();
+    if !owner.is_empty() {
+        let owner_lower = owner.to_ascii_lowercase();
+        for tag in &type_tags {
+            let lower = tag.to_ascii_lowercase();
+            if descriptors.contains(&lower.as_str()) || tag.contains(' ') {
+                continue;
+            }
+            if lower.starts_with(&owner_lower) && lower.len() > owner_lower.len() {
+                let target = format!("TYPE={tag}");
+                if !variant.replaces.iter().any(|existing| existing == &target) {
+                    variant.replaces.push(target);
+                }
+            }
+        }
+    }
+
+    // `APPLIESTO`/`CLASS` are absent on ACF records; `ACF` is a pool name, not
+    // a class.
+    let needs_class = variant.applies_to.as_deref().is_none_or(|value| {
+        value.eq_ignore_ascii_case("ACF") || value.eq_ignore_ascii_case("Internal")
+    });
+    if needs_class && !owner.is_empty() {
+        variant.applies_to = Some(owner.clone());
+    }
+
+    // ACF grants carry their level in the tag itself; replace the plain
+    // ability names collected earlier with the level-aware form.
+    let leveled = acf_leveled_grants(record, &owner);
+    if !leveled.is_empty() {
+        variant.grants = leveled;
+    }
+}
+
+/// The class named by a `PREVARGTEQ:<Class>LVL,<n>` guard, if any.
+///
+/// ACF records gate their grants on the owning class's level variable, which is
+/// the most reliable statement of which class the variant belongs to.
+fn level_variable_class(record: &RawRecord) -> Option<String> {
+    for granted in tags(record, "ABILITY").chain(tags(record, "AUTO")) {
+        for part in granted.split('|') {
+            let Some(rest) = part.trim().strip_prefix("PREVARGTEQ:") else {
+                continue;
+            };
+            let Some((variable, _)) = rest.split_once(',') else {
+                continue;
+            };
+            let variable = variable.trim();
+            let Some(class) = variable.strip_suffix("LVL") else {
+                continue;
+            };
+            if !class.is_empty() {
+                return Some(class.to_string());
+            }
+        }
+    }
+    None
+}
+
+/// Rebuild `ABILITY:` grants with the level taken from `PREVARGTEQ:<Class>LVL,<n>`.
+fn acf_leveled_grants(record: &RawRecord, class_id: &str) -> Vec<String> {
+    let mut grants = Vec::new();
+    for granted in tags(record, "ABILITY").chain(tags(record, "AUTO")) {
+        let parts: Vec<&str> = granted.split('|').map(str::trim).collect();
+        let Some(name) = parts.iter().rev().find(|part| {
+            !part.is_empty()
+                && !part.eq_ignore_ascii_case("AUTOMATIC")
+                && !part.eq_ignore_ascii_case("VIRTUAL")
+                && !part.eq_ignore_ascii_case("NORMAL")
+                && !part.starts_with("TYPE=")
+                && !crate::tags::is_predicate_tag(part)
+        }) else {
+            continue;
+        };
+        let level = parts.iter().find_map(|part| {
+            let rest = part.strip_prefix("PREVARGTEQ:")?;
+            let (variable, value) = rest.split_once(',')?;
+            if variable.trim().to_ascii_uppercase().ends_with("LVL") {
+                value.trim().parse::<u32>().ok()
+            } else {
+                None
+            }
+        });
+        grants.push(match level {
+            Some(level) if !class_id.is_empty() => {
+                format!("{name}|PRECLASS:1,{class_id}={level}")
+            }
+            Some(level) => format!("{name}|PRECLASS:1,{level}"),
+            None => (*name).to_string(),
+        });
+    }
+    grants
 }
 
 fn parse_equipment_modifier(record: &RawRecord) -> EquipmentModifierDefinition {

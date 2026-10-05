@@ -21,6 +21,12 @@
 - 迁移期保留 lowered / legacy / unsupported 统计。
 - 数据集覆盖：3.0 SRD 与 3.5e RSRD 均在范围内；DS-3E 作回归代理，
   DS-35E 作主验收（见 `docs/TESTING.md` 第 7 节）。
+- 职业变体：PF archetype 与 3.5e ACF 是**同一机制**的两种方言
+  （`CATEGORY:Archetype` / `CATEGORY:ACF`），引擎都识别，按 ACF 类型标签
+  寻址替换（见 `docs/PF35E_EXTENSION.md` 第 5 节）。
+  **Unearthed Arcana 等 3.5e 原生 ACF 资料因此可直接使用**
+  （实测 UA 产出 28 个变体），但这些资料**尚未纳入验收 cohort**：
+  可用 ≠ 已验收。
 - KIT / COMPANIONMOD 声明式定义导入与统计（in scope，计入 DS-35E 分母）；
   KIT 运行时随机展开（P4-KIT-2）deferred，见 `docs/P4_DECISIONS.md`。
 - 怪物记录（含 monster HD、natural attacks 等）计入范围与覆盖分母。

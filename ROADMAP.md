@@ -118,6 +118,31 @@
 > 详见 [`docs/PF35E_EXTENSION.md`](docs/PF35E_EXTENSION.md)；
 > 其结果级 profile 仍按 P4-DEC-3 deferred。
 
+### 3.5e 原生 ACF 支持（新增能力）
+
+- [x] **识别 `CATEGORY:ACF`**：PF 的 archetype 与 3.5e 的 ACF
+      （Alternate Class Feature）是同一机制，此前只识别 `TYPE:Archetype*` /
+      `TYPE:Substitution*`，导致 3.5e 原生 ACF 记录被当作普通能力、
+      完全不产生变体；
+- [x] **ACF 约定解析**：从 `PREVARGTEQ:<Class>LVL`（最可靠）→ `SORTKEY` →
+      `KEY:` 前缀推导所属职业（`KEY:Totem Barbarian ~ Ape` 的前缀是**组名**，
+      而锚点按职业命名，故优先用等级变量）；`TYPE:ACF.<Class><Feature>` 的
+      特性锚点转为 `REPLACES:TYPE=<tag>`；`PREVARGTEQ:<Class>LVL,<n>` 转为
+      等级化 `GRANTS`；
+- [x] **实测 `Unearthed Arcana`**：叠加 RSRD 后产出 **28 个变体**，
+      `applies_to` 正确落到 Barbarian / Cleric / Fighter / Monk / Paladin /
+      Rogue，且 `Fighter ~ Sneak Attack` 确实移除 `Fighter ~ Bonus Feats`
+      并追加 `Sneak Attack`（端到端验证）；
+- [x] 回归测试 `crates/pcgen-ir/tests/acf_variants.rs`（5 case，含
+      "普通 ability 仍不是变体"与"archetype 与 ACF 共存"两类守卫）；
+- [ ] **尚未纳入验收 cohort**：UA 等 3.5e 补充资料目前是"可用"而非"已验收"，
+      无差分基线。若要提升为验收对象，需按 `docs/TESTING.md` 的 cohort 流程
+      加 case 并冻结 baseline。
+
+> 遗留真实差异：部分 UA ACF 的锚点命名与 RSRD 不一致（如 UA 写
+> `MonkBonusAC`，RSRD 守的是 `TYPE.MonkAC`），这类变体的 `REPLACES`
+> 会报 `UNRESOLVED` 而不会被静默忽略——`list-variants` 可直接看到。
+
 ## P0：口径冻结（阶段 0，已完成）
 
 - [x] 验收数据集固定：DS-3E `srdbasic.pcc`（回归代理）、
