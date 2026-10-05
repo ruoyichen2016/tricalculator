@@ -349,7 +349,7 @@ fn parse_race(record: &RawRecord) -> RaceDefinition {
 /// schools precede the Wizard level progression).  They carry no class header
 /// of their own, so treating them as headers corrupts `current_class` and
 /// silently detaches every following level row.
-fn is_class_specialty_row(name: &str) -> bool {
+pub(crate) fn is_class_specialty_row(name: &str) -> bool {
     let name = name.trim();
     let upper = name.to_ascii_uppercase();
     upper.starts_with("SUBCLASS:")

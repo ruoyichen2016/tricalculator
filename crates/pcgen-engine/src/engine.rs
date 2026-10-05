@@ -570,7 +570,7 @@ impl Engine {
             move_clone,
         } = self.creature_traits(draft, &effect_state);
         let movement = resolve_movement(&practiced_movement(draft, &effect_state), &move_clone);
-        let companions = self.companions(draft);
+        let companions = self.companions(draft, &effect_state.variables);
         let mut spell_effects = Vec::new();
         for (domain, spells) in &domain_spells {
             for spell in spells {
@@ -629,6 +629,8 @@ impl Engine {
             base_attack_bonus + strength_mod + grapple_size_modifier_from_rank(size_rank);
         let caster_level_bonus = self.domain_caster_level_bonus(draft);
         let turning = self.turning(draft, &effect_state.variables);
+        let uncanny_dodge =
+            self.uncanny_dodge(&effect_state.active_abilities, &effect_state.variables);
         let mut snapshot = CharacterSnapshot {
             draft_id: draft.id.clone(),
             name: draft.name.clone(),
@@ -713,6 +715,7 @@ impl Engine {
                 self.pack.header.game_mode.clone(),
             ),
             turning,
+            uncanny_dodge,
         };
         let external_modifiers = snapshot.external_modifiers.clone();
         apply_external_modifiers(&mut snapshot, &external_modifiers);
@@ -1701,6 +1704,46 @@ impl Engine {
         total
     }
 
+    /// Uncanny dodge and improved uncanny dodge.
+    ///
+    /// The classes grant the abilities themselves, and the data sums the
+    /// granting class levels into `UncannyDodgeFlankingLevel` (the RSRD gives
+    /// that variable `TYPE=EachClass.REPLACE` from both the barbarian and the
+    /// rogue records, so the values accumulate).  What the data does not state
+    /// is the SRD's conversion rule:
+    ///
+    /// > When a barbarian/rogue would gain uncanny dodge a second time (for her
+    /// > second class), she instead gains improved uncanny dodge, if she does
+    /// > not already have it.
+    fn uncanny_dodge(
+        &self,
+        active_abilities: &BTreeSet<String>,
+        variables: &BTreeMap<String, i32>,
+    ) -> Option<crate::snapshot::UncannyDodgeSnapshot> {
+        let active: Vec<String> = active_abilities.iter().cloned().collect();
+        let (uncanny_classes, improved_classes) = crate::snapshot::uncanny_dodge_classes(&active);
+        if uncanny_classes.is_empty() && improved_classes.is_empty() {
+            return None;
+        }
+        let uncanny_dodge = !uncanny_classes.is_empty();
+        // A second granting class turns its own uncanny dodge into improved
+        // uncanny dodge, unless improved uncanny dodge is already held.
+        let improved_from_second_class = improved_classes.is_empty() && uncanny_classes.len() >= 2;
+        let improved = !improved_classes.is_empty() || improved_from_second_class;
+        Some(crate::snapshot::UncannyDodgeSnapshot {
+            uncanny_dodge,
+            improved,
+            flanking_level: variables
+                .get("UncannyDodgeFlankingLevel")
+                .copied()
+                .unwrap_or(0)
+                .max(0) as u32,
+            improved_from_second_class,
+            uncanny_dodge_classes: uncanny_classes,
+            improved_classes,
+        })
+    }
+
     /// Turn or rebuke undead state.
     ///
     /// The SRD's paladin and multiclass rules are already encoded in the data:
@@ -1787,12 +1830,49 @@ impl Engine {
 
     /// Derive companion states from the master's companions and the typed
     /// `FOLLOWER:` companion modifiers.
-    fn companions(&self, draft: &CharacterDraft) -> Vec<crate::snapshot::CompanionSnapshot> {
+    /// The variable that supplies a companion type's effective master level.
+    ///
+    /// `FOLLOWER:FamiliarLVL=3` means "this row applies once the familiar's
+    /// master level reaches 3", so the variable names the level, and the
+    /// numbers are thresholds rather than multipliers.
+    fn companion_master_variable(&self, companion_type: &str) -> Option<String> {
+        self.pack
+            .companion_mods
+            .values()
+            .flatten()
+            .find(|definition| {
+                definition
+                    .companion_type
+                    .eq_ignore_ascii_case(companion_type)
+                    && !definition.master_variable.is_empty()
+            })
+            .map(|definition| definition.master_variable.clone())
+    }
+
+    fn companions(
+        &self,
+        draft: &CharacterDraft,
+        variables: &BTreeMap<String, i32>,
+    ) -> Vec<crate::snapshot::CompanionSnapshot> {
         let mut models = Vec::new();
         for companion in &draft.companions {
+            // SRD, Multiclass Characters: "A sorcerer/wizard stacks his
+            // sorcerer and wizard levels to determine the familiar's natural
+            // armor, Intelligence score, and special abilities."
+            //
+            // The data names that stacked value: the RSRD's familiar rows are
+            // `FOLLOWER:FamiliarLVL=<threshold>`, so the companion's effective
+            // master level is the variable, not whatever the caller passed.
+            // `FamiliarLVL` is set from `SorcererLVL` and `WizardLVL`, and
+            // those accumulate, which is what makes the two classes stack.
+            let effective_master_level = self
+                .companion_master_variable(&companion.companion_type)
+                .and_then(|name| variables.get(&name).copied())
+                .filter(|level| *level > 0)
+                .map_or(companion.master_level, |level| level as u32);
             let mut model = crate::snapshot::CompanionSnapshot {
                 companion_type: companion.companion_type.clone(),
-                master_level: companion.master_level,
+                master_level: effective_master_level,
                 race_id: companion.race_id.clone(),
                 ..crate::snapshot::CompanionSnapshot::default()
             };
@@ -1807,14 +1887,14 @@ impl Engine {
                     if !companion_row_matches(definition, companion) {
                         continue;
                     }
-                    if definition.master_level > companion.master_level {
+                    if definition.master_level > effective_master_level {
                         continue;
                     }
                     if let Some(raw) = &definition.spell_resistance {
                         if let Some(value) = evaluate_companion_sr(
                             raw,
                             definition.master_level,
-                            companion.master_level,
+                            effective_master_level,
                         ) {
                             model.spell_resistance = Some(
                                 model
@@ -1832,7 +1912,7 @@ impl Engine {
                     merge_companion_traits(&definition.traits, &mut model.traits);
                     for bonus in &definition.bonuses {
                         let Some(value) =
-                            evaluate_companion_formula(&bonus.formula, companion.master_level)
+                            evaluate_companion_formula(&bonus.formula, effective_master_level)
                         else {
                             continue;
                         };

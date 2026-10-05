@@ -173,3 +173,62 @@ fn classes_without_specialty_rows_are_unaffected() {
         .expect("Fighter class");
     assert_eq!(fighter.level_abilities.get(&1).map(Vec::len), Some(1));
 }
+
+/// The level-row *entities* must be keyed by their class, not by a preceding
+/// specialty row.
+///
+/// `lower_records` names a class level entity `<class>#<level>`, and the engine
+/// activates a level's class features by matching that key.  When a
+/// `SUBCLASSLEVEL:` row was taken for a class header, the cursor moved onto it
+/// and the following rows were keyed `SUBCLASSLEVEL:1#1` — so the RSRD Wizard's
+/// grants existed but were attached to something no class level ever matched,
+/// and every Wizard class feature stayed inactive.  The class-level rows parsed
+/// fine, which is why only checking `level_abilities` missed it.
+#[test]
+fn level_row_entities_are_keyed_by_their_class() {
+    let pack = lower(&wizard_block());
+
+    let level_entities: Vec<&str> = pack
+        .entities
+        .iter()
+        .filter(|entity| format!("{:?}", entity.category).contains("ClassLevel"))
+        .map(|entity| entity.id.key.as_str())
+        .collect();
+
+    // This fixture keys its class header `CLASS:Wizard` (the real tokenizer
+    // strips the tag and yields `Wizard`), so the level entities carry that
+    // prefix.  What matters is that they name the class and not the specialty.
+    assert!(
+        level_entities.iter().any(|key| key.ends_with("Wizard#1")),
+        "Wizard level 1 entity is missing; got {level_entities:?}"
+    );
+    assert!(
+        level_entities.iter().any(|key| key.ends_with("Wizard#5")),
+        "Wizard level 5 entity is missing; got {level_entities:?}"
+    );
+    assert!(
+        !level_entities
+            .iter()
+            .any(|key| key.starts_with("subclasslevel")),
+        "level rows were keyed by the specialty row; got {level_entities:?}"
+    );
+
+    // The grants themselves must hang off those entities.
+    let wizard_level_one = pack
+        .entities
+        .iter()
+        .find(|entity| entity.id.key.ends_with("Wizard#1"))
+        .expect("the Wizard level 1 entity exists");
+    let granted: Vec<String> = wizard_level_one
+        .effects
+        .iter()
+        .filter_map(|effect| match &effect.action {
+            pcgen_core::EffectAction::Grant { entity } => Some(entity.key.clone()),
+            _ => None,
+        })
+        .collect();
+    assert!(
+        granted.iter().any(|key| key.contains("familiar")),
+        "the level-1 familiar grant is not on wizard#1: {granted:?}"
+    );
+}

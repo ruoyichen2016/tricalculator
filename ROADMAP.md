@@ -161,6 +161,37 @@
 > 这些**不是解析器缺陷**，而是数据集之间的差异。`list-variants` 如实展示，
 > 不做静默近似——把 18 个未命中"修好"意味着替数据编造语义。
 
+### 三个多职业特例（全部落地）
+
+官方 multiclass 页列出三个"special case"，此前**全部未实现**：
+
+- [x] **Cleric/Paladin 驱散叠加**（见上节）；
+- [x] **Barbarian/Rogue 反射闪避**：官方"When a barbarian/rogue would gain uncanny
+      dodge a second time (for her second class), she instead gains improved
+      uncanny dodge, if she does not already have it. Her barbarian and rogue
+      levels stack to determine the rogue level an attacker needs to flank her."
+      数据只声明各职业**自己**在几级给这两种能力，**没有**表达"第二次转成精通"这条
+      转换规则，因此在引擎实现。实测 Barbarian 2 / Rogue 4 → 拥有精通反射闪避
+      （两个职业都未到各自的精通等级，只可能来自转换），叠加等级 **2 + 4 = 6**；
+      Barbarian 5 / Rogue 8 → **13**；
+- [x] **Sorcerer/Wizard 魔宠叠加**：官方"A sorcerer/wizard stacks his sorcerer and
+      wizard levels to determine the familiar's natural armor, Intelligence score,
+      and special abilities."。数据用 `FOLLOWER:FamiliarLVL=<阈值>` 表达，
+      `FamiliarLVL` 由 `SorcererLVL` 与 `WizardLVL` 累加得到。引擎改为**从该变量
+      推导魔宠的主人等级**，实测 Sorcerer 3 / Wizard 3 → `FamiliarLVL` **6**，
+      且魔宠的 `master_level` 取 6 而非调用方传入的值；
+- [x] 新增 `snapshot.uncanny_dodge`（`uncanny_dodge` / `improved` /
+      `flanking_level` / `improved_from_second_class` / 来源职业）与
+      `tests/companion_stacking_rules.rs`（7 个用例）。
+
+> **过程中发现并修复一个影响面很大的 bug**：`lower_records` 里**另有一份**职业头
+> 判定逻辑，只修了 `typed.rs` 那份。`SUBCLASSLEVEL:` 行因此仍被当作职业头，
+> `current_class` 被改成 `SUBCLASSLEVEL:1`，于是 Wizard 的等级行实体被命名为
+> `SUBCLASSLEVEL:1#1` 而非 `wizard#1` —— 引擎按 `<class>#<level>` 匹配职业等级，
+> **Wizard 的全部职业特性从未激活**（法术、魔宠、抄写卷轴、法术书全缺）。
+> 实测修复前 Wizard 1 的 `active_abilities` 只有种族项；修复后 6 项职业特性齐全。
+> 这也是"魔宠叠加"一开始测不过的真正原因——不是叠加逻辑错，是能力根本没生效。
+
 ### 驱散/斥退亡灵与多职业等级变量（新增能力）
 
 - [x] **修复 `BONUS:VAR` 的逗号列表**：`BONUS:VAR|TurnLevelBase,TurnDamagePlusBase|ClericLVL`

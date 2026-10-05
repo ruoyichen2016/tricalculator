@@ -1,5 +1,45 @@
 ## Unreleased
 
+### 修复：Wizard 的全部职业特性从未激活（`SUBCLASSLEVEL:` 行被当作职业头）
+
+`lower_records` 里有**两份**职业头判定逻辑，此前只修了 `typed.rs` 那份。另一份
+（`rulepack.rs`）仍把 `SUBCLASS:` / `SUBCLASSLEVEL:` 行当成职业头，于是
+`current_class` 被改成 `SUBCLASSLEVEL:1`，其后的等级行实体被命名为
+`SUBCLASSLEVEL:1#1` 而不是 `wizard#1`。
+
+引擎按 `<class>#<level>` 匹配职业等级来激活该级的职业特性，因此
+**Wizard 的全部职业特性从未激活**——法术、魔宠、抄写卷轴、法术书、武器护甲熟练
+全部缺失。实测：
+
+- 修复前 Wizard 1 的 `active_abilities` 只有 `LANG|Common` / `defines_required`；
+- 修复后为 6 项：`wizard_~_familiar`、`wizard_~_spells`、`wizard_~_scribe_scroll`、
+  `wizard_~_spellbooks`、`wizard_~_bonus_languages`、
+  `wizard_~_weapon_and_armor_proficiency`。
+
+为什么之前没发现：`class.level_abilities`（`typed.rs` 路径）**是正确的**，只有实体
+键（`rulepack.rs` 路径）错。只检查前者的测试看不出问题。新增回归测试
+`level_row_entities_are_keyed_by_their_class` 直接断言实体键。
+
+### 特性：反射闪避叠加与魔宠等级叠加（SRD 剩余两个多职业特例）
+
+- **反射闪避**：官方"When a barbarian/rogue would gain uncanny dodge a second time
+  (for her second class), she instead gains improved uncanny dodge, if she does not
+  already have it. Her barbarian and rogue levels stack to determine the rogue level
+  an attacker needs to flank her." 数据只声明各职业自己几级给这两种能力，**没有**
+  表达"第二次转成精通"，故在引擎实现。实测 Barbarian 2 / Rogue 4 → 精通反射闪避
+  （两职业均未达各自精通等级，只可能来自转换），叠加等级 6；Barbarian 5 / Rogue 8
+  → 13；
+- **魔宠**：官方"A sorcerer/wizard stacks his sorcerer and wizard levels to determine
+  the familiar's natural armor, Intelligence score, and special abilities."。数据用
+  `FOLLOWER:FamiliarLVL=<阈值>` 表达，`FamiliarLVL` 由 `SorcererLVL` + `WizardLVL`
+  累加。引擎改为**从该变量推导魔宠主人等级**，实测 Sorcerer 3 / Wizard 3 →
+  `FamiliarLVL` 6，魔宠 `master_level` 取 6 而非调用方传入值；
+- 新增 `snapshot.uncanny_dodge` 与 `tests/companion_stacking_rules.rs`（7 用例）。
+
+> 这两项一开始都测不过，但**根因不是叠加逻辑**——是上面那个 Wizard 特性未激活的
+> bug。修好实体键之后叠加逻辑立即通过。记录在此以免日后误判。
+
+
 ### 修复：多职业下 `CL` 恒为 0，以及 `BONUS:VAR` 的逗号列表未拆分
 
 两个 bug 都会**静默**产生错误数值，且都影响面很广。

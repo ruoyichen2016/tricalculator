@@ -245,6 +245,74 @@ pub struct CharacterSnapshot {
     /// Turn/rebuke undead state; `None` when no class grants the ability.
     #[serde(default)]
     pub turning: Option<TurningSnapshot>,
+    /// Uncanny dodge state; `None` when no class grants it.
+    #[serde(default)]
+    pub uncanny_dodge: Option<UncannyDodgeSnapshot>,
+}
+
+/// Uncanny dodge and improved uncanny dodge.
+///
+/// SRD, Multiclass Characters
+/// (<https://www.d20srd.org/srd/classes/multiclass.htm>):
+///
+/// > In the special case of uncanny dodge, both experienced barbarians and
+/// > experienced rogues have the same ability. When a barbarian/rogue would
+/// > gain uncanny dodge a second time (for her second class), she instead
+/// > gains improved uncanny dodge, if she does not already have it. Her
+/// > barbarian and rogue levels stack to determine the rogue level an attacker
+/// > needs to flank her.
+///
+/// The classes themselves grant the two abilities at their own levels
+/// (barbarian 2/5, rogue 4/8, and the prestige classes likewise); what the data
+/// does not state is that a *second* granting class converts its uncanny dodge
+/// into improved uncanny dodge, so that is decided here.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UncannyDodgeSnapshot {
+    /// Retains the Dexterity bonus to AC when flat-footed or struck by an
+    /// invisible attacker.
+    pub uncanny_dodge: bool,
+    /// Can no longer be flanked.
+    pub improved: bool,
+    /// Levels in the classes that grant uncanny dodge, stacked.  This is the
+    /// level an attacker's rogue level must exceed by four to flank.
+    pub flanking_level: u32,
+    /// True when the improved ability came from a *second* granting class
+    /// rather than from a class that grants improved uncanny dodge directly.
+    pub improved_from_second_class: bool,
+    /// The classes that grant each ability, for explainability.
+    #[serde(default)]
+    pub uncanny_dodge_classes: Vec<String>,
+    #[serde(default)]
+    pub improved_classes: Vec<String>,
+}
+
+/// Split the classes that grant uncanny dodge from those that grant improved
+/// uncanny dodge.
+///
+/// Active abilities are keyed `"<class>_~_<ability>"`, e.g.
+/// `barbarian_~_uncanny_dodge`; comparing the ability part exactly avoids the
+/// trap that `"uncanny_dodge"` is a substring of `"improved_uncanny_dodge"`.
+pub fn uncanny_dodge_classes(active_abilities: &[String]) -> (Vec<String>, Vec<String>) {
+    let mut uncanny: Vec<String> = Vec::new();
+    let mut improved: Vec<String> = Vec::new();
+    for ability in active_abilities {
+        let (class_key, ability_key) = match ability.split_once("_~_") {
+            Some((class_key, ability_key)) => (class_key, ability_key),
+            None => ("", ability.as_str()),
+        };
+        let target = match ability_key {
+            "improved_uncanny_dodge" => &mut improved,
+            "uncanny_dodge" => &mut uncanny,
+            _ => continue,
+        };
+        let class_key = class_key.replace('_', " ");
+        if !target.contains(&class_key) {
+            target.push(class_key);
+        }
+    }
+    uncanny.sort();
+    improved.sort();
+    (uncanny, improved)
 }
 
 /// Turn or rebuke undead.
