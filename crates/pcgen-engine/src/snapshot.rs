@@ -242,4 +242,76 @@ pub struct CharacterSnapshot {
     /// Build provenance: rule-pack fingerprint plus upstream data revision.
     #[serde(default)]
     pub provenance: BuildProvenance,
+    /// Turn/rebuke undead state; `None` when no class grants the ability.
+    #[serde(default)]
+    pub turning: Option<TurningSnapshot>,
+}
+
+/// Turn or rebuke undead.
+///
+/// SRD, Special Attacks (<https://www.d20srd.org/srd/combat/specialAttacks.htm>):
+///
+/// > Good clerics and paladins and some neutral clerics can channel positive
+/// > energy, which can halt, drive off (rout), or destroy undead.
+/// > Evil clerics and some neutral clerics can channel negative energy, which
+/// > can halt, awe (rebuke), control (command), or bolster undead.
+///
+/// The SRD never distinguishes between individual deities — only alignment
+/// matters, so no deity-specific data is needed to decide the mode.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TurningSnapshot {
+    /// Effective turning level.  A cleric uses her cleric level; a paladin
+    /// turns "as a cleric of three levels lower", and a multiclass character
+    /// uses "her cleric level plus her paladin level minus 3".
+    pub level: u32,
+    /// Positive or negative energy, or a choice the player still has to make.
+    pub mode: TurningMode,
+    /// Attempts per day: `3 + Charisma modifier`.
+    pub times_per_day: i32,
+    /// Turning damage is `2d6 + this` (cleric level + Charisma modifier).
+    pub damage_bonus: i32,
+    /// Why the mode is [`TurningMode::Choice`], when the SRD's answer depends
+    /// on data the pack does not carry.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
+}
+
+/// Which kind of energy a character channels.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TurningMode {
+    /// Positive energy: halt, drive off, or destroy undead.
+    Turn,
+    /// Negative energy: awe (rebuke) or command undead.
+    Rebuke,
+    /// A neutral cleric of a neutral deity "must choose whether his turning
+    /// ability functions as that of a good cleric or an evil cleric. Once this
+    /// choice is made, it cannot be reversed."
+    Choice,
+}
+
+/// Where an alignment falls on the good–evil axis.
+///
+/// Derived from the alignment id (`LG`, `NG`, ... `CE`) rather than from the
+/// pack, because [`pcgen_core::AlignmentDefinition`] carries only
+/// deity/follower validity flags and no morality axis.
+pub fn alignment_morality(alignment: &str) -> Option<bool> {
+    let value = alignment.trim().to_ascii_uppercase();
+    // The nine standard ids are two characters, and the second is the
+    // morality: `G`ood, `N`eutral, `E`vil.
+    if value.len() == 2 {
+        return match value.as_bytes()[1] as char {
+            'G' => Some(true),
+            'E' => Some(false),
+            _ => None,
+        };
+    }
+    // Spelled-out names (`Lawful Good`) end with the morality word.
+    if value.ends_with("GOOD") {
+        Some(true)
+    } else if value.ends_with("EVIL") {
+        Some(false)
+    } else {
+        None
+    }
 }

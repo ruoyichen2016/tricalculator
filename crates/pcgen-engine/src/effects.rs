@@ -861,9 +861,20 @@ fn is_typed_bonus_target(target: &str) -> bool {
 }
 
 fn add_target(state: &mut EffectState, target: &str, value: i32) {
-    if let Some(name) = target.strip_prefix("VAR.") {
-        state.explicit_variables.insert(name.to_string());
-        *state.variables.entry(name.to_string()).or_insert(0) += value;
+    if let Some(names) = target.strip_prefix("VAR.") {
+        // `BONUS:VAR|A,B|expr` assigns to several variables at once — PCGen
+        // allows a comma-separated list.  Treating the list as one name (as
+        // this previously did) left the real variables at their `DEFINE`
+        // defaults and invented a variable literally called `A,B`; the RSRD's
+        // `BONUS:VAR|TurnLevelBase,TurnDamagePlusBase|ClericLVL` is such a row.
+        for name in names.split(',') {
+            let name = name.trim();
+            if name.is_empty() {
+                continue;
+            }
+            state.explicit_variables.insert(name.to_string());
+            *state.variables.entry(name.to_string()).or_insert(0) += value;
+        }
     } else {
         *state
             .external_modifiers
@@ -1377,11 +1388,37 @@ fn normalize_formula(
     normalized = total_level
         .replace_all(&normalized, draft.total_level().to_string())
         .to_string();
-    if draft.class_levels.len() == 1 {
-        let class_level = Regex::new(r"\bCL\b").unwrap();
-        normalized = class_level
-            .replace_all(&normalized, draft.class_levels[0].level.to_string())
-            .to_string();
+    // `CL` is PCGen's "class level": the level in the class that owns this
+    // effect, e.g. the RSRD's `BONUS:VAR|ClericLVL|CL` on the Cleric record.
+    //
+    // This previously substituted `CL` only when the character had exactly one
+    // class.  For a multiclass character it was left in the formula, where it
+    // evaluated to 0 — silently zeroing every `<Class>LVL` variable, and with
+    // it anything derived from them (a Cleric/Paladin's turning level, a
+    // Fighter's bonus-feat count).  Resolve it against the owning class
+    // instead, identified by the source record's key.
+    let class_level = Regex::new(r"\bCL\b").unwrap();
+    if class_level.is_match(&normalized) {
+        // `normalized` (the string) shadows the `normalized` helper here, so
+        // build the comparable key inline.
+        let class_key = |value: &str| value.trim().to_ascii_lowercase().replace(' ', "_");
+        let owning = source_key
+            .and_then(|key| {
+                draft
+                    .class_levels
+                    .iter()
+                    .find(|entry| class_key(&entry.class_id) == key)
+            })
+            .or_else(|| {
+                // Effects that do not come from a class record still resolve
+                // `CL` against the character's only class, as before.
+                (draft.class_levels.len() == 1).then(|| &draft.class_levels[0])
+            });
+        if let Some(entry) = owning {
+            normalized = class_level
+                .replace_all(&normalized, entry.level.to_string())
+                .to_string();
+        }
     }
     let bound = source_key
         .and_then(|key| state.choice_bindings.get(key))

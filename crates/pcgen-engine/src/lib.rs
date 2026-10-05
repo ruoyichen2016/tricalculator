@@ -13,6 +13,6 @@ pub use effects::{apply_effects, EffectState};
 pub use engine::{lane_summary, validate, Engine};
 pub use progression::ClassProgress;
 pub use snapshot::{
-    AbilityPoolUsage, CharacterSnapshot, ClassInteraction, CompanionSnapshot,
-    SpellEffectApplication,
+    alignment_morality, AbilityPoolUsage, CharacterSnapshot, ClassInteraction, CompanionSnapshot,
+    SpellEffectApplication, TurningMode, TurningSnapshot,
 };

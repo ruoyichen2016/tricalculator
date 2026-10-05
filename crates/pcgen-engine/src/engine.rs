@@ -628,6 +628,7 @@ impl Engine {
         let grapple_attack =
             base_attack_bonus + strength_mod + grapple_size_modifier_from_rank(size_rank);
         let caster_level_bonus = self.domain_caster_level_bonus(draft);
+        let turning = self.turning(draft, &effect_state.variables);
         let mut snapshot = CharacterSnapshot {
             draft_id: draft.id.clone(),
             name: draft.name.clone(),
@@ -711,6 +712,7 @@ impl Engine {
                 self.pack.header.data_ref.clone(),
                 self.pack.header.game_mode.clone(),
             ),
+            turning,
         };
         let external_modifiers = snapshot.external_modifiers.clone();
         apply_external_modifiers(&mut snapshot, &external_modifiers);
@@ -1699,17 +1701,88 @@ impl Engine {
         total
     }
 
-    /// Feat slots from class `LEVELSPERFEAT` / default progression.
-    fn feat_slots(&self, class_levels: &[DraftClassLevel]) -> u32 {
-        let mut total = 0;
-        for entry in class_levels {
-            if let Some(progression) = self.progression(&entry.class_id) {
-                total += progression.feat_slots(entry.level);
-            } else {
-                total += 1 + entry.level / 3;
-            }
+    /// Turn or rebuke undead state.
+    ///
+    /// The SRD's paladin and multiclass rules are already encoded in the data:
+    /// the Cleric record sets `TurnLevelBase` to `ClericLVL`, and the Paladin
+    /// record (granted from 4th level) sets it to `PaladinLVL - 3`.  Because
+    /// those bonuses accumulate, a Cleric 3 / Paladin 6 reaches 6, which is
+    /// exactly "her cleric level plus her paladin level minus 3".
+    ///
+    /// What the data cannot express is which energy the character channels.
+    /// The SRD ties that to alignment and never to a specific deity, so no
+    /// deity data is needed:
+    ///
+    /// > A good cleric (or a neutral cleric who worships a good deity) can turn
+    /// > or destroy undead creatures. An evil cleric (or a neutral cleric who
+    /// > worships an evil deity) instead rebukes or commands such creatures. A
+    /// > neutral cleric of a neutral deity must choose [...]
+    fn turning(
+        &self,
+        draft: &CharacterDraft,
+        variables: &BTreeMap<String, i32>,
+    ) -> Option<crate::snapshot::TurningSnapshot> {
+        let level = variables.get("TurnLevelBase").copied().unwrap_or(0);
+        if level <= 0 {
+            return None;
         }
-        total
+        let (mode, note) = match crate::snapshot::alignment_morality(&draft.alignment) {
+            Some(true) => (crate::snapshot::TurningMode::Turn, None),
+            Some(false) => (crate::snapshot::TurningMode::Rebuke, None),
+            None => {
+                // A neutral character follows her deity, but the RSRD omits
+                // deities as closed content, so the answer is not in the pack.
+                // Report the choice rather than inventing an alignment.
+                let note = if draft.alignment.trim().is_empty() {
+                    "character alignment is not set, so turn or rebuke cannot be decided"
+                        .to_string()
+                } else {
+                    "the SRD decides a neutral cleric's turning by her deity's alignment, and \
+                     this pack carries no deities (the RSRD omits them as closed content)"
+                        .to_string()
+                };
+                (crate::snapshot::TurningMode::Choice, Some(note))
+            }
+        };
+        Some(crate::snapshot::TurningSnapshot {
+            level: level.max(0) as u32,
+            mode,
+            times_per_day: variables.get("TurnTimesBase").copied().unwrap_or(0),
+            damage_bonus: variables.get("TurnDamagePlusBase").copied().unwrap_or(0),
+            note,
+        })
+    }
+
+    /// General feat slots, which the SRD grants by **character** level.
+    ///
+    /// SRD, Multiclass Characters:
+    ///
+    /// > A multiclass character gains feats based on character levels,
+    /// > regardless of individual class level.
+    ///
+    /// <https://www.d20srd.org/srd/classes/multiclass.htm>
+    ///
+    /// Class bonus feats are a separate pool and are not counted here.  Summing
+    /// the per-class progressions instead — as this previously did — over-
+    /// grants: a Fighter 1 / Wizard 1 has a character level of 2 and therefore
+    /// one general feat, not one per class.
+    fn feat_slots(&self, class_levels: &[DraftClassLevel]) -> u32 {
+        let character_level: u32 = class_levels.iter().map(|entry| entry.level).sum();
+        if character_level == 0 {
+            return 0;
+        }
+        // `LEVELSPERFEAT` is a per-class tag in PCGen, but the SRD's feat
+        // progression belongs to the character, so take the step from the first
+        // class that declares one and default to 3.
+        let step = class_levels
+            .iter()
+            .find_map(|entry| {
+                self.progression(&entry.class_id)
+                    .map(|progression| progression.levels_per_feat)
+            })
+            .unwrap_or(3)
+            .max(1);
+        1 + character_level / step
     }
 
     /// Derive companion states from the master's companions and the typed

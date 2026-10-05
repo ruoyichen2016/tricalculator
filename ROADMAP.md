@@ -161,6 +161,34 @@
 > 这些**不是解析器缺陷**，而是数据集之间的差异。`list-variants` 如实展示，
 > 不做静默近似——把 18 个未命中"修好"意味着替数据编造语义。
 
+### 驱散/斥退亡灵与多职业等级变量（新增能力）
+
+- [x] **修复 `BONUS:VAR` 的逗号列表**：`BONUS:VAR|TurnLevelBase,TurnDamagePlusBase|ClericLVL`
+      应同时给两个变量赋值，引擎却把 `TurnLevelBase,TurnDamagePlusBase`
+      当成**一个变量名**——结果真变量停留在 `DEFINE` 的 0，还凭空多出一个名字带逗号的
+      变量。修复后 `TurnLevelBase` 0 → 3、`TurnDamagePlusBase` 3 → 5
+      （= 牧师等级 + 魅力调整，正是官方"2d6 + cleric level + Cha"）；
+- [x] **修复多职业下 `CL` 恒为 0（影响面大）**：`CL` 是 PCGen 的"职业等级"
+      （如 `BONUS:VAR|ClericLVL|CL`）。引擎此前**只在单职业时**替换 `CL`，
+      多职业时 `CL` 留在公式里被求值为 **0**，于是**所有 `<职业>LVL` 变量归零**
+      ——连带影响驱散等级、战士奖励专长数等一切依赖它的能力。现按**效果来源职业**
+      解析 `CL`；
+- [x] **驱散等级**：官方"paladins turn undead as if they were clerics of three
+      levels lower"与多职业"her effective turning level is her cleric level plus
+      her paladin level minus 3"，由数据（`TurnLevelBase` 累加）正确表达：
+      Cleric 3 / Paladin 6 → **6**（不是 max(3,3)=3）；Paladin 3 → 无该能力，
+      Paladin 4 → 1；
+- [x] **驱散 vs 斥退**：官方只按**阵营**判定，**从不涉及具体神祇身份**。
+      善良 → 驱散，邪恶 → 斥退，中立 → 需按神祇阵营决定；
+- [x] 新增 `snapshot.turning`（`level` / `mode` / `times_per_day` /
+      `damage_bonus` / `note`）与 `tests/turning_rules.rs`（10 个用例）。
+
+> **已知边界（需神祇数据）**：中立体例牧师的驱散/斥退取决于**神祇阵营**，
+> 而 **RSRD 不含任何神祇**——神祇属 WotC 产品标识，`rsrd_deities.lst` 仅有一条
+> `None` 记录，其 `PresetUndeadChoiceByDeity`（10=驱散 / 20=斥退）**被注释掉**。
+> 因此引擎对此返回 `mode: "choice"` 并附原因说明，**不猜**。用户通过
+> `data/packs/custom/curated/` 补充带阵营的神祇数据后即可完整判定。
+
 ### SRD 文字规则审计（新增能力）
 
 以 **官方规则文本**（<https://www.d20srd.org/>，即 SRD 原文）为裁判，对引擎做了一次
