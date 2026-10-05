@@ -348,6 +348,57 @@ fn demo_draft() -> CharacterDraft {
 
 /// Write a native save through the repository so the previous version is
 /// backed up and `pcgen undo` can restore it.
+/// Anchors the dataset opens for a class, for `REPLACES` targets that missed.
+///
+/// Guessing similarity between two names proved unreliable (`MonkAC` vs
+/// `MonkBonusAC` have no useful edit distance, and word-overlap rules started
+/// matching unrelated anchors), so instead of inventing a "near miss" verdict
+/// this reports what the class actually offers.  A human can then decide
+/// whether the target is a spelling disagreement or an anchor the dataset
+/// never opened.
+fn available_anchors(features: &[String], class_id: &str) -> Vec<String> {
+    let prefix = pcgen_core::feature_match_key(class_id);
+    let mut anchors: Vec<String> = Vec::new();
+    for line in features {
+        for segment in line.split([',', '|']) {
+            let segment = segment.trim();
+            let Some(tag) = segment
+                .strip_prefix("TYPE.")
+                .or_else(|| segment.strip_prefix("type."))
+            else {
+                continue;
+            };
+            // Only class-namespaced anchors are interesting here; drop the
+            // generic quality words (`SpecialQuality`, `Extraordinary`).
+            let lower = tag.to_ascii_lowercase();
+            if matches!(
+                lower.as_str(),
+                "specialquality"
+                    | "specialattack"
+                    | "extraordinary"
+                    | "supernatural"
+                    | "spelllike"
+                    | "classfeature"
+                    | "classfeatures"
+                    | "acf"
+                    | "internal"
+            ) {
+                continue;
+            }
+            // Only anchors belonging to this class: the raw sweep sees every
+            // class's guarded lines, and listing all of them buries the answer.
+            if !prefix.is_empty() && !tag.to_ascii_lowercase().starts_with(&prefix) {
+                continue;
+            }
+            if !anchors.iter().any(|existing| existing == tag) {
+                anchors.push(tag.to_string());
+            }
+        }
+    }
+    anchors.sort();
+    anchors
+}
+
 fn save_envelope(path: &std::path::Path, envelope: &NativeSaveEnvelope) -> Result<()> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)
@@ -631,9 +682,44 @@ fn main() -> Result<()> {
                 })
                 .collect();
 
-            // Resolve each `REPLACES` target against the class's own features.
-            // This is the check that catches a variant which parses fine but
-            // silently removes nothing.
+            // Resolve each `REPLACES` target against the anchors the pack
+            // actually exposes.  This is the check that catches a variant which
+            // parses fine but silently removes nothing.
+            //
+            // Anchors come from two sources:
+            //   * the lowered pack (class level-ability rows and progressions,
+            //     e.g. `Fighter ~ Bonus Feats`);
+            //   * the raw records *before* `.MOD` merging, because PCGen
+            //     attaches extra replaceable sub-features that way — the Bard's
+            //     Bardic Music sub-abilities carry `TYPE.BardInspire*` on an
+            //     `ABILITY:` tag of a `...Bardic Music.MOD` record, and those
+            //     tags do not survive into the pack.
+            // Raw `ABILITY:` tags only matter as anchors when they carry a
+            // `TYPE.` guard, which is how PCGen marks a feature replaceable.
+            let raw_anchor_lines: Vec<String> = {
+                let records = pcgen_import::load_pcc(&pcc)
+                    .map(|loaded| pcgen_import::apply_record_patches(&loaded.records))
+                    .unwrap_or_default();
+                records
+                    .iter()
+                    .flat_map(|record| {
+                        record
+                            .tags
+                            .iter()
+                            .filter(|tag| {
+                                tag.name.eq_ignore_ascii_case("ABILITY")
+                                    || tag.name.eq_ignore_ascii_case("AUTO")
+                            })
+                            .map(|tag| tag.value.clone())
+                    })
+                    // Keep only guarded lines: an unguarded `ABILITY:` is not
+                    // an anchor, and its trailing predicate fragments were
+                    // leaking into the anchor list as noise.
+                    .filter(|value| {
+                        value.contains("CATEGORY=ACF,TYPE.") || value.contains("TYPE.Archetype")
+                    })
+                    .collect()
+            };
             let mut features_cache: std::collections::HashMap<String, Vec<String>> =
                 std::collections::HashMap::new();
             let mut resolve = |variant: &pcgen_core::VariantDefinition| {
@@ -661,12 +747,17 @@ fn main() -> Result<()> {
                                         lines.extend(progression.features_up_to(max_level));
                                     }
                                 }
+                                // Anchors that only exist as raw `ABILITY:` tags
+                                // (Bardic Music sub-features and friends).
+                                lines.extend(raw_anchor_lines.iter().cloned());
                                 lines
                             })
                             .clone()
                     })
                     .unwrap_or_default();
-                variant
+                let anchors =
+                    available_anchors(&features, variant.applies_to.as_deref().unwrap_or_default());
+                let targets = variant
                     .replace_targets()
                     .into_iter()
                     .map(|target| {
@@ -677,16 +768,24 @@ fn main() -> Result<()> {
                             pcgen_core::ReplaceTarget::TypeTag(tag) => format!("TYPE={tag}"),
                             pcgen_core::ReplaceTarget::Name(name) => name.clone(),
                         };
-                        (label, resolved)
+                        // Distinguish "this dataset never opened that anchor"
+                        // from "an anchor exists that is nearly this name".
+                        // The 3.5e supplement and the RSRD genuinely disagree
+                        // on some spellings (`WizardBonusFeats` vs
+                        // `WizardBonusFeat`), and lumping both under
+                        // "unresolved" hides which is which.
+                        let status = if resolved { "resolved" } else { "missing" };
+                        (label, status)
                     })
-                    .collect::<Vec<_>>()
+                    .collect::<Vec<_>>();
+                (targets, anchors)
             };
 
             if format.eq_ignore_ascii_case("json") {
                 let rows: Vec<serde_json::Value> = matches
                     .iter()
                     .map(|variant| {
-                        let targets = resolve(variant);
+                        let (targets, anchors) = resolve(variant);
                         serde_json::json!({
                             "id": variant.id,
                             "name": variant.name,
@@ -705,12 +804,30 @@ fn main() -> Result<()> {
                             "class_skills": variant.class_skills,
                             "replace_targets": targets
                                 .iter()
-                                .map(|(label, resolved)| serde_json::json!({
+                                .map(|(label, status)| serde_json::json!({
                                     "target": label,
-                                    "resolved": resolved,
+                                    "resolved": *status == "resolved",
                                 }))
                                 .collect::<Vec<_>>(),
-                            "all_targets_resolved": targets.iter().all(|(_, resolved)| *resolved),
+                            "all_targets_resolved": targets
+                                .iter()
+                                .all(|(_, status)| *status == "resolved"),
+                            // When something missed, show what the class does
+                            // offer so the difference is inspectable.
+                            "available_anchors": if targets
+                                .iter()
+                                .any(|(_, status)| *status != "resolved")
+                            {
+                                serde_json::Value::Array(
+                                    anchors
+                                        .iter()
+                                        .cloned()
+                                        .map(serde_json::Value::String)
+                                        .collect(),
+                                )
+                            } else {
+                                serde_json::Value::Null
+                            },
                         })
                     })
                     .collect();
@@ -718,22 +835,27 @@ fn main() -> Result<()> {
             } else {
                 println!("variants: {}", matches.len());
                 for variant in matches {
-                    let targets = resolve(variant);
-                    let unresolved: Vec<&String> = targets
+                    let (targets, anchors) = resolve(variant);
+                    let missing: Vec<&String> = targets
                         .iter()
-                        .filter(|(_, resolved)| !resolved)
+                        .filter(|(_, status)| *status != "resolved")
                         .map(|(label, _)| label)
                         .collect();
-                    let status = if targets.is_empty() || unresolved.is_empty() {
+                    let status = if missing.is_empty() {
                         "ok".to_string()
                     } else {
+                        // Say what the class does offer, rather than guessing
+                        // which anchor was meant: the supplement and the RSRD
+                        // disagree on some spellings, and a bare "unresolved"
+                        // hides whether that is the case.
                         format!(
-                            "UNRESOLVED({})",
-                            unresolved
+                            "MISSING({}) [class offers: {}]",
+                            missing
                                 .iter()
                                 .map(|label| label.as_str())
                                 .collect::<Vec<_>>()
-                                .join(", ")
+                                .join(", "),
+                            anchors.join(" ")
                         )
                     };
                     println!(

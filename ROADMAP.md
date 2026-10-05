@@ -139,9 +139,27 @@
       无差分基线。若要提升为验收对象，需按 `docs/TESTING.md` 的 cohort 流程
       加 case 并冻结 baseline。
 
-> 遗留真实差异：部分 UA ACF 的锚点命名与 RSRD 不一致（如 UA 写
-> `MonkBonusAC`，RSRD 守的是 `TYPE.MonkAC`），这类变体的 `REPLACES`
-> 会报 `UNRESOLVED` 而不会被静默忽略——`list-variants` 可直接看到。
+- [x] **锚点解析覆盖能力记录**：Bard 的 Bardic Music 子特性（`TYPE.BardInspire*`）
+      挂在 `...Bardic Music.MOD` 的 `ABILITY:` 标签上，`.MOD` 合并后不进 pack，
+      此前 26 个 `REPLACES` 目标里有一部分被误报为无法解析。现在解析器同时扫描
+      **未经 patch 的原始记录**，UA 的未解析数 26 → 18；
+- [x] `list-variants` 在目标未命中时**列出该职业实际开放的锚点**，而不是猜测
+      "近似名字"。实测输出如
+      `MISSING(TYPE=wizardbonusfeats) [class offers: WizardBonusFeat ...]`，
+      人和机器都能立刻看出是拼写差异还是数据集没开放。
+
+> **UA 未命中目标的分类（26 → 18 全部核实）**：
+>
+> 共 10 个**不同**目标（出现 18 次，`BarbarianImprovedUncannyDodge` 被 8 个
+> 图腾变体共用）：
+>
+> | 类型 | 数量 | 目标 | 性质 |
+> |---|---|---|---|
+> | 拼写差异 | 2 | `WizardBonusFeats` vs RSRD `WizardBonusFeat`；`MonkBonusAC` vs `MonkAC` | 两个数据集对同一锚点拼法不同 |
+> | **RSRD 未开放该锚点** | 8 | `ClericTurnUndead`（RSRD 对 Cleric 开放 **0** 个 ACF 锚点）、`RogueSneakAttack`（Rogue 仅 `RogueProficiencies`）、`DruidArmorProf/ShieldProf`、`BarbarianImprovedUncannyDodge`、`RangerImprovedCombatStyle/CombatStyleMastery`、`BardVariant` | UA 依赖了 RSRD 未提供的替换点，或 UA 内部标记 |
+>
+> 这些**不是解析器缺陷**，而是数据集之间的差异。`list-variants` 如实展示，
+> 不做静默近似——把 18 个未命中"修好"意味着替数据编造语义。
 
 ## P0：口径冻结（阶段 0，已完成）
 

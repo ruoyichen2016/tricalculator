@@ -1,5 +1,34 @@
 ## Unreleased
 
+### 修复：`list-variants` 的锚点解析漏了能力记录，且未命中的原因不可见
+
+- **修复解析范围**：Bard 的 Bardic Music 子特性
+  （`TYPE.BardInspireCourage` 等）挂在 `CATEGORY=Special Ability|Bard ~
+  Bardic Music.MOD` 的 `ABILITY:` 标签上，而 `.MOD` 在 lowering 时已合并进
+  基础实体（`patch_operations` 为 0），这些锚点不进 `CompiledRulePack`。
+  解析器此前只查 `pack.classes` / `pack.progressions`，把它们误报为无法解析。
+  现在同时扫描**未经 patch 的原始记录**，且只取带
+  `CATEGORY=ACF,TYPE.` / `TYPE.Archetype` 守卫的行（无守卫的 `ABILITY:` 不是
+  锚点，其尾部谓词片段曾污染锚点列表）；
+- 实测 `Unearthed Arcana`：未解析目标 **26 → 18**，`Animal Companion Bard`
+  的 5 个锚点全部命中；
+- **输出改为列出该职业实际开放的锚点**，而不是猜"近似名字"：
+  `MISSING(TYPE=wizardbonusfeats) [class offers: WizardBonusFeat ...]`。
+  设计过程中我试过编辑距离、子串包含、CamelCase 词重叠三种相似度启发式，
+  都不稳定（`MonkAC` 与 `MonkBonusAC` 中间插入了一整个词，编辑距离 5；
+  词重叠又会把 `RangerCombatStyle` 误配给 `RangerImprovedCombatStyle`），
+  最终选择**不做相似度判断、直接给事实**；
+- **UA 未命中目标的分类（10 个不同目标 / 18 次出现，逐条对照 RSRD 核实）**：
+  - 拼写差异 2 个：`WizardBonusFeats` vs RSRD `WizardBonusFeat`、
+    `MonkBonusAC` vs `MonkAC`；
+  - **RSRD 未开放该锚点 8 个**：`ClericTurnUndead`（RSRD 对 Cleric 开放的
+    ACF 锚点为 **0**）、`RogueSneakAttack`（Rogue 仅 `RogueProficiencies`）、
+    `DruidArmorProf` / `DruidShieldProf`、`BarbarianImprovedUncannyDodge`
+    （被 8 个图腾变体共用）、`RangerImprovedCombatStyle` /
+    `RangerCombatStyleMastery`、`BardVariant`（UA 内部标记）；
+  - 这些**不是解析器缺陷**，是数据集之间的差异。不做静默近似——把未命中
+    "修好"等于替数据编造语义。
+
 ### 特性：识别 3.5e 原生 ACF（`CATEGORY:ACF`）
 
 - **PF 的 archetype 与 3.5e 的 ACF 是同一机制**。此前只识别
