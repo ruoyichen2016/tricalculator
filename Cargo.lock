@@ -420,6 +420,7 @@ dependencies = [
  "pcgen-import",
  "pcgen-ir",
  "pcgen-output",
+ "pcgen-transpile",
  "serde_json",
 ]
 

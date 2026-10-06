@@ -432,7 +432,57 @@ DS-3E 的 `classes` / `progressions` 下限相应从 43 降到 42，理由写在
 另外 `unless_category` 单独携带：术士的魔宠守卫在 `Special Ability` 池，
 法师的在 `ACF` 池，硬编码任一都会错。
 
-### 10.5 阶段 1 的边界（诚实声明）
+### 10.5 阶段 3：运行期不再解析 PCGen 文本（已完成）
+
+**做法**：`write_pack` 现在写出**整个** pack——职业域用规范化记录，其余域
+按域写成 `*.jsonl`（一记录一行，可 diff）。`read_pack` 只做反序列化，
+**不调用任何 lowering**，重组出完整的 `CompiledRulePack`。
+
+**布局**（RSRD，24.8 MB / 23 个文件）：
+
+```text
+manifest.json  header.json  coverage.json
+classes.jsonl  class_levels.jsonl  variants.jsonl   ← 规范化
+entities.jsonl  abilities.jsonl  races.jsonl  spells.jsonl
+equipment.jsonl  domains.jsonl  deities.jsonl  skills.jsonl  ...
+```
+
+**分层变化**：`CompiledPackHeader` / `CompiledRulePack` / `ImportReport`
+三个类型从 `pcgen-ir` 移到 `pcgen-core`（其余域类型**本来就在** `pcgen-core`）。
+引擎的三处引用随之改为 `pcgen_core::CompiledRulePack`，`pcgen-ir` 从生产依赖中移除。
+
+```text
+之前：pcgen-engine → pcgen-ir（含 .lst 解析器）
+现在：pcgen-engine → pcgen-core（纯数据）
+      pcgen-import → pcgen-ir → pcgen-core
+```
+
+守卫相应从 `check_present pcgen-engine pcgen-ir` 翻转为 `check_absent`。
+
+**诚实说明：性能收益很小，且我原先的假设基本是错的。**
+
+| 指标（release，RSRD basics） | 值 |
+|---|---|
+| 转写（构建期，一次性） | 0.80 s |
+| 从 `.pcc` 编译（旧运行期） | 0.305 s |
+| 从 pack 目录加载（新运行期） | 0.215 s |
+| **启动加速** | **1.42x** |
+
+我原本预期"每次加载省下 6 秒"，实测不成立：编译本来就只要 0.305 s，
+而加载 24.8 MB JSON 要 0.215 s——JSON 解析吃掉了大部分收益。
+（调试构建下更是 **1.0x**，因为 debug 的 JSON 解析特别慢。）
+
+所以阶段 3 的价值是**架构性的，不是性能**：
+
+1. **运行期不再解释 PCGen 文本**——数据解释错误从"每次启动静默发生"
+   变成"构建期一次性、可 diff"；
+2. **引擎只依赖数据的形状**——PCGen 翻译器可以彻底离开运行期依赖树；
+3. **加载即校验**（§6）真正生效，因为加载是唯一的入口。
+
+如果将来需要更快的加载，方向是换更快的序列化格式（或 mmap + 二进制），
+而不是回到运行期解析。
+
+### 10.6 阶段 1 的边界（诚实声明）
 
 - 只有**职业域**规范化：`class` / `class_level` / `variant`。
   `ClassDefinition` 的其余字段（`level_bonuses`、`prohibited_spells`、

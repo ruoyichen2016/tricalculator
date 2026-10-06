@@ -40,33 +40,41 @@ Algorithms》中“先形式化问题、再选择数据结构与算法”的原�
 
 ## 2. 分层
 
+**构建期**（一次性，`pcgen-transpile`）：
+
 ```text
-PCGen .pcc/.lst/.pcg
+PCGen .pcc/.lst
         │
         ▼
-pcgen-import                 pcgen-ir
-  .pcc graph / .lst tokenize   SourceRef / RawRecord / PatchOperation
-  .pcg drafts                  Raw AST -> lower -> CompiledRulePack
-        │                            │
-        └──────────► CompiledRulePack ◄──────────┐
-                     EntityId + Effect/Modifier/Predicate      │
-                     + Provenance + coverage                    │
-                            │                                   │
-                            ▼                                   │
-                     pcgen-engine  ─────────────────────────────┘
-  CharacterDraft
-    -> activate
-    -> advancement frames / Gestalt / prestige / archetype / faith
-    -> dependency plan
-    -> deterministic evaluation
-    -> CharacterSnapshot
-        │
-        ▼
-pcgen-output / pcgen-cli
+pcgen-import  →  pcgen-ir  →  pcgen-transpile  →  规范化 pack 目录
+  .pcc graph      lower         转写 + 持久化        manifest.json
+  .lst tokenize   Raw→IR                            *.jsonl（一记录一行）
 ```
 
-`pcgen-engine` 的生产依赖为 `pcgen-core` / `pcgen-formula` / `pcgen-ir`；
-`pcgen-import` 只作为文件格式层，通过 `pcgen-ir` 进入运行时。
+**运行期**（每次启动）：
+
+```text
+规范化 pack 目录  →  pcgen-transpile::read_pack  →  pcgen-core::CompiledRulePack
+                        （只做反序列化，不解析 PCGen 文本）
+                                │
+                                ▼
+                         pcgen-engine  →  CharacterSnapshot  →  pcgen-output / pcgen-cli
+```
+
+依赖方向：
+
+```text
+pcgen-import  →  pcgen-ir  →  pcgen-core  ←  pcgen-engine
+```
+
+`pcgen-engine` 的生产依赖只有 `pcgen-core` / `pcgen-formula`——**不含
+`pcgen-ir`**。这是把 `CompiledPackHeader` / `CompiledRulePack` / `ImportReport`
+三个类型从 `pcgen-ir` 移到 `pcgen-core` 换来的：引擎依赖的是**数据的形状**，
+不是 PCGen 翻译器。`pcgen-ir` 仍 `pub use` 这三个类型，因为 lowering 会产出它们。
+
+`pcgen-ir` 在 `pcgen-engine` 里只作为 **dev-dependency** 存在（测试需要
+lowering 来搭 fixture）；架构守卫读的是 `cargo tree -e normal`，因此这条区分是
+真实生效的。
 
 ### 2.1 公式词汇表：引擎不解释 PCGen 语法
 

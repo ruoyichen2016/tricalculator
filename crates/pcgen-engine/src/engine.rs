@@ -5,11 +5,11 @@ use crate::effects::apply_effects;
 use crate::progression::ClassProgress;
 use crate::snapshot::CharacterSnapshot;
 use pcgen_core::domain::{ClassDefinition, EquipmentDefinition, RaceDefinition};
+use pcgen_core::CompiledRulePack;
 use pcgen_core::{
     evaluate_faith, plan_gestalt, AdvancementLane, DivineTrack, FaithPolicy, GestaltPolicy, LaneId,
     SaveKind, VariantDefinition,
 };
-use pcgen_ir::CompiledRulePack;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 type SpellcastingMaps = (

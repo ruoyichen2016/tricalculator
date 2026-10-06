@@ -6,11 +6,11 @@
 
 use crate::draft::{CharacterDraft, DraftClassLevel};
 use pcgen_core::progression::SaveKind;
+use pcgen_core::CompiledRulePack;
 use pcgen_core::{CastingType, SpellPowerType};
 use pcgen_core::{ChoiceKind, EntityCategory};
 use pcgen_core::{CompiledEntity, EffectAction, EntityId, ModifierOperation, Predicate};
 use pcgen_formula::{Value as FormulaValue, VariableResolver};
-use pcgen_ir::CompiledRulePack;
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Debug, Clone, PartialEq, Eq)]

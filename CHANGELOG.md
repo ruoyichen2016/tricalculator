@@ -1,5 +1,47 @@
 ## Unreleased
 
+### 重构：运行期不再解析 PCGen 文本；引擎不再依赖 pcgen-ir
+
+`write_pack` 现在写出**整个** pack（职业域用规范化记录，其余域按域写成
+`*.jsonl`，一记录一行），`read_pack` 只做反序列化、**不调用任何 lowering**，
+重组出完整的 `CompiledRulePack`。新增 CLI：`transpile`（构建期写 pack）与
+`pack-info`（运行期读 pack）。
+
+**分层**：`CompiledPackHeader` / `CompiledRulePack` / `ImportReport` 从
+`pcgen-ir` 移到 `pcgen-core`（其余域类型本来就在那里）。引擎的三处引用改为
+`pcgen_core::CompiledRulePack`，`pcgen-ir` 从生产依赖中移除，仅保留为
+dev-dependency（测试搭 fixture 需要 lowering）。
+
+```text
+之前：pcgen-engine → pcgen-ir（含 .lst 解析器）
+现在：pcgen-engine → pcgen-core（纯数据）
+      pcgen-import → pcgen-ir → pcgen-core
+```
+
+守卫从 `check_present pcgen-engine pcgen-ir` 翻转为 `check_absent`，
+并新增 `check_present pcgen-engine pcgen-core`。
+
+**诚实说明：性能收益很小，我原先的假设基本是错的。**
+
+| release，RSRD basics | 值 |
+|---|---|
+| 转写（构建期，一次性） | 0.80 s |
+| 从 `.pcc` 编译（旧运行期） | 0.305 s |
+| 从 pack 目录加载（新运行期） | 0.215 s |
+| **启动加速** | **1.42x** |
+
+预期"每次加载省下 6 秒"不成立：编译本来就只要 0.305 s，而加载 24.8 MB JSON
+要 0.215 s，JSON 解析吃掉了大部分收益（debug 构建下更是 1.0x）。因此本项的
+价值是**架构性的**：运行期不再解释 PCGen 文本（数据解释错误从"每次启动静默
+发生"变为"构建期一次、可 diff"）、引擎只依赖数据形状、加载即校验真正成为
+唯一入口。若要更快的加载，方向是更快的序列化格式，而非回到运行期解析。
+
+**验收**：`tests=374 failed=0`、coverage `pass=15 fail=0`、three-way
+`0 regression / 0 divergence`、PF35e gate 通过、架构检查通过。
+新增整包等价性测试：编译直出 vs 写盘再读，比较**所有域**（实体逐一比对，
+不只计数）与 10 组职业×等级的引擎输出。
+
+
 ### 重构：PCGen 公式语法移出引擎，架构守卫加严
 
 `scripts/check_architecture.sh` 的依赖检查是**语法性**的——它找 `.pcc` / `.lst`

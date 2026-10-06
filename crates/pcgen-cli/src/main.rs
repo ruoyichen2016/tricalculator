@@ -29,6 +29,25 @@ struct Cli {
 enum Command {
     /// Render a built-in Gestalt demo snapshot.
     Demo,
+    /// Write a `.pcc` campaign to a normalised pack directory (build step).
+    ///
+    /// This is the expensive half: it interprets the PCGen data once and
+    /// persists the result.  `pack-info` then loads that directory without
+    /// interpreting any PCGen text.
+    Transpile {
+        #[arg(long)]
+        pcc: PathBuf,
+        /// Directory to write the pack into.
+        #[arg(long)]
+        out: PathBuf,
+    },
+    /// Load a persisted pack directory and report what it holds.
+    PackInfo {
+        #[arg(long)]
+        pack: PathBuf,
+        #[arg(long)]
+        json: bool,
+    },
     /// Load a real `.pcc` graph and print raw import coverage.
     ImportReport {
         pcc: PathBuf,
@@ -524,6 +543,58 @@ fn main() -> Result<()> {
             let engine = demo_engine();
             let snapshot = engine.evaluate(&demo_draft());
             print!("{}", render_text(&snapshot));
+        }
+        Command::Transpile { pcc, out } => {
+            let loaded = pcgen_import::load_pcc(&pcc)
+                .with_context(|| format!("failed to import {}", pcc.display()))?;
+            let patched = pcgen_import::apply_record_patches(&loaded.records);
+            let (pack, _) =
+                compile_pcc(&pcc).with_context(|| format!("failed to import {}", pcc.display()))?;
+            let manifest =
+                pcgen_transpile::write_pack(&out, &pack, &patched, &pcc.display().to_string())
+                    .with_context(|| format!("failed to write pack to {}", out.display()))?;
+            println!(
+                "wrote pack `{}` to {} (format {})",
+                manifest.name,
+                out.display(),
+                manifest.format
+            );
+            for (kind, count) in &manifest.counts {
+                println!("  {kind:12} {count}");
+            }
+        }
+        Command::PackInfo { pack, json } => {
+            let loaded = pcgen_transpile::read_pack(&pack)
+                .with_context(|| format!("failed to load pack {}", pack.display()))?;
+            let runtime = &loaded.pack;
+            if json {
+                let value = serde_json::json!({
+                    "manifest": loaded.manifest,
+                    "entities": runtime.entities.len(),
+                    "classes": runtime.classes.len(),
+                    "races": runtime.races.len(),
+                    "spells": runtime.spells.len(),
+                    "abilities": runtime.abilities.len(),
+                    "equipment": runtime.equipment.len(),
+                    "variants": runtime.variants.len(),
+                    "warnings": loaded.warnings.len(),
+                });
+                println!("{}", serde_json::to_string_pretty(&value)?);
+            } else {
+                println!(
+                    "pack      {} (format {})",
+                    loaded.manifest.name, loaded.manifest.format
+                );
+                println!("source    {}", loaded.manifest.source.entry);
+                println!("entities  {}", runtime.entities.len());
+                println!("classes   {}", runtime.classes.len());
+                println!("races     {}", runtime.races.len());
+                println!("spells    {}", runtime.spells.len());
+                println!("abilities {}", runtime.abilities.len());
+                println!("equipment {}", runtime.equipment.len());
+                println!("variants  {}", runtime.variants.len());
+                println!("warnings  {}", loaded.warnings.len());
+            }
         }
         Command::ImportReport {
             pcc,

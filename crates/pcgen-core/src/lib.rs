@@ -12,6 +12,9 @@ pub mod equipment;
 pub mod faith;
 pub mod fingerprint;
 pub mod formula_vocab;
+pub mod pack;
+
+pub use pack::{CompiledPackHeader, CompiledRulePack, ImportReport};
 pub mod gestalt;
 pub mod identity;
 pub mod progression;

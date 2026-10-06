@@ -10,20 +10,21 @@
 //! agree before dropping the formula.
 
 use crate::format::{ClassLevelRecord, ClassRecord, GrantMode, GrantRecord, VariantRecord};
-use crate::pack::LoadedPack;
 use pcgen_core::{ClassDefinition, ClassProgression, VariantDefinition};
 use std::collections::BTreeMap;
 
-/// Rebuild the class, progression and variant maps from a loaded pack.
+/// Rebuild the class, progression and variant maps from normalised records.
 pub fn definitions(
-    loaded: &LoadedPack,
+    class_records: &[ClassRecord],
+    class_levels: &[ClassLevelRecord],
+    variant_records: &[VariantRecord],
 ) -> (
     BTreeMap<String, ClassDefinition>,
     BTreeMap<String, ClassProgression>,
     BTreeMap<String, VariantDefinition>,
 ) {
     let mut grants_by_class: BTreeMap<&str, BTreeMap<u32, Vec<GrantRecord>>> = BTreeMap::new();
-    for level in &loaded.class_levels {
+    for level in class_levels {
         grants_by_class
             .entry(level.class.as_str())
             .or_default()
@@ -34,7 +35,7 @@ pub fn definitions(
 
     let mut classes = BTreeMap::new();
     let mut progressions = BTreeMap::new();
-    for record in &loaded.classes {
+    for record in class_records {
         let grants = grants_by_class
             .remove(record.id.as_str())
             .unwrap_or_default();
@@ -42,24 +43,12 @@ pub fn definitions(
         progressions.insert(record.id.clone(), progression(record, &grants));
     }
 
-    let variants = loaded
-        .variants
+    let variants = variant_records
         .iter()
         .map(|record| (record.id.clone(), variant_definition(record)))
         .collect();
 
     (classes, progressions, variants)
-}
-
-/// Replace the class domain of `pack` with the loaded one.
-///
-/// Everything outside the class domain is untouched, so an equivalence test
-/// isolates the format rather than the rest of the pipeline.
-pub fn apply_to_pack(pack: &mut pcgen_ir::rulepack::CompiledRulePack, loaded: &LoadedPack) {
-    let (classes, progressions, variants) = definitions(loaded);
-    pack.classes = classes;
-    pack.progressions = progressions;
-    pack.variants = variants;
 }
 
 fn class_definition(
@@ -147,10 +136,6 @@ fn render_grant(grant: &GrantRecord) -> String {
 }
 
 /// Level rows for a class, for callers that want them grouped.
-pub fn levels_for<'a>(loaded: &'a LoadedPack, class: &str) -> Vec<&'a ClassLevelRecord> {
-    loaded
-        .class_levels
-        .iter()
-        .filter(|level| level.class == class)
-        .collect()
+pub fn levels_for<'a>(levels: &'a [ClassLevelRecord], class: &str) -> Vec<&'a ClassLevelRecord> {
+    levels.iter().filter(|level| level.class == class).collect()
 }

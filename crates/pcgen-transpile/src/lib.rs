@@ -18,5 +18,5 @@ pub use format::{
     ReplaceRecord, SourceInfo, VariantGrantRecord, VariantRecord, FORMAT_VERSION,
 };
 pub use pack::{read_pack, write_pack, LoadedPack};
-pub use reconstruct::{apply_to_pack, definitions};
+pub use reconstruct::{definitions, levels_for};
 pub use transpile::{transpile, transpile_pack, TranspileError, TranspiledPack, TRANSPILER};

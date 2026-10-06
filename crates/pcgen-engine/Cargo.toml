@@ -9,10 +9,13 @@ serde.workspace = true
 thiserror.workspace = true
 pcgen-core = { path = "../pcgen-core" }
 pcgen-formula = { path = "../pcgen-formula" }
-pcgen-ir = { path = "../pcgen-ir" }
 regex.workspace = true
 
 [dev-dependencies]
 # `snapshot_summary.rs` is a loader + engine integration test and needs the
 # `.pcc` loader from the compatibility layer.  Production code must not.
 pcgen-import = { path = "../pcgen-import" }
+# Fixtures are built by lowering raw records.  Dev-only on purpose: the
+# layering check reads the production tree, and production code must not
+# reach for the PCGen translator.
+pcgen-ir = { path = "../pcgen-ir" }

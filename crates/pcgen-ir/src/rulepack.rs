@@ -1,95 +1,16 @@
 //! Lowering of raw records into the runtime `CompiledRulePack`.
 
+pub use pcgen_core::pack::{CompiledPackHeader, CompiledRulePack, ImportReport};
+
 use crate::patches::PatchOperation;
 use crate::source::RawRecord;
 use crate::typed::{build_typed_definitions, parse_creature_traits};
-use pcgen_core::domain::{
-    ClassDefinition, ClassProgression, DeityDefinition, DomainDefinition, EquipmentDefinition,
-    EquipmentModifierDefinition, RaceDefinition, SkillDefinition, SpellDefinition, SpellPowerType,
-    TemplateDefinition,
-};
+use pcgen_core::domain::SpellPowerType;
 use pcgen_core::{
     CompiledEntity, Effect, EffectAction, EffectPhase, EntityId, Modifier, ModifierOperation,
     Predicate, Provenance, Rational, RuleCoverage, TemporaryValue, TypedDefinitions,
 };
-use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
-
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CompiledPackHeader {
-    #[serde(default)]
-    pub game_mode: Option<String>,
-    #[serde(default)]
-    pub sources: Vec<String>,
-    /// Deterministic fingerprint of the pack's runtime semantics.
-    #[serde(default)]
-    pub rules_fingerprint: String,
-    /// Upstream PCGen data revision the pack was built from, when known.
-    #[serde(default)]
-    pub data_ref: Option<String>,
-}
-
-/// Runtime-facing rule pack.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct CompiledRulePack {
-    pub header: CompiledPackHeader,
-    pub entities: Vec<CompiledEntity>,
-    pub coverage: RuleCoverage,
-    #[serde(default)]
-    pub races: std::collections::BTreeMap<String, RaceDefinition>,
-    #[serde(default)]
-    pub classes: std::collections::BTreeMap<String, ClassDefinition>,
-    #[serde(default)]
-    pub skills: std::collections::BTreeMap<String, SkillDefinition>,
-    #[serde(default)]
-    pub spells: std::collections::BTreeMap<String, SpellDefinition>,
-    #[serde(default)]
-    pub equipment: std::collections::BTreeMap<String, EquipmentDefinition>,
-    #[serde(default)]
-    pub equipment_modifiers: std::collections::BTreeMap<String, EquipmentModifierDefinition>,
-    #[serde(default)]
-    pub deities: std::collections::BTreeMap<String, DeityDefinition>,
-    #[serde(default)]
-    pub domains: std::collections::BTreeMap<String, DomainDefinition>,
-    #[serde(default)]
-    pub variants: std::collections::BTreeMap<String, pcgen_core::VariantDefinition>,
-    #[serde(default)]
-    pub kits: std::collections::BTreeMap<String, pcgen_core::KitDefinition>,
-    #[serde(default)]
-    pub templates: std::collections::BTreeMap<String, TemplateDefinition>,
-    #[serde(default)]
-    pub abilities: std::collections::BTreeMap<String, pcgen_core::AbilityDefinition>,
-    #[serde(default)]
-    pub ability_categories:
-        std::collections::BTreeMap<String, pcgen_core::AbilityCategoryDefinition>,
-    #[serde(default)]
-    pub creature_trait_records: std::collections::BTreeMap<String, pcgen_core::CreatureTraits>,
-    #[serde(default)]
-    pub companion_mods: std::collections::BTreeMap<String, Vec<pcgen_core::CompanionModDefinition>>,
-    #[serde(default)]
-    pub sizes: std::collections::BTreeMap<String, pcgen_core::SizeDefinition>,
-    #[serde(default)]
-    pub stats: std::collections::BTreeMap<String, pcgen_core::StatDefinition>,
-    #[serde(default)]
-    pub alignments: std::collections::BTreeMap<String, pcgen_core::AlignmentDefinition>,
-    #[serde(default)]
-    pub progressions: std::collections::BTreeMap<String, ClassProgression>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ImportReport {
-    pub coverage: RuleCoverage,
-    pub patch_operations: usize,
-    pub diagnostics: usize,
-    pub error_diagnostics: usize,
-    /// Executable effects attached to `SPELL` / `POWER` / `DOMAIN`
-    /// definitions.
-    #[serde(default)]
-    pub spell_effects: usize,
-    /// Executable effects attached to `POWER` definitions.
-    #[serde(default)]
-    pub psionic_effects: usize,
-}
 
 /// Lower records into the runtime IR.
 ///

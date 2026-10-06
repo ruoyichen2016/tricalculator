@@ -16,8 +16,8 @@ use crate::engine::{effective_class_levels, evaluate_class_formula, stat_modifie
 use crate::progression::ClassProgress;
 use pcgen_core::domain::ClassDefinition;
 use pcgen_core::gestalt::{plan_gestalt, ClassProgressSource};
+use pcgen_core::CompiledRulePack;
 use pcgen_core::{EntityCategory, GestaltPolicy, SaveKind};
-use pcgen_ir::CompiledRulePack;
 use std::collections::BTreeMap;
 
 /// Final displayed BAB: class progression/formula + external BASEAB modifiers.

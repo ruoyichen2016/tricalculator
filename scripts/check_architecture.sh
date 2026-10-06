@@ -3,10 +3,12 @@
 #
 # Enforces the dependency direction documented in ARCHITECTURE.md:
 #
-#     pcgen-import  ->  pcgen-ir  <-  pcgen-engine
+#     pcgen-import  ->  pcgen-ir  ->  pcgen-core  <-  pcgen-engine
 #
 # 1. pcgen-engine must not depend on pcgen-import in production code.
 # 2. pcgen-ir must not depend on pcgen-import (no cycle).
+# 2b. pcgen-engine must not depend on pcgen-ir: the runtime reads persisted
+#     data, and the PCGen translator is a build-time concern.
 #
 # `cargo tree -e normal` excludes dev/build dependencies.
 set -euo pipefail
@@ -47,7 +49,12 @@ check_present() {
 
 check_absent pcgen-engine pcgen-import
 check_absent pcgen-ir pcgen-import
-check_present pcgen-engine pcgen-ir
+# The engine reads the runtime data shape (pcgen_core::CompiledRulePack) and
+# must not depend on the PCGen translator.  It used to: `CompiledRulePack`
+# lived in pcgen-ir, so every engine build pulled in the .lst parser.  Moving
+# the pack types to pcgen-core is what lets this check exist.
+check_absent pcgen-engine pcgen-ir
+check_present pcgen-engine pcgen-core
 check_present pcgen-import pcgen-ir
 
 # 3. Engine source must not branch on raw PCGen category strings; use
