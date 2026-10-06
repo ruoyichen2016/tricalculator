@@ -638,7 +638,12 @@ def main(argv: list[str] | None = None) -> int:
                     # following level rows from the real class); with that fixed
                     # the two pseudo-classes in this dataset are gone.  The real
                     # class inventory is unchanged.
-                    "classes": (">=", 43),
+                    #
+                    # 43 -> 42: a `.lst` file's own `SOURCELONG:...` header was
+                    # taken for a class header, inventing a class named after
+                    # the source line.  Recognising file metadata as metadata
+                    # removed it.  Again the real inventory is unchanged.
+                    "classes": (">=", 42),
                     "skills": (">=", 90),
                     "spells": (">=", 500),
                     "equipment": (">=", 400),
@@ -646,7 +651,8 @@ def main(argv: list[str] | None = None) -> int:
                     "deities": (">=", 2),
                     "domains": (">=", 20),
                     "spell_effects": (">=", 10),
-                    "progressions": (">=", 43),
+                    # Tracks the class count above; see that note.
+                    "progressions": (">=", 42),
                 },
                 zero_tags=[
                     "PREVARNEQ",

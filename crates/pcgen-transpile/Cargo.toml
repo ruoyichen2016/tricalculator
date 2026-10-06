@@ -1,0 +1,15 @@
+[package]
+name = "pcgen-transpile"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Build-time transpiler: PCGen rule packs to the normalised on-disk format."
+
+[dependencies]
+pcgen-core = { path = "../pcgen-core" }
+pcgen-ir = { path = "../pcgen-ir" }
+pcgen-import = { path = "../pcgen-import" }
+pcgen-engine = { path = "../pcgen-engine" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true

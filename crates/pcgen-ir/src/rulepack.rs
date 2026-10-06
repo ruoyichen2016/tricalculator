@@ -122,8 +122,8 @@ pub fn lower_records(
             current_class = Some(record.key.clone());
         }
         let (effective_category, effective_key) =
-            if category == "CLASS" && record.name.trim().parse::<u32>().is_ok() {
-                let level = record.name.trim();
+            if category == "CLASS" && crate::typed::class_level_of_name(&record.name).is_some() {
+                let level = record.name.trim().split(':').next().unwrap_or("").trim();
                 (
                     "CLASS_LEVEL".to_string(),
                     format!("{}#{level}", current_class.as_deref().unwrap_or("?")),

@@ -1,5 +1,55 @@
 ## Unreleased
 
+### 新增：规范化数据格式（阶段 1：职业域）
+
+按 `docs/DATA_FORMAT.md` 的设计实现阶段 1，新增 crate `pcgen-transpile`：
+`format`（记录类型）、`transpile`（转写器）、`pack`（读写 + 加载期校验）、
+`reconstruct`（还原为运行时定义）。
+
+设计动机：本项目几乎全部缺陷都落在"PCGen 用约定隐含语义、运行时再去还原"这条
+边界上（游标劫持两次、`CATEGORY:ACF` 不识别、`REPLACES` 匹配不上、逗号列表未拆分）。
+规范化格式把这些事实**写成结构**：每条记录自述种类与归属（无游标可劫持）、
+无修改记录、一概念一写法、进阶用**表**而非公式字符串、等级是字段、带溯源、加载即校验。
+
+**验收（阶段 1 的三个问题）**：
+
+- 等价性：`tests/equivalence.rs` 两条测试通过——职业域逐字段往返一致；
+  10 组职业×等级的引擎输出（BAB/豁免/HP/法术位/激活能力/驱散/反射闪避/专长槽）
+  **完全一致**。全量门禁 `tests=365 failed=0`、coverage `pass=15 fail=0`、
+  three-way `0 regression / 0 divergence`、PF35e gate 通过；
+- 输出可审查：JSONL，一记录一行，按类型分文件。
+
+### 修复：加载期校验立刻发现的两个既有导入缺陷
+
+校验一上线就拒绝了 RSRD 包，追查后是两个**门禁此前没发现**的缺陷：
+
+- **`N:REPEATLEVEL:M` 被当作职业头**：`14:REPEATLEVEL:4` 变成了名为
+  `14:REPEATLEVEL:4` 的"职业"，而这些等级行自己的效果脱离任何职业。RSRD 有 2 个；
+- **`.lst` 文件头被当作职业头**：`SOURCELONG:Revised (v.3.5) ...` 变成"职业"。
+  RSRD 1 个、DS-3E 1 个。
+
+修复后 **RSRD 职业数 64 → 61**、**DS-3E 43 → 42**，而实体数（15761）与
+lowered_effects（8196）**不变**——没有丢数据，只是不再凭空造职业。
+两处修复都落在**共用谓词**（`class_level_of_name` / `is_file_metadata_row`）上，
+两遍 lowering 同时受益，避免重复此前"只修一份"的错误。
+DS-3E 的 `classes` / `progressions` 下限相应 43 → 42，理由写在 gate 内联注释。
+
+**一条被证伪的校验规则**：最初把"职业必须至少有一个等级行"写成硬校验，
+实测有两类合法例外——怪物（种族 HD）职业（RSRD 27 个）与隐藏的法术列表载体
+（如 `Sorcerer/Cleric (Arcane)`，`VISIBLE:NO`），而 `ClassDefinition` 无可见性字段
+无法区分，故**降级为诊断警告**而非伪装成会误报的硬规则。
+
+**转写器自身的两处保真缺陷**（由等价性测试暴露并修复）：
+`levels_per_feat` 等字段丢失（导致战士 1 级专长槽 1 → 2），改为整体携带
+`ClassProgression`；非替换类守卫（如 `PRECLASS:1,Ex Paladin=3`）被丢弃，现与
+结构化锚点分开携带。另单独携带 `unless_category`——术士魔宠守卫在
+`Special Ability` 池、法师在 `ACF` 池，硬编码任一都会错。
+
+**阶段 1 边界（诚实声明）**：仅职业域规范化；`ClassDefinition` 其余字段原样携带，
+仍含 PCGen 约定；`guards` 仍是字符串；转写器复用 `pcgen-ir` 现有翻译，
+因此那 3,252 行**并未删除**，只是从"每次加载"变为"构建期一次"——删除属阶段 3。
+
+
 ### 扩展：扫描新增两条不变式，并把"孤儿行"的假设变成已核对的事实
 
 在既有游标劫持检查之上扩展：

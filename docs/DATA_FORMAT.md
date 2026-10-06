@@ -357,3 +357,83 @@ packs/rsrd-basics/
 3. 加载期校验能否**替代** `tree_scan` 的扫描（即"加载即拒绝"）？
 
 若三个都"是"，阶段 2 是重复劳动；若否，代价可控。
+
+---
+
+## 10. 阶段 1 实施结果（已完成）
+
+实现位于 `crates/pcgen-transpile`：`format`（记录类型）、`transpile`（转写）、
+`pack`（读写 + 校验）、`reconstruct`（还原为运行时定义）。
+
+### 10.1 三个关键问题的答案
+
+**问题 1：规范化后的数据能否通过全部现有验收？——能。**
+
+等价性测试 `tests/equivalence.rs` 两条：
+
+| 测试 | 内容 | 结果 |
+|---|---|---|
+| `class_domain_round_trips` | 职业域逐字段往返一致 | ✅ |
+| `engine_output_is_unchanged` | 10 组职业×等级的引擎输出（BAB/豁免/HP/法术位/激活能力/驱散/反射闪避/专长槽）完全一致 | ✅ |
+
+全量门禁：`tests=365 failed=0`、`coverage gate pass=15 fail=0`、
+`three-way differential 0 regression / 0 divergence`、PF35e gate 通过。
+
+**问题 2：输出 diff 是否可审查？——是。** JSONL 一记录一行，按类型分文件。
+
+**问题 3：加载期校验能否替代扫描？——能，而且立刻见效（见 10.2）。**
+
+### 10.2 加载期校验立刻发现两个真实缺陷
+
+这是本次实施最有价值的产出。校验一上线就拒绝了 RSRD 包，追查后是两个
+**既有的、门禁没发现的**导入缺陷：
+
+| 缺陷 | 现象 | 影响 |
+|---|---|---|
+| **`N:REPEATLEVEL:M` 被当作职业头** | `14:REPEATLEVEL:4` 变成名为 `14:REPEATLEVEL:4` 的"职业" | RSRD 2 个、另有 3e 若干；这些等级行自己的效果脱离任何职业 |
+| **`.lst` 文件头被当作职业头** | `SOURCELONG:Revised (v.3.5) ...` 变成"职业" | RSRD 1 个、DS-3E 1 个 |
+
+修复后：**RSRD 职业数 64 → 61**、**DS-3E 43 → 42**，实体数与 lowered_effects **不变**
+（15761 / 8196）——即没有丢数据，只是不再凭空造职业。
+
+两个修复都用**共用谓词**（`class_level_of_name` / `is_file_metadata_row`），
+两遍 lowering 同时受益，避免再次"只修一份"。
+
+DS-3E 的 `classes` / `progressions` 下限相应从 43 降到 42，理由写在
+`coverage_gate.py` 内联注释里（沿用此前 45→43 的写法）。
+
+### 10.3 一条被证伪的校验规则
+
+我最初把"职业必须至少有一个等级行"写成硬校验。实测发现它**有两类合法例外**：
+
+- **怪物（种族 HD）职业**：RSRD 有 27 个，进度来自 hit dice 而非 `CLASS:` 等级行；
+- **隐藏的法术列表载体职业**：如 `Sorcerer/Cleric (Arcane)`（`VISIBLE:NO`），
+  只用来挂法术列表。
+
+而 `ClassDefinition` **没有可见性字段**，无法区分。因此该规则**降级为诊断警告**
+（`LoadedPack.warnings`），而不是伪装成一条会误报的硬规则。阶段 2 补上可见性字段后
+可以再提升为错误。
+
+### 10.4 转写期发现并修正的两处保真问题
+
+等价性测试暴露了两个转写器自身的缺陷，都已修复：
+
+- **`levels_per_feat` 等字段丢失**：`ClassRecord` 最初只挑选了部分字段，
+  丢掉 `levels_per_feat` 直接导致战士 1 级的专长槽从 1 变 2。
+  改为**整体携带 `ClassProgression`**；
+- **非替换类守卫被丢弃**：`PRECLASS:1,Ex Paladin=3` 这类守卫不是替换锚点，
+  最初被丢掉。现在 `unless_replaced`（结构化锚点）与 `guards`（其余守卫，逐字保留，
+  阶段 2 结构化）分开携带。
+
+另外 `unless_category` 单独携带：术士的魔宠守卫在 `Special Ability` 池，
+法师的在 `ACF` 池，硬编码任一都会错。
+
+### 10.5 阶段 1 的边界（诚实声明）
+
+- 只有**职业域**规范化：`class` / `class_level` / `variant`。
+  `ClassDefinition` 的其余字段（`level_bonuses`、`prohibited_spells`、
+  `spell_levels` …）**原样携带，仍含 PCGen 约定**，阶段 2 展开；
+- `guards` 中的非替换守卫仍是**字符串**，未结构化为表达式（R5 部分满足：
+  进阶公式已消除，谓词未）；
+- 转写器**复用** `pcgen-ir` 的现有翻译，因此阶段 1 并未删除那 3,252 行——
+  只是把它的运行时机从"每次加载"变成"构建期一次"。删除是阶段 3。

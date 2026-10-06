@@ -2777,7 +2777,7 @@ fn class_formula_regexes() -> &'static (regex::Regex, regex::Regex, regex::Regex
     })
 }
 
-pub(crate) fn evaluate_class_formula(
+pub fn evaluate_class_formula(
     formula: &str,
     class_level: u32,
     total_level: u32,

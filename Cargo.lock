@@ -491,6 +491,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "pcgen-transpile"
+version = "0.1.0"
+dependencies = [
+ "pcgen-core",
+ "pcgen-engine",
+ "pcgen-import",
+ "pcgen-ir",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "pcgen-web"
 version = "0.1.0"
 dependencies = [

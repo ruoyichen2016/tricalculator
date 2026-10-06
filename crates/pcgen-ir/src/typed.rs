@@ -65,7 +65,7 @@ pub fn build_typed_definitions(records: &[RawRecord]) -> TypedDefinitions {
                 if is_class_specialty_row(&record.name) {
                     continue;
                 }
-                if record.name.trim().parse::<u32>().is_ok() {
+                if class_level_of_name(&record.name).is_some() {
                     if let Some(class_id) = &current_class {
                         if let Some(class) = typed.classes.get_mut(class_id) {
                             parse_class_level_row(class, record);
@@ -363,16 +363,53 @@ fn parse_race(record: &RawRecord) -> RaceDefinition {
 /// passes differ there deliberately: `rulepack` ignores such rows as headers,
 /// while the typed pass keeps a stray `.MOD` (one with no base to merge into)
 /// so its source is not silently dropped.
+/// The class level a record names, if it is a level row.
+///
+/// Level rows are written `1`, but the RSRD also uses `14:REPEATLEVEL:4` to
+/// mean "level 14, repeating every four levels".  That form was previously
+/// taken for a class header, which invented classes called `14:REPEATLEVEL:4`
+/// and detached the row's own effects from any class.
+///
+/// Returns `None` for anything that is not a level row, including the
+/// `SUBCLASSLEVEL:` / `SUBSTITUTIONLEVEL:` refinements, whose first field also
+/// starts with digits-free text.
+pub fn class_level_of_name(name: &str) -> Option<u32> {
+    let name = name.trim();
+    if let Ok(level) = name.parse::<u32>() {
+        return Some(level);
+    }
+    // `N:REPEATLEVEL:M`
+    let (head, tail) = name.split_once(':')?;
+    if !tail.to_ascii_uppercase().starts_with("REPEATLEVEL:") {
+        return None;
+    }
+    head.trim().parse::<u32>().ok()
+}
+
+/// True for a `.lst` file's own metadata header.
+///
+/// The first line of a data file is `SOURCELONG:...\tSOURCESHORT:...`, which is
+/// file-scoped provenance rather than a record.  With no other field to name
+/// it, the line's name became `SOURCELONG:Revised (v.3.5) ...`, and a class
+/// was invented under that name.
+pub fn is_file_metadata_row(record: &RawRecord) -> bool {
+    let upper = record.name.trim().to_ascii_uppercase();
+    ["SOURCELONG:", "SOURCESHORT:", "SOURCEWEB:", "SOURCEDATE:"]
+        .iter()
+        .any(|prefix| upper.starts_with(prefix))
+}
+
 pub fn is_class_header_row(record: &RawRecord) -> bool {
     if !record.category.eq_ignore_ascii_case("CLASS") {
         return false;
     }
     let name = record.name.trim();
     !name.is_empty()
-        && name.parse::<u32>().is_err()
+        && class_level_of_name(name).is_none()
         && !name.starts_with("SUBSTITUTIONCLASS:")
         && !name.starts_with("SUBSTITUTIONLEVEL:")
         && !is_class_specialty_row(name)
+        && !is_file_metadata_row(record)
 }
 
 pub fn is_class_specialty_row(name: &str) -> bool {

@@ -9,6 +9,7 @@ members = [
     "crates/pcgen-builder",
     "crates/pcgen-output",
     "crates/pcgen-cli",
+    "crates/pcgen-transpile",
     "crates/pcgen-web",
 ]
 
