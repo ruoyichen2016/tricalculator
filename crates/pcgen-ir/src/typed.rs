@@ -363,7 +363,7 @@ fn parse_race(record: &RawRecord) -> RaceDefinition {
 /// passes differ there deliberately: `rulepack` ignores such rows as headers,
 /// while the typed pass keeps a stray `.MOD` (one with no base to merge into)
 /// so its source is not silently dropped.
-pub(crate) fn is_class_header_row(record: &RawRecord) -> bool {
+pub fn is_class_header_row(record: &RawRecord) -> bool {
     if !record.category.eq_ignore_ascii_case("CLASS") {
         return false;
     }
@@ -375,7 +375,7 @@ pub(crate) fn is_class_header_row(record: &RawRecord) -> bool {
         && !is_class_specialty_row(name)
 }
 
-pub(crate) fn is_class_specialty_row(name: &str) -> bool {
+pub fn is_class_specialty_row(name: &str) -> bool {
     let name = name.trim();
     let upper = name.to_ascii_uppercase();
     upper.starts_with("SUBCLASS:")

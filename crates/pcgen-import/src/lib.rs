@@ -31,6 +31,7 @@ pub use pcgen_ir::rulepack::{
 pub use pcgen_ir::source::{RawRecord, RawTag, SourceRef};
 pub use pcgen_ir::tags::{is_known_tag, is_name_prefix_tag};
 pub use pcgen_ir::typed::build_typed_definitions;
+pub use pcgen_ir::typed::{is_class_header_row, is_class_specialty_row};
 
 pub use loader::{compile_pcc, load_pcc, ImportError, LoadedPcc};
 pub use pcc::{PccDataFile, PccError, PccFile, PccGraph, PccInclude};

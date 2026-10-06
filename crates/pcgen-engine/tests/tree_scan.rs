@@ -111,11 +111,17 @@ enum Kind {
     /// The cursor held a name that is not a class at all — a `SUBCLASS:` or
     /// `SUBSTITUTIONCLASS:` row, say.  This is the bug the scan exists for.
     Hijacked,
-    /// The cursor was empty.  Expected when a file is lowered on its own: many
-    /// books split a class across files, with `.MOD` rows in one and the header
-    /// in another, so the header is simply not in scope here.  Harmless in a
-    /// real pack as long as the base file is loaded.
+    /// The cursor was empty, but the file carries `.MOD` class rows, so its
+    /// base class lives elsewhere.  Expected: many books split a class across
+    /// files, and lowering one on its own cannot see the header.
+    OrphanMod,
+    /// The cursor was empty, the file declares no class, and it carries no
+    /// `.MOD` row either, yet it has level rows.  Those rows can never attach
+    /// to anything.
     Orphan,
+    /// The cursor was empty even though the file *does* declare a class, which
+    /// means the level rows appear before the header that owns them.
+    OrphanDeclared,
 }
 
 /// A level entity key that does not name a declared class.
@@ -155,6 +161,16 @@ fn level_rows_are_always_keyed_by_a_declared_class() {
             }
             scanned += 1;
             let records = records_for(&path, &text);
+            // A `.MOD` row names a class defined elsewhere, so a file that has
+            // one is expected to carry level rows without a header.
+            let has_class_mod_row = records
+                .iter()
+                .any(|record| record.name.contains(".MOD") && !record.name.contains(".COPY="));
+            let declares_class = records.iter().any(|record| {
+                pcgen_import::is_class_header_row(record)
+                    && !record.name.contains(".MOD")
+                    && !record.name.contains(".COPY=")
+            });
             let (pack, _) = lower_records(Some("35e".to_string()), Vec::new(), &records);
 
             let declared: BTreeSet<String> =
@@ -176,7 +192,13 @@ fn level_rows_are_always_keyed_by_a_declared_class() {
                 };
                 if !declared.contains(&normalize_key(class_key)) {
                     let kind = if class_key == "?" {
-                        Kind::Orphan
+                        if has_class_mod_row {
+                            Kind::OrphanMod
+                        } else if declares_class {
+                            Kind::OrphanDeclared
+                        } else {
+                            Kind::Orphan
+                        }
                     } else {
                         Kind::Hijacked
                     };
@@ -202,7 +224,15 @@ fn level_rows_are_always_keyed_by_a_declared_class() {
         .iter()
         .filter(|f| f.kind == Kind::Hijacked)
         .collect();
-    let orphans: Vec<&Finding> = findings.iter().filter(|f| f.kind == Kind::Orphan).collect();
+    let orphans: Vec<&Finding> = findings
+        .iter()
+        .filter(|f| f.kind == Kind::OrphanMod)
+        .collect();
+    let unattached: Vec<&Finding> = findings.iter().filter(|f| f.kind == Kind::Orphan).collect();
+    let out_of_order: Vec<&Finding> = findings
+        .iter()
+        .filter(|f| f.kind == Kind::OrphanDeclared)
+        .collect();
     let hijacked_files: BTreeSet<&str> = hijacked.iter().map(|f| f.file.as_str()).collect();
     let orphan_files: BTreeSet<&str> = orphans.iter().map(|f| f.file.as_str()).collect();
 
@@ -225,7 +255,31 @@ fn level_rows_are_always_keyed_by_a_declared_class() {
         println!("SCAN     {} :: {}", finding.file, finding.key);
     }
     println!();
-    println!("SCAN ORPHAN keys (no header here) : {}", orphans.len());
+    println!(
+        "SCAN UNATTACHED keys (no class at all in file): {}",
+        unattached.len()
+    );
+    println!("SCAN   files affected             : {}", {
+        let set: BTreeSet<&str> = unattached.iter().map(|f| f.file.as_str()).collect();
+        set.len()
+    });
+    for finding in unattached.iter().take(12) {
+        println!("SCAN   {} :: {}", finding.file, finding.key);
+    }
+    println!();
+    println!(
+        "SCAN OUT-OF-ORDER keys (rows before their header): {}",
+        out_of_order.len()
+    );
+    println!("SCAN   files affected             : {}", {
+        let set: BTreeSet<&str> = out_of_order.iter().map(|f| f.file.as_str()).collect();
+        set.len()
+    });
+    for finding in out_of_order.iter().take(12) {
+        println!("SCAN   {} :: {}", finding.file, finding.key);
+    }
+    println!();
+    println!("SCAN ORPHAN keys (.MOD file)      : {}", orphans.len());
     println!("SCAN   distinct keys              : {}", {
         let set: BTreeSet<&str> = orphans.iter().map(|f| f.key.as_str()).collect();
         set.len()
@@ -241,6 +295,76 @@ fn level_rows_are_always_keyed_by_a_declared_class() {
         );
         for path in unreadable.iter().take(10) {
             println!("SCAN   (no levels) {path}");
+        }
+    }
+}
+
+/// Cross-file check: every `.MOD` class row must have a class header somewhere
+/// in the same data tree.
+///
+/// The per-file scan reports level rows that carry no header in their own file,
+/// and explains them as `.MOD` files whose base lives elsewhere.  That is an
+/// assumption until it is checked, and this checks it: a `.MOD` row with no
+/// header anywhere is a modification of a class that does not exist, so its
+/// level rows can never attach to anything.
+///
+/// This pass only tokenizes — no lowering — so it is cheap enough to run over
+/// the whole tree.
+#[test]
+#[ignore = "diagnostic scan over the whole data tree"]
+fn mod_class_rows_have_a_header_somewhere_in_the_tree() {
+    let root = workspace_root();
+    for tree in TREES {
+        let tree_root = root.join(tree);
+        if !tree_root.is_dir() {
+            continue;
+        }
+        let mut headers: BTreeSet<String> = BTreeSet::new();
+        let mut mods: BTreeSet<String> = BTreeSet::new();
+
+        for path in candidate_files(&tree_root) {
+            let Ok(text) = std::fs::read_to_string(&path) else {
+                continue;
+            };
+            for line in tokenize_lst(path.clone(), "scan".to_string(), &text) {
+                // The tokenizer strips a name-prefix tag, so `line.name` is
+                // already the class name; the `CLASS` tag tells us the record
+                // *is* a class rather than a level row.
+                let Some(class_tag) = line.tag("CLASS") else {
+                    continue;
+                };
+                let class_name = class_tag.value.trim();
+                // `CLASS:Rogue.COPY=Rogue (CS)` *declares* `Rogue (CS)` by
+                // copying `Rogue`, so the copy target is a header in its own
+                // right.  Skipping these rows made `Rogue (CS)` look like a
+                // `.MOD` target with no base (Cityscape, 3e).
+                if let Some((_, copy_target)) = class_name.split_once(".COPY=") {
+                    let copy_target = copy_target.trim();
+                    if !copy_target.is_empty() {
+                        headers.insert(normalize_key(copy_target));
+                    }
+                    continue;
+                }
+                if let Some(base) = class_name.strip_suffix(".MOD") {
+                    mods.insert(normalize_key(base));
+                } else if class_name.parse::<u32>().is_err()
+                    && !pcgen_import::is_class_specialty_row(class_name)
+                    && !class_name.starts_with("SUBSTITUTION")
+                {
+                    headers.insert(normalize_key(class_name));
+                }
+            }
+        }
+
+        let dangling: Vec<&String> = mods.difference(&headers).collect();
+        println!(
+            "SCAN2 {tree}: headers={} mod-targets={} dangling={}",
+            headers.len(),
+            mods.len(),
+            dangling.len()
+        );
+        for key in dangling.iter().take(25) {
+            println!("SCAN2   dangling .MOD base: {key}");
         }
     }
 }
