@@ -12,7 +12,6 @@ use pcgen_core::domain::{
     SkillDefinition, SpellDefinition, SpellPowerType, TemplateDefinition, TypedDefinitions,
 };
 use pcgen_core::{EffectPhase, Provenance, VariantDefinition};
-use regex::Regex;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 
@@ -511,7 +510,10 @@ fn parse_class(record: &RawRecord) -> ClassDefinition {
         .and_then(|value| value.parse().ok())
         .unwrap_or(0);
     for bonus in tags(record, "BONUS") {
-        apply_class_bonus(&mut class, bonus);
+        // The owning class is this record's own key, which is what lets `CL`
+        // and `classlevel("APPLIEDAS=NONEPIC")` be resolved here rather than by
+        // the engine.
+        apply_class_bonus(&mut class, bonus, &record.key);
     }
     class
 }
@@ -1072,7 +1074,9 @@ fn parse_substitution_variant(
     )
     .with_line(record.source.line);
     variant.effects = tags(record, "BONUS")
-        .filter_map(|value| crate::rulepack::lower_bonus_effect(value, EffectPhase::Class, &source))
+        .filter_map(|value| {
+            crate::rulepack::lower_bonus_effect(value, EffectPhase::Class, &source, class_id)
+        })
         .collect();
     variant.spellcaster_advance =
         tags(record, "ADD").any(|value| value.to_ascii_uppercase().contains("SPELLCASTER"));
@@ -1429,71 +1433,79 @@ fn build_class_progression(class: &ClassDefinition) -> ClassProgression {
     let max_level = class.max_level.max(1);
     if let Some(formula) = &class.base_attack_formula {
         progression.base_attack_bonus = (1..=max_level)
-            .map(|level| evaluate_class_formula(formula, level))
+            .map(|level| evaluate_class_formula(formula, level, &class.id))
             .collect();
     }
     if let Some(formula) = &class.fortitude_formula {
         progression.fortitude = (1..=max_level)
-            .map(|level| evaluate_class_formula(formula, level))
+            .map(|level| evaluate_class_formula(formula, level, &class.id))
             .collect();
     }
     if let Some(formula) = &class.reflex_formula {
         progression.reflex = (1..=max_level)
-            .map(|level| evaluate_class_formula(formula, level))
+            .map(|level| evaluate_class_formula(formula, level, &class.id))
             .collect();
     }
     if let Some(formula) = &class.will_formula {
         progression.will = (1..=max_level)
-            .map(|level| evaluate_class_formula(formula, level))
+            .map(|level| evaluate_class_formula(formula, level, &class.id))
             .collect();
     }
     progression
 }
 
-fn evaluate_class_formula(formula: &str, level: u32) -> i32 {
-    let mut normalized = formula.to_string();
-    let classlevel = Regex::new(r#"classlevel\s*\(\s*["']?[^"')]*["']?\s*\)"#).unwrap();
-    normalized = classlevel
-        .replace_all(&normalized, level.to_string())
-        .to_string();
-    let var_call = Regex::new(r#"var\s*\(\s*["']?[^"')]+["']?\s*\)"#).unwrap();
-    normalized = var_call.replace_all(&normalized, "0").to_string();
-    let upper = Regex::new(r"\bTL\b").unwrap();
-    normalized = upper
-        .replace_all(&normalized, level.to_string())
-        .to_string();
-    let class_level = Regex::new(r"\bCL\b").unwrap();
-    normalized = class_level
-        .replace_all(&normalized, level.to_string())
-        .to_string();
-    pcgen_formula::evaluate_f64(&normalized, &HashMap::<String, i64>::new())
+/// Evaluate a class progression formula at one class level.
+///
+/// The PCGen dialect is translated first (see
+/// [`pcgen_core::formula_vocab`]), so this is plain arithmetic over the
+/// runtime vocabulary.  The class level stands in for both `ClassLevel_*` and
+/// `CharacterLevel`, which is what the previous PCGen-token version did: at
+/// this point the class level is the only level in scope.
+fn evaluate_class_formula(formula: &str, level: u32, class_id: &str) -> i32 {
+    let normalized = pcgen_core::formula_vocab::normalize_pcgen_formula(formula, Some(class_id));
+    let mut variables: HashMap<String, i64> = HashMap::new();
+    variables.insert(
+        pcgen_core::formula_vocab::class_level_variable(class_id),
+        i64::from(level),
+    );
+    variables.insert(
+        pcgen_core::formula_vocab::CHARACTER_LEVEL.to_string(),
+        i64::from(level),
+    );
+    // `var(...)` references are not resolvable while the tables are built; the
+    // previous version substituted zero for them.
+    pcgen_formula::evaluate_f64(&normalized, &variables)
         .map(|value| value as i32)
         .unwrap_or(0)
 }
 
-fn apply_class_bonus(class: &mut ClassDefinition, bonus: &str) {
+fn apply_class_bonus(class: &mut ClassDefinition, bonus: &str, owner: &str) {
     let parts: Vec<&str> = bonus.split('|').map(str::trim).collect();
     if parts.len() < 3 {
         return;
     }
     if parts[0].eq_ignore_ascii_case("COMBAT") && parts[1].eq_ignore_ascii_case("BASEAB") {
         class.attack_progression = attack_progression_from_text(parts[2]);
-        class.base_attack_formula = Some(parts[2].to_string());
+        class.base_attack_formula = Some(pcgen_core::formula_vocab::normalize_pcgen_formula(
+            parts[2],
+            Some(owner),
+        ));
     } else if parts[0].eq_ignore_ascii_case("SAVE") {
         let progression = save_progression_from_text(parts[2]);
+        let formula = pcgen_core::formula_vocab::normalize_pcgen_formula(parts[2], Some(owner));
         for target in parts[1].split(',') {
             let target = target.trim().to_ascii_lowercase();
             if target.contains("fortitude") || target.eq_ignore_ascii_case("all") {
                 class.fortitude = progression;
-                class.fortitude_formula = Some(parts[2].to_string());
+                class.fortitude_formula = Some(formula.clone());
             }
             if target.contains("reflex") || target.eq_ignore_ascii_case("all") {
                 class.reflex = progression;
-                class.reflex_formula = Some(parts[2].to_string());
+                class.reflex_formula = Some(formula.clone());
             }
             if target.contains("will") || target.eq_ignore_ascii_case("all") {
                 class.will = progression;
-                class.will_formula = Some(parts[2].to_string());
+                class.will_formula = Some(formula.clone());
             }
         }
     }

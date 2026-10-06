@@ -1,5 +1,46 @@
 ## Unreleased
 
+### 重构：PCGen 公式语法移出引擎，架构守卫加严
+
+`scripts/check_architecture.sh` 的依赖检查是**语法性**的——它找 `.pcc` / `.lst`
+字符串。这挡不住**语义**泄漏：引擎自己解释 `CL`、`TL`、`classlevel(...)` 和
+`VAR.` 目标前缀，而本项目最隐蔽的两个缺陷正藏在那里。
+
+现在 PCGen 方言在**转写期**（lowering）翻译成运行时词汇表
+（`pcgen_core::formula_vocab`）：`CL` → `ClassLevel_<拥有者>`、
+`classlevel("X")` → `ClassLevel_<X>`、`TL` → `CharacterLevel`、
+`var("CL=X")`/`var("BL=X")` → `ClassLevel_<X>`、`var("X")` → `X`。
+类名以 `_<hex>` 无损编码（`Ex Paladin` → `ClassLevel_ex_20paladin`），
+不同职业名不会撞到同一变量。
+
+**为什么这修的是根因**：`CL` 意为"拥有该公式的那个职业的等级"，
+转写期**知道拥有者是谁**，所以在那里就能确定——引擎只能从来源记录去猜，
+对任何多职业角色都猜错。原先的三处重复解释（`engine.rs`、`effects.rs`、
+`typed.rs` 各一套正则）合并为一处。
+
+**引擎侧**：`evaluate_class_formula` 不再做任何字符串替换，
+`normalize_formula` 只剩选择占位符，`add_target` 的 `VAR.` 分支删除，
+`regex::Regex` 导入随之消失（这本身就是方言已移出的证据）。
+
+**`BONUS:VAR|A,B|expr` 改为结构化动作** `EffectAction::ModifyVariable { names }`：
+名字列表在 lowering 拆分，`A,B` 变成一个变量名这类错误在结构上不可能发生。
+
+**守卫新增第 5 项检查**：引擎源码不得出现 `classlevel` / `APPLIEDAS` /
+`"VAR.` / `\bCL\b` / `\bTL\b`。注释先剥离（守卫仍可在被守卫的代码里被解释），
+匹配大小写敏感——运行时词汇表 `ClassLevel_*` 与 PCGen 的 `classlevel` 共享前缀，
+只有小写拼写属于 PCGen。已实测该检查有牙齿：注入 `VAR.` / `\bCL\b` /
+`classlevel` 后即失败。
+
+**顺带修复**：`var("CL=X")` 与 `var("BL=X")` 此前都到不了引擎（名字含 `=`，
+匹配不到任何变量，求值为 0），静默清零了 RSRD 中 Blackguard 的破邪斩伤害与
+Madness/Repose 领域能力。现在正确解析为对应职业等级。
+
+验收：`tests=373 failed=0`、coverage `pass=15 fail=0`、three-way
+`0 regression / 0 divergence`、PF35e gate 通过、架构检查通过。
+另修掉一处我自己引入的测试竞态（两个等价性测试共用以进程号命名的临时目录，
+并行时互相删除对方文件）。
+
+
 ### 新增：规范化数据格式（阶段 1：职业域）
 
 按 `docs/DATA_FORMAT.md` 的设计实现阶段 1，新增 crate `pcgen-transpile`：

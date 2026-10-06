@@ -375,6 +375,7 @@ impl Engine {
                     .map(|formula| {
                         evaluate_class_formula(
                             formula,
+                            &entry.class_id,
                             entry.level,
                             total_level,
                             &effect_state.variables,
@@ -390,6 +391,7 @@ impl Engine {
                     .map(|formula| {
                         evaluate_class_formula(
                             formula,
+                            &entry.class_id,
                             entry.level,
                             total_level,
                             &effect_state.variables,
@@ -405,6 +407,7 @@ impl Engine {
                     .map(|formula| {
                         evaluate_class_formula(
                             formula,
+                            &entry.class_id,
                             entry.level,
                             total_level,
                             &effect_state.variables,
@@ -2759,56 +2762,36 @@ fn collect_divine_tracks(draft: &CharacterDraft) -> Vec<DivineTrack> {
     tracks
 }
 
-/// Compiled once per process: this function runs per class level per derived
-/// value (BAB, saves, progressions), so compiling a regex per call dominated
-/// the cost of short formulas.
-fn class_formula_regexes() -> &'static (regex::Regex, regex::Regex, regex::Regex, regex::Regex) {
-    static REGEXES: std::sync::OnceLock<(regex::Regex, regex::Regex, regex::Regex, regex::Regex)> =
-        std::sync::OnceLock::new();
-    REGEXES.get_or_init(|| {
-        (
-            regex::Regex::new(r#"classlevel\s*\(\s*["']?[^"')]*["']?\s*\)"#)
-                .expect("classlevel pattern is valid"),
-            regex::Regex::new(r"\bTL\b").expect("TL pattern is valid"),
-            regex::Regex::new(r"\bCL\b").expect("CL pattern is valid"),
-            regex::Regex::new(r#"var\s*\(\s*["']?([^"')]+)["']?\s*\)"#)
-                .expect("var() pattern is valid"),
-        )
-    })
-}
-
+/// Evaluate a class progression formula.
+///
+/// The formula is already in the runtime vocabulary — lowering translated
+/// PCGen's `CL` / `TL` / `classlevel(...)` into [`pcgen_core::formula_vocab`]
+/// names — so there are no tokens to substitute here, only values to publish.
+/// That is also why `CL` is now correct for a multiclass character: the class it
+/// names was decided where the formula was written, not guessed from whichever
+/// record the engine happened to be evaluating.
 pub fn evaluate_class_formula(
     formula: &str,
+    class_id: &str,
     class_level: u32,
     total_level: u32,
     variables: &BTreeMap<String, i32>,
 ) -> i32 {
-    let (classlevel, total, class, var_call) = class_formula_regexes();
-    let mut normalized = formula.to_string();
-    normalized = classlevel
-        .replace_all(&normalized, class_level.to_string())
-        .to_string();
-    normalized = total
-        .replace_all(&normalized, total_level.to_string())
-        .to_string();
-    normalized = class
-        .replace_all(&normalized, class_level.to_string())
-        .to_string();
-    normalized = var_call
-        .replace_all(&normalized, |captures: &regex::Captures| {
-            let name = captures[1].trim();
-            if let Some(_class_id) = name.strip_prefix("BL=") {
-                return class_level.to_string();
-            }
-            variables.get(name).copied().unwrap_or(0).to_string()
-        })
-        .to_string();
-    pcgen_formula::evaluate_f64(
-        &normalized,
-        &std::collections::HashMap::<String, i64>::new(),
-    )
-    .map(|value| value as i32)
-    .unwrap_or(0)
+    let mut scope: std::collections::HashMap<String, pcgen_formula::Value> = variables
+        .iter()
+        .map(|(name, value)| (name.clone(), pcgen_formula::Value::Int(i64::from(*value))))
+        .collect();
+    scope.insert(
+        pcgen_core::formula_vocab::class_level_variable(class_id),
+        pcgen_formula::Value::Int(i64::from(class_level)),
+    );
+    scope.insert(
+        pcgen_core::formula_vocab::CHARACTER_LEVEL.to_string(),
+        pcgen_formula::Value::Int(i64::from(total_level)),
+    );
+    pcgen_formula::evaluate_f64(formula, &scope)
+        .map(|value| value as i32)
+        .unwrap_or(0)
 }
 
 #[cfg(test)]
@@ -2823,50 +2806,65 @@ mod class_formula_tests {
     }
 
     #[test]
-    fn cached_regexes_keep_identical_results() {
-        // Equivalence guard for the `OnceLock` cache: repeated evaluation must
-        // return exactly what the first call did, and the patterns must still
-        // match after being compiled once per process.
+    fn class_formulas_are_evaluated_in_the_runtime_vocabulary() {
+        // The formulas here are what lowering produces: PCGen's `CL`, `TL` and
+        // `classlevel(...)` have already become `ClassLevel_*` and
+        // `CharacterLevel`.  Evaluating them is now a variable lookup.
         let variables = variables();
-        let cases = [
-            ("classlevel()", 5, 9),
-            ("classlevel(\"APPLIEDAS=NONEPIC\")/2+2", 5, 9),
-            ("TL*2", 5, 9),
-            ("CL+1", 5, 9),
-            ("var(\"Foo\")+3", 5, 9),
-            ("classlevel()/3", 5, 9),
-            ("TL + CL", 5, 9),
-        ];
-        for (formula, class_level, total_level) in cases {
-            let first = evaluate_class_formula(formula, class_level, total_level, &variables);
-            for _ in 0..50 {
-                assert_eq!(
-                    evaluate_class_formula(formula, class_level, total_level, &variables),
-                    first,
-                    "formula `{formula}` changed across calls"
-                );
-            }
-        }
+        let class = "Wizard";
+        assert_eq!(
+            evaluate_class_formula(
+                &pcgen_core::formula_vocab::class_level_variable(class),
+                class,
+                5,
+                9,
+                &variables,
+            ),
+            5
+        );
+        assert_eq!(
+            evaluate_class_formula(
+                &format!(
+                    "{}/2+2",
+                    pcgen_core::formula_vocab::class_level_variable(class)
+                ),
+                class,
+                5,
+                9,
+                &variables,
+            ),
+            4
+        );
+        assert_eq!(
+            evaluate_class_formula(
+                &format!("{}*2", pcgen_core::formula_vocab::CHARACTER_LEVEL),
+                class,
+                5,
+                9,
+                &variables,
+            ),
+            18
+        );
+        // A plain variable resolves from the map.
+        assert_eq!(evaluate_class_formula("Foo+3", class, 5, 9, &variables), 10);
+        // An unknown variable resolves to 0 rather than failing.
+        assert_eq!(
+            evaluate_class_formula("Missing", class, 5, 9, &variables),
+            0
+        );
     }
 
     #[test]
-    fn class_formula_rewrites_match_expected_values() {
+    fn class_formula_is_stable_across_calls() {
         let variables = variables();
-        assert_eq!(evaluate_class_formula("classlevel()", 5, 9, &variables), 5);
-        assert_eq!(
-            evaluate_class_formula("classlevel()/2+2", 5, 9, &variables),
-            4
-        );
-        assert_eq!(evaluate_class_formula("TL*2", 5, 9, &variables), 18);
-        assert_eq!(evaluate_class_formula("CL+1", 5, 9, &variables), 6);
-        assert_eq!(
-            evaluate_class_formula("var(\"Foo\")+3", 5, 9, &variables),
-            10
-        );
-        // An unknown variable resolves to 0 rather than failing.
-        assert_eq!(
-            evaluate_class_formula("var(\"Missing\")", 5, 9, &variables),
-            0
-        );
+        let formula = pcgen_core::formula_vocab::class_level_variable("Cleric");
+        let first = evaluate_class_formula(&formula, "Cleric", 5, 9, &variables);
+        for _ in 0..50 {
+            assert_eq!(
+                evaluate_class_formula(&formula, "Cleric", 5, 9, &variables),
+                first,
+                "formula `{formula}` changed across calls"
+            );
+        }
     }
 }

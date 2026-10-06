@@ -25,7 +25,7 @@
 
 ### 0.2 架构守卫只挡住了语法，没挡住语义
 
-`scripts/check_architecture.sh` 断言引擎不含 `.pcc` / `.lst`，这一条**通过**。但引擎里仍有：
+`scripts/check_architecture.sh` 断言引擎不含 `.pcc` / `.lst`，这一条**通过**。但引擎里曾有：
 
 ```rust
 target.strip_prefix("VAR.")              // PCGen 的 VAR. 语法
@@ -34,6 +34,10 @@ classlevel.replace_all(...)              // PCGen 的 classlevel() 公式
 ```
 
 **两个最隐蔽的缺陷正是藏在这里**——守卫看不见语义泄漏。
+
+> **已修复（独立于阶段 1）**：方言现在于转写期翻译成运行时词汇表
+> （`pcgen_core::formula_vocab`），引擎只做变量查表，守卫新增语义检查。
+> 详见 `ARCHITECTURE.md` §2.1。
 
 ### 0.3 当前模型只是"半规范化"
 

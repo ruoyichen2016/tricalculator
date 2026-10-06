@@ -31,7 +31,14 @@ fn both_paths() -> Option<(CompiledRulePack, CompiledRulePack, usize)> {
     let transpiled = transpile_pack(&direct, &patched, &pcc.display().to_string());
     let warning_count = transpiled.warnings.len();
 
-    let dir = std::env::temp_dir().join(format!("pcgen-transpile-stage1-{}", std::process::id()));
+    // Unique per call: these tests run in parallel, and a directory keyed only
+    // on the process id let one delete the other's files mid-write.
+    static NEXT: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+    let dir = std::env::temp_dir().join(format!(
+        "pcgen-transpile-stage1-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    ));
     let _ = std::fs::remove_dir_all(&dir);
     write_pack(&dir, &transpiled.manifest, &transpiled.records).expect("write pack");
     let round_tripped = read_pack(&dir).expect("read pack validates");

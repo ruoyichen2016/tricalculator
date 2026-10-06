@@ -193,12 +193,12 @@ pub fn lower_records(
         for tag in &record.tags {
             let upper = tag.name.to_ascii_uppercase();
             if upper == "BONUS" {
-                match lower_bonus(tag, phase, &provenance) {
+                match lower_bonus(tag, phase, &provenance, current_class.as_deref()) {
                     Some(effect) => effects.push(effect),
                     None => unsupported_tags.push(format!("BONUS:{}", tag.value)),
                 }
             } else if upper == "TEMPBONUS" {
-                match lower_temp_bonus(record, tag, phase, &provenance) {
+                match lower_temp_bonus(record, tag, phase, &provenance, current_class.as_deref()) {
                     Some(effect) => effects.push(effect),
                     None => unsupported_tags.push(format!("TEMPBONUS:{}", tag.value)),
                 }
@@ -350,8 +350,9 @@ fn lower_bonus(
     tag: &crate::source::RawTag,
     phase: EffectPhase,
     provenance: &Provenance,
+    owner: Option<&str>,
 ) -> Option<Effect> {
-    lower_bonus_effect(&tag.value, phase, provenance)
+    lower_bonus_effect(&tag.value, phase, provenance, owner)
 }
 
 fn temp_state_names(record: &RawRecord) -> Vec<String> {
@@ -426,6 +427,7 @@ fn lower_temp_bonus(
     tag: &crate::source::RawTag,
     phase: EffectPhase,
     provenance: &Provenance,
+    owner: Option<&str>,
 ) -> Option<Effect> {
     let (scope, body) = tag.value.split_once('|')?;
     let scope = scope.trim().to_ascii_uppercase();
@@ -441,7 +443,7 @@ fn lower_temp_bonus(
     } else {
         (body, None)
     };
-    let mut effect = lower_bonus_effect(bonus_body, phase, provenance)?;
+    let mut effect = lower_bonus_effect(bonus_body, phase, provenance, owner)?;
     effect.condition = combine_conditions(Some(active), scope_condition, effect.condition);
     Some(effect)
 }
@@ -477,6 +479,7 @@ pub fn lower_bonus_effect(
     value: &str,
     phase: EffectPhase,
     provenance: &Provenance,
+    owner: Option<&str>,
 ) -> Option<Effect> {
     let parts: Vec<&str> = value.split('|').map(str::trim).collect();
     let first = *parts.first()?;
@@ -489,7 +492,13 @@ pub fn lower_bonus_effect(
         } else {
             (first.to_string(), 1)
         };
-    let raw_value = parts.get(value_index)?.to_string();
+    // PCGen's formula dialect is translated here, where the owning class is
+    // known, so the engine never has to interpret `CL` / `TL` /
+    // `classlevel(...)`.  `classlevel("APPLIEDAS=NONEPIC")` in particular means
+    // "this class's level", which is exactly the information that is available
+    // now and was guesswork at runtime.
+    let raw_value =
+        pcgen_core::formula_vocab::normalize_pcgen_formula(parts.get(value_index)?, owner);
     let mut bonus_type = None;
     let mut stack_key = None;
     let mut conditions = Vec::new();
@@ -515,6 +524,32 @@ pub fn lower_bonus_effect(
         1 => conditions.pop(),
         _ => Some(Predicate::All(conditions)),
     };
+
+    // `BONUS:VAR|A,B|expr` becomes an explicit variable assignment.  The name
+    // list is split here, where the tag is still in front of us.
+    if first.eq_ignore_ascii_case("VAR") {
+        let names: Vec<String> = parts
+            .get(1)?
+            .split(',')
+            .map(str::trim)
+            .filter(|name| !name.is_empty())
+            .map(str::to_string)
+            .collect();
+        if names.is_empty() {
+            return None;
+        }
+        return Some(Effect {
+            phase,
+            condition: condition.clone(),
+            action: EffectAction::ModifyVariable {
+                names,
+                expression: raw_value,
+                condition,
+                source: provenance.clone(),
+            },
+            source: provenance.clone(),
+        });
+    }
 
     if let Ok(value) = raw_value.parse::<i32>() {
         let modifier = Modifier {

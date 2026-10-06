@@ -103,7 +103,15 @@ fn class_bab(
         bab += class
             .base_attack_formula
             .as_deref()
-            .map(|formula| evaluate_class_formula(formula, entry.level, total_level, variables))
+            .map(|formula| {
+                evaluate_class_formula(
+                    formula,
+                    &entry.class_id,
+                    entry.level,
+                    total_level,
+                    variables,
+                )
+            })
             .or_else(|| progression.map(|progress| progress.bab(entry.level)))
             .unwrap_or(0);
     }

@@ -68,6 +68,39 @@ pcgen-output / pcgen-cli
 `pcgen-engine` 的生产依赖为 `pcgen-core` / `pcgen-formula` / `pcgen-ir`；
 `pcgen-import` 只作为文件格式层，通过 `pcgen-ir` 进入运行时。
 
+### 2.1 公式词汇表：引擎不解释 PCGen 语法
+
+`scripts/check_architecture.sh` 的依赖检查是**语法性**的——它找 `.pcc` / `.lst`
+字符串。这挡不住**语义**泄漏：引擎曾经自己解释 `CL`、`TL`、`classlevel(...)`
+和 `VAR.` 目标前缀，而本项目最隐蔽的两个缺陷正藏在那里：
+
+- `BONUS:VAR|A,B|...` 的名字列表没被拆分，于是 `A,B` 成了一个变量名，
+  而 `A`、`B` 都停在 `DEFINE` 默认值；
+- `CL` 意为"**拥有该公式的那个职业**的等级"。引擎只能从来源记录去猜，
+  对任何多职业角色都猜错，把所有 `<职业>LVL` 变量清零。
+
+因此 PCGen 方言在**转写期**（`pcgen-ir` lowering）就被翻译成运行时词汇表，
+由 `pcgen_core::formula_vocab` 定义：
+
+| PCGen | 运行时 |
+|---|---|
+| `CL` | `ClassLevel_<拥有者>` |
+| `classlevel("X")` | `ClassLevel_<X>` |
+| `classlevel("APPLIEDAS=NONEPIC")` | `ClassLevel_<拥有者>` |
+| `var("CL=X")` / `var("BL=X")` | `ClassLevel_<X>` |
+| `TL` | `CharacterLevel` |
+| `var("X")` | `X` |
+| `BONUS:VAR\|A,B\|expr` | `ModifyVariable { names: [A, B] }` |
+
+转写期知道**拥有者是谁**，所以 `CL` 在那里就能确定——这正是多职业
+`CL` 归零问题的根因。类名用 `_<hex>` 编码（`Ex Paladin` → `ClassLevel_ex_20paladin`），
+无损，因此不同职业名不会撞到同一个变量。
+
+引擎侧只剩变量查表：`evaluate_class_formula` 不再做任何替换，
+`add_target` 不再有 `VAR.` 分支。守卫新增第 5 项检查（注释先剥离，
+大小写敏感——运行时词汇表 `ClassLevel_*` 与 PCGen 的 `classlevel` 共享前缀，
+只有小写拼写属于 PCGen）。
+
 ## 3. Crate 职责
 
 | crate | 职责 | 禁止 |

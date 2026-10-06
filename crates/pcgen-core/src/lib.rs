@@ -11,6 +11,7 @@ pub mod domain;
 pub mod equipment;
 pub mod faith;
 pub mod fingerprint;
+pub mod formula_vocab;
 pub mod gestalt;
 pub mod identity;
 pub mod progression;

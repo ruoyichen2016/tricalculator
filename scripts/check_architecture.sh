@@ -68,6 +68,30 @@ else
     echo "OK    PcgDraft data types live in pcgen-ir"
 fi
 
+# 5. Engine source must not interpret PCGen *formula syntax*.
+#
+#    The checks above are syntactic: they catch `.pcc` / `.lst` strings.  They
+#    did not catch `CL`, `TL`, `classlevel(...)` and the `VAR.` target prefix,
+#    which is where the two quietest defects lived — `BONUS:VAR|A,B|...` was
+#    not split, and `CL` resolved to 0 for every multiclass character.  Those
+#    tokens are translated at lowering now (see `pcgen_core::formula_vocab`),
+#    and this check keeps them out.
+#
+#    Comments are stripped first, so the guard can still be *explained* in the
+#    code it guards.  Matching is case-sensitive on purpose: the runtime
+#    vocabulary `ClassLevel_*` shares a prefix with PCGen's `classlevel`, and
+#    only the lowercase spelling is PCGen's.
+engine_tokens='classlevel|APPLIEDAS|"VAR\.|\\bCL\\b|\\bTL\\b'
+engine_hits="$(sed 's://.*::' $engine_src | grep -nE "$engine_tokens" || true)"
+if [[ -n "$engine_hits" ]]; then
+    echo "FAIL  engine source interprets PCGen formula syntax:"
+    echo "$engine_hits" | head -10
+    echo "      translate it at lowering (pcgen_core::formula_vocab) instead"
+    failures=$((failures + 1))
+else
+    echo "OK    engine source has no PCGen formula syntax"
+fi
+
 if [[ "$failures" -ne 0 ]]; then
     echo "architecture check FAILED: $failures violation(s)"
     exit 1

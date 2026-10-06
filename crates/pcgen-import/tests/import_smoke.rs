@@ -103,10 +103,26 @@ fn lowers_define_grants_choose_and_formula_bonus() {
     let entity = &pack.entities[0];
     assert_eq!(entity.effects.len(), 4);
     assert_eq!(entity.requirements.len(), 1);
-    assert!(entity.effects.iter().any(|effect| matches!(
-        effect.action,
-        pcgen_core::EffectAction::ModifyFormula { .. }
-    )));
+    // `BONUS:VAR|Bar|(CL/2)` is a variable assignment, and its own action now:
+    // the `VAR.` target prefix that used to mark it was PCGen syntax living in
+    // the engine.  The expression is translated at this point, so `CL` is
+    // already the owning class's level variable rather than a bare token.
+    let variable = entity
+        .effects
+        .iter()
+        .find_map(|effect| match &effect.action {
+            pcgen_core::EffectAction::ModifyVariable {
+                names, expression, ..
+            } => Some((names.clone(), expression.clone())),
+            _ => None,
+        })
+        .expect("a ModifyVariable effect");
+    assert_eq!(variable.0, vec!["Bar".to_string()]);
+    assert!(
+        !variable.1.contains("CL") || variable.1.contains("ClassLevel_"),
+        "the expression should be in the runtime vocabulary, got `{}`",
+        variable.1
+    );
     assert!(entity.effects.iter().any(|effect| matches!(
         effect.action,
         pcgen_core::EffectAction::DefineVariable { .. }

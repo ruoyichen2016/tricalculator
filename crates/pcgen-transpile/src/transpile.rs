@@ -187,8 +187,13 @@ fn class_record(
     if let Some(formula) = &class.base_attack_formula {
         let mismatched = (1..=class.max_level.min(20)).any(|level| {
             let from_table = progression.bab(level);
-            let from_formula =
-                pcgen_engine::evaluate_class_formula(formula, level, level, &BTreeMap::new());
+            let from_formula = pcgen_engine::evaluate_class_formula(
+                formula,
+                &class.id,
+                level,
+                level,
+                &BTreeMap::new(),
+            );
             from_formula != from_table
         });
         if mismatched {

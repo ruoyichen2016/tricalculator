@@ -318,6 +318,20 @@ pub enum EffectAction {
         condition: Option<Predicate>,
         source: Provenance,
     },
+    /// `BONUS:VAR|A,B|expr` — assign to one or more runtime variables.
+    ///
+    /// PCGen wrote this as a `VAR.` target prefix with a comma-separated name
+    /// list inside the string, which the engine had to parse.  Two defects came
+    /// from that: the list was not split (so `A,B` became one variable named
+    /// `A,B` and neither `A` nor `B` was set), and the prefix put PCGen syntax
+    /// in the engine where the architecture guard could not see it.  Naming the
+    /// variables as a list makes both unrepresentable.
+    ModifyVariable {
+        names: Vec<String>,
+        expression: String,
+        condition: Option<Predicate>,
+        source: Provenance,
+    },
     Grant {
         entity: EntityId,
     },
@@ -671,7 +685,9 @@ impl RuleCoverage {
     pub fn record_effect_actions(&mut self, category: &str, effects: &[Effect]) {
         for effect in effects {
             match &effect.action {
-                EffectAction::ModifyFormula { .. } => self.formula_effects += 1,
+                EffectAction::ModifyFormula { .. } | EffectAction::ModifyVariable { .. } => {
+                    self.formula_effects += 1
+                }
                 EffectAction::Grant { .. } | EffectAction::GrantTag { .. } => {
                     self.grant_effects += 1
                 }

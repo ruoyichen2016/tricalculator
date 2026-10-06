@@ -11,7 +11,6 @@ use pcgen_core::{ChoiceKind, EntityCategory};
 use pcgen_core::{CompiledEntity, EffectAction, EntityId, ModifierOperation, Predicate};
 use pcgen_formula::{Value as FormulaValue, VariableResolver};
 use pcgen_ir::CompiledRulePack;
-use regex::Regex;
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -28,6 +27,16 @@ struct PendingFormula {
     expression: String,
     bonus_type: Option<String>,
     stack_key: Option<String>,
+    source_key: Option<String>,
+}
+
+/// A `BONUS:VAR|A,B|expr` waiting for its expression to resolve.
+///
+/// The names are already a list: lowering split them, so the engine never has
+/// to parse a comma-separated string out of a target.
+struct PendingVariable {
+    names: Vec<String>,
+    expression: String,
     source_key: Option<String>,
 }
 
@@ -249,6 +258,21 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         hit_dice: draft.total_level(),
         ..EffectState::default()
     };
+    // The runtime formula vocabulary.  PCGen's `CL` / `TL` / `classlevel(...)`
+    // are translated at lowering time (see `pcgen_core::formula_vocab`), so the
+    // engine only has to publish the values those names refer to.  Doing it
+    // here also means `CL` is resolved from the *class* rather than guessed
+    // from whichever record happened to carry the formula.
+    state.variables.insert(
+        pcgen_core::formula_vocab::CHARACTER_LEVEL.to_string(),
+        draft.total_level() as i32,
+    );
+    for entry in crate::engine::effective_class_levels(pack, draft) {
+        state.variables.insert(
+            pcgen_core::formula_vocab::class_level_variable(&entry.class_id),
+            entry.level as i32,
+        );
+    }
     state
         .diagnostics
         .extend(crate::bab::bab_cycle_diagnostics(pack, &initial));
@@ -262,6 +286,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
 
     let mut variable_defs: BTreeMap<String, String> = BTreeMap::new();
     let mut pending_formulas: Vec<PendingFormula> = Vec::new();
+    let mut pending_variables: Vec<PendingVariable> = Vec::new();
 
     // Fixed-point closure over granted entities and variant effects.
     for _ in 0..16 {
@@ -289,6 +314,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
                     &mut state,
                     &mut variable_defs,
                     &mut pending_formulas,
+                    &mut pending_variables,
                     &mut active,
                     &mut queued,
                     &mut changed,
@@ -336,6 +362,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
                             &mut state,
                             &mut variable_defs,
                             &mut pending_formulas,
+                            &mut pending_variables,
                             &mut active,
                             &mut queued,
                             &mut changed,
@@ -350,62 +377,51 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         }
     }
 
-    // Resolve DEFINE variables first.  Then resolve `VAR.*` formulas in
-    // dependency passes before non-variable effect formulas, so e.g.
-    // `MonkAC` is available when `COMBAT.AC` is evaluated.
-    resolve_variables(&mut state, &variable_defs, draft);
+    // Resolve DEFINE variables first.  Then resolve variable assignments in
+    // dependency passes before other effect formulas, so e.g. `MonkAC` is
+    // available when `COMBAT.AC` is evaluated.
+    resolve_variables(&mut state, &variable_defs);
 
-    let mut variable_formulas = Vec::new();
-    let mut effect_formulas = Vec::new();
-    for pending in pending_formulas.drain(..) {
-        if pending.target.starts_with("VAR.") {
-            variable_formulas.push(pending);
-        } else {
-            effect_formulas.push(pending);
-        }
-    }
+    let effect_formulas = pending_formulas;
 
     for _ in 0..16 {
-        if variable_formulas.is_empty() {
+        if pending_variables.is_empty() {
             break;
         }
         let mut remaining = Vec::new();
         let mut progress = false;
-        for pending in variable_formulas.drain(..) {
-            let normalized = normalize_formula(
-                &pending.expression,
-                draft,
-                &state,
-                pending.source_key.as_deref(),
-            );
+        for pending in pending_variables.drain(..) {
+            let normalized =
+                normalize_formula(&pending.expression, &state, pending.source_key.as_deref());
             match pcgen_formula::evaluate(&normalized, &state) {
                 Ok(value) => {
-                    add_formula_target(&mut state, &pending, formula_to_i32(&value));
+                    let value = formula_to_i32(&value);
+                    for name in &pending.names {
+                        state.explicit_variables.insert(name.clone());
+                        *state.variables.entry(name.clone()).or_insert(0) += value;
+                    }
                     progress = true;
                 }
                 Err(_) => remaining.push(pending),
             }
         }
-        variable_formulas = remaining;
+        pending_variables = remaining;
         if !progress {
             break;
         }
-        resolve_variables(&mut state, &variable_defs, draft);
+        resolve_variables(&mut state, &variable_defs);
     }
-    for pending in &variable_formulas {
+    for pending in &pending_variables {
         state.diagnostics.push(format!(
-            "unresolved variable formula `{}` for target `{}`",
-            pending.expression, pending.target
+            "unresolved variable formula `{}` for variable `{}`",
+            pending.expression,
+            pending.names.join(",")
         ));
     }
 
     for pending in effect_formulas {
-        let normalized = normalize_formula(
-            &pending.expression,
-            draft,
-            &state,
-            pending.source_key.as_deref(),
-        );
+        let normalized =
+            normalize_formula(&pending.expression, &state, pending.source_key.as_deref());
         match pcgen_formula::evaluate(&normalized, &state) {
             Ok(value) => add_formula_target(&mut state, &pending, formula_to_i32(&value)),
             Err(_) => state.diagnostics.push(format!(
@@ -427,6 +443,7 @@ fn apply_action(
     state: &mut EffectState,
     variable_defs: &mut BTreeMap<String, String>,
     pending_formulas: &mut Vec<PendingFormula>,
+    pending_variables: &mut Vec<PendingVariable>,
     active: &mut BTreeSet<usize>,
     queued: &mut BTreeSet<usize>,
     changed: &mut bool,
@@ -464,6 +481,15 @@ fn apply_action(
                     add_target(state, &modifier.target, modifier.value.floor() as i32);
                 }
             }
+        }
+        EffectAction::ModifyVariable {
+            names, expression, ..
+        } => {
+            pending_variables.push(PendingVariable {
+                names: names.clone(),
+                expression: expression.clone(),
+                source_key: source_entity.map(|entity| normalized(&entity.key)),
+            });
         }
         EffectAction::ModifyFormula {
             target,
@@ -861,26 +887,10 @@ fn is_typed_bonus_target(target: &str) -> bool {
 }
 
 fn add_target(state: &mut EffectState, target: &str, value: i32) {
-    if let Some(names) = target.strip_prefix("VAR.") {
-        // `BONUS:VAR|A,B|expr` assigns to several variables at once — PCGen
-        // allows a comma-separated list.  Treating the list as one name (as
-        // this previously did) left the real variables at their `DEFINE`
-        // defaults and invented a variable literally called `A,B`; the RSRD's
-        // `BONUS:VAR|TurnLevelBase,TurnDamagePlusBase|ClericLVL` is such a row.
-        for name in names.split(',') {
-            let name = name.trim();
-            if name.is_empty() {
-                continue;
-            }
-            state.explicit_variables.insert(name.to_string());
-            *state.variables.entry(name.to_string()).or_insert(0) += value;
-        }
-    } else {
-        *state
-            .external_modifiers
-            .entry(target.to_string())
-            .or_insert(0) += value;
-    }
+    *state
+        .external_modifiers
+        .entry(target.to_string())
+        .or_insert(0) += value;
 }
 
 fn add_formula_target(state: &mut EffectState, pending: &PendingFormula, value: i32) {
@@ -1273,11 +1283,7 @@ fn rule_enabled(rule: &str, draft: &CharacterDraft) -> bool {
     )
 }
 
-fn resolve_variables(
-    state: &mut EffectState,
-    definitions: &BTreeMap<String, String>,
-    draft: &CharacterDraft,
-) {
+fn resolve_variables(state: &mut EffectState, definitions: &BTreeMap<String, String>) {
     if definitions.is_empty() {
         return;
     }
@@ -1318,7 +1324,7 @@ fn resolve_variables(
             continue;
         }
         let expression = definitions.get(name).cloned().unwrap_or_default();
-        let normalized = normalize_formula(&expression, draft, state, None);
+        let normalized = normalize_formula(&expression, state, None);
         match pcgen_formula::evaluate(&normalized, state) {
             Ok(value) => {
                 state.variables.insert(name.clone(), formula_to_i32(&value));
@@ -1337,89 +1343,22 @@ fn variable_dependencies(expression: &str) -> BTreeSet<String> {
         .unwrap_or_default()
 }
 
+/// Rewrite an expression so it can be parsed for its variable references.
+///
+/// The PCGen dialect is already gone by this point (lowering translated it),
+/// so only the placeholders need neutralising.
 fn dependency_expression(expression: &str) -> String {
-    let mut normalized = expression.to_string();
-    let classlevel = Regex::new(r#"classlevel\s*\(\s*["']?[^"')]+["']?\s*\)"#).unwrap();
-    normalized = classlevel.replace_all(&normalized, "0").to_string();
-    let var_call = Regex::new(r#"var\s*\(\s*["']?([^"')]+)["']?\s*\)"#).unwrap();
-    normalized = var_call
-        .replace_all(&normalized, |captures: &regex::Captures| {
-            let name = captures[1].trim();
-            if name.contains('=') {
-                "0".to_string()
-            } else {
-                name.to_string()
-            }
-        })
-        .to_string();
-    normalized.replace("%CHOICE%", "0").replace("%LIST%", "0")
+    expression.replace("%CHOICE%", "0").replace("%LIST%", "0")
 }
 
-fn normalize_formula(
-    expression: &str,
-    draft: &CharacterDraft,
-    state: &EffectState,
-    source_key: Option<&str>,
-) -> String {
+/// Prepare an expression for evaluation.
+///
+/// PCGen's dialect is translated at lowering time
+/// ([`pcgen_core::formula_vocab`]), so `CL`, `TL`, `classlevel(...)` and
+/// `var(...)` no longer appear here.  What remains is the choice placeholders,
+/// which depend on what the player selected at this character's own table.
+fn normalize_formula(expression: &str, state: &EffectState, source_key: Option<&str>) -> String {
     let mut normalized = expression.to_string();
-    let classlevel = Regex::new(r#"classlevel\s*\(\s*["']?([^"')]+)["']?\s*\)"#).unwrap();
-    normalized = classlevel
-        .replace_all(&normalized, |captures: &regex::Captures| {
-            let class_id = captures[1].trim();
-            let level = if class_id.eq_ignore_ascii_case("APPLIEDAS=NONEPIC") {
-                draft.total_level()
-            } else {
-                draft.level_in_class(class_id)
-            };
-            level.to_string()
-        })
-        .to_string();
-    let var_call = Regex::new(r#"var\s*\(\s*["']?([^"')]+)["']?\s*\)"#).unwrap();
-    normalized = var_call
-        .replace_all(&normalized, |captures: &regex::Captures| {
-            let name = captures[1].trim();
-            if let Some(class_id) = name.strip_prefix("BL=") {
-                return draft.level_in_class(class_id).to_string();
-            }
-            state.variables.get(name).copied().unwrap_or(0).to_string()
-        })
-        .to_string();
-    let total_level = Regex::new(r"\bTL\b").unwrap();
-    normalized = total_level
-        .replace_all(&normalized, draft.total_level().to_string())
-        .to_string();
-    // `CL` is PCGen's "class level": the level in the class that owns this
-    // effect, e.g. the RSRD's `BONUS:VAR|ClericLVL|CL` on the Cleric record.
-    //
-    // This previously substituted `CL` only when the character had exactly one
-    // class.  For a multiclass character it was left in the formula, where it
-    // evaluated to 0 — silently zeroing every `<Class>LVL` variable, and with
-    // it anything derived from them (a Cleric/Paladin's turning level, a
-    // Fighter's bonus-feat count).  Resolve it against the owning class
-    // instead, identified by the source record's key.
-    let class_level = Regex::new(r"\bCL\b").unwrap();
-    if class_level.is_match(&normalized) {
-        // `normalized` (the string) shadows the `normalized` helper here, so
-        // build the comparable key inline.
-        let class_key = |value: &str| value.trim().to_ascii_lowercase().replace(' ', "_");
-        let owning = source_key
-            .and_then(|key| {
-                draft
-                    .class_levels
-                    .iter()
-                    .find(|entry| class_key(&entry.class_id) == key)
-            })
-            .or_else(|| {
-                // Effects that do not come from a class record still resolve
-                // `CL` against the character's only class, as before.
-                (draft.class_levels.len() == 1).then(|| &draft.class_levels[0])
-            });
-        if let Some(entry) = owning {
-            normalized = class_level
-                .replace_all(&normalized, entry.level.to_string())
-                .to_string();
-        }
-    }
     let bound = source_key
         .and_then(|key| state.choice_bindings.get(key))
         .filter(|values| !values.is_empty());
