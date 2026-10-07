@@ -13,13 +13,22 @@ members = [
     "crates/pcgen-web",
 ]
 
-# A dev build was 15 GiB, and 92% of that was DWARF for the 87 dependencies
-# (tokio, axum, hyper, syn, regex, clap).  None of it is ever looked at — when
-# something breaks you debug this workspace's crates, not tokio's internals.
+# A dev build was 15 GiB, and 92% of that was DWARF.  Measured, from clean:
 #
-# Measured: 15.0 GiB with default debug info, 1.2 GiB with `debug = 0`
-# everywhere.  This keeps the workspace's own crates debuggable and drops the
-# dependencies.
+#   15.0 GiB  default (`debug = true` everywhere)
+#    4.2 GiB  dependencies only
+#    1.9 GiB  line-tables-only for this workspace, nothing for dependencies
+#
+# The bulk is not the dependency tree — it is this workspace's 45 test targets,
+# each statically linking tokio, axum and serde with debug info.
+#
+# `line-tables-only` keeps file:line in backtraces, so a panic still reports
+# where it happened; it drops variable inspection, which nothing here uses.
+[profile.dev]
+debug = "line-tables-only"
+
+# None of a dependency's debug info is ever looked at — when something breaks
+# you debug this workspace's crates, not tokio's internals.
 [profile.dev.package."*"]
 debug = false
 
