@@ -8,4 +8,3 @@ license.workspace = true
 pcgen-core = { path = "../pcgen-core" }
 pcgen-engine = { path = "../pcgen-engine" }
 serde_json.workspace = true
-regex.workspace = true

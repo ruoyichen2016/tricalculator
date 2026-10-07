@@ -13,6 +13,16 @@ members = [
     "crates/pcgen-web",
 ]
 
+# A dev build was 15 GiB, and 92% of that was DWARF for the 87 dependencies
+# (tokio, axum, hyper, syn, regex, clap).  None of it is ever looked at — when
+# something breaks you debug this workspace's crates, not tokio's internals.
+#
+# Measured: 15.0 GiB with default debug info, 1.2 GiB with `debug = 0`
+# everywhere.  This keeps the workspace's own crates debuggable and drops the
+# dependencies.
+[profile.dev.package."*"]
+debug = false
+
 [workspace.package]
 version = "0.1.0"
 edition = "2021"

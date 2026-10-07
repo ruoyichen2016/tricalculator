@@ -462,7 +462,6 @@ dependencies = [
  "pcgen-core",
  "pcgen-formula",
  "pcgen-ir",
- "regex",
  "serde",
  "serde_json",
  "thiserror",
@@ -475,7 +474,6 @@ dependencies = [
  "indexmap",
  "pcgen-core",
  "pcgen-formula",
- "regex",
  "serde",
  "serde_json",
  "thiserror",
@@ -487,7 +485,6 @@ version = "0.1.0"
 dependencies = [
  "pcgen-core",
  "pcgen-engine",
- "regex",
  "serde_json",
 ]
 

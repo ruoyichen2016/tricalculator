@@ -12,4 +12,3 @@ pcgen-ir = { path = "../pcgen-ir" }
 pcgen-formula = { path = "../pcgen-formula" }
 serde_json.workspace = true
 indexmap.workspace = true
-regex.workspace = true
