@@ -4,6 +4,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 export CARGO_HOME="${CARGO_HOME:-$ROOT/.cargo-home}"
+# The gate's Python helpers import each other, so running it wrote a
+# `scripts/__pycache__/` that nothing needs.  Keep the tree clean.
+export PYTHONDONTWRITEBYTECODE=1
 
 cargo fmt --all -- --check
 bash scripts/check_architecture.sh

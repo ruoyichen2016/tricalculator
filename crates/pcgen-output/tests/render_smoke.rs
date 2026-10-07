@@ -63,7 +63,16 @@ fn macro_and_include_render() {
         "Hello Aria!"
     );
 
-    let dir = std::env::temp_dir().join("pcgen-rust-template-test");
+    // Unique per call, and cleaned up: a fixed name let concurrent runs of this
+    // test overwrite each other's templates, and left the directory behind in
+    // the temp directory afterwards.
+    static NEXT: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+    let dir = std::env::temp_dir().join(format!(
+        "pcgen-rust-template-test-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::write(dir.join("part.ftl"), "<#macro label>Name: ${name}</#macro>").unwrap();
     std::fs::write(
@@ -73,6 +82,7 @@ fn macro_and_include_render() {
     .unwrap();
     let rendered = render_template_file_snapshot(dir.join("main.ftl"), &snapshot).unwrap();
     assert_eq!(rendered.trim(), "Name: Aria");
+    let _ = std::fs::remove_dir_all(&dir);
 }
 
 #[test]
