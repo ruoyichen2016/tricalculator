@@ -491,3 +491,21 @@ equipment.jsonl  domains.jsonl  deities.jsonl  skills.jsonl  ...
   进阶公式已消除，谓词未）；
 - 转写器**复用** `pcgen-ir` 的现有翻译，因此阶段 1 并未删除那 3,252 行——
   只是把它的运行时机从"每次加载"变成"构建期一次"。删除是阶段 3。
+
+## 10. 阶段 2 的实测盘点
+
+上表列出的"仍含 PCGen 约定"字段，哪些值得动，取决于两件事：**谁求值它**、
+**谁需要原始拼写**。逐字段的实测见
+[`docs/PCGEN_SYNTAX_INVENTORY.md`](PCGEN_SYNTAX_INVENTORY.md)。
+
+结论与直觉相反，摘录三点：
+
+- `spell_levels`、`level_prerequisites`、`prohibited_spells`、kit
+  `entries.conditions` 在全仓库**没有任何读取者**——解析、存储、持久化，然后
+  无人使用。结构化它们是动作，不是进展。
+- `traits.damage_reduction` 被引擎读取（12 处），但只是收集/排序/去重/输出，
+  `5/Magic|PRELEVEL:MIN=4` 里的条件**从不求值**。被读取不等于被解释。
+- 真正被引擎解析的只剩 `metadata.added_domains`（4 处），走
+  `resolve_added_domain`，是引擎里**唯一**的 PCGen 标签字面量。而
+  `scripts/check_architecture.sh` 的第 5 项守卫只覆盖**公式**语法
+  （`classlevel|APPLIEDAS|VAR.|CL|TL`），不覆盖标签语法，所以它一直没被拦住。
