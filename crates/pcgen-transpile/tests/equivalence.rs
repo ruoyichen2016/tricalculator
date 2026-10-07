@@ -135,10 +135,8 @@ fn whole_pack_round_trips() {
             before.base_attack_bonus, after.base_attack_bonus,
             "base attack for {id}"
         );
-        assert_eq!(
-            before.features_by_level, after.features_by_level,
-            "features for {id}"
-        );
+        // The grants live on the class now, and are compared there; the
+        // progression no longer carries a copy.
     }
 
     for (id, before) in &direct.variants {

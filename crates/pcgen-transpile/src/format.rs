@@ -73,46 +73,10 @@ impl Record {
     }
 }
 
-/// How a class level grants a feature.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum GrantMode {
-    /// PCGen `AUTOMATIC`: the character has it without choosing.
-    Automatic,
-    /// PCGen `NORMAL` / `VIRTUAL`: selectable, or virtual.
-    Selectable,
-}
-
-/// A feature a class level grants.
-///
-/// The `unless` condition used to be embedded inside the grant's own text, as
-/// `!PREABILITY:1,CATEGORY=ACF,TYPE.WizardFamiliar`.  It is a field here.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct GrantRecord {
-    /// Ability pool the grant draws from, e.g. `Wizard Class Feature`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub pool: Option<String>,
-    /// Feature name, e.g. `Wizard ~ Familiar`.
-    pub feature: String,
-    pub mode: GrantMode,
-    /// Replacement anchors that suppress this grant.  A variant naming any of
-    /// them replaces the feature instead of adding it.  There can be more than
-    /// one: the RSRD guards the Wizard's familiar with both `WizardFamiliar`
-    /// and `WizardSummonFamiliar`.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub unless_replaced: Vec<String>,
-    /// Ability pool the anchors are looked up in, e.g. `ACF` or
-    /// `Special Ability`.  Part of the guard's meaning, so it travels with
-    /// them: the Sorcerer's familiar is guarded in `Special Ability` while the
-    /// Wizard's is guarded in `ACF`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub unless_category: Option<String>,
-    /// Any other guard, verbatim, e.g. `PRECLASS:1,Ex Paladin=3`.  These are
-    /// not yet structured (Stage 2); they are kept because dropping them
-    /// changes what the grant means.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub guards: Vec<String>,
-}
+/// The grant type is `pcgen_core::ClassGrant`; the format does not define its
+/// own.  It used to, which meant the persisted form and the runtime model could
+/// drift apart.
+pub use pcgen_core::{ClassGrant, GrantMode};
 
 /// A class definition, minus the per-level data that now lives in
 /// [`ClassLevelRecord`].
@@ -128,10 +92,10 @@ pub struct GrantRecord {
 pub struct ClassRecord {
     pub id: String,
     pub name: String,
-    /// Progression with `features_by_level` cleared: those rows are
-    /// `class_level` records now.  Carried as the runtime type rather than
-    /// re-listed, because every field here is load-bearing — dropping
-    /// `levels_per_feat` alone changes a fighter's feat count.
+    /// Progression, carried as the runtime type rather than re-listed: every
+    /// field here is load-bearing — dropping `levels_per_feat` alone changes a
+    /// fighter's feat count.  It no longer holds the level grants, which live
+    /// on the class.
     pub progression: ClassProgression,
     /// Class definition with `level_abilities` / `level_bonuses` /
     /// `level_prerequisites` cleared, and the progression formulas removed:
@@ -150,7 +114,7 @@ pub struct ClassLevelRecord {
     pub class: String,
     pub level: u32,
     #[serde(default)]
-    pub grants: Vec<GrantRecord>,
+    pub grants: Vec<ClassGrant>,
     #[serde(default)]
     pub origin: Option<Origin>,
 }

@@ -23,10 +23,11 @@ fn features(cls: &str, archetype: &str, level: u32) -> Option<Vec<String>> {
         .values()
         .find(|variant| variant.name == archetype)
         .expect("archetype present");
+    // The grants live on the class, not the progression.
     let base = pack
-        .progressions
+        .classes
         .get(cls)
-        .map(|progression| progression.features_up_to(level))
+        .map(|class| class.feature_rows_up_to(level))
         .unwrap_or_default();
     Some(variant.apply_to_features_at_level(base, level))
 }

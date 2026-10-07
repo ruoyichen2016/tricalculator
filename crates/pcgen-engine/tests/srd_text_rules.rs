@@ -152,15 +152,17 @@ fn fighter_bonus_feats_scale_with_class_level_not_character_level() {
     ];
     let (pack, _) = lower_records(Some("35e".to_string()), Vec::new(), &records);
 
-    // The class progression must expose the bonus-feat levels the table lists.
-    let progression = pack
-        .progressions
-        .get("Fighter")
-        .expect("Fighter progression is compiled");
-    let feat_levels: Vec<u32> = progression
-        .features_by_level
+    // The class must expose the bonus-feat levels the table lists.  The grants
+    // live on the class and are structured, so match the feature itself.
+    let fighter = pack.classes.get("Fighter").expect("Fighter is compiled");
+    let feat_levels: Vec<u32> = fighter
+        .level_abilities
         .iter()
-        .filter(|(_, features)| features.iter().any(|f| f.contains("Bonus Feat")))
+        .filter(|(_, grants)| {
+            grants
+                .iter()
+                .any(|grant| grant.feature.contains("Bonus Feat"))
+        })
         .map(|(level, _)| *level)
         .collect();
     assert!(

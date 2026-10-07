@@ -303,7 +303,6 @@ fn demo_engine() -> Engine {
             skill_points_per_level: 2,
             first_level_skill_points: 8,
             class_skills: vec!["Climb".to_string()],
-            features_by_level: BTreeMap::new(),
             ..ClassProgress::default()
         },
     );
@@ -317,7 +316,6 @@ fn demo_engine() -> Engine {
             skill_points_per_level: 2,
             first_level_skill_points: 8,
             class_skills: vec!["Spellcraft".to_string()],
-            features_by_level: BTreeMap::new(),
             ..ClassProgress::default()
         },
     );
@@ -804,18 +802,15 @@ fn main() -> Result<()> {
                                 let mut lines = Vec::new();
                                 for key in [class_id.to_string(), format!("CLASS:{class_id}")] {
                                     if let Some(class) = pack.classes.get(&key) {
-                                        for abilities in class.level_abilities.values() {
-                                            lines.extend(abilities.iter().cloned());
-                                        }
-                                    }
-                                    if let Some(progression) = pack.progressions.get(&key) {
-                                        let max_level = progression
-                                            .features_by_level
-                                            .keys()
-                                            .max()
-                                            .copied()
-                                            .unwrap_or(20);
-                                        lines.extend(progression.features_up_to(max_level));
+                                        // The grants live here and nowhere else;
+                                        // the progression used to carry a copy.
+                                        lines.extend(
+                                            class
+                                                .level_abilities
+                                                .values()
+                                                .flatten()
+                                                .map(|grant| grant.render()),
+                                        );
                                     }
                                 }
                                 // Anchors that only exist as raw `ABILITY:` tags

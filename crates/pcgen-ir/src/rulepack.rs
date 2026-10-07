@@ -6,6 +6,7 @@ use crate::patches::PatchOperation;
 use crate::source::RawRecord;
 use crate::typed::{build_typed_definitions, parse_creature_traits};
 use pcgen_core::domain::SpellPowerType;
+use pcgen_core::GrantMode;
 use pcgen_core::{
     CompiledEntity, Effect, EffectAction, EffectPhase, EntityId, Modifier, ModifierOperation,
     Predicate, Provenance, Rational, RuleCoverage, TemporaryValue, TypedDefinitions,
@@ -195,6 +196,7 @@ pub fn lower_records(
         sources: &sources,
         entities: &entities,
         progressions: &typed.progressions,
+        classes: &typed.classes,
         variants: &typed.variants,
         typed_digest: &typed_digest,
     });
@@ -525,6 +527,88 @@ fn lower_define(tag: &crate::source::RawTag) -> Option<Effect> {
     })
 }
 
+/// The pieces of a PCGen `ABILITY` grant row.
+///
+/// `lower_grant` and the class-level grant list both need these, and used to
+/// derive them separately from the same string — the duplicate parse that put
+/// raw rows on `ClassDefinition::level_abilities` *and* structured effects on
+/// the `ClassLevel` entities.
+pub(crate) struct GrantShape<'a> {
+    /// Ability pool, e.g. `Wizard Class Feature`; `None` when the row names
+    /// only a feature.
+    pub pool: Option<&'a str>,
+    pub feature: &'a str,
+    pub mode: GrantMode,
+    /// Replacement anchors from a `!PREABILITY:...TYPE.X` guard.
+    pub anchors: Vec<String>,
+    /// Pool those anchors are looked up in, e.g. `ACF`.
+    pub anchor_category: Option<String>,
+    /// Every other predicate, verbatim.
+    pub guards: Vec<&'a str>,
+}
+
+/// Split a PCGen `ABILITY` grant row.
+///
+/// Returns `None` when the row names no feature, which is the one case that
+/// cannot be represented.
+pub(crate) fn parse_grant_shape(value: &str) -> Option<GrantShape<'_>> {
+    let parts: Vec<&str> = value.split('|').map(str::trim).collect();
+    let mut mode = GrantMode::Automatic;
+    for part in &parts {
+        if part.eq_ignore_ascii_case("VIRTUAL") || part.eq_ignore_ascii_case("NORMAL") {
+            mode = GrantMode::Selectable;
+        }
+    }
+    let meaningful: Vec<&str> = parts
+        .iter()
+        .copied()
+        .filter(|part| {
+            !part.is_empty()
+                && !part.eq_ignore_ascii_case("AUTOMATIC")
+                && !part.eq_ignore_ascii_case("VIRTUAL")
+                && !part.eq_ignore_ascii_case("NORMAL")
+                && !part.starts_with("TYPE=")
+                && !crate::tags::is_predicate_tag(part)
+        })
+        .collect();
+    let feature = *meaningful.last()?;
+    let pool = (meaningful.len() > 1).then(|| meaningful[0]);
+
+    let mut anchors = Vec::new();
+    let mut anchor_category = None;
+    let mut guards = Vec::new();
+    for part in parts
+        .iter()
+        .copied()
+        .filter(|part| crate::tags::is_predicate_tag(part))
+    {
+        let body = part.split_once(':').map(|(_, body)| body).unwrap_or("");
+        let mut found = Vec::new();
+        for piece in body.split(',').map(str::trim) {
+            if let Some(anchor) = piece.strip_prefix("TYPE.") {
+                found.push(anchor.to_string());
+            }
+            if let Some(category) = piece.strip_prefix("CATEGORY=") {
+                anchor_category = Some(category.to_string());
+            }
+        }
+        if found.is_empty() {
+            guards.push(part);
+        } else {
+            anchors.extend(found);
+        }
+    }
+
+    Some(GrantShape {
+        pool,
+        feature,
+        mode,
+        anchors,
+        anchor_category,
+        guards,
+    })
+}
+
 fn lower_grant(record: &RawRecord, tag: &crate::source::RawTag) -> Option<Effect> {
     let parts: Vec<&str> = tag.value.split('|').map(str::trim).collect();
     let first = *parts.first()?;
@@ -555,24 +639,10 @@ fn lower_grant(record: &RawRecord, tag: &crate::source::RawTag) -> Option<Effect
             ),
         });
     }
-    let meaningful: Vec<&str> = parts
-        .iter()
-        .copied()
-        .filter(|part| {
-            !part.is_empty()
-                && !part.eq_ignore_ascii_case("AUTOMATIC")
-                && !part.eq_ignore_ascii_case("VIRTUAL")
-                && !part.eq_ignore_ascii_case("NORMAL")
-                && !part.starts_with("TYPE=")
-                && !crate::tags::is_predicate_tag(part)
-        })
-        .collect();
-    let key = meaningful.last()?.to_string();
-    let category = if meaningful.len() > 1 {
-        meaningful[0].to_string()
-    } else {
-        "Ability".to_string()
-    };
+    // One parse, shared with the class-level grant list.
+    let shape = parse_grant_shape(&tag.value)?;
+    let key = shape.feature.to_string();
+    let category = shape.pool.unwrap_or("Ability").to_string();
     let mut conditions = Vec::new();
     let mut all_conditions_parsed = true;
     for part in parts

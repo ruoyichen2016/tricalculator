@@ -1494,22 +1494,19 @@ fn variant_matches_class_features(
 }
 
 fn class_feature_lines(pack: &pcgen_ir::CompiledRulePack, class_id: &str) -> Vec<String> {
-    let mut features = Vec::new();
-    if let Some(class) = pack.classes.get(class_id) {
-        for abilities in class.level_abilities.values() {
-            features.extend(abilities.iter().cloned());
-        }
-    }
-    if let Some(progression) = pack.progressions.get(class_id) {
-        let max_level = progression
-            .features_by_level
-            .keys()
-            .max()
-            .copied()
-            .unwrap_or(20);
-        features.extend(progression.features_up_to(max_level));
-    }
-    features
+    // The grants live on the class and nowhere else; the progression used to
+    // carry a copy, so this used to return each feature twice.
+    pack.classes
+        .get(class_id)
+        .map(|class| {
+            class
+                .level_abilities
+                .values()
+                .flatten()
+                .map(|grant| grant.render())
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 async fn pack_options(

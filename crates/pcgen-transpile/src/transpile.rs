@@ -6,8 +6,8 @@
 //! conventions.
 
 use crate::format::{
-    ClassLevelRecord, ClassRecord, GrantMode, GrantRecord, Origin, PackManifest, Record,
-    ReplaceRecord, SourceInfo, VariantGrantRecord, VariantRecord, FORMAT_VERSION,
+    ClassLevelRecord, ClassRecord, Origin, PackManifest, Record, ReplaceRecord, SourceInfo,
+    VariantGrantRecord, VariantRecord, FORMAT_VERSION,
 };
 use pcgen_core::{ClassDefinition, ClassProgression, VariantDefinition};
 use pcgen_ir::rulepack::CompiledRulePack;
@@ -109,7 +109,7 @@ pub fn transpile_pack(
         ))));
         class_count += 1;
 
-        for level in class_levels(class, progression) {
+        for level in class_levels(class) {
             out.push(Record::ClassLevel(level));
             level_count += 1;
         }
@@ -218,8 +218,7 @@ fn class_record(
     definition.reflex_formula = None;
     definition.will_formula = None;
 
-    let mut carried = progression.clone();
-    carried.features_by_level.clear();
+    let carried = progression.clone();
 
     ClassRecord {
         id: class.id.clone(),
@@ -232,129 +231,19 @@ fn class_record(
 
 /// Every class level the pack knows about, with its owner stated.
 ///
-/// `ClassDefinition::level_abilities` and
-/// `ClassProgression::features_by_level` carry the same rows; the former is
-/// preferred because it is keyed on the class itself.  Writing one record per
-/// level is what removes the duplicate representation.
-fn class_levels(
-    class: &ClassDefinition,
-    progression: Option<&ClassProgression>,
-) -> Vec<ClassLevelRecord> {
-    let mut by_level: BTreeMap<u32, Vec<GrantRecord>> = BTreeMap::new();
-
-    if !class.level_abilities.is_empty() {
-        for (level, rows) in &class.level_abilities {
-            for row in rows {
-                if let Some(grant) = parse_grant(row) {
-                    by_level.entry(*level).or_default().push(grant);
-                }
-            }
-        }
-    } else if let Some(progression) = progression {
-        for (level, rows) in &progression.features_by_level {
-            for row in rows {
-                if let Some(grant) = parse_grant(row) {
-                    by_level.entry(*level).or_default().push(grant);
-                }
-            }
-        }
-    }
-
-    by_level
-        .into_iter()
+/// The grants arrive structured, so this only copies them.  It used to parse
+/// the raw rows a second time — the same string `lower_grant` had already
+/// parsed — which is what put two representations of one fact in the pack.
+fn class_levels(class: &ClassDefinition) -> Vec<ClassLevelRecord> {
+    class
+        .level_abilities
+        .iter()
         .map(|(level, grants)| ClassLevelRecord {
             class: class.id.clone(),
-            level,
-            grants,
+            level: *level,
+            grants: grants.clone(),
             origin: None,
         })
-        .collect()
-}
-
-/// Parse a raw PCGen `ABILITY` grant row.
-///
-/// Shape: `<pool>|<mode>|<feature>|<guard>` where the guard is a `PRE*`
-/// predicate.  The guard's replacement anchors become fields, which is what
-/// stops a variant's `REPLACES` from having to guess at names later.
-pub fn parse_grant(row: &str) -> Option<GrantRecord> {
-    let parts: Vec<&str> = row.split('|').map(str::trim).collect();
-    let mut mode = GrantMode::Automatic;
-    let mut feature: Option<&str> = None;
-    let mut anchors: Vec<String> = Vec::new();
-    let mut unless_category: Option<String> = None;
-    let mut guards: Vec<String> = Vec::new();
-    let mut pool: Option<String> = None;
-
-    for part in &parts {
-        if part.is_empty() {
-            continue;
-        }
-        if part.eq_ignore_ascii_case("AUTOMATIC") {
-            mode = GrantMode::Automatic;
-            continue;
-        }
-        if part.eq_ignore_ascii_case("VIRTUAL") || part.eq_ignore_ascii_case("NORMAL") {
-            mode = GrantMode::Selectable;
-            continue;
-        }
-        if pcgen_import::is_predicate_tag(part) {
-            if let Some(category) = predicate_category(part) {
-                unless_category = Some(category);
-            }
-            let found = replacement_anchors(part);
-            if found.is_empty() {
-                // e.g. `PRECLASS:1,Ex Paladin=3`: not a replacement anchor, but
-                // still a condition.  Keep it verbatim rather than dropping it.
-                guards.push((*part).to_string());
-            }
-            anchors.extend(found);
-            continue;
-        }
-        // A `TYPE=` entry is a tag, not the feature name; the feature is the
-        // last remaining token.
-        if part.starts_with("TYPE=") {
-            continue;
-        }
-        // The first token that is not a mode, a predicate or a tag is the pool;
-        // the last one is the feature name.
-        if pool.is_none() {
-            pool = Some(part.to_string());
-            continue;
-        }
-        feature = Some(part);
-    }
-
-    let feature = feature?.to_string();
-    Some(GrantRecord {
-        pool,
-        feature,
-        mode,
-        unless_replaced: anchors,
-        unless_category,
-        guards,
-    })
-}
-
-/// The `CATEGORY=` an ability predicate looks in.
-fn predicate_category(predicate: &str) -> Option<String> {
-    let body = predicate
-        .split_once(':')
-        .map(|(_, body)| body)
-        .unwrap_or("");
-    body.split(',')
-        .map(str::trim)
-        .find_map(|part| part.strip_prefix("CATEGORY=").map(str::to_string))
-}
-
-/// Anchors named by a `!PREABILITY:...TYPE.X,TYPE.Y` guard.
-fn replacement_anchors(predicate: &str) -> Vec<String> {
-    let body = predicate
-        .split_once(':')
-        .map(|(_, body)| body)
-        .unwrap_or("");
-    body.split(',')
-        .map(str::trim)
-        .filter_map(|part| part.strip_prefix("TYPE.").map(str::to_string))
         .collect()
 }
 

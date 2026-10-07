@@ -16,7 +16,6 @@ fn demo_engine() -> Engine {
             skill_points_per_level: 2,
             first_level_skill_points: 8,
             class_skills: vec!["Climb".to_string()],
-            features_by_level: BTreeMap::new(),
             ..ClassProgress::default()
         },
     );
@@ -30,7 +29,6 @@ fn demo_engine() -> Engine {
             skill_points_per_level: 2,
             first_level_skill_points: 8,
             class_skills: vec!["Spellcraft".to_string()],
-            features_by_level: BTreeMap::new(),
             ..ClassProgress::default()
         },
     );

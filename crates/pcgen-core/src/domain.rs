@@ -308,8 +308,13 @@ pub struct ClassDefinition {
     pub spells_known: BTreeMap<u32, Vec<u32>>,
     #[serde(default)]
     pub spell_list: Vec<String>,
+    /// What each class level grants.
+    ///
+    /// Structured, and the single representation: it used to be raw PCGen rows
+    /// here, parsed separately into `Grant` effects, and copied into
+    /// `ClassProgression::features_by_level`.
     #[serde(default)]
-    pub level_abilities: BTreeMap<u32, Vec<String>>,
+    pub level_abilities: BTreeMap<u32, Vec<crate::ClassGrant>>,
     #[serde(default)]
     pub level_bonuses: BTreeMap<u32, Vec<String>>,
     #[serde(default)]
@@ -362,6 +367,29 @@ pub struct ClassDefinition {
 }
 
 impl ClassDefinition {
+    /// Everything this class grants up to `level`, structured.
+    pub fn grants_up_to(&self, level: u32) -> Vec<crate::ClassGrant> {
+        (1..=level)
+            .flat_map(|level| {
+                self.level_abilities
+                    .get(&level)
+                    .cloned()
+                    .unwrap_or_default()
+            })
+            .collect()
+    }
+
+    /// Everything this class grants up to `level`, as PCGen rows.
+    ///
+    /// The string form is produced here rather than stored, so there is still
+    /// exactly one representation of what a level grants.
+    pub fn feature_rows_up_to(&self, level: u32) -> Vec<String> {
+        self.grants_up_to(level)
+            .into_iter()
+            .map(|grant| grant.render())
+            .collect()
+    }
+
     pub fn new(id: impl Into<String>, name: impl Into<String>) -> Self {
         Self {
             id: id.into(),
@@ -718,7 +746,6 @@ pub struct ClassProgression {
     #[serde(default)]
     pub exchange_level: Option<String>,
     pub class_skills: Vec<String>,
-    pub features_by_level: BTreeMap<u32, Vec<String>>,
 }
 
 impl ClassProgression {
@@ -744,17 +771,6 @@ impl ClassProgression {
             crate::progression::SaveKind::Will => &self.will,
         };
         Self::value_at(values, level)
-    }
-
-    pub fn features_up_to(&self, level: u32) -> Vec<String> {
-        (1..=level)
-            .flat_map(|level| {
-                self.features_by_level
-                    .get(&level)
-                    .cloned()
-                    .unwrap_or_default()
-            })
-            .collect()
     }
 
     /// Number of feat slots granted by this class progression up to `level`.
@@ -791,7 +807,6 @@ impl ClassProgression {
             excluded_class: class.excluded_class.clone(),
             exchange_level: class.exchange_level.clone(),
             class_skills: class.class_skills.clone(),
-            features_by_level: BTreeMap::new(),
         };
         for level in 1..=max_level {
             progression
@@ -800,11 +815,6 @@ impl ClassProgression {
             progression.fortitude.push(class.fortitude.base_save(level));
             progression.reflex.push(class.reflex.base_save(level));
             progression.will.push(class.will.base_save(level));
-            if let Some(abilities) = class.level_abilities.get(&level) {
-                progression
-                    .features_by_level
-                    .insert(level, abilities.clone());
-            }
         }
         progression
     }

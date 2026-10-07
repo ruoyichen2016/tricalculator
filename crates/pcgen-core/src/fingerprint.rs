@@ -139,10 +139,20 @@ fn write_progression(hasher: &mut FingerprintHasher, name: &str, progression: &C
     for skill in &progression.class_skills {
         hasher.write(skill);
     }
-    for (level, features) in &progression.features_by_level {
+}
+
+/// Hash what each class level grants.
+///
+/// This used to hash `ClassProgression::features_by_level`, a copy of the same
+/// rows.  Hashing the class directly keeps the coverage now that the copy is
+/// gone.
+fn write_class_grants(hasher: &mut FingerprintHasher, name: &str, class: &crate::ClassDefinition) {
+    hasher.write("class-grants");
+    hasher.write(name);
+    for (level, grants) in &class.level_abilities {
         hasher.write(&level.to_string());
-        for feature in features {
-            hasher.write(feature);
+        for grant in grants {
+            hasher.write(&grant.render());
         }
     }
 }
@@ -180,6 +190,8 @@ pub struct RuleFingerprintInput<'a> {
     pub sources: &'a [String],
     pub entities: &'a [CompiledEntity],
     pub progressions: &'a BTreeMap<String, ClassProgression>,
+    /// Class definitions, hashed for their per-level grants.
+    pub classes: &'a BTreeMap<String, crate::ClassDefinition>,
     pub variants: &'a BTreeMap<String, VariantDefinition>,
     /// Optional digest of typed definitions that are not (yet) expressible as
     /// entities/progressions, so that adding definitions still invalidates.
@@ -209,6 +221,10 @@ pub fn rules_fingerprint(input: &RuleFingerprintInput<'_>) -> String {
 
     for (name, progression) in input.progressions {
         write_progression(&mut hasher, name, progression);
+    }
+
+    for (name, class) in input.classes {
+        write_class_grants(&mut hasher, name, class);
     }
 
     for (name, variant) in input.variants {
@@ -309,6 +325,7 @@ mod tests {
             sources: &["a.pcc".to_string(), "b.pcc".to_string()],
             entities: &[a.clone(), b.clone()],
             progressions: &progressions,
+            classes: &BTreeMap::new(),
             variants: &variants,
             typed_digest: "typed-v1",
         });
@@ -317,6 +334,7 @@ mod tests {
             sources: &["b.pcc".to_string(), "a.pcc".to_string()],
             entities: &[b, a],
             progressions: &progressions,
+            classes: &BTreeMap::new(),
             variants: &variants,
             typed_digest: "typed-v1",
         });
@@ -336,6 +354,7 @@ mod tests {
             sources: &[],
             entities: &[entity("Fighter", vec![])],
             progressions: &progressions,
+            classes: &BTreeMap::new(),
             variants: &variants,
             typed_digest: "typed-v1",
         });
@@ -344,6 +363,7 @@ mod tests {
             sources: &[],
             entities: &[with_traits],
             progressions: &progressions,
+            classes: &BTreeMap::new(),
             variants: &variants,
             typed_digest: "typed-v1",
         });
@@ -359,6 +379,7 @@ mod tests {
             sources: &[],
             entities: &[entity("Fighter", vec![effect("A")])],
             progressions: &progressions,
+            classes: &BTreeMap::new(),
             variants: &variants,
             typed_digest: "typed-v1",
         });
@@ -367,6 +388,7 @@ mod tests {
             sources: &[],
             entities: &[entity("Fighter", vec![effect("B")])],
             progressions: &progressions,
+            classes: &BTreeMap::new(),
             variants: &variants,
             typed_digest: "typed-v1",
         });

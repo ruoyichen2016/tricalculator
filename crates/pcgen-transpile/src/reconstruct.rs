@@ -9,7 +9,7 @@
 //! to the table when no formula is present.  The transpiler checks the two
 //! agree before dropping the formula.
 
-use crate::format::{ClassLevelRecord, ClassRecord, GrantMode, GrantRecord, VariantRecord};
+use crate::format::{ClassGrant, ClassLevelRecord, ClassRecord, VariantRecord};
 use pcgen_core::{ClassDefinition, ClassProgression, VariantDefinition};
 use std::collections::BTreeMap;
 
@@ -23,7 +23,7 @@ pub fn definitions(
     BTreeMap<String, ClassProgression>,
     BTreeMap<String, VariantDefinition>,
 ) {
-    let mut grants_by_class: BTreeMap<&str, BTreeMap<u32, Vec<GrantRecord>>> = BTreeMap::new();
+    let mut grants_by_class: BTreeMap<&str, BTreeMap<u32, Vec<ClassGrant>>> = BTreeMap::new();
     for level in class_levels {
         grants_by_class
             .entry(level.class.as_str())
@@ -40,7 +40,7 @@ pub fn definitions(
             .remove(record.id.as_str())
             .unwrap_or_default();
         classes.insert(record.id.clone(), class_definition(record, &grants));
-        progressions.insert(record.id.clone(), progression(record, &grants));
+        progressions.insert(record.id.clone(), progression(record));
     }
 
     let variants = variant_records
@@ -53,15 +53,12 @@ pub fn definitions(
 
 fn class_definition(
     record: &ClassRecord,
-    grants: &BTreeMap<u32, Vec<GrantRecord>>,
+    grants: &BTreeMap<u32, Vec<ClassGrant>>,
 ) -> ClassDefinition {
     let mut definition = record.definition.clone();
     // The level maps live on `class_level` records now; restore them so the
     // parts of the pipeline that read them keep working.
-    definition.level_abilities = grants
-        .iter()
-        .map(|(level, rows)| (*level, rows.iter().map(render_grant).collect()))
-        .collect();
+    definition.level_abilities = grants.clone();
     // No formula: the table is authoritative (R5).
     definition.base_attack_formula = None;
     definition.fortitude_formula = None;
@@ -70,13 +67,10 @@ fn class_definition(
     definition
 }
 
-fn progression(record: &ClassRecord, grants: &BTreeMap<u32, Vec<GrantRecord>>) -> ClassProgression {
-    let mut progression = record.progression.clone();
-    progression.features_by_level = grants
-        .iter()
-        .map(|(level, rows)| (*level, rows.iter().map(render_grant).collect()))
-        .collect();
-    progression
+fn progression(record: &ClassRecord) -> ClassProgression {
+    // Nothing to restore: the grants live on the class, and the progression no
+    // longer carries a copy of them.
+    record.progression.clone()
 }
 
 fn variant_definition(record: &VariantRecord) -> VariantDefinition {
@@ -102,37 +96,6 @@ fn variant_definition(record: &VariantRecord) -> VariantDefinition {
         .collect();
     variant.class_skills = record.class_skills.clone();
     variant
-}
-
-/// Render a structured grant back into the PCGen-shaped row the rest of the
-/// pipeline expects.  Stage 2 removes the need for this by teaching those
-/// consumers the structured form directly.
-fn render_grant(grant: &GrantRecord) -> String {
-    let mut row = String::new();
-    if let Some(pool) = &grant.pool {
-        row.push_str(pool);
-        row.push('|');
-    }
-    row.push_str(match grant.mode {
-        GrantMode::Automatic => "AUTOMATIC",
-        GrantMode::Selectable => "NORMAL",
-    });
-    row.push('|');
-    row.push_str(&grant.feature);
-    if !grant.unless_replaced.is_empty() {
-        let category = grant.unless_category.as_deref().unwrap_or("ACF");
-        row.push_str("|!PREABILITY:1,CATEGORY=");
-        row.push_str(category);
-        for anchor in &grant.unless_replaced {
-            row.push_str(",TYPE.");
-            row.push_str(anchor);
-        }
-    }
-    for guard in &grant.guards {
-        row.push('|');
-        row.push_str(guard);
-    }
-    row
 }
 
 /// Level rows for a class, for callers that want them grouped.

@@ -118,7 +118,7 @@ fn level_rows_after_subclass_rows_stay_on_the_class() {
         .flatten()
         .collect::<Vec<_>>()
         .iter()
-        .map(|value| value.as_str())
+        .map(|value| value.render())
         .collect::<Vec<_>>()
         .join("\n");
     assert!(
@@ -143,7 +143,7 @@ fn subclass_rows_do_not_leak_features_into_the_class() {
         .flatten()
         .collect::<Vec<_>>()
         .iter()
-        .map(|value| value.as_str())
+        .map(|value| value.render())
         .collect::<Vec<_>>()
         .join("\n");
     assert!(

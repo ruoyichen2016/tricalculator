@@ -548,11 +548,21 @@ fn parse_class_level_row(class: &mut ClassDefinition, record: &RawRecord) {
                     .collect();
             }
             "ABILITY" => {
-                class
-                    .level_abilities
-                    .entry(level)
-                    .or_default()
-                    .push(tag.value.clone());
+                // Structured, through the same parse the grant effects use.
+                if let Some(shape) = crate::rulepack::parse_grant_shape(&tag.value) {
+                    class
+                        .level_abilities
+                        .entry(level)
+                        .or_default()
+                        .push(pcgen_core::ClassGrant {
+                            pool: shape.pool.map(str::to_string),
+                            feature: shape.feature.to_string(),
+                            mode: shape.mode,
+                            unless_replaced: shape.anchors,
+                            unless_category: shape.anchor_category,
+                            guards: shape.guards.iter().map(|g| (*g).to_string()).collect(),
+                        });
+                }
             }
             "TEMPLATE" => {
                 for template in tag.value.split('|').map(str::trim) {

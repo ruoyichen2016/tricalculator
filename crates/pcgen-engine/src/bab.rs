@@ -277,7 +277,8 @@ impl ClassProgressSource for PackProgressSource<'_> {
     }
 
     fn features_up_to_level(&self, class_id: &str, level: u32) -> Option<Vec<String>> {
-        find_progression(self.pack, class_id).map(|progress| progress.features_up_to(level))
+        // The grants live on the class; the progression used to carry a copy.
+        find_class(self.pack, class_id).map(|class| class.feature_rows_up_to(level))
     }
 
     fn gestalt_slot_cost(&self, class_id: &str) -> Option<pcgen_core::PrestigeSlotCost> {

@@ -14,7 +14,7 @@ pub mod reconstruct;
 pub mod transpile;
 
 pub use format::{
-    ClassLevelRecord, ClassRecord, GrantMode, GrantRecord, LoadError, Origin, PackManifest, Record,
+    ClassGrant, ClassLevelRecord, ClassRecord, GrantMode, LoadError, Origin, PackManifest, Record,
     ReplaceRecord, SourceInfo, VariantGrantRecord, VariantRecord, FORMAT_VERSION,
 };
 pub use pack::{read_pack, write_pack, LoadedPack};

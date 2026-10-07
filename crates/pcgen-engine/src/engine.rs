@@ -2081,8 +2081,9 @@ impl pcgen_core::ClassProgressSource for Engine {
     }
 
     fn features_up_to_level(&self, class_id: &str, level: u32) -> Option<Vec<String>> {
-        self.progression(class_id)
-            .map(|progression| progression.features_up_to(level))
+        // The grants live on the class; the progression used to carry a copy.
+        self.class(class_id)
+            .map(|class| class.feature_rows_up_to(level))
     }
 
     fn features_for_class(&self, lane: &AdvancementLane, class_id: &str) -> Option<Vec<String>> {
