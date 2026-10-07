@@ -784,6 +784,16 @@ fn initial_entities(pack: &CompiledRulePack, draft: &CharacterDraft) -> Vec<usiz
         let active = match &entity.category {
             EntityCategory::Race => key == normalized(&draft.race_id),
             EntityCategory::Class => {
+                // `name` is a fallback class identifier here, not just a label,
+                // which makes it load-bearing: `entity.name` must keep PCGen's
+                // `.MOD` / `.COPY=` suffixes.
+                //
+                // Stripping them looks like a harmless cosmetic cleanup — 38
+                // RSRD entities are named things like `F.MOD` — but it is not.
+                // A `.COPY=` record such as `Rogue.COPY=Rogue (CS)` is named
+                // `Rogue.COPY=Rogue (CS)` and matched no class; stripped to
+                // `Rogue`, it starts matching any character with Rogue levels.
+                // That changed `skill_total` by 2 on two 3e oracle cases.
                 draft.level_in_class(&entity.id.key) > 0 || draft.level_in_class(&entity.name) > 0
             }
             EntityCategory::ClassLevel => {
