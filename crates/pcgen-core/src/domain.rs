@@ -351,7 +351,7 @@ pub struct ClassDefinition {
     pub weapon_bonus: Vec<String>,
     /// Domains added by this class / subclass (PCGen `ADDDOMAINS:`).
     #[serde(default)]
-    pub added_domains: Vec<String>,
+    pub added_domains: Vec<crate::rules::AddedDomain>,
     /// Prohibited school cost (PCGen `PROHIBITCOST:`).
     #[serde(default)]
     pub prohibited_cost: Option<i32>,

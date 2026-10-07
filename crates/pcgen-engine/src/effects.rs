@@ -1036,7 +1036,7 @@ fn entity_is_active(state: &EffectState, draft: &CharacterDraft, entity: &Entity
     }
 }
 
-fn predicate_holds(
+pub(crate) fn predicate_holds(
     predicate: Option<&Predicate>,
     draft: &CharacterDraft,
     state: &EffectState,

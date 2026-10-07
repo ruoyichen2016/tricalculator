@@ -9,7 +9,6 @@ serde.workspace = true
 thiserror.workspace = true
 pcgen-core = { path = "../pcgen-core" }
 pcgen-formula = { path = "../pcgen-formula" }
-regex.workspace = true
 
 [dev-dependencies]
 # `snapshot_summary.rs` is a loader + engine integration test and needs the

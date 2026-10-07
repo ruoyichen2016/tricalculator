@@ -25,7 +25,7 @@ kind of PCGen syntax it carries.
 | `classes.*.level_prerequisites` | 12 | no | no | carried only |
 | `traits.damage_reduction` | 16 | yes — pass-through | no | carried only |
 | `classes.*.prohibited_spells` | 16 | no | no | carried only |
-| `entities.metadata.added_domains` | 4 | **yes** | **YES** | ⚠️ **the one real violation** |
+| `entities.metadata.added_domains` | 4 | **yes** | **YES** | ✅ fixed, see §6 |
 | `ClassGrant.guards` | 3 | no | no | needs the spelling to render |
 | `entities.effects.action.tag` | 2 | yes | no | see note below |
 | `deities.*.domains` | 2 | validation only | no | carried only |
@@ -71,18 +71,41 @@ Stage B removed from `engine.rs` and `effects.rs` for formula syntax.
 **`PRETEMPLATE:` at `engine.rs:2436` is the only PCGen tag literal in the entire
 engine.** So this is an isolated leftover, not the tip of a larger problem.
 
+### 3a. Resolved
+
+`added_domains` is now `Vec<AddedDomain>`, with the condition lowered into a
+`Predicate` by `parse_added_domain`. `resolve_added_domain` is deleted and the
+engine evaluates the condition through `predicate_holds`, the same function that
+evaluates every other condition.
+
+Widening the guard to tag syntax then turned up a **second** live case the
+enumeration had missed: `mastervar("X")` in `evaluate_companion_formula`, which
+normalised a PCGen formula with a regex *at evaluation time*. That is formula
+syntax — the category the guard claimed to cover — and it was invisible because
+the token list enumerated only the tokens that had already bitten. `mastervar`
+is now a vocabulary term (`pcgen_core::formula_vocab::MASTER_LEVEL`), rewritten
+at lowering like `CL` and `classlevel`.
+
+With both gone the engine contains **no PCGen syntax at all**, and `regex` is no
+longer used anywhere in the workspace — 87 packages in `Cargo.lock` became 83.
+
 ### 4. The architecture guard does not cover it
 
-`scripts/check_architecture.sh` check 5 guards *formula* syntax only:
+`scripts/check_architecture.sh` check 5 used to guard *formula* syntax only:
 
 ```
 engine_tokens='classlevel|APPLIEDAS|"VAR\.|\bCL\b|\bTL\b'
 ```
 
-Tag syntax such as `PRETEMPLATE:` passes. The guard was written against the two
-quiet defects that had actually bitten (`BONUS:VAR|A,B|...`, `CL` resolving to
-0), so it is narrow by construction — but that means the principle "the engine
-does not interpret PCGen text" is enforced only where it was already violated.
+Tag syntax such as `PRETEMPLATE:` passed straight through. The guard was written
+against the two quiet defects that had actually bitten (`BONUS:VAR|A,B|...`, `CL`
+resolving to 0), so it was narrow by construction — which meant the principle
+"the engine does not interpret PCGen text" was enforced only where it had
+already been violated.
+
+It now also matches `mastervar` and quoted tag syntax (`"PRE[A-Z]+:`,
+`"ADDDOMAINS`, `"BONUS:`, `"SPELLLEVEL`, `"ABILITY:`). Verified to have teeth:
+injecting `PRETEMPLATE:` into the engine makes it fail.
 
 ### 5. Note: `GrantTag` carries conditions it does not evaluate
 
@@ -91,13 +114,15 @@ as a weapon proficiency name, so `TYPE=Martial` and `PREHD:MAX=0` become literal
 proficiencies. The engine does not interpret them, but it also does not strip
 them. Latent, 2 occurrences, recorded here rather than acted on.
 
-## What follows from this
+## What followed from this
 
-The only change here that closes a principle rather than shuffling a field:
+Both actions are done:
 
-- structure `added_domains` at lowering, so the engine stops parsing
-  `PRETEMPLATE:` (4 occurrences, one function)
-- widen the guard to catch tag syntax, so the next one cannot appear quietly
+- `added_domains` is structured at lowering; `resolve_added_domain` is deleted
+- the guard covers tag syntax, and widening it immediately found `mastervar`
+
+The engine now contains no PCGen syntax, and `regex` — whose only remaining use
+was that `mastervar` regex — is gone from the workspace entirely.
 
 Everything else on the table is either carried-only data (structuring buys
 nothing) or load-bearing spelling (`entities.name` — see `effects.rs:787` and the

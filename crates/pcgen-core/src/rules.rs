@@ -447,7 +447,7 @@ pub struct AlternateWeaponProfile {
 
 /// Runtime-visible metadata that is not specific to one typed definition
 /// family (weapon / armor / spell subclass/cost tags).
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct EntityMetadata {
     #[serde(default)]
     pub alternate_weapon: AlternateWeaponProfile,
@@ -460,9 +460,9 @@ pub struct EntityMetadata {
     /// `ARMORTYPE` entries (equipmod / armor proficiency metadata).
     #[serde(default)]
     pub armor_types: Vec<String>,
-    /// Raw `ADDDOMAINS` entries, including optional `[...]` conditions.
+    /// `ADDDOMAINS` entries.
     #[serde(default)]
-    pub added_domains: Vec<String>,
+    pub added_domains: Vec<AddedDomain>,
     /// `PROHIBITCOST` value, when present.
     #[serde(default)]
     pub prohibited_cost: Option<i32>,
@@ -475,6 +475,19 @@ pub struct EntityMetadata {
     /// Bonus language choices (`LANGBONUS`).
     #[serde(default)]
     pub language_bonus: Vec<String>,
+}
+
+/// One `ADDDOMAINS` entry.
+///
+/// PCGen writes `Chaos[PRETEMPLATE:1,Vampire]`.  The engine used to split that
+/// itself — `split_once('[')`, then `strip_prefix("PRETEMPLATE:")` with a
+/// lowercase fallback — which was the last PCGen syntax it interpreted.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct AddedDomain {
+    pub domain: String,
+    /// Condition the character must satisfy, when the entry has one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub condition: Option<Predicate>,
 }
 
 /// UI metadata for a `TEMPVALUE` range associated with a temporary effect.

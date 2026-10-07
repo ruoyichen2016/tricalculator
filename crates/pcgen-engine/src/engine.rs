@@ -255,7 +255,7 @@ impl Engine {
                 }
             }
             for entry in &class_levels {
-                for domain in self.class_added_domains(&entry.class_id, &effect_state.templates) {
+                for domain in self.class_added_domains(&entry.class_id, draft, &effect_state) {
                     if let Some(definition) = self.domain(&domain) {
                         spells.insert(definition.id.clone(), definition.domain_spells.clone());
                     }
@@ -973,8 +973,13 @@ impl Engine {
         })
     }
 
-    fn class_added_domains(&self, class_id: &str, templates: &BTreeSet<String>) -> Vec<String> {
-        let raw_values = self
+    fn class_added_domains(
+        &self,
+        class_id: &str,
+        draft: &CharacterDraft,
+        state: &crate::effects::EffectState,
+    ) -> Vec<String> {
+        let entries = self
             .class(class_id)
             .map(|class| class.added_domains.clone())
             .or_else(|| {
@@ -989,9 +994,13 @@ impl Engine {
                     .map(|entity| entity.metadata.added_domains.clone())
             })
             .unwrap_or_default();
-        raw_values
-            .iter()
-            .filter_map(|raw| resolve_added_domain(raw, templates))
+        // The condition is a `Predicate` now, evaluated by the same code that
+        // evaluates every other condition.  This used to parse PCGen's
+        // `[PRETEMPLATE:...]` syntax here.
+        entries
+            .into_iter()
+            .filter(|entry| crate::effects::predicate_holds(entry.condition.as_ref(), draft, state))
+            .map(|entry| entry.domain)
             .collect()
     }
 
@@ -1953,10 +1962,17 @@ fn evaluate_companion_sr(raw: &str, _row_level: u32, master_level: u32) -> Optio
     evaluate_companion_formula(raw, master_level).map(|value| value.floor() as i32)
 }
 
-fn evaluate_companion_formula(raw: &str, master_level: u32) -> Option<f64> {
-    let mastervar = regex::Regex::new(r#"mastervar\s*\(\s*["']?[^"')]*["']?\s*\)"#).ok()?;
-    let normalized = mastervar.replace_all(raw, master_level.to_string());
-    pcgen_formula::evaluate_f64(&normalized, &()).ok()
+fn evaluate_companion_formula(formula: &str, master_level: u32) -> Option<f64> {
+    // The formula arrives normalised: `mastervar("X")` became `MasterLevel` at
+    // lowering.  This used to be a regex here, which meant the engine still
+    // read PCGen syntax while evaluating.
+    let mut scope: std::collections::HashMap<String, pcgen_formula::Value> =
+        std::collections::HashMap::new();
+    scope.insert(
+        pcgen_core::formula_vocab::MASTER_LEVEL.to_string(),
+        pcgen_formula::Value::Int(i64::from(master_level)),
+    );
+    pcgen_formula::evaluate_f64(formula, &scope).ok()
 }
 
 fn companion_row_matches(
@@ -2418,39 +2434,6 @@ fn entity_is_active_for_traits(
         }
         _ => false,
     }
-}
-
-fn resolve_added_domain(raw: &str, templates: &BTreeSet<String>) -> Option<String> {
-    let raw = raw.trim();
-    if raw.is_empty() {
-        return None;
-    }
-    let (domain, condition) = match raw.split_once('[') {
-        Some((domain, condition)) => (domain.trim(), condition.trim_end_matches(']').trim()),
-        None => (raw, ""),
-    };
-    if condition.is_empty() {
-        return Some(domain.to_string());
-    }
-    if let Some(body) = condition
-        .strip_prefix("PRETEMPLATE:")
-        .or_else(|| condition.strip_prefix("pretemplate:"))
-    {
-        let wanted: Vec<String> = body
-            .split(',')
-            .skip(1)
-            .map(normalized_name)
-            .filter(|value| !value.is_empty())
-            .collect();
-        if wanted.iter().any(|name| {
-            templates
-                .iter()
-                .any(|template| normalized_name(template) == *name)
-        }) {
-            return Some(domain.to_string());
-        }
-    }
-    None
 }
 
 fn normalized_name(value: &str) -> String {

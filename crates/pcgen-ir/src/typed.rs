@@ -502,7 +502,9 @@ fn parse_class(record: &RawRecord) -> ClassDefinition {
         }
     }
     class.weapon_bonus = tags(record, "WEAPONBONUS").map(str::to_string).collect();
-    class.added_domains = tags(record, "ADDDOMAINS").map(str::to_string).collect();
+    class.added_domains = tags(record, "ADDDOMAINS")
+        .map(crate::rulepack::parse_added_domain)
+        .collect();
     class.prohibited_cost = tag(record, "PROHIBITCOST").and_then(|value| value.parse().ok());
     class.subclass_choice = tag(record, "CHOICE").map(str::to_string);
     class.prohibited_spells = tags(record, "PROHIBITSPELL").map(str::to_string).collect();
@@ -666,7 +668,7 @@ pub(crate) fn parse_creature_traits(record: &RawRecord, traits: &mut pcgen_core:
     traits.unarmed_damage = tags(record, "UDAM").map(str::to_string).collect();
     traits.unarmed_mult = tag(record, "UMULT").and_then(|value| value.parse().ok());
     traits.damage_reduction = tags(record, "DR").map(str::to_string).collect();
-    traits.spell_resistance = tag(record, "SR").map(str::to_string);
+    traits.spell_resistance = tag(record, "SR").map(normalize_formula_text);
     traits.challenge_rating = tag(record, "CR").map(str::to_string);
     traits.vision = tags(record, "VISION").map(str::to_string).collect();
     traits.move_clone = tags(record, "MOVECLONE").map(str::to_string).collect();
@@ -694,7 +696,7 @@ fn parse_companion_mod(record: &RawRecord) -> Option<pcgen_core::CompanionModDef
     companion.hit_dice_bonus = tag(record, "HD")
         .and_then(|value| value.trim().parse::<i32>().ok())
         .unwrap_or(0);
-    companion.spell_resistance = tag(record, "SR").map(str::to_string);
+    companion.spell_resistance = tag(record, "SR").map(normalize_formula_text);
     parse_creature_traits(record, &mut companion.traits);
     for ability in tags(record, "ABILITY") {
         let parts: Vec<&str> = ability.split('|').map(str::trim).collect();
@@ -739,7 +741,7 @@ fn parse_companion_bonus(value: &str) -> Option<CompanionBonus> {
         } else {
             (first.to_ascii_uppercase(), 1)
         };
-    let formula = parts.get(value_index)?.to_string();
+    let formula = normalize_formula_text(parts.get(value_index)?);
     let mut bonus_type = None;
     let mut stack_key = None;
     for part in parts.iter().skip(value_index + 1) {
@@ -755,6 +757,15 @@ fn parse_companion_bonus(value: &str) -> Option<CompanionBonus> {
         bonus_type,
         stack_key,
     })
+}
+
+/// Rewrite a PCGen formula into the runtime vocabulary.
+///
+/// Companion and creature formulas carry `mastervar("X")` and used to be
+/// normalised by a regex inside the engine, at evaluation time.  Doing it here
+/// keeps the engine from reading PCGen syntax at all.
+fn normalize_formula_text(value: &str) -> String {
+    pcgen_core::formula_vocab::normalize_pcgen_formula(value, None)
 }
 
 const KIT_ENTRY_TARGETS: &[&str] = &[

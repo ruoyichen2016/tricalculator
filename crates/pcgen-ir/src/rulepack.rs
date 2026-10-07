@@ -708,6 +708,23 @@ fn parse_qualified_names(body: &str) -> Vec<String> {
         .collect()
 }
 
+/// Split `Chaos[PRETEMPLATE:1,Vampire]` into a domain and its condition.
+///
+/// The engine used to do this itself, which was the last PCGen syntax it read.
+pub(crate) fn parse_added_domain(value: &str) -> pcgen_core::AddedDomain {
+    let value = value.trim();
+    let (domain, condition) = match value.split_once('[') {
+        Some((domain, condition)) => (domain.trim(), condition.trim().trim_end_matches(']').trim()),
+        None => (value, ""),
+    };
+    pcgen_core::AddedDomain {
+        domain: domain.to_string(),
+        condition: (!condition.is_empty())
+            .then(|| parse_predicate(condition, ""))
+            .flatten(),
+    }
+}
+
 fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
     let raw = raw.trim();
     // A leading `!` negates the whole predicate (`!PRETYPE`, `!PRERACE`,
@@ -1475,7 +1492,7 @@ fn parse_entity_metadata(record: &RawRecord) -> pcgen_core::EntityMetadata {
                 }
             }
             "ARMORTYPE" => extend_metadata_list(&mut metadata.armor_types, value),
-            "ADDDOMAINS" => metadata.added_domains.push(value.to_string()),
+            "ADDDOMAINS" => metadata.added_domains.push(parse_added_domain(value)),
             "PROHIBITCOST" => metadata.prohibited_cost = value.parse::<i32>().ok(),
             "DONOTADD" => extend_metadata_list(&mut metadata.do_not_add, value),
             "VARIANTS" => extend_metadata_list(&mut metadata.spell_variants, value),

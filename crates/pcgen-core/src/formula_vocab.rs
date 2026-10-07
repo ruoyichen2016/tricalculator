@@ -22,11 +22,20 @@
 //! | `classlevel("APPLIEDAS=NONEPIC")` | `ClassLevel_<owner>` |
 //! | `TL` | `CharacterLevel` |
 //! | `var("X")` | `X` |
+//! | `mastervar("X")` | `MasterLevel` |
 //!
 //! These names are ours, and they name game concepts rather than PCGen syntax.
 
 /// Variable holding the character's total level.
 pub const CHARACTER_LEVEL: &str = "CharacterLevel";
+
+/// Variable holding a companion's master level.
+///
+/// PCGen writes `mastervar("SpecialMountLVL")+5`.  The argument names the
+/// companion's own progression variable, but every RSRD use resolves to the
+/// same thing — the master's level — so the argument carries no information and
+/// the term is a single variable.
+pub const MASTER_LEVEL: &str = "MasterLevel";
 
 /// Variable holding the character's level in one class.
 ///
@@ -80,6 +89,20 @@ pub fn normalize_pcgen_formula(expression: &str, owner: Option<&str>) -> String 
                             .map(class_level_variable)
                             .unwrap_or_else(|| "0".to_string()),
                     );
+                    index = expression.len() - remainder.len();
+                    continue;
+                }
+            }
+        }
+
+        // `mastervar("X")` — the companion's master level.  This used to be
+        // normalised by a regex in the engine at evaluation time, which meant
+        // the engine still read PCGen syntax.
+        if let Some(after) = strip_prefix_ci(rest, "mastervar") {
+            let after = after.trim_start();
+            if let Some(after) = after.strip_prefix('(') {
+                if let Some((_argument, remainder)) = after.split_once(')') {
+                    out.push_str(MASTER_LEVEL);
                     index = expression.len() - remainder.len();
                     continue;
                 }
@@ -197,6 +220,35 @@ mod tests {
         assert_eq!(
             normalize_pcgen_formula("classlevel(\"APPLIEDAS=NONEPIC\")/3", Some("Cleric")),
             "ClassLevel_cleric/3"
+        );
+    }
+
+    #[test]
+    fn mastervar_becomes_the_master_level() {
+        // The RSRD writes `mastervar("SpecialMountLVL")+5` and
+        // `mastervar("FamiliarLVL")+5`; both mean the master's level.
+        assert_eq!(
+            normalize_pcgen_formula("mastervar(\"SpecialMountLVL\")+5", None),
+            "MasterLevel+5"
+        );
+        assert_eq!(
+            normalize_pcgen_formula("mastervar(\"FamiliarLVL\")+5", None),
+            "MasterLevel+5"
+        );
+        // Case-insensitively, and with the unquoted spelling.
+        assert_eq!(
+            normalize_pcgen_formula("MASTERVAR(FamiliarLVL)+5", None),
+            "MasterLevel+5"
+        );
+    }
+
+    #[test]
+    fn mastervar_is_not_confused_with_var() {
+        // `mastervar` must not be read as `var`, which would leave
+        // `master` behind and produce `masterMasterLevel`.
+        assert_eq!(
+            normalize_pcgen_formula("mastervar(\"X\")", None),
+            "MasterLevel"
         );
     }
 
