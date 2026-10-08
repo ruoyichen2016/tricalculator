@@ -269,6 +269,20 @@ constraint is not yet reachable.
 
 That makes it a scope question rather than a bug, and it is recorded as one.
 
+`CompanionModDefinition::abilities` was a candidate for the same embedded-value
+bug — the engine pushes it into the snapshot verbatim — but the 22 rows are
+already clean names (`Familiar ~ Empathic Link`, `Animal Companion ~ Evasion`),
+and a companion-bearing snapshot carries no PCGen syntax either.
+
+### 5d. Where the sweep stands
+
+No PCGen syntax reaches a character snapshot on any path reachable today:
+Fighter, Wizard, Cleric, Rogue, Druid and Paladin at several levels; the
+Celestial, Lycanthrope, Skeleton and Vampire templates; and Animal Companion,
+Familiar and Special Mount. The remaining PCGen text in the pack is confined to
+`legacy_tags`, which has no readers, and to fields the inventory has classified
+and accounted for.
+
 ## What followed from this
 
 Both actions are done:
