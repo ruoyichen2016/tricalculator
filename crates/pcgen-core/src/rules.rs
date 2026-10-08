@@ -523,6 +523,39 @@ pub struct ProhibitedSpell {
     pub condition: Option<Predicate>,
 }
 
+/// One `NATURALATTACKS` entry.
+///
+/// PCGen writes `Bite,Weapon.Natural.Weapon Group Natural.Melee.Finesseable...,*1,1d6`.
+/// Passing that string through put the internal encoding on the printed sheet,
+/// under a heading that promised an attack routine.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct NaturalAttack {
+    /// Attack name, e.g. `Bite`.
+    pub name: String,
+    /// How many, from the `*N` field.
+    pub count: u32,
+    /// Damage dice, e.g. `1d6`.
+    pub damage: String,
+    /// Weapon type tags, kept because they describe the attack.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub types: Vec<String>,
+}
+
+impl NaturalAttack {
+    /// A line fit for a character sheet.
+    pub fn render(&self) -> String {
+        let mut out = self.name.clone();
+        if self.count > 1 {
+            out.push_str(&format!(" ×{}", self.count));
+        }
+        if !self.damage.is_empty() {
+            out.push(' ');
+            out.push_str(&self.damage);
+        }
+        out
+    }
+}
+
 /// One damage-reduction entry.
 ///
 /// `5/Magic|PRELEVEL:MIN=4` is a value plus a gate.  The gate was never

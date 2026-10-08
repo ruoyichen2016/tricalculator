@@ -283,6 +283,43 @@ Familiar and Special Mount. The remaining PCGen text in the pack is confined to
 `legacy_tags`, which has no readers, and to fields the inventory has classified
 and accounted for.
 
+### 5e. Sweep: the remaining `|`-stored fields
+
+23 fields hold `|`-separated text. Checking each for how it is consumed found two
+more defects and two more scope gaps.
+
+**`HITDIE:` was ignored whenever it had a suffix or a `%`.** The raw data spells
+a Hit Die override three ways — `HITDIE:10`, `HITDIE:%/12` (set) and
+`HITDIE:%up1` (one step up) — and appends a `|CLASS.TYPE=Monster` scope. The
+parser stripped neither, so four values silently returned `None` and the
+override did nothing; `8|CLASS.TYPE=Monster` is plainly an 8. Lowering also
+stores these with a `d` in front (`d%/12`), so the `d` has to come off before the
+`%` is even recognisable — I got that order wrong on the first attempt and the
+`%` forms still did nothing.
+
+**`NATURALATTACKS` reached the character sheet.** The sheet printed the joined
+raw rows, so a wolf's attack routine read
+`Bite,Weapon.Natural.Weapon Group Natural.Melee.Finesseable.Bludgeoning.Piercing.Slashing,*1,1d6`.
+The tag also packs several attacks into one value with `|`, and reading it as a
+single attack let the second attack's fields overwrite the first's — a bear came
+out with one claw at one die instead of two claws and a bite. Now
+`NaturalAttack { name, count, damage, types }`, rendered as `Claw ×2 1d8`.
+
+**Two fields point at behaviour that was never built**, so they are scope gaps
+rather than defects:
+
+- `unencumbered_move` (the Dwarf's "full speed in heavy armour") has no readers —
+  because the engine has no encumbrance or armour speed penalty at all. `负重` is
+  listed as in scope in `M9_PERSONAL_BUILDER.md`, and carrying capacity is
+  likewise absent.
+- `exchange_level` is passed to the snapshot as a raw string
+  (`Ex Paladin|11|10|1`), which is the same shape of leak as `NATURALATTACKS`.
+
+The rest were checked and are sound: `proficiency` (`SHIELD|Shield (Heavy)`) is
+read via `starts_with`, `hit_die_override` now parses, `natural_attacks` is
+structured, `spec` / `choose` / `tag` go through the choice and grant machinery,
+and `legacy_tags`, `name` and `key` are accounted for above.
+
 ## What followed from this
 
 Both actions are done:

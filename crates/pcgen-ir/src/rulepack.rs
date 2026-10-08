@@ -751,6 +751,43 @@ pub(crate) fn parse_added_domain(value: &str) -> pcgen_core::AddedDomain {
     }
 }
 
+/// Parse `Claw,...,*2,1d8|Bite,...,*1,1d8` into one entry per attack.
+///
+/// `|` separates attacks within one `NATURALATTACKS` tag, and `,` separates the
+/// fields of each.  Reading the whole value as a single attack let the second
+/// attack's `*1` and `1d8` overwrite the first's, so a bear came out with one
+/// claw at a single die instead of two claws and a bite.
+pub(crate) fn parse_natural_attacks(value: &str) -> Vec<pcgen_core::NaturalAttack> {
+    value
+        .split('|')
+        .filter(|part| !part.trim().is_empty())
+        .map(parse_one_natural_attack)
+        .collect()
+}
+
+fn parse_one_natural_attack(value: &str) -> pcgen_core::NaturalAttack {
+    let fields: Vec<&str> = value.split(',').map(str::trim).collect();
+    let name = fields.first().copied().unwrap_or_default().to_string();
+    let mut types = Vec::new();
+    let mut count = 1;
+    let mut damage = String::new();
+    for field in fields.iter().skip(1) {
+        if let Some(value) = field.strip_prefix('*') {
+            count = value.parse().unwrap_or(1);
+        } else if field.chars().next().is_some_and(|c| c.is_ascii_digit()) && field.contains('d') {
+            damage = (*field).to_string();
+        } else if !field.is_empty() {
+            types.push((*field).to_string());
+        }
+    }
+    pcgen_core::NaturalAttack {
+        name,
+        count,
+        damage,
+        types,
+    }
+}
+
 /// Parse `SCHOOL.Abjuration|PREVARGTEQ:ProhibitAbjuration,1`.
 ///
 /// Returns `None` for a target we do not model, rather than keeping the raw

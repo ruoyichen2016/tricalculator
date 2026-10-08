@@ -32,7 +32,7 @@ struct CreatureTraitAccumulator {
     vision: Vec<String>,
     damage_reduction: Vec<String>,
     spell_resistance: Option<i32>,
-    natural_attacks: Vec<String>,
+    natural_attacks: Vec<pcgen_core::NaturalAttack>,
     reach_feet: Option<i32>,
     reach_mult: Option<i32>,
     unarmed_damage: Vec<String>,
@@ -686,7 +686,12 @@ impl Engine {
             vision,
             damage_reduction,
             spell_resistance,
-            natural_attacks,
+            // Rendered here: the sheet shows an attack routine, not PCGen's
+            // `Name,Weapon.Natural...,*1,1d6` encoding.
+            natural_attacks: natural_attacks
+                .iter()
+                .map(pcgen_core::NaturalAttack::render)
+                .collect(),
             reach_feet,
             reach_mult,
             unarmed_damage,
@@ -1678,11 +1683,16 @@ impl Engine {
             let raw = entry.hit_points_gained + con_mod * entry.level as i32;
             return raw.max(entry.level as i32);
         }
-        let die = self.hit_die_override(draft, &entry.class_id).or_else(|| {
-            self.class(&entry.class_id)
+        let class_die = self
+            .class(&entry.class_id)
+            .and_then(|class| parse_hit_die(&class.hit_die));
+        let die = match self.hit_die_override(draft, &entry.class_id) {
+            Some(rule) => rule.apply(class_die),
+            None => self
+                .class(&entry.class_id)
                 .filter(|class| class.is_monster)
-                .and_then(|class| parse_hit_die(&class.hit_die))
-        });
+                .and_then(|class| parse_hit_die(&class.hit_die)),
+        };
         if let Some(die) = die {
             let per_level = (die / 2 + 1 + con_mod).max(1);
             return per_level * entry.level as i32;
@@ -1692,20 +1702,24 @@ impl Engine {
         (con_mod * entry.level as i32).max(0)
     }
 
-    fn hit_die_override(&self, draft: &CharacterDraft, class_id: &str) -> Option<i32> {
+    fn hit_die_override(&self, draft: &CharacterDraft, class_id: &str) -> Option<HitDieRule> {
         if let Some(class) = self.class(class_id) {
-            if let Some(value) = class.hit_die_override.as_deref() {
-                if let Some(die) = parse_hit_die(value) {
-                    return Some(die);
-                }
+            if let Some(rule) = class
+                .hit_die_override
+                .as_deref()
+                .and_then(parse_hit_die_rule)
+            {
+                return Some(rule);
             }
         }
         for template_name in &draft.templates {
             if let Some(template) = find_template(&self.pack, template_name) {
-                if let Some(value) = template.hit_die_override.as_deref() {
-                    if let Some(die) = parse_hit_die(value) {
-                        return Some(die);
-                    }
+                if let Some(rule) = template
+                    .hit_die_override
+                    .as_deref()
+                    .and_then(parse_hit_die_rule)
+                {
+                    return Some(rule);
                 }
             }
         }
@@ -2173,6 +2187,67 @@ pub fn validate(_pack: &CompiledRulePack, _draft: &CharacterDraft) -> Vec<String
 fn parse_hit_die(value: &str) -> Option<i32> {
     let raw = value.trim().trim_start_matches(['d', 'D']);
     raw.parse::<i32>().ok().filter(|value| *value > 0)
+}
+
+/// A PCGen `HITDIE:` value.
+///
+/// The raw data uses three spellings, and the scope suffix (`|CLASS.TYPE=Monster`)
+/// was not stripped, so four values silently failed to parse — including
+/// `8|CLASS.TYPE=Monster`, where the die is plainly 8.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum HitDieRule {
+    /// `HITDIE:8` or `HITDIE:%/8` — the die is this.
+    Fixed(i32),
+    /// `HITDIE:%up1` / `%down1` — relative to the class's own die.
+    Steps(i32),
+}
+
+impl HitDieRule {
+    fn apply(self, class_die: Option<i32>) -> Option<i32> {
+        match self {
+            HitDieRule::Fixed(die) => Some(die),
+            // Die sizes move in steps of two: 4, 6, 8, 10, 12.
+            HitDieRule::Steps(steps) => class_die.map(|die| {
+                let stepped = die + steps * 2;
+                stepped.clamp(4, 12)
+            }),
+        }
+    }
+}
+
+/// Parse a `HITDIE:` value, ignoring its `|CLASS.TYPE=...` scope suffix.
+fn parse_hit_die_rule(value: &str) -> Option<HitDieRule> {
+    // Order matters: lowering stores these with a `d` in front (`d%/12`,
+    // `d%up1`), so the `d` has to come off before the `%` is recognisable.
+    let head = value
+        .split('|')
+        .next()?
+        .trim()
+        .trim_start_matches(['d', 'D']);
+    if let Some(body) = head.strip_prefix('%') {
+        // `%/8` sets the die; `%up1` / `%down1` step it.
+        if let Some(die) = body.strip_prefix('/') {
+            return die
+                .trim()
+                .parse::<i32>()
+                .ok()
+                .filter(|d| *d > 0)
+                .map(HitDieRule::Fixed);
+        }
+        let lower = body.to_ascii_lowercase();
+        if let Some(steps) = lower.strip_prefix("up") {
+            return steps.trim().parse::<i32>().ok().map(HitDieRule::Steps);
+        }
+        if let Some(steps) = lower.strip_prefix("down") {
+            return steps
+                .trim()
+                .parse::<i32>()
+                .ok()
+                .map(|n| HitDieRule::Steps(-n));
+        }
+        return None;
+    }
+    parse_hit_die(head).map(HitDieRule::Fixed)
 }
 
 pub(crate) fn effective_class_levels(

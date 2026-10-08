@@ -113,7 +113,7 @@ pub struct CreatureTraits {
     #[serde(default)]
     pub subtypes: Vec<String>,
     #[serde(default)]
-    pub natural_attacks: Vec<String>,
+    pub natural_attacks: Vec<crate::rules::NaturalAttack>,
     #[serde(default)]
     pub unarmed_damage: Vec<String>,
     #[serde(default)]

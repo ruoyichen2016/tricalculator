@@ -10,7 +10,7 @@ pub mod algorithms;
 pub mod class_grant;
 
 pub use class_grant::{ClassGrant, GrantMode};
-pub use rules::{AddedDomain, DamageReduction, ProhibitedSpell, ProhibitionTarget};
+pub use rules::{AddedDomain, DamageReduction, NaturalAttack, ProhibitedSpell, ProhibitionTarget};
 pub mod domain;
 pub mod equipment;
 pub mod faith;

@@ -392,7 +392,7 @@ fn companion_condition_matching_applies_hd_sr_abilities_traits_and_bonuses() {
         .traits
         .natural_attacks
         .iter()
-        .any(|attack| attack.contains("Claw")));
+        .any(|attack| attack.name.contains("Claw")));
 }
 
 #[test]
