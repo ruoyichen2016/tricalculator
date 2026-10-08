@@ -224,3 +224,48 @@ fn pack_is_reviewable() {
 
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn domain_spells_survive_without_the_duplicate() {
+    // `ClassDefinition::spell_levels` carried the domain spell lists a second
+    // time, as raw `CLASS|Cleric=1|...|PREVAREQ:<X>DomainAllowed,1` rows, and
+    // nothing read them. `DomainDefinition::domain_spells` holds the same data
+    // structurally and *is* consumed.
+    //
+    // Across the 22 domains those rows named: 18 were identical, 4 differed only
+    // in case, 0 were missing from the structured side. The four are the
+    // `Magic Circle against X` spells — `rsrd_classes.lst` spells them with a
+    // capital `Against`, while `rsrd_spells.lst`, the spell's own definition,
+    // uses lowercase. So the duplicate also carried a misspelling.
+    //
+    // The duplicate is gone; this asserts the data it duplicated is still here.
+    let pcc = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/_rsrd_basics.pcc");
+    if !pcc.exists() {
+        return;
+    }
+    let (pack, _) = pcgen_import::compile_pcc(&pcc).expect("compile");
+
+    let war = pack.domains.get("War").expect("War domain");
+    assert_eq!(
+        war.domain_spells.len(),
+        9,
+        "domain spells are still carried"
+    );
+    assert_eq!(war.domain_spells[0].name, "Magic Weapon");
+
+    // The canonical spelling is the one in the spell's own definition.
+    let chaos = pack.domains.get("Chaos").expect("Chaos domain");
+    assert!(
+        chaos
+            .domain_spells
+            .iter()
+            .any(|spell| spell.name == "Magic Circle against Law"),
+        "the lowercase spelling is the canonical one: {:?}",
+        chaos
+            .domain_spells
+            .iter()
+            .map(|s| &s.name)
+            .collect::<Vec<_>>()
+    );
+}

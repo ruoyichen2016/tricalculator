@@ -325,9 +325,6 @@ pub struct ClassDefinition {
     pub level_bonuses: BTreeMap<u32, Vec<String>>,
     #[serde(default)]
     pub level_prerequisites: BTreeMap<u32, Vec<String>>,
-    /// PCGen `SPELLLEVEL` assignments captured from class level rows.
-    #[serde(default)]
-    pub spell_levels: Vec<String>,
     /// Prohibited spell/school entries (PCGen `PROHIBITSPELL:`).
     #[serde(default)]
     pub prohibited_spells: Vec<String>,
@@ -430,7 +427,6 @@ impl ClassDefinition {
             level_abilities: BTreeMap::new(),
             level_bonuses: BTreeMap::new(),
             level_prerequisites: BTreeMap::new(),
-            spell_levels: Vec::new(),
             prohibited_spells: Vec::new(),
             known_spells_from_specialty: 0,
             skill_multiplier: None,

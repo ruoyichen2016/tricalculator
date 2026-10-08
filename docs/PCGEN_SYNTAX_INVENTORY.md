@@ -20,7 +20,7 @@ kind of PCGen syntax it carries.
 |---|---:|---|---|---|
 | kit `entries.conditions` | 192 | no | no | carried only |
 | `entities.name` / `abilities.*.name` | 46 | **yes** (class matching) | no — used as an identity | **keep the spelling** |
-| `classes.*.spell_levels` | 44 | no | no | carried only |
+| `classes.*.spell_levels` | 44 | no | no | ✅ deleted as a duplicate, see §3c |
 | `entities.legacy_tags` | 39 | no | no | reporting metadata, by design |
 | `classes.*.level_prerequisites` | 12 | no | no | carried only |
 | `traits.damage_reduction` | 16 | yes | **was no — fixed, see §3b** | ✅ fixed |
@@ -114,6 +114,33 @@ and an ungated `5/Bludgeoning` still comes through as its value alone.
 This is the case that justifies the whole inventory: the field was on the
 "carried only" list, and the defect was not in its shape but in a condition
 nobody evaluated.
+
+### 3c. Resolved, and it was not a missing gate — it was a dead duplicate
+
+`spell_levels` looked like the DR case: 50 rows of
+`CLASS|Cleric=1|Obscuring Mist|...|PREVAREQ:AirDomainAllowed,1` that nothing
+read. It is not.
+
+Those rows are **domain spell lists**, and `DomainDefinition::domain_spells`
+already carries the same data structurally — and *is* consumed, so clerics do
+get their domain spells. Compared across the 22 domains the rows name:
+
+| | count |
+|---|---:|
+| identical to `domain_spells` | 18 |
+| differing only in case | 4 |
+| missing from the structured side | 0 |
+
+The four are the `Magic Circle against X` spells. `rsrd_classes.lst` (the class's
+`SPELLLEVEL` rows) spells them with a capital `Against`; `rsrd_domains.lst` and
+`rsrd_spells.lst` — the spell's own definition — use lowercase. So the raw data
+disagrees with itself, and the duplicate carried the wrong variant.
+
+The field is deleted. The 44 rows were a second copy of data that was already
+consumed, one that no code read and that a lookup would have missed on.
+
+Not every "never read" field is missing behaviour. This one was redundant, and
+the way to tell was to compare it against the field that *is* read.
 
 ### 4. The architecture guard does not cover it
 

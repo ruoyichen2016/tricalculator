@@ -226,7 +226,6 @@ fn merge_class(classes: &mut BTreeMap<String, ClassDefinition>, class: ClassDefi
             existing
                 .level_prerequisites
                 .extend(class.level_prerequisites);
-            existing.spell_levels.extend(class.spell_levels);
             existing.prohibited_spells.extend(class.prohibited_spells);
             existing.known_spells_from_specialty = existing
                 .known_spells_from_specialty
@@ -537,9 +536,7 @@ fn parse_class_level_row(class: &mut ClassDefinition, record: &RawRecord) {
                     .spells_known
                     .insert(level, parse_spell_table(&tag.value));
             }
-            "SPELLLEVEL" => {
-                class.spell_levels.push(tag.value.clone());
-            }
+            "SPELLLEVEL" => {}
             "SPELLLIST" => {
                 class.spell_list = tag
                     .value
