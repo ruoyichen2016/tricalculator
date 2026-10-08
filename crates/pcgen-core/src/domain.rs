@@ -327,7 +327,7 @@ pub struct ClassDefinition {
     pub level_prerequisites: BTreeMap<u32, Vec<String>>,
     /// Prohibited spell/school entries (PCGen `PROHIBITSPELL:`).
     #[serde(default)]
-    pub prohibited_spells: Vec<String>,
+    pub prohibited_spells: Vec<crate::rules::ProhibitedSpell>,
     /// Bonus known spells from specialty (PCGen `KNOWNSPELLSFROMSPECIALTY:`).
     #[serde(default)]
     pub known_spells_from_specialty: u32,
@@ -479,6 +479,13 @@ pub struct SpellDefinition {
     pub level: u32,
     #[serde(default)]
     pub school: String,
+    /// Alignment and energy descriptors (PCGen `DESCRIPTOR:`), e.g. `Good`.
+    ///
+    /// Needed for `PROHIBITSPELL:ALIGNMENT.Good`: a Cleric of an evil deity may
+    /// not cast spells with the Good descriptor, and the descriptor was not
+    /// captured at all.
+    #[serde(default)]
+    pub descriptors: Vec<String>,
     #[serde(default)]
     pub class_levels: BTreeMap<String, u32>,
     /// Domains that include this spell (PCGen `DOMAINS:`).
@@ -498,6 +505,7 @@ impl SpellDefinition {
             name: name.into(),
             level: 0,
             school: String::new(),
+            descriptors: Vec::new(),
             class_levels: BTreeMap::new(),
             domains: Vec::new(),
             is_psionic: false,

@@ -47,6 +47,14 @@ pub enum Predicate {
     Alignment {
         allowed: Vec<String>,
     },
+    /// The character's *deity's* alignment (PCGen `PREDEITYALIGN`).
+    ///
+    /// Distinct from `Alignment`: a Cleric may be one step from their deity, so
+    /// "a Cleric of an evil god does not cast Good spells" needs the deity's
+    /// alignment, not the character's.
+    DeityAlignment {
+        allowed: Vec<String>,
+    },
     CharacterLevel {
         min: u32,
     },
@@ -486,6 +494,31 @@ pub struct EntityMetadata {
 pub struct AddedDomain {
     pub domain: String,
     /// Condition the character must satisfy, when the entry has one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub condition: Option<Predicate>,
+}
+
+/// What a `PROHIBITSPELL` entry forbids.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "kind", content = "value")]
+pub enum ProhibitionTarget {
+    /// A spell school, e.g. `SCHOOL.Abjuration` -> `Abjuration`.
+    School(String),
+    /// A spell's alignment descriptor, e.g. `ALIGNMENT.Good` -> `Good`.
+    Alignment(String),
+}
+
+/// One `PROHIBITSPELL` entry: what is forbidden, and when.
+///
+/// The raw data implements school prohibition in two halves — a
+/// `TYPE:WizardProhibitSchool` ability sets `ProhibitAbjuration`, and the class
+/// gates on `PREVARGTEQ:ProhibitAbjuration,1`.  Only the first half was wired
+/// up: these entries were parsed, never consulted, and the spell picker offered
+/// forbidden schools anyway.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProhibitedSpell {
+    pub target: ProhibitionTarget,
+    /// When the prohibition applies.  `None` means always.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub condition: Option<Predicate>,
 }

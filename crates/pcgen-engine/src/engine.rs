@@ -634,6 +634,8 @@ impl Engine {
         let turning = self.turning(draft, &effect_state.variables);
         let uncanny_dodge =
             self.uncanny_dodge(&effect_state.active_abilities, &effect_state.variables);
+        let (prohibited_schools, prohibited_alignments) =
+            self.prohibited_spells(draft, &effect_state);
         let mut snapshot = CharacterSnapshot {
             draft_id: draft.id.clone(),
             name: draft.name.clone(),
@@ -676,6 +678,8 @@ impl Engine {
             spell_power_types: effect_state.spell_powers.clone(),
             max_spell_level: effect_state.max_spell_level.clone(),
             has_spellbook: effect_state.has_spellbook,
+            prohibited_schools: prohibited_schools.clone(),
+            prohibited_alignments: prohibited_alignments.clone(),
             power_points,
             manifester_levels,
             powers_known,
@@ -971,6 +975,39 @@ impl Engine {
                 .find(|(key, _)| key.eq_ignore_ascii_case(deity))
                 .map(|(_, deity)| deity)
         })
+    }
+
+    /// Schools and alignment descriptors this character may not cast.
+    ///
+    /// The prohibitions sit on the class and carry their own gate, e.g.
+    /// `SCHOOL.Abjuration|PREVARGTEQ:ProhibitAbjuration,1`, where the variable
+    /// is set by a `TYPE:WizardProhibitSchool` ability.
+    fn prohibited_spells(
+        &self,
+        draft: &CharacterDraft,
+        state: &crate::effects::EffectState,
+    ) -> (BTreeSet<String>, BTreeSet<String>) {
+        let mut schools = BTreeSet::new();
+        let mut alignments = BTreeSet::new();
+        for entry in effective_class_levels(&self.pack, draft) {
+            let Some(class) = self.class(&entry.class_id) else {
+                continue;
+            };
+            for prohibition in &class.prohibited_spells {
+                if !crate::effects::predicate_holds(prohibition.condition.as_ref(), draft, state) {
+                    continue;
+                }
+                match &prohibition.target {
+                    pcgen_core::ProhibitionTarget::School(school) => {
+                        schools.insert(school.clone());
+                    }
+                    pcgen_core::ProhibitionTarget::Alignment(alignment) => {
+                        alignments.insert(alignment.clone());
+                    }
+                }
+            }
+        }
+        (schools, alignments)
     }
 
     fn class_added_domains(

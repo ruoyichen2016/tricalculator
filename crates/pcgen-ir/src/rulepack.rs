@@ -725,6 +725,22 @@ pub(crate) fn parse_added_domain(value: &str) -> pcgen_core::AddedDomain {
     }
 }
 
+/// Parse `SCHOOL.Abjuration|PREVARGTEQ:ProhibitAbjuration,1`.
+///
+/// Returns `None` for a target we do not model, rather than keeping the raw
+/// string: an entry nobody can act on is worse than an absent one.
+pub(crate) fn parse_prohibited_spell(value: &str) -> Option<pcgen_core::ProhibitedSpell> {
+    let mut parts = value.split('|').map(str::trim).filter(|p| !p.is_empty());
+    let target = parts.next()?;
+    let target = match target.split_once('.') {
+        Some(("SCHOOL", name)) => pcgen_core::ProhibitionTarget::School(name.to_string()),
+        Some(("ALIGNMENT", name)) => pcgen_core::ProhibitionTarget::Alignment(name.to_string()),
+        _ => return None,
+    };
+    let condition = parts.find_map(|part| parse_predicate(part, ""));
+    Some(pcgen_core::ProhibitedSpell { target, condition })
+}
+
 /// Split `5/Magic|PRELEVEL:MIN=4` into a value and its gate.
 ///
 /// The gate was never evaluated while this was a `String`, so a level-1
@@ -1047,6 +1063,18 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
             Some(Predicate::HasEntity {
                 entity: EntityId::new("pcgen", "race", "Race", key),
             })
+        }
+        "PREDEITYALIGN" => {
+            let allowed = parts
+                .iter()
+                .filter(|part| !part.is_empty() && part.parse::<i32>().is_err())
+                .map(|part| (*part).to_string())
+                .collect::<Vec<_>>();
+            if allowed.is_empty() {
+                None
+            } else {
+                Some(Predicate::DeityAlignment { allowed })
+            }
         }
         "PREALIGN" => {
             let allowed = parts

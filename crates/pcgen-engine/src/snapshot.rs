@@ -137,6 +137,17 @@ pub struct CharacterSnapshot {
     /// Character has a spellbook-using class.
     #[serde(default)]
     pub has_spellbook: bool,
+    /// Spell schools this character may not cast (`PROHIBITSPELL:SCHOOL.*`).
+    ///
+    /// A 3.5e Wizard must forbid two schools; until this existed the picker
+    /// offered them anyway.
+    #[serde(default)]
+    pub prohibited_schools: BTreeSet<String>,
+    /// Alignment descriptors this character may not cast
+    /// (`PROHIBITSPELL:ALIGNMENT.*`) — a Cleric of an evil deity does not cast
+    /// Good spells.
+    #[serde(default)]
+    pub prohibited_alignments: BTreeSet<String>,
     #[serde(default)]
     pub power_points: BTreeMap<String, i32>,
     #[serde(default)]

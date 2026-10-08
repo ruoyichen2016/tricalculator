@@ -24,7 +24,7 @@ kind of PCGen syntax it carries.
 | `entities.legacy_tags` | 39 | no | no | reporting metadata, by design |
 | `classes.*.level_prerequisites` | 12 | no | no | carried only |
 | `traits.damage_reduction` | 16 | yes | **was no — fixed, see §3b** | ✅ fixed |
-| `classes.*.prohibited_spells` | 16 | no | no | carried only |
+| `classes.*.prohibited_spells` | 16 | **now** | **now** | ✅ built, see §5b |
 | `entities.metadata.added_domains` | 4 | **yes** | **YES** | ✅ fixed, see §6 |
 | `ClassGrant.guards` | 3 | no | no | needs the spelling to render |
 | `entities.effects.action.tag` | 2 | yes | no | see note below |
@@ -180,7 +180,23 @@ field that *is* read split them three ways, and only one of them is a defect:
 | `classes.*.level_prerequisites` | redundant | the real prerequisites are on the entity's `requirements`, which is consumed |
 | kit `entries.conditions` | out of scope | `kits` is imported for counting only; the builder does not apply kits by design (`M9_PERSONAL_BUILDER.md`) |
 
-**`prohibited_spells` is the one genuine gap.** The raw data implements the
+**`prohibited_spells` was the one genuine gap, and is now built.**
+
+`ProhibitedSpell { target, condition }` splits `SCHOOL.Abjuration` from its
+`PREVARGTEQ:ProhibitAbjuration,1` gate, and the engine reports the result as
+`prohibited_schools` / `prohibited_alignments` on the snapshot. The Web spell
+picker passes them back as `exclude_school` / `exclude_alignment` and filters.
+
+Two things had to be added along the way:
+
+- **`Predicate::DeityAlignment`** for `PREDEITYALIGN`. The Cleric entries are
+  `ALIGNMENT.Good|PREDEITYALIGN:LE,NE,CE`, and the deity's alignment is not the
+  character's — a Cleric may be one step from their deity, so reusing
+  `Predicate::Alignment` would have been wrong.
+- **`SpellDefinition::descriptors`** for `DESCRIPTOR:`. The alignment half of
+  the feature is unenforceable without it, and it was not captured at all.
+
+The original finding, for the record: The raw data implements the
 feature in two halves:
 
 ```

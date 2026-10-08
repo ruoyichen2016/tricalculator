@@ -506,7 +506,9 @@ fn parse_class(record: &RawRecord) -> ClassDefinition {
         .collect();
     class.prohibited_cost = tag(record, "PROHIBITCOST").and_then(|value| value.parse().ok());
     class.subclass_choice = tag(record, "CHOICE").map(str::to_string);
-    class.prohibited_spells = tags(record, "PROHIBITSPELL").map(str::to_string).collect();
+    class.prohibited_spells = tags(record, "PROHIBITSPELL")
+        .filter_map(crate::rulepack::parse_prohibited_spell)
+        .collect();
     class.known_spells_from_specialty = tag(record, "KNOWNSPELLSFROMSPECIALTY")
         .and_then(|value| value.parse().ok())
         .unwrap_or(0);
@@ -909,6 +911,12 @@ fn parse_spell(record: &RawRecord) -> SpellDefinition {
         .or_else(|| tag(record, "SCHOOLS"))
         .unwrap_or("")
         .to_string();
+    spell.descriptors = tags(record, "DESCRIPTOR")
+        .flat_map(|value| value.split('.'))
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .collect();
     if let Some(level) = tag(record, "LEVEL").and_then(|value| value.parse().ok()) {
         spell.level = level;
     }

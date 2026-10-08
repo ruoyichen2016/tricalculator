@@ -55,6 +55,8 @@ pub struct EffectState {
     pub typed_bonuses: Vec<TypedBonus>,
     pub active_abilities: BTreeSet<String>,
     pub choices: BTreeMap<String, String>,
+    /// The chosen deity's alignment, for `PREDEITYALIGN` (PCGen).
+    pub deity_alignment: Option<String>,
     /// Choice values bound to the entity that owned the `CHOOSE`.
     pub choice_bindings: BTreeMap<String, Vec<String>>,
     pub unresolved_choices: Vec<String>,
@@ -255,6 +257,11 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         weapon_proficiencies,
         languages,
         domains,
+        deity_alignment: draft
+            .deity
+            .as_deref()
+            .and_then(|deity| pack.deities.get(deity))
+            .and_then(|definition| definition.alignment.clone()),
         hit_dice: draft.total_level(),
         ..EffectState::default()
     };
@@ -1079,6 +1086,13 @@ pub(crate) fn predicate_holds(
         Predicate::Alignment { allowed } => allowed
             .iter()
             .any(|alignment| alignment.eq_ignore_ascii_case(&draft.alignment)),
+        Predicate::DeityAlignment { allowed } => {
+            state.deity_alignment.as_deref().is_some_and(|deity| {
+                allowed
+                    .iter()
+                    .any(|alignment| alignment.eq_ignore_ascii_case(deity))
+            })
+        }
         Predicate::CharacterLevel { min } => draft.total_level() >= *min,
         Predicate::CharacterClassLevel { min, max } => {
             let value = state.character_class_levels;

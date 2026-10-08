@@ -258,6 +258,12 @@ pub struct SpellOptionsQuery {
     pub school: Option<String>,
     #[serde(default)]
     pub search: Option<String>,
+    /// Spell schools the character may not cast, comma separated.
+    #[serde(default)]
+    pub exclude_school: Option<String>,
+    /// Alignment descriptors the character may not cast, comma separated.
+    #[serde(default)]
+    pub exclude_alignment: Option<String>,
     #[serde(default)]
     pub page: Option<u32>,
     #[serde(default)]
@@ -1621,11 +1627,40 @@ async fn spell_search_options(
     let page = query.page.unwrap_or(1).max(1);
     let page_size = query.page_size.unwrap_or(50).clamp(1, 200);
     let search = query.search.as_deref().map(str::to_lowercase);
+    let split = |value: &Option<String>| -> Vec<String> {
+        value
+            .as_deref()
+            .unwrap_or_default()
+            .split(',')
+            .map(str::trim)
+            .filter(|part| !part.is_empty())
+            .map(str::to_string)
+            .collect()
+    };
+    let excluded_schools = split(&query.exclude_school);
+    let excluded_alignments = split(&query.exclude_alignment);
 
     let mut items: Vec<SpellOption> = pack
         .spells
         .values()
         .filter(|spell| {
+            // A Wizard must forbid two schools and a Cleric of an evil deity
+            // does not cast Good spells; until this filter existed both were
+            // offered anyway.
+            if excluded_schools
+                .iter()
+                .any(|school| school.eq_ignore_ascii_case(&spell.school))
+            {
+                return false;
+            }
+            if excluded_alignments.iter().any(|alignment| {
+                spell
+                    .descriptors
+                    .iter()
+                    .any(|descriptor| descriptor.eq_ignore_ascii_case(alignment))
+            }) {
+                return false;
+            }
             if let Some(class) = &query.class {
                 if !spell
                     .class_levels
