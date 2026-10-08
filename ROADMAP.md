@@ -7,9 +7,22 @@
 
 ## 当前状态（最近验证：固定数据 + 全量门禁）
 
-- 工作区：9 crate（core / formula / ir / import / engine / builder / output / cli / web）。
-- 测试：`cargo test --workspace` **293 passed**（`scripts/check.sh` 额外再跑一次
-  `pcgen-web`，合计 327）。
+- 工作区：10 crate（core / formula / ir / import / engine / builder / output /
+  cli / web / **transpile**）。`pcgen-transpile` 是构建期转写器，把
+  `.pcc`/`.lst` 规范化成 pack 目录，使运行期不再解释 PCGen 文本。
+- 测试：`cargo test --workspace` **347 passed**（`scripts/check.sh` 额外再跑一次
+  `pcgen-web`，合计 **381**）。
+- 数据格式规范化（`docs/DATA_FORMAT.md`）：阶段 1 完成（职业域转写为
+  `class` / `class_level` / `variant` 记录，每级一条并显式声明归属）；
+  阶段 2 步骤 1 完成——消除「同一事实三种表示」：`ClassGrant` 成为
+  等级授予的唯一结构化表示，`ClassProgression::features_by_level` 副本删除，
+  同一字符串的两次解析合并为一处。
+- **引擎不再读 PCGen 语法**：最后两处（`resolve_added_domain` 的
+  `PRETEMPLATE:`、`evaluate_companion_formula` 的 `mastervar(...)`）已改为
+  在 lowering 阶段转写；架构守卫第 5 项拓宽到标签语法并验证有牙齿。
+  副产品：`regex` 整个依赖栈离场（`Cargo.lock` 87 → 83 包）。
+- 构建体积：dev profile 从 15.0 GiB 降到 **2.4 GiB**（依赖不产出调试信息，
+  本工作区用 `line-tables-only`），实测见 `Cargo.toml` 的 `[profile.dev]`。
 - DS-3E（回归代理，`srdbasic.pcc`）：3,779 entities，23,723 tag occurrences，
   lowered 3,267；legacy pending 0；unsupported 0；
   **semantic completion 100.0%**。
@@ -23,6 +36,10 @@
   `XPCOST` 按 P4-DEC-2 移入 out-of-scope allowlist；三个数据集的
   `unsupported_pending` 均被门禁显式要求为 0。
 - 门禁 `scripts/coverage_gate.py`：**15 pass / 0 fail / 0 skip**（严格模式，含三数据集 coverage 基线、DS-35E 阈值与 primary cohort scope 守卫）。
+- 门禁 `scripts/deep_field_oracle.py`：**7 cases / 0 owned known gaps**。
+  它抓得住别的检查抓不住的耦合——例如从实体显示名剥离 PCGen 的 `.MOD`
+  后缀看似纯外观清理，实际让 `.COPY=` 记录开始匹配基础职业，
+  `skill_total` 在两处 3e case 上偏移 2（见 `effects.rs` 的注释）。
 - broad primary cohort：25 case（**25 computed = 25 case-gated +
   0 known-diverging**，0 data-missing），全部声明 `java_gated_fields`。
   字段级正确性（`broad_oracle.py --report`，仅 Java sheet 实际暴露字段）：
