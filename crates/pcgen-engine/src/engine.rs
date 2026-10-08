@@ -737,10 +737,10 @@ impl Engine {
             if !entity_is_active_for_traits(entity, draft, effect_state, &class_levels) {
                 continue;
             }
-            merge_creature_traits(&entity.traits, &mut merged);
+            merge_creature_traits(&entity.traits, &mut merged, draft, effect_state);
         }
         for traits in self.equipmod_traits(draft) {
-            merge_creature_traits(&traits, &mut merged);
+            merge_creature_traits(&traits, &mut merged, draft, effect_state);
         }
 
         merged.vision.sort();
@@ -1942,8 +1942,15 @@ impl Engine {
             model.abilities.dedup();
             model.traits.vision.sort();
             model.traits.vision.dedup();
-            model.traits.damage_reduction.sort();
-            model.traits.damage_reduction.dedup();
+            // Sort on the value;  is not .
+            model
+                .traits
+                .damage_reduction
+                .sort_by(|a, b| a.value.cmp(&b.value));
+            model
+                .traits
+                .damage_reduction
+                .dedup_by(|a, b| a.value == b.value);
             model.traits.natural_attacks.sort();
             model.traits.natural_attacks.dedup();
             model.traits.unarmed_damage.sort();
@@ -2341,11 +2348,20 @@ pub fn lane_summary(lane: &pcgen_core::AdvancementLane) -> String {
 fn merge_creature_traits(
     traits: &pcgen_core::CreatureTraits,
     merged: &mut CreatureTraitAccumulator,
+    draft: &CharacterDraft,
+    state: &crate::effects::EffectState,
 ) {
     merged.vision.extend(traits.vision.iter().cloned());
-    merged
-        .damage_reduction
-        .extend(traits.damage_reduction.iter().cloned());
+    // Each entry carries its own gate (`5/Magic|PRELEVEL:MIN=4`).  Passing the
+    // raw string through meant the snapshot showed both entries of a Celestial
+    // at level 1, conditions and all.
+    merged.damage_reduction.extend(
+        traits
+            .damage_reduction
+            .iter()
+            .filter(|entry| crate::effects::predicate_holds(entry.condition.as_ref(), draft, state))
+            .map(|entry| entry.value.clone()),
+    );
     merged
         .natural_attacks
         .extend(traits.natural_attacks.iter().cloned());

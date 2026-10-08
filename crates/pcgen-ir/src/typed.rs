@@ -667,7 +667,9 @@ pub(crate) fn parse_creature_traits(record: &RawRecord, traits: &mut pcgen_core:
     traits.natural_attacks = tags(record, "NATURALATTACKS").map(str::to_string).collect();
     traits.unarmed_damage = tags(record, "UDAM").map(str::to_string).collect();
     traits.unarmed_mult = tag(record, "UMULT").and_then(|value| value.parse().ok());
-    traits.damage_reduction = tags(record, "DR").map(str::to_string).collect();
+    traits.damage_reduction = tags(record, "DR")
+        .map(crate::rulepack::parse_damage_reduction)
+        .collect();
     traits.spell_resistance = tag(record, "SR").map(normalize_formula_text);
     traits.challenge_rating = tag(record, "CR").map(str::to_string);
     traits.vision = tags(record, "VISION").map(str::to_string).collect();

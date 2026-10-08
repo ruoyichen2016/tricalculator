@@ -725,6 +725,22 @@ pub(crate) fn parse_added_domain(value: &str) -> pcgen_core::AddedDomain {
     }
 }
 
+/// Split `5/Magic|PRELEVEL:MIN=4` into a value and its gate.
+///
+/// The gate was never evaluated while this was a `String`, so a level-1
+/// Celestial reported both of its entries and exposed the raw PCGen text.
+pub(crate) fn parse_damage_reduction(value: &str) -> pcgen_core::DamageReduction {
+    let mut parts = value.split('|').map(str::trim);
+    let reduction = parts.next().unwrap_or_default();
+    let condition = parts
+        .filter(|part| !part.is_empty())
+        .find_map(|part| parse_predicate(part, ""));
+    pcgen_core::DamageReduction {
+        value: reduction.to_string(),
+        condition,
+    }
+}
+
 fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
     let raw = raw.trim();
     // A leading `!` negates the whole predicate (`!PRETYPE`, `!PRERACE`,

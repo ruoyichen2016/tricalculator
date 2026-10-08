@@ -394,3 +394,46 @@ fn companion_condition_matching_applies_hd_sr_abilities_traits_and_bonuses() {
         .iter()
         .any(|attack| attack.contains("Claw")));
 }
+
+#[test]
+fn damage_reduction_gates_are_evaluated() {
+    // `5/Magic|PRELEVEL:MIN=4` is a value plus a gate. While the field was a
+    // `String` the gate was never evaluated, so the snapshot exposed the raw
+    // PCGen text and reported both entries regardless of level:
+    //   ["10/Magic|PRELEVEL:MIN=12", "5/Magic|PRELEVEL:MIN=4"]
+    let records = vec![
+        record(
+            "TEMPLATE",
+            "Celestial",
+            &[
+                ("DR", "5/Magic|PRELEVEL:MIN=4"),
+                ("DR", "10/Magic|PRELEVEL:MIN=12"),
+            ],
+        ),
+        record("TEMPLATE", "Skeleton", &[("DR", "5/Bludgeoning")]),
+        record("RACE", "Human", &[("SIZE", "M"), ("MOVE", "Walk,30")]),
+    ];
+    let (pack, _) = lower_records(Some("35e".to_string()), Vec::new(), &records);
+    let engine = Engine::new(pack);
+
+    // Both Celestial entries are gated at level 4 and 12, so at level 1
+    // neither applies — and no raw PCGen text may reach the snapshot.
+    let celestial = engine.evaluate(&CharacterDraft {
+        race_id: "Human".to_string(),
+        templates: vec!["Celestial".to_string()],
+        ..CharacterDraft::default()
+    });
+    assert_eq!(
+        celestial.damage_reduction,
+        Vec::<String>::new(),
+        "a level-1 Celestial has no damage reduction yet"
+    );
+
+    // An ungated entry still comes through, as its value alone.
+    let skeleton = engine.evaluate(&CharacterDraft {
+        race_id: "Human".to_string(),
+        templates: vec!["Skeleton".to_string()],
+        ..CharacterDraft::default()
+    });
+    assert_eq!(skeleton.damage_reduction, vec!["5/Bludgeoning"]);
+}

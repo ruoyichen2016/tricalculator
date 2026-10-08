@@ -492,7 +492,7 @@ equipment.jsonl  domains.jsonl  deities.jsonl  skills.jsonl  ...
 - 转写器**复用** `pcgen-ir` 的现有翻译，因此阶段 1 并未删除那 3,252 行——
   只是把它的运行时机从"每次加载"变成"构建期一次"。删除是阶段 3。
 
-## 10. 阶段 2 的实测盘点
+## 11. 阶段 2 的实测盘点
 
 上表列出的"仍含 PCGen 约定"字段，哪些值得动，取决于两件事：**谁求值它**、
 **谁需要原始拼写**。逐字段的实测见
@@ -505,6 +505,9 @@ equipment.jsonl  domains.jsonl  deities.jsonl  skills.jsonl  ...
   无人使用。结构化它们是动作，不是进展。
 - `traits.damage_reduction` 被引擎读取（12 处），但只是收集/排序/去重/输出，
   `5/Magic|PRELEVEL:MIN=4` 里的条件**从不求值**。被读取不等于被解释。
+  **已修复**：条件现在在 lowering 阶段转成 `Predicate`，引擎求值。修复前
+  1 级 Celestial 的 DR 是 `["10/Magic|PRELEVEL:MIN=12", "5/Magic|PRELEVEL:MIN=4"]`
+  ——两条都不该生效，且把 PCGen 原文暴露给了快照。
 - 真正被引擎解析的只剩 `metadata.added_domains`（4 处），走
   `resolve_added_domain`，是引擎里**唯一**的 PCGen 标签字面量。而
   `scripts/check_architecture.sh` 的第 5 项守卫只覆盖**公式**语法

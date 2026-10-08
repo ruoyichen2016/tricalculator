@@ -23,7 +23,7 @@ kind of PCGen syntax it carries.
 | `classes.*.spell_levels` | 44 | no | no | carried only |
 | `entities.legacy_tags` | 39 | no | no | reporting metadata, by design |
 | `classes.*.level_prerequisites` | 12 | no | no | carried only |
-| `traits.damage_reduction` | 16 | yes — pass-through | no | carried only |
+| `traits.damage_reduction` | 16 | yes | **was no — fixed, see §3b** | ✅ fixed |
 | `classes.*.prohibited_spells` | 16 | no | no | carried only |
 | `entities.metadata.added_domains` | 4 | **yes** | **YES** | ✅ fixed, see §6 |
 | `ClassGrant.guards` | 3 | no | no | needs the spelling to render |
@@ -88,6 +88,32 @@ at lowering like `CL` and `classlevel`.
 
 With both gone the engine contains **no PCGen syntax at all**, and `regex` is no
 longer used anywhere in the workspace — 87 packages in `Cargo.lock` became 83.
+
+### 3b. Resolved: the gates inside `damage_reduction` were never evaluated
+
+`traits.damage_reduction` was read by the engine, which is why it looked fine.
+But being read is not being interpreted: the entries were collected, sorted,
+deduped and emitted with their conditions intact.
+
+A level-1 Celestial's snapshot was therefore:
+
+```
+["10/Magic|PRELEVEL:MIN=12", "5/Magic|PRELEVEL:MIN=4"]
+```
+
+Neither applies below level 4. Both were reported, and the raw PCGen text
+reached the character sheet. `10/silver|PRETEMPLATE:1,Natural Lycanthrope` had
+the same problem: a lycanthrope showed both the natural and the afflicted
+reduction.
+
+The entries are now `DamageReduction { value, condition }`, lowered through the
+same `parse_predicate`, and the engine evaluates the gate with `predicate_holds`
+where it has the draft to evaluate against. The level-1 Celestial is now `[]`,
+and an ungated `5/Bludgeoning` still comes through as its value alone.
+
+This is the case that justifies the whole inventory: the field was on the
+"carried only" list, and the defect was not in its shape but in a condition
+nobody evaluated.
 
 ### 4. The architecture guard does not cover it
 

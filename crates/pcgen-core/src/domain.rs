@@ -118,8 +118,14 @@ pub struct CreatureTraits {
     pub unarmed_damage: Vec<String>,
     #[serde(default)]
     pub unarmed_mult: Option<i32>,
+    /// Damage reduction entries, each with its own condition.
+    ///
+    /// PCGen writes `5/Magic|PRELEVEL:MIN=4`.  Carrying that as a string meant
+    /// the snapshot exposed the raw text and ignored the gate: a level-1
+    /// Celestial reported both `5/Magic|PRELEVEL:MIN=4` and
+    /// `10/Magic|PRELEVEL:MIN=12`, when neither applies below level 4.
     #[serde(default)]
-    pub damage_reduction: Vec<String>,
+    pub damage_reduction: Vec<crate::rules::DamageReduction>,
     #[serde(default)]
     pub spell_resistance: Option<String>,
     #[serde(default)]

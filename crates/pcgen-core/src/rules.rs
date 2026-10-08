@@ -490,6 +490,19 @@ pub struct AddedDomain {
     pub condition: Option<Predicate>,
 }
 
+/// One damage-reduction entry.
+///
+/// `5/Magic|PRELEVEL:MIN=4` is a value plus a gate.  The gate was never
+/// evaluated while this was a `String`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DamageReduction {
+    /// The reduction itself, e.g. `5/Magic` or `5/-`.
+    pub value: String,
+    /// Gate the character must satisfy for it to apply.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub condition: Option<Predicate>,
+}
+
 /// UI metadata for a `TEMPVALUE` range associated with a temporary effect.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TemporaryValue {
