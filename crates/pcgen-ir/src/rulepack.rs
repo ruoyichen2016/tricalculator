@@ -617,11 +617,28 @@ fn lower_grant(record: &RawRecord, tag: &crate::source::RawTag) -> Option<Effect
         || first.eq_ignore_ascii_case("LANG")
         || first.eq_ignore_ascii_case("LANGBONUS")
     {
+        // A predicate in the row is the grant's gate, not one of its values.
+        // `AUTO:WEAPONPROF|TYPE=Martial|PREHD:MAX=0` used to fold both into the
+        // tag, so `TYPE=Martial` and `PREHD:MAX=0` were inserted as weapon
+        // proficiency *names* and the HD gate was never evaluated — it granted
+        // martial proficiency to a 12th-level character.
+        let mut conditions = Vec::new();
+        let mut all_parsed = true;
+        for part in parts
+            .iter()
+            .skip(1)
+            .filter(|part| crate::tags::is_predicate_tag(part))
+        {
+            match parse_predicate(part, "") {
+                Some(predicate) => conditions.push(predicate),
+                None => all_parsed = false,
+            }
+        }
         let body = parts
             .iter()
             .skip(1)
             .copied()
-            .filter(|part| !part.is_empty())
+            .filter(|part| !part.is_empty() && !crate::tags::is_predicate_tag(part))
             .collect::<Vec<_>>()
             .join("|");
         let action = if body.is_empty() {
@@ -629,9 +646,18 @@ fn lower_grant(record: &RawRecord, tag: &crate::source::RawTag) -> Option<Effect
         } else {
             format!("{}|{}", first.to_ascii_uppercase(), body)
         };
+        // An unparseable gate must not become an ungated grant, so keep the
+        // previous conservative behaviour of leaving the condition unknown.
+        let condition = if !all_parsed || conditions.is_empty() {
+            None
+        } else if conditions.len() == 1 {
+            conditions.pop()
+        } else {
+            Some(Predicate::All(conditions))
+        };
         return Some(Effect {
             phase: EffectPhase::Global,
-            condition: None,
+            condition,
             action: EffectAction::GrantTag { tag: action },
             source: Provenance::new(
                 record.source.path.display().to_string(),

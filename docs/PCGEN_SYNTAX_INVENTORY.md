@@ -160,12 +160,23 @@ It now also matches `mastervar` and quoted tag syntax (`"PRE[A-Z]+:`,
 `"ADDDOMAINS`, `"BONUS:`, `"SPELLLEVEL`, `"ABILITY:`). Verified to have teeth:
 injecting `PRETEMPLATE:` into the engine makes it fail.
 
-### 5. Note: `GrantTag` carries conditions it does not evaluate
+### 5. Resolved: `GrantTag` carried a gate as if it were a value
 
-`WEAPONPROF|TYPE=Martial|PREHD:MAX=0` is split on `|` and every part is inserted
-as a weapon proficiency name, so `TYPE=Martial` and `PREHD:MAX=0` become literal
-proficiencies. The engine does not interpret them, but it also does not strip
-them. Latent, 2 occurrences, recorded here rather than acted on.
+`AUTO:WEAPONPROF|TYPE=Martial|PREHD:MAX=0` was split on `|` and every part
+inserted as a weapon proficiency name, so `TYPE=Martial` and `PREHD:MAX=0` both
+became proficiencies and the Hit Dice gate was never evaluated. A 12th-level
+character was granted the Outsider house rule's martial proficiency.
+
+`lower_grant` now takes the predicate out of the row and makes it the effect's
+`condition`, where the existing evaluator sees it, and only real values reach
+the tag. Verified with a control: the ungated row grants `type.martial` at any
+level, the gated row grants it at 0 HD and not at 12, and `prehd` no longer
+appears among the granted names.
+
+**This is the second instance of the same mistake**, after
+`damage_reduction` — a predicate sitting inside a value list, treated as data.
+Both were found by asking whether a field that is read is actually *acted on*,
+rather than by looking at the field's shape.
 
 ### 5a. "Never read" has three causes, and they need different answers
 
