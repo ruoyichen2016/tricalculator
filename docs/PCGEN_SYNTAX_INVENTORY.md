@@ -227,6 +227,48 @@ than done here. Note the same table applies to Cleric and Druid, whose entries
 are alignment-based (`ALIGNMENT.Good|PREALIGN:LE,NE,CE`), so a Cleric of an evil
 deity is likewise still offered Good spells.
 
+### 5b. Sweep: predicates embedded in value lists
+
+The signature of the `damage_reduction` and `AUTO:WEAPONPROF` bug is a string
+holding **both** `|` and a `PRE*` predicate, so the predicate is one of the
+values. Scanning the whole pack for that signature finds five kinds, all of them
+in `entities.legacy_tags`:
+
+| count | field | sample |
+|---:|---|---|
+| 15 | `SPROP:` + `PRECLASS` | descriptive special-property text |
+| 14 | `ASPECT:NAME` + `PREABILITY` | display text |
+| 7 | `ASPECT:NAME` + `PREVAREQ` | display text |
+| 2 | `COMPANIONLIST` + `PRESIZE` | companion list |
+| 1 | `SPROP:` + `PRERACE` | descriptive text |
+
+`legacy_tags` has no readers at all, and the two that could have mattered do not:
+
+- `ASPECT` is display text, and the engine does not build sheets from it.
+- Companion data comes from `pack.companion_mods` (31 keys, 108 rows, 15 types,
+  including `Familiar` and `Special Mount`), not from the tag.
+
+So nothing here reaches a character. The `AUTO:WEAPONPROF` fix covered the same
+`lower_grant` branch that `ARMORPROF`, `LANG` and `LANGBONUS` use, so those are
+covered too.
+
+### 5c. Sweep: `FOLLOWERADJUSTMENT`, modelled nowhere but unreachable
+
+`COMPANIONLIST:Animal Companion|Companion ~ Bear (Brown),...|FOLLOWERADJUSTMENT:-6`
+carries a real rule: a druid taking a Brown Bear treats their level as six lower.
+The signature scan above missed these because they hold `|` but no predicate.
+
+`FOLLOWERADJUSTMENT` appears ~59 times in 35e, including the RSRD basics, and is
+**modeled nowhere** — the engine matches companion rows by `master_level` alone.
+A 1st-level druid could claim a tyrannosaurus and nothing would object.
+
+It is not a defect, though, because the feature has no entry point:
+`draft.companions` is populated by no Web route, no CLI flag and no `.pcg`
+import — only by tests. Companion *selection* was never built, so the missing
+constraint is not yet reachable.
+
+That makes it a scope question rather than a bug, and it is recorded as one.
+
 ## What followed from this
 
 Both actions are done:
