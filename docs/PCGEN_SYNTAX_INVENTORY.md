@@ -167,6 +167,39 @@ as a weapon proficiency name, so `TYPE=Martial` and `PREHD:MAX=0` become literal
 proficiencies. The engine does not interpret them, but it also does not strip
 them. Latent, 2 occurrences, recorded here rather than acted on.
 
+### 5a. "Never read" has three causes, and they need different answers
+
+This started as "who evaluates it". Checking each zero-reader field against the
+field that *is* read split them three ways, and only one of them is a defect:
+
+| Field | Cause | Answer |
+|---|---|---|
+| `classes.*.spell_levels` | redundant | deleted — `domain_spells` has it and is consumed (see §3c) |
+| `traits.damage_reduction` | gate not evaluated | fixed (see §3b) |
+| `classes.*.prohibited_spells` | **half a feature** | see below |
+| `classes.*.level_prerequisites` | redundant | the real prerequisites are on the entity's `requirements`, which is consumed |
+| kit `entries.conditions` | out of scope | `kits` is imported for counting only; the builder does not apply kits by design (`M9_PERSONAL_BUILDER.md`) |
+
+**`prohibited_spells` is the one genuine gap.** The raw data implements the
+feature in two halves:
+
+```
+Forbid Abjuration   CATEGORY:Special Ability  TYPE:WizardProhibitSchool
+                    DEFINE:ProhibitAbjuration|0   BONUS:VAR|ProhibitAbjuration|1
+Wizard              PROHIBITSPELL:SCHOOL.Abjuration|PREVARGTEQ:ProhibitAbjuration,1
+```
+
+The first half works: the ability sets the variable. The second half does not
+exist — `prohibited_spells` is parsed and never consulted, and the Web spell
+picker (`spell_search_options`) filters on class, level, domain, school and
+search text, but never on what the character has forbidden. A Wizard who forbids
+Abjuration is still offered Abjuration spells.
+
+That is a feature to build, not a format to change, so it is recorded rather
+than done here. Note the same table applies to Cleric and Druid, whose entries
+are alignment-based (`ALIGNMENT.Good|PREALIGN:LE,NE,CE`), so a Cleric of an evil
+deity is likewise still offered Good spells.
+
 ## What followed from this
 
 Both actions are done:
