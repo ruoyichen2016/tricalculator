@@ -1400,6 +1400,7 @@ pub(crate) fn predicate_holds(
         Predicate::SizeAtLeast { size } => pcgen_core::size_at_least(&state.size, size),
         Predicate::SizeAtMost { size } => pcgen_core::size_at_most(&state.size, size),
         Predicate::LegsAtLeast { count } => state.legs >= *count,
+        Predicate::LegsAtMost { count } => state.legs <= *count,
         Predicate::RuleEnabled { rule } => rule_enabled(rule, draft),
         Predicate::AtLeast { n, items } => {
             items
@@ -1423,16 +1424,17 @@ pub(crate) fn predicate_holds(
             .choices
             .get("AGE.CATEGORY")
             .is_some_and(|value| value.eq_ignore_ascii_case(category)),
-        Predicate::SpellType {
-            power,
-            min_level,
-            count,
-        } => {
+        Predicate::SpellType { specs, count } => {
+            // The pairs are alternatives: "at least one 3rd level spell from any
+            // of the Arcane, Divine, or Psionic types".
             let available: u32 = state
                 .slots_by_power_level
                 .iter()
                 .filter(|((candidate, level), _)| {
-                    power.is_none_or(|power| candidate == &power) && *level >= *min_level
+                    specs.iter().any(|spec| {
+                        spec.power.as_ref().is_none_or(|power| candidate == power)
+                            && *level >= spec.min_level
+                    })
                 })
                 .map(|(_, slots)| *slots)
                 .sum();

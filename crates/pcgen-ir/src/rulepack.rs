@@ -1464,12 +1464,16 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 ]))
             }
         }
-        "PRELEGSGTEQ" => {
+        "PRELEGSGTEQ" | "PRELEGSLTEQ" => {
             let count = body
                 .split(|ch: char| !ch.is_ascii_digit())
                 .find(|part| !part.is_empty())
                 .and_then(|part| part.parse::<u32>().ok())?;
-            Some(Predicate::LegsAtLeast { count })
+            Some(if tag_upper == "PRELEGSLTEQ" {
+                Predicate::LegsAtMost { count }
+            } else {
+                Predicate::LegsAtLeast { count }
+            })
         }
         // PRERULE:1,SYS_DWS_RACIAL[,SYS_DWS_EXTRA] — game-mode rule toggles.
         // We lower to a rule-enabled predicate per rule name.
@@ -1508,18 +1512,28 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
         // PRESPELLTYPE:count,type=level — can cast `count` spells of `type`
         // at spell level `level` or higher.
         "PRESPELLTYPE" => {
-            let (count_str, spec) = body.split_once(',')?;
+            let (count_str, rest) = body.split_once(',')?;
             let count = count_str.trim().parse::<u32>().ok()?;
-            let (power_str, level_str) = spec.split_once('=')?;
-            let power = if power_str.trim().eq_ignore_ascii_case("any") {
-                None
-            } else {
-                Some(SpellPowerType::from_pcgen(power_str)?)
-            };
-            let min_level = level_str.trim().parse::<u32>().ok()?;
+            let specs: Vec<pcgen_core::SpellTypeSpec> = rest
+                .split(',')
+                .filter_map(|pair| {
+                    let (power_str, level_str) = pair.split_once('=')?;
+                    let power = if power_str.trim().eq_ignore_ascii_case("any") {
+                        None
+                    } else {
+                        Some(SpellPowerType::from_pcgen(power_str)?)
+                    };
+                    Some(pcgen_core::SpellTypeSpec {
+                        power,
+                        min_level: level_str.trim().parse::<u32>().ok()?,
+                    })
+                })
+                .collect();
+            if specs.is_empty() {
+                return None;
+            }
             Some(Predicate::SpellType {
-                power,
-                min_level,
+                specs,
                 count: count.max(1),
             })
         }
@@ -1600,6 +1614,12 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
             })
         }
         // PREHANDSGTEQ:n / PREHANDSEQ:n — hand count.
+        "PREHANDSLTEQ" => Some(Predicate::HandsAtMost {
+            count: body
+                .split(|ch: char| !ch.is_ascii_digit())
+                .find(|part| !part.is_empty())
+                .and_then(|part| part.parse::<u32>().ok())?,
+        }),
         "PREHANDSGTEQ" => Some(Predicate::HandsAtLeast {
             count: body.trim().parse::<u32>().ok()?,
         }),

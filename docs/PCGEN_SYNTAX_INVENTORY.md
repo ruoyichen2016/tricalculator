@@ -705,6 +705,38 @@ the acceptance cohort: `PRESPELLTYPE`, `PREVISION`, `PREABILITY`, `PREMULT`,
 (`SAB`, `NAMEISPI`, `DESCISPI`, `FACTSET`, `SPELLKNOWN`, `BONUSSPELLSTAT`) are
 recognised-but-unread, which is the intended state for reporting metadata.
 
+### 5q. The acceptance cohort loads the full RSRD, epic included
+
+The deep-field config uses `_rsrd_basics.pcc`, which reports zero unsupported
+tags — but the **broad cohort** loads
+`data/35e/wizards_of_the_coast/rsrd/_revised_system_reference_document.pcc`, the
+full RSRD with the epic pack, and that had four tag kinds unparsed:
+
+| tag | uses | what it needed |
+|---|---:|---|
+| `PRELEGSLTEQ` | 27 | `LegsAtMost` — the `GTEQ` spelling existed, the `LTEQ` one did not |
+| `PRESPELLTYPE` | 11 | every `y=z` pair, not just the first |
+| `PRESRGTEQ` | 2 | creature trait data |
+| `PREVISION` | 2 | creature trait data |
+
+**`PRESPELLTYPE` takes several pairs.** The reference:
+`PRESPELLTYPE:1,Arcane=3,Divine=3,Psionic=3` — "at least one 3rd level spell from
+**any** of the Arcane, Divine, or Psionic types". So the pairs are alternatives
+and the count applies across their union. `split_once('=')` on the second pair
+put `9,Divine=9` into the level, which failed to parse and took the tag with it.
+The predicate now holds a list of `SpellTypeSpec`, each with an optional power
+(`ANY`) and a minimum level. `PREHANDSLTEQ` and `PRELEGSGTEQ`/`LTEQ` are read
+from one branch each.
+
+**Two are left, and deliberately not half-done.** `PRESRGTEQ` (spell resistance)
+and `PREVISION` (vision type and range) both need creature traits — which come
+from the **race and the active templates together**, a merge that lives in the
+engine layer (`merge_creature_traits`) and is not reachable from
+`predicate_holds`. A race-only version would have been three lines and would have
+answered **wrongly** whenever a template was the source, which is worse than
+leaving the tag visibly unsupported. The cohort's unparsed set is down from 4
+kinds (42 uses) to 2 kinds (4 uses), and both remaining ones are named.
+
 ## What followed from this
 
 Both actions are done:

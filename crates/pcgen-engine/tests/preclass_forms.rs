@@ -224,6 +224,6 @@ fn prespelltype_accepts_any_power() {
     );
     assert_eq!(
         format!("{:?}", entity.requirements[0]),
-        "SpellType { power: None, min_level: 3, count: 1 }"
+        "SpellType { specs: [SpellTypeSpec { power: None, min_level: 3 }], count: 1 }"
     );
 }

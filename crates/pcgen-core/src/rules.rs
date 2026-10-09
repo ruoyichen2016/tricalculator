@@ -102,6 +102,10 @@ pub enum Predicate {
     LegsAtLeast {
         count: u32,
     },
+    /// Creature has at most this many legs (PCGen `PRELEGSLTEQ`).
+    LegsAtMost {
+        count: u32,
+    },
     /// A PCGen game-mode rule is enabled (PCGen `PRERULE`).
     RuleEnabled {
         rule: String,
@@ -202,13 +206,23 @@ pub enum Predicate {
     /// The character can cast at least `count` spells of `power` at spell
     /// level `>= min_level` (PCGen `PRESPELLTYPE:w,type=level`).
     SpellType {
-        /// `None` for `PRESPELLTYPE:1,ANY=3` — any kind of spell slot.
+        /// One entry per `y=z` pair.  The reference:
         ///
-        /// PCGen's reference lists `Arcane`, `Divine`, `Psionic` and `ANY` for
-        /// this parameter. A spell's own power is concrete, so `ANY` belongs to
-        /// the requirement rather than to `SpellPowerType`.
-        power: Option<SpellPowerType>,
-        min_level: u32,
+        /// ```text
+        /// PRESPELLTYPE:x,y=z
+        ///   y: Arcane / Divine / Psionic / ANY
+        ///   z: Number (Spell level)
+        ///
+        /// PRESPELLTYPE:1,Arcane=3,Divine=3,Psionic=3
+        ///   "Character must have at least one 3rd level spell from any of the
+        ///    Arcane, Divine, or Psionic types."
+        /// ```
+        ///
+        /// So the pairs are alternatives and the count applies across their
+        /// union.  Only the first pair was read, which made
+        /// `PRESPELLTYPE:1,Arcane=9,Divine=9` unparseable — 11 uses in the full
+        /// RSRD, which is in the acceptance cohort.
+        specs: Vec<SpellTypeSpec>,
         count: u32,
     },
     /// The character has a class that casts from a spellbook
@@ -594,6 +608,17 @@ pub struct AddedDomain {
     /// Condition the character must satisfy, when the entry has one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub condition: Option<Predicate>,
+}
+
+/// One `PRESPELLTYPE` pair.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct SpellTypeSpec {
+    /// `None` for `ANY` — any kind of spell slot.
+    ///
+    /// A spell's own power is concrete, so `ANY` belongs to the requirement
+    /// rather than to `SpellPowerType`.
+    pub power: Option<SpellPowerType>,
+    pub min_level: u32,
 }
 
 /// One `PRECLASS` requirement.

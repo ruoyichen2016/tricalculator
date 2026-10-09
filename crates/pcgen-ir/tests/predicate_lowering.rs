@@ -304,10 +304,13 @@ fn prespell_predicates_lower() {
     assert!(matches!(
         requirements[0],
         Predicate::SpellType {
-            power: Some(SpellPowerType::Arcane),
-            min_level: 9,
+            ref specs,
             count: 1
-        }
+        } if specs
+            == &vec![pcgen_core::SpellTypeSpec {
+                power: Some(SpellPowerType::Arcane),
+                min_level: 9,
+            }]
     ));
     assert!(matches!(requirements[1], Predicate::HasSpellbook));
     assert!(matches!(
