@@ -553,6 +553,33 @@ in any behavioural test — the pf35e gate failed on
 `TYPE=Metamagic`; the reference's examples write `TYPE.Metamagic`. Both spellings
 are handled now, as they already were for `PRERACE` and `PREWEAPONPROF`.
 
+### 5k. `BONUS` has four types, and `.REPLACE` was wrong twice over
+
+```text
+BONUS:<category>|<group>|<formula>   then |PRExxx or |TYPE=<type>
+
+Typeless   no TYPE=            always added
+Standard   TYPE=name           only the highest of the same type counts
+.REPLACE   TYPE=name.REPLACE   counted together, then compared with the
+                               standards; the highest wins
+.STACK     TYPE=name.STACK     stacks with itself and is added on top
+```
+
+The reference gives worked examples, and both `.REPLACE` ones failed:
+
+- `.REPLACE 3 + 2` against standards `4 + 2` → 5
+- `.REPLACE 1 + 1 + 2` against standards `2 + 6` → 6
+
+Two faults. `.REPLACE` was grouped apart from the standard type of the same name,
+so `luck.replace` and `luck` were **added** rather than compared; and it took the
+highest single value rather than the sum. `.STACK` and the typeless case were
+already right.
+
+The grouping now strips `.REPLACE` / `.STACK` so the competing bonuses share a
+group, and a small `BonusGroup` accumulates the highest standard, the sum of the
+replacements and the sum of the stacks, then combines them the way the reference
+describes. Both call sites — the general component split and the AC one — use it.
+
 ## What followed from this
 
 Both actions are done:

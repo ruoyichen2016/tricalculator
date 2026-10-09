@@ -2709,17 +2709,105 @@ fn attack_bonus_targets(bonus: &crate::effects::TypedBonus) -> Vec<String> {
     }
 }
 
-fn bonus_stack_group(stack_key: Option<&str>, bonus_type: &str) -> (bool, String) {
-    if stack_key.is_some_and(|key| key.eq_ignore_ascii_case("stack")) {
-        return (true, format!("stack:{bonus_type}"));
+/// How a `TYPE=` expression makes a bonus stack.
+///
+/// PCGen's bonus documentation gives four kinds:
+///
+/// ```text
+/// Typeless            no TYPE=          always added
+/// Standard            TYPE=name         only the highest of the same type counts
+/// .REPLACE            TYPE=name.REPLACE counted together, then compared with
+///                                       the standards, highest wins
+/// .STACK              TYPE=name.STACK   stacks with itself and is added on top
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BonusPolicy {
+    /// No type, or a type PCGen treats as untyped: always summed.
+    Typeless,
+    /// `TYPE=name` — the highest value of that type wins.
+    Standard,
+    /// `TYPE=name.REPLACE` — summed, then compared with the standards.
+    Replace,
+    /// `TYPE=name.STACK` — summed and added on top of the rest.
+    Stack,
+}
+
+impl BonusPolicy {
+    fn of(stack_key: Option<&str>, bonus_type: &str) -> Self {
+        if stack_key.is_some_and(|key| key.eq_ignore_ascii_case("stack")) {
+            return BonusPolicy::Stack;
+        }
+        if stack_key.is_some_and(|key| key.eq_ignore_ascii_case("nonstack")) {
+            return BonusPolicy::Standard;
+        }
+        if bonus_type.contains("stack") {
+            return BonusPolicy::Stack;
+        }
+        if bonus_type.contains("replace") {
+            return BonusPolicy::Replace;
+        }
+        if is_stacking_bonus_type(bonus_type) {
+            BonusPolicy::Typeless
+        } else {
+            BonusPolicy::Standard
+        }
     }
-    if stack_key.is_some_and(|key| key.eq_ignore_ascii_case("nonstack")) {
-        return (false, format!("nonstack:{bonus_type}"));
+
+    /// The group a bonus competes within. `.REPLACE` and standard bonuses of the
+    /// same base type compete, so they share a group; `.STACK` and typeless
+    /// bonuses are additive and get their own.
+    fn group(self, bonus_type: &str) -> String {
+        let base = bonus_type
+            .trim_end_matches(".replace")
+            .trim_end_matches(".stack")
+            .trim();
+        match self {
+            BonusPolicy::Typeless => format!("untyped:{base}"),
+            BonusPolicy::Standard | BonusPolicy::Replace => format!("typed:{base}"),
+            BonusPolicy::Stack => format!("stack:{base}"),
+        }
     }
-    if is_stacking_bonus_type(bonus_type) {
-        (true, format!("stack:{bonus_type}"))
-    } else {
-        (false, format!("nonstack:{bonus_type}"))
+}
+
+/// Accumulates the bonuses that compete within one group.
+#[derive(Debug, Clone, Copy, Default)]
+struct BonusGroup {
+    /// Highest standard value seen.
+    standard: Option<i32>,
+    /// Sum of the `.REPLACE` values, which are counted together.
+    replace: Option<i32>,
+    /// Sum of the `.STACK` values.
+    stack: i32,
+}
+
+impl BonusGroup {
+    fn add(&mut self, policy: BonusPolicy, value: i32) {
+        match policy {
+            BonusPolicy::Standard => {
+                self.standard = Some(match self.standard {
+                    Some(old) => choose_non_stacking(old, value),
+                    None => value,
+                });
+            }
+            BonusPolicy::Replace => {
+                self.replace = Some(self.replace.unwrap_or(0) + value);
+            }
+            BonusPolicy::Stack => self.stack += value,
+            BonusPolicy::Typeless => {
+                self.standard = Some(self.standard.unwrap_or(0) + value);
+            }
+        }
+    }
+
+    /// The `.REPLACE` total competes with the standards; `.STACK` is added on.
+    fn total(self) -> i32 {
+        let base = match (self.standard, self.replace) {
+            (Some(standard), Some(replace)) => choose_non_stacking(standard, replace),
+            (Some(standard), None) => standard,
+            (None, Some(replace)) => replace,
+            (None, None) => 0,
+        };
+        base + self.stack
     }
 }
 
@@ -2730,34 +2818,31 @@ fn stacked_components<F>(
 where
     F: FnMut(&crate::effects::TypedBonus) -> Vec<String>,
 {
-    let mut groups: BTreeMap<(String, String), (i32, bool)> = BTreeMap::new();
+    let mut groups: BTreeMap<(String, String), BonusGroup> = BTreeMap::new();
     for bonus in bonuses {
         let bonus_type = bonus
             .bonus_type
             .as_deref()
             .unwrap_or("")
             .to_ascii_lowercase();
-        let (stack, group_key) = bonus_stack_group(bonus.stack_key.as_deref(), &bonus_type);
+        let policy = BonusPolicy::of(bonus.stack_key.as_deref(), &bonus_type);
+        let group_key = policy.group(&bonus_type);
         for component in components(bonus) {
-            let entry = groups
+            groups
                 .entry((component, group_key.clone()))
-                .or_insert((0, stack));
-            if stack {
-                entry.0 += bonus.value;
-            } else {
-                entry.0 = choose_non_stacking(entry.0, bonus.value);
-            }
+                .or_default()
+                .add(policy, bonus.value);
         }
     }
     let mut totals: BTreeMap<String, i32> = BTreeMap::new();
-    for ((component, _), (value, _)) in groups {
-        *totals.entry(component).or_insert(0) += value;
+    for ((component, _), group) in groups {
+        *totals.entry(component).or_insert(0) += group.total();
     }
     totals
 }
 
 fn ac_bonus_components(bonuses: &[crate::effects::TypedBonus]) -> (i32, i32, i32) {
-    let mut groups: BTreeMap<String, (String, i32)> = BTreeMap::new();
+    let mut groups: BTreeMap<String, (String, BonusGroup)> = BTreeMap::new();
     for bonus in bonuses {
         let upper = bonus.target.to_ascii_uppercase();
         if upper != "AC" && upper != "COMBAT.AC" {
@@ -2768,21 +2853,20 @@ fn ac_bonus_components(bonuses: &[crate::effects::TypedBonus]) -> (i32, i32, i32
             .as_deref()
             .unwrap_or("")
             .to_ascii_lowercase();
-        let (stack, group_key) = bonus_stack_group(bonus.stack_key.as_deref(), &bonus_type);
-        let entry = groups
+        let policy = BonusPolicy::of(bonus.stack_key.as_deref(), &bonus_type);
+        let group_key = policy.group(&bonus_type);
+        groups
             .entry(group_key)
-            .or_insert_with(|| (bonus_type.clone(), 0));
-        if stack {
-            entry.1 += bonus.value;
-        } else {
-            entry.1 = choose_non_stacking(entry.1, bonus.value);
-        }
+            .or_insert_with(|| (bonus_type.clone(), BonusGroup::default()))
+            .1
+            .add(policy, bonus.value);
     }
 
     let mut armor_class = 0;
     let mut touch_ac = 0;
     let mut flat_footed_ac = 0;
-    for (bonus_type, value) in groups.into_values() {
+    for (bonus_type, group) in groups.into_values() {
+        let value = group.total();
         if bonus_type.contains("armor")
             || bonus_type.contains("shield")
             || bonus_type.contains("natural")
