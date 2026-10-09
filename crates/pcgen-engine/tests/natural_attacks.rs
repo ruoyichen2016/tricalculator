@@ -107,3 +107,37 @@ fn no_pcgen_encoding_reaches_the_sheet() {
         }
     }
 }
+
+#[test]
+fn the_optional_special_property_is_not_a_weapon_type() {
+    // The reference gives NATURALATTACKS five parameters, the last an optional
+    // `SPROP=Text`. Filed as a weapon type, it turned up in the type list — 222
+    // rows across the vendored data carry one.
+    let records = vec![record(
+        "RACE",
+        "Slammer",
+        &[
+            ("SIZE", "M"),
+            (
+                "NATURALATTACKS",
+                "Slam,Weapon.Natural.Melee,*1,1d8,SPROP=A fiery blow",
+            ),
+        ],
+    )];
+    let (pack, _) = lower_records(Some("35e".to_string()), Vec::new(), &records);
+    let attack = pack.races["Slammer"].traits.natural_attacks[0].clone();
+    assert_eq!(attack.name, "Slam");
+    assert_eq!(attack.count, 1);
+    assert_eq!(attack.damage, "1d8");
+    assert_eq!(attack.types, vec!["Weapon.Natural.Melee".to_string()]);
+    assert_eq!(
+        attack.special_property.as_deref(),
+        Some("A fiery blow"),
+        "the description is kept, not filed as a type"
+    );
+    assert!(
+        !attack.types.iter().any(|kind| kind.contains("SPROP")),
+        "the description must not pollute the types: {:?}",
+        attack.types
+    );
+}

@@ -69,6 +69,9 @@ pub struct EffectState {
     pub legs: u32,
     /// Race type tags (lower-cased), for `PRERACETYPE` predicates.
     pub race_types: Vec<String>,
+    /// The race's `RACETYPE:` and `RACESUBTYPE:` values, for `PRERACE`.
+    pub race_creature_type: Option<String>,
+    pub race_subtypes: Vec<String>,
     /// Total character class levels, excluding Monster (Racial) HD.
     pub character_class_levels: u32,
     /// Stable total BAB used by `PRETOTALAB` during predicate evaluation.
@@ -139,6 +142,22 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
             race.type_tags
                 .iter()
                 .map(|tag| tag.to_ascii_lowercase())
+                .collect()
+        })
+        .unwrap_or_default();
+    let race_creature_type = pack
+        .races
+        .get(&draft.race_id)
+        .and_then(|race| race.traits.race_type.clone())
+        .map(|kind| kind.to_ascii_lowercase());
+    let race_subtypes = pack
+        .races
+        .get(&draft.race_id)
+        .map(|race| {
+            race.traits
+                .subtypes
+                .iter()
+                .map(|kind| kind.to_ascii_lowercase())
                 .collect()
         })
         .unwrap_or_default();
@@ -238,6 +257,8 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         size: base_size,
         legs: 2,
         race_types,
+        race_creature_type,
+        race_subtypes,
         character_class_levels: class_levels,
         ability_modifiers,
         total_bab: prereq_bab,
@@ -751,6 +772,11 @@ fn internal_race_selector(entity: &CompiledEntity) -> bool {
 fn contains_race_predicate(predicate: &Predicate) -> bool {
     match predicate {
         Predicate::HasEntity { entity } => entity.entity_type.eq_ignore_ascii_case("race"),
+        // `PRERACE` now lowers to this. Missing it here made
+        // `internal_race_selector` return false, so the racial-defaults entity
+        // was never activated and a Gnome lost every racial trait — the gate
+        // was correct but nothing ever reached it.
+        Predicate::RaceMatches { .. } => true,
         Predicate::All(items) | Predicate::Any(items) => items.iter().any(contains_race_predicate),
         Predicate::Not(item) => contains_race_predicate(item),
         Predicate::AtLeast { items, .. } => items.iter().any(contains_race_predicate),
@@ -1032,6 +1058,36 @@ fn variable_value(state: &EffectState, name: &str) -> i32 {
         .unwrap_or(0)
 }
 
+/// Does one `PRERACE` value describe this character's race?
+fn race_spec_matches(
+    spec: &pcgen_core::RaceSpec,
+    state: &EffectState,
+    draft: &CharacterDraft,
+) -> bool {
+    let race = draft.race_id.as_str();
+    let lower = |value: &str| value.trim().to_ascii_lowercase();
+    match spec {
+        pcgen_core::RaceSpec::Name(name) => lower(race) == lower(name),
+        // `Elf%` is a prefix match; a bare `%` matches any race.
+        pcgen_core::RaceSpec::Pattern(pattern) => {
+            let prefix = lower(pattern).trim_end_matches('%').to_string();
+            prefix.is_empty() || lower(race).starts_with(&prefix)
+        }
+        pcgen_core::RaceSpec::TypeTag(tag) => state
+            .race_types
+            .iter()
+            .any(|candidate| candidate == &lower(tag)),
+        pcgen_core::RaceSpec::CreatureType(kind) => state
+            .race_creature_type
+            .as_deref()
+            .is_some_and(|candidate| candidate == lower(kind)),
+        pcgen_core::RaceSpec::Subtype(kind) => state
+            .race_subtypes
+            .iter()
+            .any(|candidate| candidate == &lower(kind)),
+    }
+}
+
 fn entity_is_active(state: &EffectState, draft: &CharacterDraft, entity: &EntityId) -> bool {
     match entity.entity_type.to_ascii_lowercase().as_str() {
         "race" => normalized(&draft.race_id) == normalized(&entity.key),
@@ -1127,6 +1183,13 @@ pub(crate) fn predicate_holds(
             .race_types
             .iter()
             .any(|candidate| candidate == &type_tag.to_ascii_lowercase()),
+        Predicate::RaceMatches { specs, min_count } => {
+            let matches = specs
+                .iter()
+                .filter(|spec| race_spec_matches(spec, state, draft))
+                .count() as u32;
+            matches >= (*min_count).max(1)
+        }
         Predicate::AgeCategory { category } => draft
             .choices
             .get("AGE.CATEGORY")

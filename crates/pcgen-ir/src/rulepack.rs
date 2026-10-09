@@ -722,15 +722,50 @@ fn lower_choose(tag: &crate::source::RawTag) -> Option<Effect> {
     })
 }
 
+/// One value of a `PRERACE` list.
+fn parse_race_spec(value: &str) -> pcgen_core::RaceSpec {
+    let trimmed = value.trim();
+    for (prefix, make) in [
+        (
+            "TYPE=",
+            pcgen_core::RaceSpec::TypeTag as fn(String) -> pcgen_core::RaceSpec,
+        ),
+        ("RACETYPE=", pcgen_core::RaceSpec::CreatureType),
+        ("RACESUBTYPE=", pcgen_core::RaceSpec::Subtype),
+    ] {
+        if trimmed.len() > prefix.len() && trimmed[..prefix.len()].eq_ignore_ascii_case(prefix) {
+            return make(trimmed[prefix.len()..].trim().to_string());
+        }
+    }
+    if trimmed.contains('%') {
+        return pcgen_core::RaceSpec::Pattern(trimmed.to_string());
+    }
+    pcgen_core::RaceSpec::Name(trimmed.to_string())
+}
+
+/// Parse the `x,y,y` body of `PREWEAPONPROF` / `PREWIELD` / `PREDOMAIN`.
+///
+/// PCGen's tag reference for `PREWEAPONPROF` lists `Text` (a proficiency name)
+/// and `TYPE.Text` (a proficiency *type*) as valid values. A type used to be
+/// dropped here, which emptied the list and made the caller discard the whole
+/// predicate — so `PREWEAPONPROF:1,TYPE=Martial` required nothing at all.
+///
+/// `TYPE=` and `TYPE.` are both normalised to the `type.<kind>` marker that
+/// `seed_weapon_bonus` writes, so the two sides agree.
 fn parse_qualified_names(body: &str) -> Vec<String> {
     body.split([',', '|'])
         .map(str::trim)
-        .filter(|part| {
-            !part.is_empty()
-                && part.parse::<u32>().is_err()
-                && !part.to_ascii_uppercase().starts_with("TYPE=")
+        .filter(|part| !part.is_empty() && part.parse::<u32>().is_err())
+        .map(|part| {
+            let lower = part.to_ascii_lowercase();
+            match lower
+                .strip_prefix("type=")
+                .or_else(|| lower.strip_prefix("type."))
+            {
+                Some(kind) => format!("type.{}", kind.trim()),
+                None => lower,
+            }
         })
-        .map(|part| part.to_ascii_lowercase())
         .collect()
 }
 
@@ -805,8 +840,14 @@ fn parse_one_natural_attack(value: &str) -> pcgen_core::NaturalAttack {
     let mut types = Vec::new();
     let mut count = 1;
     let mut damage = String::new();
+    let mut special_property = None;
     for field in fields.iter().skip(1) {
-        if let Some(value) = field.strip_prefix('*') {
+        if let Some(description) = field
+            .strip_prefix("SPROP=")
+            .or_else(|| field.strip_prefix("sprop="))
+        {
+            special_property = Some(description.trim().to_string());
+        } else if let Some(value) = field.strip_prefix('*') {
             count = value.parse().unwrap_or(1);
         } else if field.chars().next().is_some_and(|c| c.is_ascii_digit()) && field.contains('d') {
             damage = (*field).to_string();
@@ -819,6 +860,7 @@ fn parse_one_natural_attack(value: &str) -> pcgen_core::NaturalAttack {
         count,
         damage,
         types,
+        special_property,
     }
 }
 
@@ -1170,15 +1212,28 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 min: level.parse::<u32>().ok()?,
             })
         }
+        // PRERACE:x,y,y — at least x of the listed specs must describe the race.
+        // The reference allows a name, the `%` wildcard, `TYPE=`, `RACETYPE=`
+        // and `RACESUBTYPE=`. Only names were handled, so 1,141 of the RSRD's
+        // 2,131 values could never match — including 929 bare `%`, which the
+        // reference defines as matching any race.
         "PRERACE" => {
-            let key = parts
+            let min_count = parts
                 .iter()
-                .rev()
-                .find(|part| !part.is_empty() && part.parse::<u32>().is_err())
-                .map(|part| (*part).to_string())?;
-            Some(Predicate::HasEntity {
-                entity: EntityId::new("pcgen", "race", "Race", key),
-            })
+                .find(|part| !part.trim().is_empty())
+                .and_then(|part| part.trim().parse::<u32>().ok())
+                .unwrap_or(1);
+            let specs: Vec<pcgen_core::RaceSpec> = parts
+                .iter()
+                .skip_while(|part| part.trim().parse::<u32>().is_ok() || part.trim().is_empty())
+                .map(|part| part.trim().trim_matches(['[', ']']).trim())
+                .filter(|part| !part.is_empty())
+                .map(parse_race_spec)
+                .collect();
+            if specs.is_empty() {
+                return None;
+            }
+            Some(Predicate::RaceMatches { specs, min_count })
         }
         "PREDEITYALIGN" => {
             let allowed = parts

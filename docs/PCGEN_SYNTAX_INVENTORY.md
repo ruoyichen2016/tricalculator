@@ -417,6 +417,87 @@ introduced, and changing it needs a domain picker — recorded, not fixed.
 **Also unsupported:** `PREDIETY`, which the reference uses in an ADDDOMAINS
 example. No data uses it, so it is noted rather than added.
 
+### 5h. The audit, continued: four more tags guessed at
+
+**`DR` — same-type reductions stack in our output but must not.**
+
+```text
+DR:x/y
+  x: Number or Formula (Amount of Damage Reduction)
+  y: Text (Damage Type that bypasses this Reduction)
+  Prerequisites Allowed: Yes
+
+"DR tags with the same damage types do not stack, only the DR tag with the
+ highest value will be used."
+```
+
+A 12th-level Celestial carries `5/Magic` (gated at level 4) and `10/Magic`
+(gated at level 12). Both gates are met, and the character was reported as having
+both. Now collapsed to one entry per bypass type, keeping the highest; entries
+whose amount is a formula are left alone rather than compared wrongly.
+
+**`PREWEAPONPROF` — a documented type requirement was dropped.**
+
+```text
+PREWEAPONPROF:x,y,y
+  y: Text (Weapon proficiency name)   y: TYPE.Text (Weapon Proficiency type)
+```
+
+`parse_qualified_names` filtered `TYPE=` out, which emptied the list and made the
+caller discard the whole predicate — so `PREWEAPONPROF:1,TYPE=Martial` required
+nothing at all. Five RSRD prerequisites are affected. Both spellings (`TYPE=` in
+the data, `TYPE.` in the reference) now normalise to the `type.<kind>` marker the
+granting side already wrote.
+
+**`PRERACE` — one of five spellings, and the one implemented was exact.**
+
+```text
+PRERACE:1,Dwarf,Elf,Human              names
+PRERACE:1,Elf%,[Elf (aquatic)]         the % wildcard
+PRERACE:1,TYPE=Dire                    a race TYPE tag
+PRERACE:1,RACETYPE=Giant               the creature type
+PRERACE:1,RACESUBTYPE=Incorporeal      a race subtype
+PRERACE:2,RACETYPE=Undead,RACESUBTYPE=Incorporeal
+```
+
+Measured against the RSRD, **1,141 of 2,131 values (54%) could never match**:
+929 bare `%` (which the reference's own example defines as matching any race),
+82 `RACETYPE=`, 56 `RACESUBTYPE=`, 40 prefix patterns, 34 `TYPE=`. All five now
+lower to a `RaceSpec`, and `RACETYPE` — used 26 times in the RSRD races and not
+captured at all — is lowered too.
+
+**`NATURALATTACKS` has a fifth, optional parameter.** The reference gives
+`v,w.w,x,y,z` with `z: SPROP=Text`. Filed as a weapon type, it polluted the type
+list; 222 rows carry one.
+
+**`MOVECLONE` and `MOVE` were already right**, checked rather than assumed:
+`MOVECLONE:Walk,Fly,*2` gives fly 60 from walk 30, and `MOVE:Walk,30,Fly,10` is
+the flat pair list the code expects.
+
+### 5i. A trap worth recording: the gate was right and never reached
+
+Adding `RaceMatches` made the deep-field oracle fail on `3e_BarJack` and
+`3e_SWizSam`, `skill_total` 20 against Java's 22. The new gate was correct — the
+characters were losing the Gnome racial traits.
+
+`internal_race_selector` is what activates PCGen's racial-defaults entity, and it
+asks whether any of the entity's grants is gated on a race by calling
+`contains_race_predicate`. That match had a `_ => false` arm, so a `RaceMatches`
+condition was not recognised, the entity was never activated, and the correct
+gate was never evaluated.
+
+Two lessons, both about how I verified things:
+
+- The trace that settled it (`race_spec_matches` never being called) was worth
+  more than any amount of reading. I had already checked the parsing was right
+  and the evaluation arm was in the right function; both were true, and neither
+  was where the fault lay.
+- My first three test harnesses for `PRERACE` proved nothing — `weapon_proficiencies`
+  is not on the snapshot, `active_abilities` holds only *granted* abilities, and
+  a selected ability is not requirement-checked at all (`grant_allowed` is called
+  from one place, the grant path). Only the fourth, which observed a granted
+  ability's side effect, could fail.
+
 ## What followed from this
 
 Both actions are done:

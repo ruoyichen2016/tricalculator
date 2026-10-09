@@ -101,6 +101,26 @@ pub enum Predicate {
     RaceType {
         type_tag: String,
     },
+    /// `PRERACE:x,y,y` — at least `min_count` of the listed specs match.
+    ///
+    /// PCGen's reference gives five spellings:
+    ///
+    /// ```text
+    /// PRERACE:1,Dwarf,Elf,Human               names
+    /// PRERACE:1,Elf%,[Elf (aquatic)]          the % wildcard
+    /// PRERACE:1,TYPE=Dire                     a race TYPE tag
+    /// PRERACE:1,RACETYPE=Giant                the creature type
+    /// PRERACE:1,RACESUBTYPE=Incorporeal       a race subtype
+    /// PRERACE:2,RACETYPE=Undead,RACESUBTYPE=Incorporeal
+    /// ```
+    ///
+    /// Only the first was implemented, as an exact race-name comparison, so
+    /// 1,141 of the RSRD's 2,131 `PRERACE` values could never match — including
+    /// 929 bare `%`, which the reference defines as matching any race.
+    RaceMatches {
+        specs: Vec<RaceSpec>,
+        min_count: u32,
+    },
     /// The character's age category matches (PCGen `PREAGESET`).  Unknown age
     /// does not match, so age-gated bonuses stay off unless explicit.
     AgeCategory {
@@ -498,6 +518,22 @@ pub struct AddedDomain {
     pub condition: Option<Predicate>,
 }
 
+/// One `PRERACE` value.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "kind", content = "value")]
+pub enum RaceSpec {
+    /// A race name, compared case-insensitively.
+    Name(String),
+    /// `Elf%` or `%` — a prefix match against the race's id or name.
+    Pattern(String),
+    /// `TYPE=Dire` — one of the race's `TYPE:` tags.
+    TypeTag(String),
+    /// `RACETYPE=Giant` — the race's `RACETYPE:`.
+    CreatureType(String),
+    /// `RACESUBTYPE=Incorporeal` — one of the race's `RACESUBTYPE:` values.
+    Subtype(String),
+}
+
 /// What a `PROHIBITSPELL` entry forbids.
 ///
 /// PCGen's tag reference:
@@ -592,9 +628,16 @@ pub struct NaturalAttack {
     pub count: u32,
     /// Damage dice, e.g. `1d6`.
     pub damage: String,
-    /// Weapon type tags, kept because they describe the attack.
+    /// Weapon type tags, period-delimited in the data (`Weapon.Natural.Melee`).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub types: Vec<String>,
+    /// Optional trailing `SPROP=Text` special-property description.
+    ///
+    /// The reference gives the tag five parameters, the last optional. Without
+    /// this the description was filed as a weapon *type* — 222 rows across the
+    /// vendored data carry one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub special_property: Option<String>,
 }
 
 impl NaturalAttack {
@@ -610,6 +653,55 @@ impl NaturalAttack {
         }
         out
     }
+}
+
+/// Collapse damage reduction to one entry per bypass type, keeping the highest.
+///
+/// PCGen's tag reference: *"DR tags with the same damage types do not stack,
+/// only the DR tag with the highest value will be used."* A 12th-level Celestial
+/// carries `5/Magic` (from level 4) and `10/Magic` (from level 12); both gates
+/// are met, and only the 10 should be reported.
+///
+/// Entries whose amount is a formula rather than a number are kept as they are,
+/// since they cannot be ordered without evaluating them.
+pub fn collapse_damage_reduction(entries: &[String]) -> Vec<String> {
+    let amount = |entry: &str| -> Option<i32> { entry.split_once('/')?.0.trim().parse().ok() };
+    let kind = |entry: &str| -> String {
+        entry
+            .split_once('/')
+            .map(|(_, kind)| kind.trim().to_ascii_lowercase())
+            .unwrap_or_default()
+    };
+
+    let mut best: std::collections::BTreeMap<String, (Option<i32>, String)> =
+        std::collections::BTreeMap::new();
+    for entry in entries {
+        let key = kind(entry);
+        let value = amount(entry);
+        match best.get_mut(&key) {
+            Some(slot) => match (value, slot.0) {
+                (Some(new), Some(old)) if new > old => *slot = (Some(new), entry.clone()),
+                (Some(_), Some(_)) => {}
+                // A formula on either side: not orderable, so keep both.
+                _ => slot.0 = None,
+            },
+            None => {
+                best.insert(key, (value, entry.clone()));
+            }
+        }
+    }
+
+    let mut out = Vec::new();
+    for (key, (value, chosen)) in &best {
+        if value.is_some() {
+            out.push(chosen.clone());
+        } else {
+            out.extend(entries.iter().filter(|entry| kind(entry) == *key).cloned());
+        }
+    }
+    out.sort();
+    out.dedup();
+    out
 }
 
 impl ProhibitedSpell {

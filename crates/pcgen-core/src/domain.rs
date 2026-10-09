@@ -112,6 +112,10 @@ pub struct CreatureTraits {
     pub face: Option<String>,
     #[serde(default)]
     pub subtypes: Vec<String>,
+    /// PCGen `RACETYPE:` — the creature type, e.g. `Humanoid`.  Distinct from a
+    /// `TYPE:` tag, and needed by `PRERACE:1,RACETYPE=Giant`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub race_type: Option<String>,
     #[serde(default)]
     pub natural_attacks: Vec<crate::rules::NaturalAttack>,
     #[serde(default)]

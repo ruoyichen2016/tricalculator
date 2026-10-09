@@ -752,8 +752,8 @@ impl Engine {
 
         merged.vision.sort();
         merged.vision.dedup();
-        merged.damage_reduction.sort();
-        merged.damage_reduction.dedup();
+        // Same-type reductions do not stack: keep the highest per bypass type.
+        merged.damage_reduction = pcgen_core::collapse_damage_reduction(&merged.damage_reduction);
         merged.natural_attacks.sort();
         merged.natural_attacks.dedup();
         merged.unarmed_damage.sort();

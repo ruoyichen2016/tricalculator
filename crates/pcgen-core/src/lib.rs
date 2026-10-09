@@ -11,7 +11,8 @@ pub mod class_grant;
 
 pub use class_grant::{ClassGrant, GrantMode};
 pub use rules::{
-    AddedDomain, DamageReduction, ExchangeLevel, NaturalAttack, ProhibitedSpell, ProhibitionTarget,
+    collapse_damage_reduction, AddedDomain, DamageReduction, ExchangeLevel, NaturalAttack,
+    ProhibitedSpell, ProhibitionTarget, RaceSpec,
 };
 pub mod domain;
 pub mod equipment;

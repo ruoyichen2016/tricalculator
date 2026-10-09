@@ -1,4 +1,4 @@
-use pcgen_engine::{CharacterDraft, Engine};
+use pcgen_engine::{CharacterDraft, DraftClassLevel, Engine};
 use pcgen_ir::{lower_records, RawRecord, RawTag, SourceRef};
 use std::collections::BTreeMap;
 
@@ -436,4 +436,50 @@ fn damage_reduction_gates_are_evaluated() {
         ..CharacterDraft::default()
     });
     assert_eq!(skeleton.damage_reduction, vec!["5/Bludgeoning"]);
+}
+
+#[test]
+fn damage_reduction_does_not_stack_within_a_type() {
+    // PCGen's tag reference: "DR tags with the same damage types do not stack,
+    // only the DR tag with the highest value will be used."
+    //
+    // A 12th-level Celestial carries `5/Magic` (gated at level 4) and
+    // `10/Magic` (gated at level 12). Both gates are met, and the character was
+    // reported as having both.
+    let dr = |rows: &[(&str, &str)]| -> Vec<String> {
+        let mut records = vec![record("TEMPLATE", "T", rows)];
+        records.push(record("RACE", "Human", &[("SIZE", "M")]));
+        let (pack, _) = lower_records(Some("35e".to_string()), Vec::new(), &records);
+        let engine = Engine::new(pack);
+        let mut draft = CharacterDraft {
+            race_id: "Human".to_string(),
+            templates: vec!["T".to_string()],
+            ..CharacterDraft::default()
+        };
+        draft.class_levels.push(DraftClassLevel {
+            class_id: "Fighter".to_string(),
+            level: 1,
+            hit_points_gained: 0,
+            hit_points_by_level: vec![],
+            experience_gained: 0,
+        });
+        engine.evaluate(&draft).damage_reduction
+    };
+
+    assert_eq!(
+        dr(&[("DR", "5/Magic"), ("DR", "10/Magic")]),
+        vec!["10/Magic"]
+    );
+    assert_eq!(
+        dr(&[("DR", "10/Magic"), ("DR", "5/Magic")]),
+        vec!["10/Magic"]
+    );
+    assert_eq!(dr(&[("DR", "5/-"), ("DR", "3/-")]), vec!["5/-"]);
+    assert_eq!(dr(&[("DR", "5/Magic"), ("DR", "5/Magic")]), vec!["5/Magic"]);
+
+    // Different bypass types are different reductions and both stand.
+    assert_eq!(
+        dr(&[("DR", "5/Magic"), ("DR", "10/Silver")]),
+        vec!["10/Silver", "5/Magic"]
+    );
 }

@@ -663,6 +663,7 @@ pub(crate) fn parse_creature_traits(record: &RawRecord, traits: &mut pcgen_core:
     traits.reach_feet = tag(record, "REACH").and_then(|value| value.parse().ok());
     traits.reach_mult = tag(record, "REACHMULT").and_then(|value| value.parse().ok());
     traits.face = tag(record, "FACE").map(str::to_string);
+    traits.race_type = tag(record, "RACETYPE").map(str::to_string);
     traits.subtypes = split_tag_list(record, "RACESUBTYPE");
     traits.natural_attacks = tags(record, "NATURALATTACKS")
         .flat_map(crate::rulepack::parse_natural_attacks)
