@@ -211,7 +211,11 @@ fn premult_with_prepclevel_lowers() {
                     max: Some(1)
                 }
             ));
-            assert!(matches!(items[1], Predicate::ClassLevel { .. }));
+            // `PRECLASS` lowers to a count plus a list of class requirements.
+            assert!(matches!(
+                items[1],
+                Predicate::ClassRequirement { ref specs, min_count: 1 } if specs.len() == 1
+            ));
         }
         other => panic!("expected All([...]), got {other:?}"),
     }

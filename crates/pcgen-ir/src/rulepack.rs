@@ -964,14 +964,52 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 max: None,
             })
         }
+        // PRECLASS:x,y=z,y=z — at least x of the listed class requirements.
+        // Only the first pair was read and the count was ignored.
         "PRECLASS" => {
-            let part = parts.iter().skip(1).find(|part| part.contains('='))?;
-            let (class_id, level) = part.split_once('=')?;
-            Some(Predicate::ClassLevel {
-                class_id: class_id.trim().to_string(),
-                min: level.parse::<u32>().ok()?,
-                max: None,
-            })
+            let min_count = parts
+                .iter()
+                .find(|part| !part.trim().is_empty())
+                .and_then(|part| part.trim().parse::<u32>().ok())
+                .unwrap_or(1);
+            let specs: Vec<pcgen_core::ClassSpec> = parts
+                .iter()
+                .skip_while(|part| part.trim().parse::<u32>().is_ok() || part.trim().is_empty())
+                .filter_map(|part| {
+                    let (name, level) = part.split_once('=')?;
+                    let name = name.trim();
+                    let min_level = level.trim().parse::<u32>().ok()?;
+                    if name.is_empty() {
+                        return None;
+                    }
+                    let upper = name.to_ascii_uppercase();
+                    if upper == "ANY" {
+                        return Some(pcgen_core::ClassSpec::Any { min_level });
+                    }
+                    if let Some(rest) = upper.strip_prefix("SPELLCASTER") {
+                        // `SPELLCASTER` alone, or `SPELLCASTER.Arcane`.
+                        let kind = rest.trim_start_matches(['.', '=']).trim();
+                        return Some(pcgen_core::ClassSpec::Spellcaster {
+                            kind: (!kind.is_empty()).then(|| kind.to_string()),
+                            min_level,
+                        });
+                    }
+                    if let Some(kind) = strip_type_prefix(name) {
+                        return Some(pcgen_core::ClassSpec::Type {
+                            type_tag: kind.to_string(),
+                            min_level,
+                        });
+                    }
+                    Some(pcgen_core::ClassSpec::Class {
+                        class_id: name.to_string(),
+                        min_level,
+                    })
+                })
+                .collect();
+            if specs.is_empty() {
+                return None;
+            }
+            Some(Predicate::ClassRequirement { specs, min_count })
         }
         "PREVARGT" | "PREVARLT" | "PREVARGTEQ" | "PREVARLTEQ" | "PREVAREQ" | "PREVARNEQ" => {
             let (name, value) = if let Some((name, value)) = body.split_once('=') {

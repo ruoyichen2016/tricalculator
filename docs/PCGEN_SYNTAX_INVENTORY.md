@@ -580,6 +580,47 @@ group, and a small `BonusGroup` accumulates the highest standard, the sum of the
 replacements and the sum of the stacks, then combines them the way the reference
 describes. Both call sites — the general component split and the AC one — use it.
 
+### 5l. `PRECLASS` and `DEFINE`
+
+**`PRECLASS` read only the first pair, and knew one of four ways to name a class.**
+
+```text
+PRECLASS:x,y=z,y=z
+  x: Number (The number of classes that must be equal to or greater than the
+             numbers specified for the check to succeed)
+  y: Text (Class Name)   y: TYPE.Text (Class Type)
+  y: SPELLCASTER   y: SPELLCASTER.Type (Spellcaster Type)   y: ANY
+  z: Number (Class Level)
+
+PRECLASS:2,Wizard=5,Sorcerer=6,Cleric=7
+  "Multi-classed character must be at least Wiz5/Sor6, Wiz5/Clr7 or Sor6/Clr7"
+PRECLASS:1,SPELLCASTER=2      two levels in any spellcasting class
+PRECLASS:1,SPELLCASTER.Arcane=2
+```
+
+The count was ignored, so 140 of the RSRD's 1,735 values tested a single class.
+`SPELLCASTER` (332 values), `TYPE.` (51) and `ANY` (2) each became a requirement
+for a class *by that literal name*, which cannot exist — 385 values that could
+never be satisfied.
+
+`SPELLCASTER` sums the levels of every matching class, which is how a multiclass
+caster is treated: a Sorcerer 6 / Wizard 6 has twelve spellcaster levels.
+
+`Predicate::ClassLevel` lost its only producer and was removed. Its `max` had
+never been meaningful: the reference gives `z` as a plain level and no data uses
+a range form.
+
+**`DEFINE` kept the last definition rather than the highest.**
+
+> Values are calculated by getting the value of the variable with the **highest
+> defined value** … If it finds more than one, it **keeps the one with the higher
+> value**.
+
+The definitions went into a map keyed by name, so the winner depended on
+iteration order. They are now collected per name and the highest evaluated value
+wins, with a definition that fails to evaluate reported and skipped rather than
+discarding the whole variable.
+
 ## What followed from this
 
 Both actions are done:

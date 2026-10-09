@@ -27,11 +27,6 @@ pub enum Predicate {
         min: Option<i32>,
         max: Option<i32>,
     },
-    ClassLevel {
-        class_id: String,
-        min: u32,
-        max: Option<u32>,
-    },
     HasEntity {
         entity: EntityId,
     },
@@ -119,6 +114,31 @@ pub enum Predicate {
     /// The character's race has this type tag (PCGen `PRERACETYPE`).
     RaceType {
         type_tag: String,
+    },
+    /// `PRECLASS:x,y=z,y=z` — at least `min_count` of the listed class
+    /// requirements are met.
+    ///
+    /// PCGen's reference:
+    ///
+    /// ```text
+    /// PRECLASS:x,y=z,y=z
+    ///   x: Number (The number of classes that must be equal to or greater than
+    ///              the numbers specified for the check to succeed)
+    ///   y: Text (Class Name)   y: TYPE.Text (Class Type)
+    ///   y: SPELLCASTER   y: SPELLCASTER.Type (Spellcaster Type)   y: ANY
+    ///   z: Number (Class Level)
+    ///
+    /// PRECLASS:2,Wizard=5,Sorcerer=6,Cleric=7   at least two of those
+    /// PRECLASS:1,SPELLCASTER=2                  two levels in any casting class
+    /// PRECLASS:1,SPELLCASTER.Arcane=2           two levels in an arcane one
+    /// ```
+    ///
+    /// Only the first `y=z` pair was read and the count was ignored, so 140 of
+    /// the RSRD's 1,735 values tested one class; `SPELLCASTER` (332 values),
+    /// `TYPE.` (51) and `ANY` (2) looked for a class by that literal name.
+    ClassRequirement {
+        specs: Vec<ClassSpec>,
+        min_count: u32,
     },
     /// `PREABILITY:x,CATEGORY=y,z` — at least `min_count` of the wanted
     /// abilities are held, and none of the excluded ones are.
@@ -560,6 +580,23 @@ pub struct AddedDomain {
     /// Condition the character must satisfy, when the entry has one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub condition: Option<Predicate>,
+}
+
+/// One `PRECLASS` requirement.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "kind", content = "value")]
+pub enum ClassSpec {
+    /// `Wizard=5` — a named class.
+    Class { class_id: String, min_level: u32 },
+    /// `TYPE.Prestige=3` or `TYPE=Prestige=3` — a class type tag.
+    Type { type_tag: String, min_level: u32 },
+    /// `SPELLCASTER=2`, or `SPELLCASTER.Arcane=2` with `kind` set.
+    Spellcaster {
+        kind: Option<String>,
+        min_level: u32,
+    },
+    /// `ANY=1` — any class at all.
+    Any { min_level: u32 },
 }
 
 /// One ability a `PREABILITY` value asks for.

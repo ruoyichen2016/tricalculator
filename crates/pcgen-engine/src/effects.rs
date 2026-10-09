@@ -79,6 +79,9 @@ pub struct EffectState {
     /// Ability key (normalised) to its name, category and `TYPE:` tags, for
     /// `PREABILITY`.  Built once because `predicate_holds` has no pack.
     pub ability_traits: BTreeMap<String, AbilityTraits>,
+    /// Class id to what `PRECLASS` needs to know about it, built for the same
+    /// reason.
+    pub class_traits: BTreeMap<String, ClassTraits>,
     /// Total character class levels, excluding Monster (Racial) HD.
     pub character_class_levels: u32,
     /// Stable total BAB used by `PRETOTALAB` during predicate evaluation.
@@ -152,6 +155,27 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
                 .collect()
         })
         .unwrap_or_default();
+    let class_traits: BTreeMap<String, ClassTraits> = pack
+        .classes
+        .iter()
+        .map(|(id, class)| {
+            (
+                id.clone(),
+                ClassTraits {
+                    type_tags: class
+                        .type_tags
+                        .iter()
+                        .map(|tag| tag.to_ascii_lowercase())
+                        .collect(),
+                    is_prestige: class.is_prestige,
+                    is_monster: class.is_monster,
+                    is_psionic: class.is_psionic,
+                    is_spellcaster: class.spellcasting_ability.is_some(),
+                    spell_power: class.spell_power,
+                },
+            )
+        })
+        .collect();
     let ability_traits: BTreeMap<String, AbilityTraits> = pack
         .entities
         .iter()
@@ -297,6 +321,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         race_subtypes,
         skill_types,
         ability_traits,
+        class_traits,
         character_class_levels: class_levels,
         ability_modifiers,
         total_bab: prereq_bab,
@@ -350,7 +375,9 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         queued.insert(index);
     }
 
-    let mut variable_defs: BTreeMap<String, String> = BTreeMap::new();
+    // Every `DEFINE`/`VAR` for a name, not just the last: PCGen "keeps the one
+    // with the higher value" when several objects define the same variable.
+    let mut variable_defs: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut pending_formulas: Vec<PendingFormula> = Vec::new();
     let mut pending_variables: Vec<PendingVariable> = Vec::new();
 
@@ -507,7 +534,7 @@ fn apply_action(
     pack: &CompiledRulePack,
     draft: &CharacterDraft,
     state: &mut EffectState,
-    variable_defs: &mut BTreeMap<String, String>,
+    variable_defs: &mut BTreeMap<String, Vec<String>>,
     pending_formulas: &mut Vec<PendingFormula>,
     pending_variables: &mut Vec<PendingVariable>,
     active: &mut BTreeSet<usize>,
@@ -516,7 +543,10 @@ fn apply_action(
 ) {
     match &effect.action {
         EffectAction::DefineVariable { name, expression } => {
-            variable_defs.insert(name.clone(), expression.clone());
+            variable_defs
+                .entry(name.clone())
+                .or_default()
+                .push(expression.clone());
         }
         EffectAction::DeclareVariable { name, initial } => {
             state
@@ -1096,6 +1126,67 @@ fn variable_value(state: &EffectState, name: &str) -> i32 {
         .unwrap_or(0)
 }
 
+/// What a `PRECLASS` needs to know about a class.
+#[derive(Debug, Clone, Default)]
+pub struct ClassTraits {
+    pub type_tags: Vec<String>,
+    pub is_prestige: bool,
+    pub is_monster: bool,
+    pub is_psionic: bool,
+    pub is_spellcaster: bool,
+    pub spell_power: pcgen_core::SpellPowerType,
+}
+
+/// Does one `PRECLASS` requirement hold?
+///
+/// `SPELLCASTER` sums the levels of every matching class, which is how PCGen
+/// treats a multiclass caster: a Sorcerer 6 / Wizard 6 has twelve spellcaster
+/// levels.
+fn class_spec_holds(
+    spec: &pcgen_core::ClassSpec,
+    state: &EffectState,
+    draft: &CharacterDraft,
+) -> bool {
+    let levels_in = |predicate: &dyn Fn(&ClassTraits) -> bool| -> u32 {
+        state
+            .class_traits
+            .iter()
+            .filter(|(_, traits)| predicate(traits))
+            .map(|(id, _)| draft.level_in_class(id))
+            .sum()
+    };
+    match spec {
+        pcgen_core::ClassSpec::Class {
+            class_id,
+            min_level,
+        } => draft.level_in_class(class_id) >= *min_level,
+        pcgen_core::ClassSpec::Any { min_level } => draft.total_level() >= *min_level,
+        pcgen_core::ClassSpec::Type {
+            type_tag,
+            min_level,
+        } => {
+            let wanted = type_tag.to_ascii_lowercase();
+            levels_in(&|traits| traits.type_tags.contains(&wanted)) >= *min_level
+        }
+        pcgen_core::ClassSpec::Spellcaster { kind, min_level } => {
+            let kind = kind.as_deref().map(str::to_ascii_uppercase);
+            levels_in(&|traits| match kind.as_deref() {
+                None => traits.is_spellcaster,
+                Some("ARCANE") => {
+                    matches!(traits.spell_power, pcgen_core::SpellPowerType::Arcane)
+                }
+                Some("DIVINE") => {
+                    matches!(traits.spell_power, pcgen_core::SpellPowerType::Divine)
+                }
+                Some("PSIONIC") => {
+                    matches!(traits.spell_power, pcgen_core::SpellPowerType::Psionic)
+                }
+                Some(_) => false,
+            }) >= *min_level
+        }
+    }
+}
+
 /// What a `PREABILITY` needs to know about an ability.
 #[derive(Debug, Clone, Default)]
 pub struct AbilityTraits {
@@ -1201,10 +1292,6 @@ pub(crate) fn predicate_holds(
             let value = draft.stats.get(stat).copied().unwrap_or(10);
             min.is_none_or(|min| value >= min) && max.is_none_or(|max| value <= max)
         }
-        Predicate::ClassLevel { class_id, min, max } => {
-            let level = draft.level_in_class(class_id);
-            level >= *min && max.is_none_or(|max| level <= max)
-        }
         Predicate::HasEntity { entity } => entity_is_active(state, draft, entity),
         Predicate::Variable { name, min, max } => {
             let value = state.variables.get(name).copied().unwrap_or(0);
@@ -1241,6 +1328,13 @@ pub(crate) fn predicate_holds(
                 _ => None,
             };
             kind.is_some_and(|kind| state.base_saves.get(&kind).copied().unwrap_or(0) >= *min)
+        }
+        Predicate::ClassRequirement { specs, min_count } => {
+            let met = specs
+                .iter()
+                .filter(|spec| class_spec_holds(spec, state, draft))
+                .count() as u32;
+            met >= (*min_count).max(1)
         }
         Predicate::AbilityRequirement {
             category,
@@ -1504,7 +1598,7 @@ fn rule_enabled(rule: &str, draft: &CharacterDraft) -> bool {
     )
 }
 
-fn resolve_variables(state: &mut EffectState, definitions: &BTreeMap<String, String>) {
+fn resolve_variables(state: &mut EffectState, definitions: &BTreeMap<String, Vec<String>>) {
     if definitions.is_empty() {
         return;
     }
@@ -1516,7 +1610,11 @@ fn resolve_variables(state: &mut EffectState, definitions: &BTreeMap<String, Str
         .collect();
     let mut adjacency = vec![Vec::new(); names.len()];
     for (position, name) in names.iter().enumerate() {
-        let expression = definitions.get(name).cloned().unwrap_or_default();
+        // Every expression for the name contributes dependencies.
+        let expression = definitions
+            .get(name)
+            .map(|expressions| expressions.join("+"))
+            .unwrap_or_default();
         for dependency in variable_dependencies(&expression) {
             if let Some(&dependency_index) = index.get(dependency.as_str()) {
                 // dependency -> dependent
@@ -1528,7 +1626,10 @@ fn resolve_variables(state: &mut EffectState, definitions: &BTreeMap<String, Str
         let cyclic: Vec<&str> = names
             .iter()
             .filter(|name| {
-                let expression = definitions.get(*name).cloned().unwrap_or_default();
+                let expression = definitions
+                    .get(*name)
+                    .map(|expressions| expressions.join("+"))
+                    .unwrap_or_default();
                 !variable_dependencies(&expression).is_empty()
             })
             .map(String::as_str)
@@ -1544,15 +1645,25 @@ fn resolve_variables(state: &mut EffectState, definitions: &BTreeMap<String, Str
         if state.explicit_variables.contains(name) {
             continue;
         }
-        let expression = definitions.get(name).cloned().unwrap_or_default();
-        let normalized = normalize_formula(&expression, state, None);
-        match pcgen_formula::evaluate(&normalized, state) {
-            Ok(value) => {
-                state.variables.insert(name.clone(), formula_to_i32(&value));
+        // The reference: "If it finds more than one, it keeps the one with the
+        // higher value." Expressions that fail are reported and skipped rather
+        // than discarding the whole name.
+        let mut best: Option<i32> = None;
+        for expression in definitions.get(name).map(Vec::as_slice).unwrap_or_default() {
+            let normalized = normalize_formula(expression, state, None);
+            match pcgen_formula::evaluate(&normalized, state) {
+                Ok(value) => {
+                    let value = formula_to_i32(&value);
+                    best = Some(best.map_or(value, |old| old.max(value)));
+                }
+                Err(error) => state.diagnostics.push(format!(
+                    "variable `{name}` definition `{expression}` failed: {}",
+                    error.message
+                )),
             }
-            Err(error) => state
-                .diagnostics
-                .push(format!("variable `{name}` failed: {}", error.message)),
+        }
+        if let Some(value) = best {
+            state.variables.insert(name.clone(), value);
         }
     }
 }
