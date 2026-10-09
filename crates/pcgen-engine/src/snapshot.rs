@@ -137,17 +137,15 @@ pub struct CharacterSnapshot {
     /// Character has a spellbook-using class.
     #[serde(default)]
     pub has_spellbook: bool,
-    /// Spell schools this character may not cast (`PROHIBITSPELL:SCHOOL.*`).
+    /// Spell prohibitions that apply to this character.
     ///
-    /// A 3.5e Wizard must forbid two schools; until this existed the picker
-    /// offered them anyway.
+    /// Kept structured rather than flattened to name sets: `ALIGNMENT.Chaotic.Evil`
+    /// means a spell must carry *both* descriptors, which a set of names cannot
+    /// express. A 3.5e Wizard must forbid two schools, and a Cleric of an evil
+    /// deity does not cast Good spells; until this existed the picker offered
+    /// both anyway.
     #[serde(default)]
-    pub prohibited_schools: BTreeSet<String>,
-    /// Alignment descriptors this character may not cast
-    /// (`PROHIBITSPELL:ALIGNMENT.*`) — a Cleric of an evil deity does not cast
-    /// Good spells.
-    #[serde(default)]
-    pub prohibited_alignments: BTreeSet<String>,
+    pub prohibited_spells: Vec<pcgen_core::ProhibitedSpell>,
     #[serde(default)]
     pub power_points: BTreeMap<String, i32>,
     #[serde(default)]

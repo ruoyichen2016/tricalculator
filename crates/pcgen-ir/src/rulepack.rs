@@ -734,10 +734,23 @@ fn parse_qualified_names(body: &str) -> Vec<String> {
         .collect()
 }
 
-/// Split `Chaos[PRETEMPLATE:1,Vampire]` into a domain and its condition.
+/// Parse `ADDDOMAINS:Travel|Sun` or `Sun[PREDIETY:Ra]|Law`.
 ///
-/// The engine used to do this itself, which was the last PCGen syntax it read.
-pub(crate) fn parse_added_domain(value: &str) -> pcgen_core::AddedDomain {
+/// PCGen's tag reference: `ADDDOMAINS:x|x`, where each `x` is a domain name and
+/// "it can contain PRExxx tags, in brackets ([PRExxx]), immediately after the
+/// domain name". So `|` separates domains and `[...]` qualifies the one before
+/// it — reading the whole value as a single domain produced a domain literally
+/// named `Travel|Sun`, which matches nothing.
+pub(crate) fn parse_added_domains(value: &str) -> Vec<pcgen_core::AddedDomain> {
+    value
+        .split('|')
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .map(parse_one_added_domain)
+        .collect()
+}
+
+fn parse_one_added_domain(value: &str) -> pcgen_core::AddedDomain {
     let value = value.trim();
     let (domain, condition) = match value.split_once('[') {
         Some((domain, condition)) => (domain.trim(), condition.trim().trim_end_matches(']').trim()),
@@ -816,9 +829,28 @@ fn parse_one_natural_attack(value: &str) -> pcgen_core::NaturalAttack {
 pub(crate) fn parse_prohibited_spell(value: &str) -> Option<pcgen_core::ProhibitedSpell> {
     let mut parts = value.split('|').map(str::trim).filter(|p| !p.is_empty());
     let target = parts.next()?;
+    // Alignment, descriptor, school and subschool names are period-delimited;
+    // spell names are comma-delimited.
+    let dotted = |rest: &str| -> Vec<String> {
+        rest.split('.')
+            .map(str::trim)
+            .filter(|part| !part.is_empty())
+            .map(str::to_string)
+            .collect()
+    };
+    let listed = |rest: &str| -> Vec<String> {
+        rest.split(',')
+            .map(str::trim)
+            .filter(|part| !part.is_empty())
+            .map(str::to_string)
+            .collect()
+    };
     let target = match target.split_once('.') {
-        Some(("SCHOOL", name)) => pcgen_core::ProhibitionTarget::School(name.to_string()),
-        Some(("ALIGNMENT", name)) => pcgen_core::ProhibitionTarget::Alignment(name.to_string()),
+        Some(("ALIGNMENT", rest)) => pcgen_core::ProhibitionTarget::Alignment(dotted(rest)),
+        Some(("DESCRIPTOR", rest)) => pcgen_core::ProhibitionTarget::Descriptor(dotted(rest)),
+        Some(("SUBSCHOOL", rest)) => pcgen_core::ProhibitionTarget::Subschool(dotted(rest)),
+        Some(("SPELL", rest)) => pcgen_core::ProhibitionTarget::Spell(listed(rest)),
+        Some(("SCHOOL", rest)) => pcgen_core::ProhibitionTarget::School(rest.trim().to_string()),
         _ => return None,
     };
     let condition = parts.find_map(|part| parse_predicate(part, ""));
@@ -1620,7 +1652,7 @@ fn parse_entity_metadata(record: &RawRecord) -> pcgen_core::EntityMetadata {
                 }
             }
             "ARMORTYPE" => extend_metadata_list(&mut metadata.armor_types, value),
-            "ADDDOMAINS" => metadata.added_domains.push(parse_added_domain(value)),
+            "ADDDOMAINS" => metadata.added_domains.extend(parse_added_domains(value)),
             "PROHIBITCOST" => metadata.prohibited_cost = value.parse::<i32>().ok(),
             "DONOTADD" => extend_metadata_list(&mut metadata.do_not_add, value),
             "VARIANTS" => extend_metadata_list(&mut metadata.spell_variants, value),

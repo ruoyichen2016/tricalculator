@@ -634,8 +634,7 @@ impl Engine {
         let turning = self.turning(draft, &effect_state.variables);
         let uncanny_dodge =
             self.uncanny_dodge(&effect_state.active_abilities, &effect_state.variables);
-        let (prohibited_schools, prohibited_alignments) =
-            self.prohibited_spells(draft, &effect_state);
+        let prohibited_spells = self.prohibited_spells(draft, &effect_state);
         let mut snapshot = CharacterSnapshot {
             draft_id: draft.id.clone(),
             name: draft.name.clone(),
@@ -678,8 +677,7 @@ impl Engine {
             spell_power_types: effect_state.spell_powers.clone(),
             max_spell_level: effect_state.max_spell_level.clone(),
             has_spellbook: effect_state.has_spellbook,
-            prohibited_schools: prohibited_schools.clone(),
-            prohibited_alignments: prohibited_alignments.clone(),
+            prohibited_spells: prohibited_spells.clone(),
             power_points,
             manifester_levels,
             powers_known,
@@ -991,9 +989,8 @@ impl Engine {
         &self,
         draft: &CharacterDraft,
         state: &crate::effects::EffectState,
-    ) -> (BTreeSet<String>, BTreeSet<String>) {
-        let mut schools = BTreeSet::new();
-        let mut alignments = BTreeSet::new();
+    ) -> Vec<pcgen_core::ProhibitedSpell> {
+        let mut prohibitions = Vec::new();
         for entry in effective_class_levels(&self.pack, draft) {
             let Some(class) = self.class(&entry.class_id) else {
                 continue;
@@ -1002,17 +999,12 @@ impl Engine {
                 if !crate::effects::predicate_holds(prohibition.condition.as_ref(), draft, state) {
                     continue;
                 }
-                match &prohibition.target {
-                    pcgen_core::ProhibitionTarget::School(school) => {
-                        schools.insert(school.clone());
-                    }
-                    pcgen_core::ProhibitionTarget::Alignment(alignment) => {
-                        alignments.insert(alignment.clone());
-                    }
+                if !prohibitions.contains(prohibition) {
+                    prohibitions.push(prohibition.clone());
                 }
             }
         }
-        (schools, alignments)
+        prohibitions
     }
 
     fn class_added_domains(

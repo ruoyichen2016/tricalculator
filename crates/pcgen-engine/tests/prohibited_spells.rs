@@ -80,9 +80,9 @@ fn a_forbidden_school_is_reported() {
     wizard(&mut draft);
     let snapshot = engine.evaluate(&draft);
     assert!(
-        snapshot.prohibited_schools.is_empty(),
+        snapshot.prohibited_spells.is_empty(),
         "the prohibition is gated on a variable that is not set yet: {:?}",
-        snapshot.prohibited_schools
+        snapshot.prohibited_spells
     );
 
     // Taking the ability sets it, and the school is reported.
@@ -94,13 +94,14 @@ fn a_forbidden_school_is_reported() {
     )];
     let snapshot = engine.evaluate(&draft);
     assert_eq!(
-        snapshot.prohibited_schools.iter().collect::<Vec<_>>(),
-        vec!["Abjuration"],
-        "forbidding Abjuration must be reported"
+        snapshot.prohibited_spells.len(),
+        1,
+        "forbidding Abjuration must be reported once: {:?}",
+        snapshot.prohibited_spells
     );
-    assert!(
-        !snapshot.prohibited_schools.contains("Evocation"),
-        "taking one prohibition must not apply the other"
+    assert_eq!(
+        snapshot.prohibited_spells[0].target,
+        pcgen_core::ProhibitionTarget::School("Abjuration".to_string())
     );
 }
 
@@ -149,16 +150,142 @@ fn an_alignment_prohibition_uses_the_deity_alignment() {
             hit_points_by_level: vec![],
             experience_gained: 0,
         });
-        engine.evaluate(&draft).prohibited_alignments
+        engine.evaluate(&draft).prohibited_spells
     };
 
     assert_eq!(
-        cleric("Evil God").iter().collect::<Vec<_>>(),
-        vec!["Good"],
+        cleric("Evil God").len(),
+        1,
         "a Cleric of an evil deity does not cast Good spells"
     );
     assert!(
         cleric("Good God").is_empty(),
         "the same character serving a good deity has no such prohibition"
+    );
+}
+
+#[test]
+fn every_documented_target_kind_is_kept() {
+    // PCGen's tag reference lists ALIGNMENT, DESCRIPTOR, SCHOOL, SUBSCHOOL and
+    // SPELL. I first modelled only the first and third, which silently dropped
+    // 23 `SPELL.*` and 11 `DESCRIPTOR.*` entries — every one of them in
+    // Unearthed Arcana and other non-RSRD data.
+    let records = vec![
+        record(
+            "CLASS",
+            "Cleric",
+            &[
+                ("HD", "8"),
+                ("PROHIBITSPELL", "ALIGNMENT.Good"),
+                ("PROHIBITSPELL", "DESCRIPTOR.Fear"),
+                ("PROHIBITSPELL", "SCHOOL.Illusion"),
+                ("PROHIBITSPELL", "SUBSCHOOL.Ritual"),
+                ("PROHIBITSPELL", "SPELL.Searing Light,Sunbeam,Sunburst"),
+            ],
+        ),
+        record("RACE", "Human", &[("SIZE", "M")]),
+    ];
+    let (pack, _) = lower_records(Some("35e".to_string()), Vec::new(), &records);
+    let cleric = pack.classes.get("Cleric").expect("Cleric");
+    assert_eq!(
+        cleric.prohibited_spells.len(),
+        5,
+        "no target kind may be dropped: {:?}",
+        cleric.prohibited_spells
+    );
+}
+
+#[test]
+fn a_multi_name_target_is_a_conjunction() {
+    // `ALIGNMENT.Chaotic.Evil` prohibits spells that have *both* descriptors,
+    // not either — which is why the snapshot keeps the structured entries
+    // instead of flattening them to a set of names.
+    let records = vec![
+        record(
+            "CLASS",
+            "Cleric",
+            &[("HD", "8"), ("PROHIBITSPELL", "ALIGNMENT.Chaotic.Evil")],
+        ),
+        record("RACE", "Human", &[("SIZE", "M")]),
+    ];
+    let (pack, _) = lower_records(Some("35e".to_string()), Vec::new(), &records);
+    let entry = pack.classes["Cleric"].prohibited_spells[0].clone();
+    assert_eq!(
+        entry.target,
+        pcgen_core::ProhibitionTarget::Alignment(vec!["Chaotic".to_string(), "Evil".to_string()])
+    );
+
+    let spell = |descriptors: &[&str]| {
+        let mut definition = pcgen_core::domain::SpellDefinition::new("x", "X");
+        definition.descriptors = descriptors.iter().map(|d| d.to_string()).collect();
+        definition
+    };
+    assert!(entry.covers(&spell(&["Chaotic", "Evil"])), "both present");
+    assert!(!entry.covers(&spell(&["Chaotic"])), "only one present");
+    assert!(!entry.covers(&spell(&["Good"])), "neither present");
+}
+
+#[test]
+fn a_spell_target_is_a_disjunction() {
+    // `SPELL.A,B` is a comma-delimited list of names, and any one of them is
+    // enough.
+    let records = vec![
+        record(
+            "CLASS",
+            "Cleric",
+            &[
+                ("HD", "8"),
+                ("PROHIBITSPELL", "SPELL.Searing Light,Sunbeam"),
+            ],
+        ),
+        record("RACE", "Human", &[("SIZE", "M")]),
+    ];
+    let (pack, _) = lower_records(Some("35e".to_string()), Vec::new(), &records);
+    let entry = pack.classes["Cleric"].prohibited_spells[0].clone();
+    let named = |name: &str| pcgen_core::domain::SpellDefinition::new(name, name);
+    assert!(entry.covers(&named("Sunbeam")));
+    assert!(entry.covers(&named("Searing Light")));
+    assert!(!entry.covers(&named("Bless")));
+}
+
+#[test]
+fn adddomains_splits_on_the_pipe() {
+    // `ADDDOMAINS:x|x` is a list of domains, and `[...]` qualifies the one
+    // before it. Read as a single value, `Travel|Sun` became a domain literally
+    // named `Travel|Sun`, which matched nothing, so neither domain arrived.
+    let records = vec![
+        record(
+            "CLASS",
+            "Cleric",
+            &[("HD", "8"), ("ADDDOMAINS", "Travel|Sun")],
+        ),
+        record(
+            "CLASS",
+            "Vampire Cleric",
+            &[
+                ("HD", "8"),
+                ("ADDDOMAINS", "Sun[PRETEMPLATE:1,Vampire]|Law"),
+            ],
+        ),
+        record("RACE", "Human", &[("SIZE", "M")]),
+    ];
+    let (pack, _) = lower_records(Some("35e".to_string()), Vec::new(), &records);
+
+    let names: Vec<&str> = pack.classes["Cleric"]
+        .added_domains
+        .iter()
+        .map(|entry| entry.domain.as_str())
+        .collect();
+    assert_eq!(names, vec!["Travel", "Sun"], "one entry per domain");
+
+    // The condition stays attached to the domain it follows, not to the list.
+    let vampiric = &pack.classes["Vampire Cleric"].added_domains;
+    assert_eq!(vampiric.len(), 2);
+    assert_eq!(vampiric[0].domain, "Sun");
+    assert!(vampiric[0].condition.is_some(), "Sun keeps its gate");
+    assert_eq!(vampiric[1].domain, "Law");
+    assert!(
+        vampiric[1].condition.is_none(),
+        "Law is unconditional, and must not inherit Sun's gate"
     );
 }

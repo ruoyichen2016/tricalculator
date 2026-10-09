@@ -1591,11 +1591,9 @@ async function searchSpells(reset = true) {
   // A Wizard must forbid two schools, and a Cleric of an evil deity may not
   // cast Good spells. The engine reports both on the snapshot; honour them
   // here so the picker never offers a spell the character cannot take.
-  const prohibited = (lastDiagnosticsPayload && lastDiagnosticsPayload.snapshot) || {};
-  const schools = prohibited.prohibited_schools || [];
-  const alignments = prohibited.prohibited_alignments || [];
-  if (schools.length) params.set('exclude_school', schools.join(','));
-  if (alignments.length) params.set('exclude_alignment', alignments.join(','));
+  const snapshot = (lastDiagnosticsPayload && lastDiagnosticsPayload.snapshot) || {};
+  const prohibited = snapshot.prohibited_spells || [];
+  if (prohibited.length) params.set('prohibited', JSON.stringify(prohibited));
   if (spellSearchEl.value) params.set('search', spellSearchEl.value.trim());
   try {
     const response = await fetch(`/api/options/spells?${params.toString()}`);

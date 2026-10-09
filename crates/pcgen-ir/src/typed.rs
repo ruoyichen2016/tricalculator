@@ -503,7 +503,7 @@ fn parse_class(record: &RawRecord) -> ClassDefinition {
     }
     class.weapon_bonus = tags(record, "WEAPONBONUS").map(str::to_string).collect();
     class.added_domains = tags(record, "ADDDOMAINS")
-        .map(crate::rulepack::parse_added_domain)
+        .flat_map(crate::rulepack::parse_added_domains)
         .collect();
     class.prohibited_cost = tag(record, "PROHIBITCOST").and_then(|value| value.parse().ok());
     class.subclass_choice = tag(record, "CHOICE").map(str::to_string);
@@ -914,6 +914,7 @@ fn parse_spell(record: &RawRecord) -> SpellDefinition {
         .or_else(|| tag(record, "SCHOOLS"))
         .unwrap_or("")
         .to_string();
+    spell.subschool = tag(record, "SUBSCHOOL").map(str::to_string);
     spell.descriptors = tags(record, "DESCRIPTOR")
         .flat_map(|value| value.split('.'))
         .map(str::trim)

@@ -479,6 +479,10 @@ pub struct SpellDefinition {
     pub level: u32,
     #[serde(default)]
     pub school: String,
+    /// Subschool (PCGen `SUBSCHOOL:`), e.g. `Ritual`.  228 in the RSRD spells
+    /// file alone, and not captured before `PROHIBITSPELL:SUBSCHOOL` needed it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subschool: Option<String>,
     /// Alignment and energy descriptors (PCGen `DESCRIPTOR:`), e.g. `Good`.
     ///
     /// Needed for `PROHIBITSPELL:ALIGNMENT.Good`: a Cleric of an evil deity may
@@ -505,6 +509,7 @@ impl SpellDefinition {
             name: name.into(),
             level: 0,
             school: String::new(),
+            subschool: None,
             descriptors: Vec::new(),
             class_levels: BTreeMap::new(),
             domains: Vec::new(),

@@ -369,6 +369,54 @@ read via `starts_with`, `hit_die_override` now parses, `natural_attacks` is
 structured, `spec` / `choose` / `tag` go through the choice and grant machinery,
 and `legacy_tags`, `name` and `key` are accounted for above.
 
+### 5g. Auditing my own implementations against the vendored spec
+
+Having found the reference, the useful move was to re-read everything I had
+implemented from inference. Three of them were wrong.
+
+**`PROHIBITSPELL` handles five target kinds, not two.**
+
+```text
+PROHIBITSPELL:x
+  ALIGNMENT.Text   DESCRIPTOR.Text   SCHOOL.Text
+  SUBSCHOOL.Text   SPELL.Text
+
+Alignment, descriptor, school and subschool names are period-delimited lists.
+Spell name is a comma-delimited list.
+
+PROHIBITSPELL:ALIGNMENT.Chaotic.Evil
+  Prohibits spells that have both the Chaotic and the Evil descriptors.
+```
+
+I modelled `SCHOOL` and `ALIGNMENT` as single names. That silently dropped 23
+`SPELL.*` and 11 `DESCRIPTOR.*` entries — every one of them in Unearthed Arcana
+and other non-RSRD data, which is precisely the data that is meant to be usable.
+The RSRD exercises none of them, so the acceptance gate could not have caught it.
+
+Two further consequences of reading the spec properly:
+
+- A multi-name target is a **conjunction** (`Chaotic` *and* `Evil`), so the
+  snapshot keeps the structured entries. My first version flattened them to a set
+  of names, which cannot express "both".
+- `SUBSCHOOL` was not captured at all, and the RSRD spells file has 228
+  `SUBSCHOOL:` tags.
+
+**`ADDDOMAINS` is `x|x`, a list.** I read the whole value as one domain, so
+`ADDDOMAINS:Travel|Sun` produced a domain literally named `Travel|Sun` that
+matched nothing — neither domain arrived. The `[...]` qualifies the domain
+immediately before it, which the tests now pin down: `Sun[PRETEMPLATE:...]|Law`
+keeps the gate on Sun and leaves Law unconditional.
+
+**Still open, and a semantic rather than syntactic question:** the spec says
+ADDDOMAINS "does not add them to the character's domains, but merely adds them
+to the list they can choose from". The engine grants the domain's spells
+outright, so a vampire cleric receives the spells of all four domains it may
+choose between. That is pre-existing behaviour, not something the restructuring
+introduced, and changing it needs a domain picker — recorded, not fixed.
+
+**Also unsupported:** `PREDIETY`, which the reference uses in an ADDDOMAINS
+example. No data uses it, so it is noted rather than added.
+
 ## What followed from this
 
 Both actions are done:

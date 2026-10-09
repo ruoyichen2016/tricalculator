@@ -258,12 +258,13 @@ pub struct SpellOptionsQuery {
     pub school: Option<String>,
     #[serde(default)]
     pub search: Option<String>,
-    /// Spell schools the character may not cast, comma separated.
+    /// The character's `prohibited_spells`, as JSON.
+    ///
+    /// Passed whole rather than flattened to name lists because
+    /// `ALIGNMENT.Chaotic.Evil` is a conjunction — a spell needs both
+    /// descriptors — which a set of excluded names cannot express.
     #[serde(default)]
-    pub exclude_school: Option<String>,
-    /// Alignment descriptors the character may not cast, comma separated.
-    #[serde(default)]
-    pub exclude_alignment: Option<String>,
+    pub prohibited: Option<String>,
     #[serde(default)]
     pub page: Option<u32>,
     #[serde(default)]
@@ -1627,18 +1628,11 @@ async fn spell_search_options(
     let page = query.page.unwrap_or(1).max(1);
     let page_size = query.page_size.unwrap_or(50).clamp(1, 200);
     let search = query.search.as_deref().map(str::to_lowercase);
-    let split = |value: &Option<String>| -> Vec<String> {
-        value
-            .as_deref()
-            .unwrap_or_default()
-            .split(',')
-            .map(str::trim)
-            .filter(|part| !part.is_empty())
-            .map(str::to_string)
-            .collect()
-    };
-    let excluded_schools = split(&query.exclude_school);
-    let excluded_alignments = split(&query.exclude_alignment);
+    let prohibited: Vec<pcgen_core::ProhibitedSpell> = query
+        .prohibited
+        .as_deref()
+        .and_then(|raw| serde_json::from_str(raw).ok())
+        .unwrap_or_default();
 
     let mut items: Vec<SpellOption> = pack
         .spells
@@ -1647,18 +1641,7 @@ async fn spell_search_options(
             // A Wizard must forbid two schools and a Cleric of an evil deity
             // does not cast Good spells; until this filter existed both were
             // offered anyway.
-            if excluded_schools
-                .iter()
-                .any(|school| school.eq_ignore_ascii_case(&spell.school))
-            {
-                return false;
-            }
-            if excluded_alignments.iter().any(|alignment| {
-                spell
-                    .descriptors
-                    .iter()
-                    .any(|descriptor| descriptor.eq_ignore_ascii_case(alignment))
-            }) {
+            if prohibited.iter().any(|entry| entry.covers(spell)) {
                 return false;
             }
             if let Some(class) = &query.class {

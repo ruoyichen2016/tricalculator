@@ -499,13 +499,39 @@ pub struct AddedDomain {
 }
 
 /// What a `PROHIBITSPELL` entry forbids.
+///
+/// PCGen's tag reference:
+///
+/// ```text
+/// PROHIBITSPELL:x
+///   ALIGNMENT.Text    DESCRIPTOR.Text    SCHOOL.Text
+///   SUBSCHOOL.Text    SPELL.Text
+///
+/// Alignment, descriptor, school and subschool names are period-delimited lists
+/// of the appropriate parameter. Spell name is a comma-delimited list.
+///
+/// PROHIBITSPELL:ALIGNMENT.Chaotic.Evil
+///   Prohibits spells that have both the Chaotic and the Evil descriptors.
+/// PROHIBITSPELL:SPELL.Searing Light,Sunbeam,Sunburst
+/// ```
+///
+/// I originally modelled only `SCHOOL` and `ALIGNMENT` as single names, which
+/// silently dropped 23 `SPELL.*` and 11 `DESCRIPTOR.*` entries — all of them in
+/// Unearthed Arcana and other non-RSRD data, which is exactly the data that is
+/// meant to be usable.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "kind", content = "value")]
 pub enum ProhibitionTarget {
-    /// A spell school, e.g. `SCHOOL.Abjuration` -> `Abjuration`.
+    /// `ALIGNMENT.Chaotic.Evil` — every listed descriptor must be present.
+    Alignment(Vec<String>),
+    /// `DESCRIPTOR.Fear` — every listed descriptor must be present.
+    Descriptor(Vec<String>),
+    /// `SCHOOL.Illusion`.
     School(String),
-    /// A spell's alignment descriptor, e.g. `ALIGNMENT.Good` -> `Good`.
-    Alignment(String),
+    /// `SUBSCHOOL.X` — every listed subschool must be present.
+    Subschool(Vec<String>),
+    /// `SPELL.Searing Light,Sunbeam` — any of these spells.
+    Spell(Vec<String>),
 }
 
 /// One `PROHIBITSPELL` entry: what is forbidden, and when.
@@ -583,6 +609,37 @@ impl NaturalAttack {
             out.push_str(&self.damage);
         }
         out
+    }
+}
+
+impl ProhibitedSpell {
+    /// Does this prohibition cover `spell`?
+    ///
+    /// Multi-name targets are conjunctions for the descriptor-like kinds
+    /// (`ALIGNMENT.Chaotic.Evil` needs both) and a disjunction for `SPELL`
+    /// (a comma-delimited list of names).
+    pub fn covers(&self, spell: &crate::domain::SpellDefinition) -> bool {
+        let has = |wanted: &str| {
+            spell
+                .descriptors
+                .iter()
+                .any(|descriptor| descriptor.eq_ignore_ascii_case(wanted))
+        };
+        match &self.target {
+            ProhibitionTarget::Alignment(names) | ProhibitionTarget::Descriptor(names) => {
+                !names.is_empty() && names.iter().all(|name| has(name))
+            }
+            ProhibitionTarget::School(school) => spell.school.eq_ignore_ascii_case(school),
+            ProhibitionTarget::Subschool(names) => {
+                !names.is_empty()
+                    && spell.subschool.as_deref().is_some_and(|subschool| {
+                        names.iter().any(|n| subschool.eq_ignore_ascii_case(n))
+                    })
+            }
+            ProhibitionTarget::Spell(names) => names
+                .iter()
+                .any(|name| spell.name.eq_ignore_ascii_case(name)),
+        }
     }
 }
 
