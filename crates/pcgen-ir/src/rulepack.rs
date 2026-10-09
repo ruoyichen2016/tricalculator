@@ -966,6 +966,60 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
         }
         // PRECLASS:x,y=z,y=z — at least x of the listed class requirements.
         // Only the first pair was read and the count was ignored.
+        // PREVISION:x,y=z,y=z — at least x of the listed vision types, each at
+        // the stated distance (`ANY` for any distance).
+        "PREVISION" => {
+            let min_count = parts
+                .iter()
+                .find(|part| !part.trim().is_empty())
+                .and_then(|part| part.trim().parse::<u32>().ok())
+                .unwrap_or(1);
+            let specs: Vec<pcgen_core::VisionSpec> = parts
+                .iter()
+                .skip_while(|part| part.trim().parse::<u32>().is_ok() || part.trim().is_empty())
+                .filter_map(|part| {
+                    let (kind, distance) = part.split_once('=')?;
+                    let kind = kind.trim();
+                    if kind.is_empty() {
+                        return None;
+                    }
+                    Some(pcgen_core::VisionSpec {
+                        kind: kind.to_string(),
+                        min_distance: if distance.trim().eq_ignore_ascii_case("any") {
+                            None
+                        } else {
+                            Some(distance.trim().parse::<u32>().ok()?)
+                        },
+                    })
+                })
+                .collect();
+            if specs.is_empty() {
+                return None;
+            }
+            Some(Predicate::Vision { specs, min_count })
+        }
+        // PRESRGTEQ:10 is "spell resistance of 10 or greater"; PRESREQ:10 is
+        // "exactly 10".
+        "PRESRGTEQ" | "PRESREQ" | "PRESRLTEQ" => {
+            let value = body
+                .split(|ch: char| !ch.is_ascii_digit())
+                .find(|part| !part.is_empty())
+                .and_then(|part| part.parse::<i32>().ok())?;
+            Some(match tag_upper.as_str() {
+                "PRESRGTEQ" => Predicate::SpellResistance {
+                    min: Some(value),
+                    max: None,
+                },
+                "PRESRLTEQ" => Predicate::SpellResistance {
+                    min: None,
+                    max: Some(value),
+                },
+                _ => Predicate::SpellResistance {
+                    min: Some(value),
+                    max: Some(value),
+                },
+            })
+        }
         // PREGENDER:M — the gender must start with the text, case sensitively.
         "PREGENDER" => {
             let prefix = parts

@@ -119,6 +119,28 @@ pub enum Predicate {
     RaceType {
         type_tag: String,
     },
+    /// `PRESRGTEQ:n` / `PRESREQ:n` — spell resistance at least / exactly `n`.
+    ///
+    /// The reference gives `PRESRGTEQ:10` as "spell resistance of 10 or greater"
+    /// and `PRESREQ:10` as "exactly 10", so one variant covers both. Spell
+    /// resistance comes from the race *and* the active templates, which is why
+    /// this could not be answered before the traits were merged where
+    /// predicates run.
+    SpellResistance {
+        min: Option<i32>,
+        max: Option<i32>,
+    },
+    /// `PREVISION:x,y=z,y=z` — at least `min_count` of the listed vision types,
+    /// each at the stated distance (`ANY` for any distance).
+    ///
+    /// ```text
+    /// PREVISION:2,Normal=ANY,Darkvision=ANY   both, at any distance
+    /// PREVISION:1,Blindsight=30,Darkvision=30 either, at 30 ft or more
+    /// ```
+    Vision {
+        specs: Vec<VisionSpec>,
+        min_count: u32,
+    },
     /// `PREGENDER:x` — the character's gender starts with `x`.
     ///
     /// PCGen's reference: "The character's gender must start with the text
@@ -608,6 +630,15 @@ pub struct AddedDomain {
     /// Condition the character must satisfy, when the entry has one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub condition: Option<Predicate>,
+}
+
+/// One `PREVISION` requirement.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct VisionSpec {
+    /// The vision type, e.g. `Darkvision`.
+    pub kind: String,
+    /// `None` for `ANY` — the distance is not constrained.
+    pub min_distance: Option<u32>,
 }
 
 /// One `PRESPELLTYPE` pair.

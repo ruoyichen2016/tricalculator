@@ -82,6 +82,12 @@ pub struct EffectState {
     /// Class id to what `PRECLASS` needs to know about it, built for the same
     /// reason.
     pub class_traits: BTreeMap<String, ClassTraits>,
+    /// Vision entries from the race and the active templates (`VISION`), as
+    /// written, e.g. `Darkvision (DarkvisionRange)`.
+    pub vision: Vec<String>,
+    /// Spell resistance from the race and the active templates, the highest
+    /// winning.
+    pub spell_resistance: Option<i32>,
     /// Total character class levels, excluding Monster (Racial) HD.
     pub character_class_levels: u32,
     /// Stable total BAB used by `PRETOTALAB` during predicate evaluation.
@@ -235,6 +241,38 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         .map(|name| name.to_ascii_lowercase())
         .collect();
     templates.extend(draft.templates.iter().map(|name| name.to_ascii_lowercase()));
+
+    // Vision and spell resistance come from the race *and* the templates
+    // together.  `merge_creature_traits` does this in the engine layer, but it
+    // runs after `apply_effects` and `predicate_holds` cannot reach it — so
+    // `PREVISION` and `PRESRGTEQ` could not be answered at all.  Neither merge
+    // needs a gate evaluated, so both can be done here, before the effect loop.
+    let mut vision: Vec<String> = Vec::new();
+    let mut spell_resistance: Option<i32> = None;
+    let mut absorb = |traits: &pcgen_core::CreatureTraits| {
+        vision.extend(traits.vision.iter().cloned());
+        if let Some(value) = traits.spell_resistance.as_deref().and_then(|raw| {
+            raw.chars()
+                .filter(char::is_ascii_digit)
+                .collect::<String>()
+                .parse::<i32>()
+                .ok()
+        }) {
+            spell_resistance = Some(spell_resistance.map_or(value, |old| old.max(value)));
+        }
+    };
+    if let Some(race) = pack.races.get(&draft.race_id) {
+        absorb(&race.traits);
+    }
+    for name in &templates {
+        if let Some(template) = pack.templates.get(name).or_else(|| {
+            pack.templates
+                .values()
+                .find(|t| t.id.eq_ignore_ascii_case(name))
+        }) {
+            absorb(&template.traits);
+        }
+    }
     let hands = race.map(|race| race.hands).unwrap_or(2);
     let movement = race.map(|race| race.movement.clone()).unwrap_or_default();
     let mut equipment_values = BTreeSet::new();
@@ -322,6 +360,8 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         skill_types,
         ability_traits,
         class_traits,
+        vision,
+        spell_resistance,
         character_class_levels: class_levels,
         ability_modifiers,
         total_bab: prereq_bab,
@@ -371,13 +411,35 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
     let mut queued: BTreeSet<usize> = BTreeSet::new();
     let mut processed_variant_effects: BTreeSet<(String, usize)> = BTreeSet::new();
 
+    // Every `DEFINE`/`VAR` for a name, not just the last: PCGen "keeps the one
+    // with the higher value" when several objects define the same variable.
+    let mut variable_defs: BTreeMap<String, Vec<String>> = BTreeMap::new();
+
+    // A pre-pass over the initially-selected entities, so a variable a
+    // predicate needs is known *before* the effect loop rather than after it.
+    // A vision range is the case that matters: `VISION:Darkvision
+    // (DarkvisionRange)` carries its distance in a variable, and
+    // `PREVISION:1,Darkvision=120` is evaluated while grants are still being
+    // applied — by the time the usual `resolve_variables` pass runs, the answer
+    // has already been needed.
+    for index in &initial {
+        if let Some(entity) = pack.entities.get(*index) {
+            for effect in &entity.effects {
+                if let EffectAction::DefineVariable { name, expression } = &effect.action {
+                    variable_defs
+                        .entry(name.clone())
+                        .or_default()
+                        .push(expression.clone());
+                }
+            }
+        }
+    }
+    resolve_variables(&mut state, &variable_defs);
+
     for index in initial {
         queued.insert(index);
     }
 
-    // Every `DEFINE`/`VAR` for a name, not just the last: PCGen "keeps the one
-    // with the higher value" when several objects define the same variable.
-    let mut variable_defs: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut pending_formulas: Vec<PendingFormula> = Vec::new();
     let mut pending_variables: Vec<PendingVariable> = Vec::new();
 
@@ -1126,6 +1188,51 @@ fn variable_value(state: &EffectState, name: &str) -> i32 {
         .unwrap_or(0)
 }
 
+/// Does one `PREVISION` requirement hold?
+///
+/// A vision entry is `Kind` or `Kind (RangeVariable)`, and the distance lives in
+/// that variable.  The two sides do not always spell the kind the same way — the
+/// data has `VISION:Low-Light` but `PREVISION:1,Low-Light Vision=1` — so the
+/// comparison ignores case, spaces and hyphens and accepts a containment either
+/// way.
+fn vision_spec_holds(spec: &pcgen_core::VisionSpec, state: &EffectState) -> bool {
+    let fold = |value: &str| -> String {
+        value
+            .chars()
+            .filter(|ch| ch.is_ascii_alphanumeric())
+            .flat_map(char::to_lowercase)
+            .collect()
+    };
+    let wanted = fold(&spec.kind);
+    state.vision.iter().any(|entry| {
+        let (kind, range) = match entry.split_once('(') {
+            Some((kind, rest)) => (kind.trim(), rest.trim_end_matches(')').trim()),
+            None => (entry.trim(), ""),
+        };
+        let kind = fold(kind);
+        if kind.is_empty() || !(kind.contains(&wanted) || wanted.contains(&kind)) {
+            return false;
+        }
+        let Some(min) = spec.min_distance else {
+            return true;
+        };
+        // The distance is the value of the variable named in the parentheses.
+        let distance = state
+            .variables
+            .get(range)
+            .copied()
+            .or_else(|| {
+                state
+                    .variables
+                    .iter()
+                    .find(|(name, _)| name.eq_ignore_ascii_case(range))
+                    .map(|(_, value)| *value)
+            })
+            .unwrap_or(0);
+        distance >= min as i32
+    })
+}
+
 /// What a `PRECLASS` needs to know about a class.
 #[derive(Debug, Clone, Default)]
 pub struct ClassTraits {
@@ -1330,6 +1437,17 @@ pub(crate) fn predicate_holds(
             kind.is_some_and(|kind| state.base_saves.get(&kind).copied().unwrap_or(0) >= *min)
         }
         Predicate::Gender { prefix } => draft.gender.starts_with(prefix.as_str()),
+        Predicate::SpellResistance { min, max } => {
+            let value = state.spell_resistance.unwrap_or(0);
+            min.is_none_or(|min| value >= min) && max.is_none_or(|max| value <= max)
+        }
+        Predicate::Vision { specs, min_count } => {
+            let met = specs
+                .iter()
+                .filter(|spec| vision_spec_holds(spec, state))
+                .count() as u32;
+            met >= (*min_count).max(1)
+        }
         Predicate::ClassRequirement { specs, min_count } => {
             let met = specs
                 .iter()

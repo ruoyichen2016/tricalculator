@@ -737,6 +737,36 @@ answered **wrongly** whenever a template was the source, which is worse than
 leaving the tag visibly unsupported. The cohort's unparsed set is down from 4
 kinds (42 uses) to 2 kinds (4 uses), and both remaining ones are named.
 
+### 5r. Creature traits at the predicate layer
+
+`PRESRGTEQ` and `PREVISION` were the last two tags the acceptance cohort could
+not parse. Both need creature traits — spell resistance and vision — which come
+from the **race and the active templates together**. `merge_creature_traits`
+does that merge, but it lives in the engine layer and runs *after*
+`apply_effects`, so `predicate_holds` could not reach it.
+
+Neither merge needs a gate evaluated (`damage_reduction` does, which is why that
+one has to stay where the state already exists), so both now happen in
+`apply_effects` itself, before the effect loop. `EffectState` carries the vision
+entries and the highest spell resistance.
+
+**A vision entry carries its distance in a variable.** `VISION:Darkvision
+(DarkvisionRange)` names the variable in parentheses, and the two sides do not
+always spell the kind the same way — the data has `VISION:Low-Light` but
+`PREVISION:1,Low-Light Vision=1`. The comparison ignores case, spaces and
+hyphens and accepts containment either way.
+
+**`DEFINE` had to move earlier.** `PREVISION:1,Darkvision=120` is evaluated while
+grants are still being applied, but `resolve_variables` runs after the effect
+loop — so the range variable was not yet known and the distance always read as
+zero. A pre-pass over the initially-selected entities now collects their `DEFINE`
+tags and resolves them first. That is a general improvement: any predicate that
+reads a variable was previously answered against a table that was still empty.
+
+The cohort's unparsed set is now **zero**, down from four kinds (42 uses) two
+commits ago. What remains is `legacy_pending`: `VISION` and `BONUSSPELLSTAT`,
+which are recognised-but-unread reporting metadata.
+
 ## What followed from this
 
 Both actions are done:
