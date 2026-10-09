@@ -767,6 +767,44 @@ The cohort's unparsed set is now **zero**, down from four kinds (42 uses) two
 commits ago. What remains is `legacy_pending`: `VISION` and `BONUSSPELLSTAT`,
 which are recognised-but-unread reporting metadata.
 
+### 5s. Third-party data, audited by bisection
+
+The acceptance cohort is the full RSRD, which is now fully accounted for. Every
+other publisher's data in `raw/pcgen-master` is *outside* that cohort, so nothing
+in the gate protects it. A sweep of all 35e/3e packs found 27 unsupported tag
+kinds — but the more useful result is that **eight of them are tags this crate
+already implements**, failing on a value form the cohort never exercises.
+
+The method matters: `import-report` names the tag but not the value, so each
+candidate was bisected by writing every distinct value into a one-record probe
+pack and asking which one the importer rejects. That turns "BONUS is
+unsupported" into an exact string and an exact cause.
+
+| Tag | Failing value | Cause |
+|---|---|---|
+| `PREABILITY` | `1,CATEGORY=FEAT,Weapon Focus (TYPE=Bow)` | `trimmed.contains('=')` skips any part containing `=`, so an ability *name* with a `TYPE=` inside parentheses was skipped and `wanted` emptied |
+| `PRESKILL` | `1,TYPE=Perform=8` | `split_once('=')` splits at the first `=`, leaving ranks `Perform=8`; and only `TYPE.` is stripped, not `TYPE=`, though `strip_type_prefix` already handles both |
+| `PRECLASS` | `1,SPELLCASTER.Divine=9th` | `level.parse::<u32>().ok()?` inside `filter_map` drops the whole spec on free text (`9th`, `9th+`, `level 7`, `1st+ level.`) |
+| `PRECLASS` | `1,%` | `=level` is treated as mandatory; the reference makes the level optional, defaulting to 1 |
+| `BONUS` | `VAR\|AlchemyFeat\|1\|PRESKILLTOT:Alchemy=7\|TYPE=NoStack` | the gate `PRESKILLTOT` is unimplemented, and `lower_bonus_effect` discards the entire bonus for one unreadable predicate |
+| `PREITEM` | `1,Manual (Climb)` | only the `TYPE=` form is implemented; all 28 Darwin's World values are names |
+| `TEMPBONUS` | `PC\|SKILL\|Diplomacy\|4,PC\|SAVE\|Will\|-1\|PRETEXT:...` | `PRETEXT` is unimplemented, and it poisons the whole bonus |
+| `TEMPVALUE` | `MIN=1\|MAX=MaxSpellChanneling\|TITLE=...` | `MAX=` may name a *variable*, not a literal |
+| `PREMULT` | `1,[!PRECLASS:1,%],[PREVARGTEQ:EclipseClass,1]` | inherits the `PRECLASS:1,%` bug above |
+
+Two of these are worse than a parse gap. A `PRECLASS` spec dropped by
+`filter_map` leaves the *other* specs in place with `min_count` unchanged, so
+`PRECLASS:2,Fighter=5,Wizard=9th` silently becomes "two of [Fighter=5]" — an
+unsatisfiable predicate rather than a visibly unsupported one. And a `BONUS`
+whose gate cannot be read is discarded entirely, so the character quietly loses
+a bonus it should have.
+
+The remaining kinds are genuinely unimplemented: `PRE` (21), `PRESA` (12),
+`PREREGION`, `PRECHECK`, `PRESKILLTOT`, `PREHP`, `PRESIZENEQ`, `PREHANDSGT`,
+`PRELEVELMAX`, `PREDEITYDOMAIN`, `PRESRLT`, `PRECSKILL`, `PRESPELLSCHOOLSUB`,
+`PRESPELLDESCRIPTOR`, `PRECLASSLEVELMAX`, `PRETEXT`. None appear in the
+acceptance cohort.
+
 ## What followed from this
 
 Both actions are done:
