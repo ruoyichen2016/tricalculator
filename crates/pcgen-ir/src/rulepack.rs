@@ -175,6 +175,15 @@ pub fn lower_records(
             id,
             category: pcgen_core::EntityCategory::from_pcgen(&effective_category),
             name: record.name.clone(),
+            type_tags: record
+                .tags
+                .iter()
+                .filter(|tag| tag.name.eq_ignore_ascii_case("TYPE"))
+                .flat_map(|tag| tag.value.split(['.', ',', '|']))
+                .map(str::trim)
+                .filter(|part| !part.is_empty())
+                .map(str::to_string)
+                .collect(),
             effects,
             requirements,
             legacy_tags,
@@ -722,6 +731,20 @@ fn lower_choose(tag: &crate::source::RawTag) -> Option<Effect> {
     })
 }
 
+/// `TYPE=X` or `TYPE.X`, case-insensitively — both spellings appear in the data.
+fn strip_type_prefix(value: &str) -> Option<&str> {
+    let lower = value.to_ascii_lowercase();
+    for prefix in ["type=", "type."] {
+        if lower.starts_with(prefix) {
+            let kind = value[prefix.len()..].trim();
+            if !kind.is_empty() {
+                return Some(kind);
+            }
+        }
+    }
+    None
+}
+
 /// One value of a `PRERACE` list.
 fn parse_race_spec(value: &str) -> pcgen_core::RaceSpec {
     let trimmed = value.trim();
@@ -1186,31 +1209,108 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 Some(Predicate::CharacterClassLevel { min, max })
             }
         }
+        // PREABILITY:x,CATEGORY=y,z — at least x of the wanted abilities are
+        // held and none of the bracketed exclusions are.
         "PREABILITY" | "PREFEAT" => {
             let category = if tag_upper == "PREFEAT" {
                 "Feat".to_string()
             } else {
                 parts
                     .iter()
-                    .find_map(|part| part.strip_prefix("CATEGORY=").map(str::to_string))
+                    .find_map(|part| {
+                        let trimmed = part.trim();
+                        let (name, value) = trimmed.split_once('=')?;
+                        name.eq_ignore_ascii_case("CATEGORY")
+                            .then(|| value.trim().to_string())
+                    })
                     .unwrap_or_else(|| "Ability".to_string())
             };
-            let key = parts
+            let min_count = parts
                 .iter()
-                .rev()
-                .find(|part| !part.contains('='))
-                .map(|part| (*part).to_string())?;
-            Some(Predicate::HasEntity {
-                entity: EntityId::new("pcgen", "ability", category, key),
+                .find(|part| !part.trim().is_empty())
+                .and_then(|part| part.trim().parse::<u32>().ok())
+                .unwrap_or(1);
+            let mut wanted = Vec::new();
+            let mut excluded = Vec::new();
+            for part in parts
+                .iter()
+                .skip_while(|part| part.trim().parse::<u32>().is_ok() || part.trim().is_empty())
+            {
+                let trimmed = part.trim();
+                if trimmed.is_empty() {
+                    continue;
+                }
+                // `TYPE=X` and `TYPE.X` are both in the data; only `CATEGORY=`
+                // and friends are qualifiers to skip.
+                if let Some(kind) = strip_type_prefix(trimmed) {
+                    wanted.push(pcgen_core::AbilityRef::Type(kind.to_string()));
+                    continue;
+                }
+                if trimmed.contains('=') {
+                    continue;
+                }
+                // `[Name]` is an exclusion, per the reference's examples.
+                if let Some(name) = trimmed.strip_prefix('[').and_then(|r| r.strip_suffix(']')) {
+                    if !name.trim().is_empty() {
+                        excluded.push(name.trim().to_string());
+                    }
+                    continue;
+                }
+                match trimmed
+                    .strip_prefix("TYPE.")
+                    .or_else(|| trimmed.strip_prefix("type."))
+                {
+                    Some(kind) => {
+                        wanted.push(pcgen_core::AbilityRef::Type(kind.trim().to_string()))
+                    }
+                    None => wanted.push(pcgen_core::AbilityRef::Name(trimmed.to_string())),
+                }
+            }
+            if wanted.is_empty() && excluded.is_empty() {
+                return None;
+            }
+            Some(Predicate::AbilityRequirement {
+                category,
+                wanted,
+                excluded,
+                min_count,
             })
         }
+        // PRESKILL:x,y=z,y=z — at least x of the listed skills have z ranks.
+        // Only the last pair was read, and `TYPE.` was not understood.
         "PRESKILL" => {
-            let part = parts.iter().rev().find(|part| part.contains('='))?;
-            let (skill, level) = part.split_once('=')?;
-            Some(Predicate::SkillRank {
-                skill: skill.trim().to_string(),
-                min: level.parse::<u32>().ok()?,
-            })
+            let min_count = parts
+                .iter()
+                .find(|part| !part.trim().is_empty())
+                .and_then(|part| part.trim().parse::<u32>().ok())
+                .unwrap_or(1);
+            let specs: Vec<pcgen_core::SkillRequirement> = parts
+                .iter()
+                .skip_while(|part| part.trim().parse::<u32>().is_ok() || part.trim().is_empty())
+                .filter_map(|part| {
+                    let (name, ranks) = part.split_once('=')?;
+                    let name = name.trim();
+                    if name.is_empty() {
+                        return None;
+                    }
+                    let (is_type, name) = match name
+                        .strip_prefix("TYPE.")
+                        .or_else(|| name.strip_prefix("type."))
+                    {
+                        Some(kind) => (true, kind.trim().to_string()),
+                        None => (false, name.to_string()),
+                    };
+                    Some(pcgen_core::SkillRequirement {
+                        name,
+                        is_type,
+                        min_ranks: ranks.trim().parse().ok()?,
+                    })
+                })
+                .collect();
+            if specs.is_empty() {
+                return None;
+            }
+            Some(Predicate::SkillRanks { specs, min_count })
         }
         // PRERACE:x,y,y — at least x of the listed specs must describe the race.
         // The reference allows a name, the `%` wildcard, `TYPE=`, `RACETYPE=`

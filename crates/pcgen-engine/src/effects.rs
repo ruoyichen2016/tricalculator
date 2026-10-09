@@ -72,6 +72,13 @@ pub struct EffectState {
     /// The race's `RACETYPE:` and `RACESUBTYPE:` values, for `PRERACE`.
     pub race_creature_type: Option<String>,
     pub race_subtypes: Vec<String>,
+    /// Skill type tag (lowercased) to the skills carrying it, for
+    /// `PRESKILL:1,TYPE.Perform=5`.  `predicate_holds` has no pack, so the map
+    /// is built once here.
+    pub skill_types: BTreeMap<String, Vec<String>>,
+    /// Ability key (normalised) to its name, category and `TYPE:` tags, for
+    /// `PREABILITY`.  Built once because `predicate_holds` has no pack.
+    pub ability_traits: BTreeMap<String, AbilityTraits>,
     /// Total character class levels, excluding Monster (Racial) HD.
     pub character_class_levels: u32,
     /// Stable total BAB used by `PRETOTALAB` during predicate evaluation.
@@ -145,6 +152,35 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
                 .collect()
         })
         .unwrap_or_default();
+    let ability_traits: BTreeMap<String, AbilityTraits> = pack
+        .entities
+        .iter()
+        .filter(|entity| entity.category.is_ability_like())
+        .map(|entity| {
+            (
+                normalized(&entity.id.key),
+                AbilityTraits {
+                    name: entity.name.clone(),
+                    category: entity.ability_category.clone().unwrap_or_default(),
+                    types: entity
+                        .type_tags
+                        .iter()
+                        .map(|tag| tag.to_ascii_lowercase())
+                        .collect(),
+                },
+            )
+        })
+        .collect();
+    let mut skill_types: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for definition in pack.skills.values() {
+        for tag in &definition.type_tags {
+            let entry = skill_types.entry(tag.to_ascii_lowercase()).or_default();
+            entry.push(definition.id.clone());
+            if !definition.name.is_empty() {
+                entry.push(definition.name.clone());
+            }
+        }
+    }
     let race_creature_type = pack
         .races
         .get(&draft.race_id)
@@ -259,6 +295,8 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         race_types,
         race_creature_type,
         race_subtypes,
+        skill_types,
+        ability_traits,
         character_class_levels: class_levels,
         ability_modifiers,
         total_bab: prereq_bab,
@@ -1058,6 +1096,43 @@ fn variable_value(state: &EffectState, name: &str) -> i32 {
         .unwrap_or(0)
 }
 
+/// What a `PREABILITY` needs to know about an ability.
+#[derive(Debug, Clone, Default)]
+pub struct AbilityTraits {
+    pub name: String,
+    pub category: String,
+    pub types: Vec<String>,
+}
+
+/// Does one `PRESKILL` requirement hold?
+///
+/// A `TYPE.Text` requirement is met by any skill carrying that type, which is
+/// what makes `PRESKILL:2,TYPE.Spy=2,TYPE.Spy=2` mean "two Spy skills", not "the
+/// skill named TYPE.Spy".
+fn skill_requirement_holds(
+    spec: &pcgen_core::SkillRequirement,
+    state: &EffectState,
+    draft: &CharacterDraft,
+) -> bool {
+    let rank_of = |skill: &str| -> f64 {
+        draft
+            .skills
+            .iter()
+            .find(|(name, _)| name.eq_ignore_ascii_case(skill))
+            .map(|(_, ranks)| *ranks)
+            .unwrap_or(0.0)
+    };
+    if !spec.is_type {
+        return rank_of(&spec.name) >= f64::from(spec.min_ranks);
+    }
+    let wanted = spec.name.to_ascii_lowercase();
+    state.skill_types.get(&wanted).is_some_and(|skills| {
+        skills
+            .iter()
+            .any(|skill| rank_of(skill) >= f64::from(spec.min_ranks))
+    })
+}
+
 /// Does one `PRERACE` value describe this character's race?
 fn race_spec_matches(
     spec: &pcgen_core::RaceSpec,
@@ -1135,9 +1210,12 @@ pub(crate) fn predicate_holds(
             let value = state.variables.get(name).copied().unwrap_or(0);
             min.is_none_or(|min| value >= min) && max.is_none_or(|max| value <= max)
         }
-        Predicate::SkillRank { skill, min } => {
-            let ranks = draft.skills.get(skill).copied().unwrap_or(0.0);
-            ranks >= f64::from(*min)
+        Predicate::SkillRanks { specs, min_count } => {
+            let matches = specs
+                .iter()
+                .filter(|spec| skill_requirement_holds(spec, state, draft))
+                .count() as u32;
+            matches >= (*min_count).max(1)
         }
         Predicate::Alignment { allowed } => allowed
             .iter()
@@ -1163,6 +1241,62 @@ pub(crate) fn predicate_holds(
                 _ => None,
             };
             kind.is_some_and(|kind| state.base_saves.get(&kind).copied().unwrap_or(0) >= *min)
+        }
+        Predicate::AbilityRequirement {
+            category,
+            wanted,
+            excluded,
+            min_count,
+        } => {
+            // The active abilities in the required category, with whatever the
+            // pack knows about each.
+            let in_category: Vec<(&String, Option<&AbilityTraits>)> = state
+                .active_abilities
+                .iter()
+                .filter(|key| {
+                    category.eq_ignore_ascii_case("Ability")
+                        || state
+                            .ability_traits
+                            .get(&normalized(key))
+                            .is_some_and(|traits| traits.category.eq_ignore_ascii_case(category))
+                })
+                .map(|key| (key, state.ability_traits.get(&normalized(key))))
+                .collect();
+            let named = |name: &str| {
+                in_category.iter().any(|(key, traits)| {
+                    key.eq_ignore_ascii_case(name)
+                        || traits.is_some_and(|traits| traits.name.eq_ignore_ascii_case(name))
+                })
+            };
+            // `[Name]` is an exclusion: every one of them must be absent.
+            if excluded.iter().any(|name| named(name)) {
+                return false;
+            }
+            // Nothing wanted means only the exclusions mattered.
+            if wanted.is_empty() {
+                return true;
+            }
+            // The count is the number of *held abilities* that match any of the
+            // wanted refs, not the number of refs satisfied: the reference's
+            // `PREABILITY:3,Category=Feat,TYPE.Metamagic` lists one type and
+            // asks for three feats carrying it.
+            let matches = in_category
+                .iter()
+                .filter(|(key, traits)| {
+                    wanted.iter().any(|wanted| match wanted {
+                        pcgen_core::AbilityRef::Name(name) => {
+                            key.eq_ignore_ascii_case(name)
+                                || traits
+                                    .is_some_and(|traits| traits.name.eq_ignore_ascii_case(name))
+                        }
+                        pcgen_core::AbilityRef::Type(kind) => {
+                            let kind = kind.to_ascii_lowercase();
+                            traits.is_some_and(|traits| traits.types.contains(&kind))
+                        }
+                    })
+                })
+                .count() as u32;
+            matches >= (*min_count).max(1)
         }
         Predicate::HasTag { tag } => state
             .active_abilities

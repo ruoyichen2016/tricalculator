@@ -454,6 +454,10 @@ impl ClassDefinition {
 pub struct SkillDefinition {
     pub id: String,
     pub name: String,
+    /// PCGen `TYPE:` tags, e.g. `Perform` or `Craft`.  `PRESKILL:1,TYPE.Perform=5`
+    /// matches against these, and they were not captured before.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub type_tags: Vec<String>,
     #[serde(default)]
     pub key_stat: Option<String>,
     #[serde(default)]
@@ -467,6 +471,7 @@ impl SkillDefinition {
         Self {
             id: id.into(),
             name: name.into(),
+            type_tags: Vec::new(),
             key_stat: None,
             armor_check: false,
             trained_only: false,

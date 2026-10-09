@@ -40,9 +40,28 @@ pub enum Predicate {
         min: Option<i32>,
         max: Option<i32>,
     },
-    SkillRank {
-        skill: String,
-        min: u32,
+    /// `PRESKILL:x,y=z,y=z` — at least `min_count` of the listed skills have
+    /// the stated number of ranks.
+    ///
+    /// PCGen's reference:
+    ///
+    /// ```text
+    /// PRESKILL:x,y=z,y=z
+    ///   x: Number (Number of skills)
+    ///   y: Text (Skill name)   y: TYPE.Text (Skill type)
+    ///   z: Number (Skill ranks)
+    ///
+    /// PRESKILL:1,Spot=10,Listen=10   either, with at least 10 ranks
+    /// PRESKILL:2,TYPE.Spy=2,TYPE.Spy=2
+    ///   "two Spy skills with at least two ranks in each of them"
+    /// ```
+    ///
+    /// Only the last `y=z` pair was read, and `TYPE.` was not understood at all,
+    /// so 507 of the RSRD's 1,626 values tested the wrong skill and 204 of them
+    /// looked for a skill literally named `TYPE.Perform`.
+    SkillRanks {
+        specs: Vec<SkillRequirement>,
+        min_count: u32,
     },
     Alignment {
         allowed: Vec<String>,
@@ -100,6 +119,31 @@ pub enum Predicate {
     /// The character's race has this type tag (PCGen `PRERACETYPE`).
     RaceType {
         type_tag: String,
+    },
+    /// `PREABILITY:x,CATEGORY=y,z` — at least `min_count` of the wanted
+    /// abilities are held, and none of the excluded ones are.
+    ///
+    /// PCGen's reference:
+    ///
+    /// ```text
+    /// PREABILITY:1,Category=Feat,TYPE.SpellFocus   one SpellFocus feat
+    /// PREABILITY:3,Category=Feat,TYPE.Metamagic    three Metamagic feats
+    /// PREABILITY:1,Category=SpecialQuality,[Night Vision]
+    ///   "Requires that the creature does not have the Night Vision special
+    ///    quality" — brackets exclude.
+    /// PREABILITY:1,CATEGORY=Feat,Power Attack,[Weapon Finesse]
+    ///   "has Power Attack, and does not have Weapon Finesse"
+    /// ```
+    ///
+    /// Only the last bare name was read, so a bracketed exclusion was taken as a
+    /// requirement and never matched; `TYPE.` was not understood; and the count
+    /// was ignored. 924 of the RSRD's 7,183 values use brackets, 1,303 use
+    /// `TYPE.`, and 2,481 list more than one name.
+    AbilityRequirement {
+        category: String,
+        wanted: Vec<AbilityRef>,
+        excluded: Vec<String>,
+        min_count: u32,
     },
     /// `PRERACE:x,y,y` — at least `min_count` of the listed specs match.
     ///
@@ -518,6 +562,28 @@ pub struct AddedDomain {
     pub condition: Option<Predicate>,
 }
 
+/// One ability a `PREABILITY` value asks for.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "kind", content = "value")]
+pub enum AbilityRef {
+    /// An ability name or key.
+    Name(String),
+    /// `TYPE.Metamagic` — an ability type tag.
+    Type(String),
+}
+
+/// One `PRESKILL` requirement.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct SkillRequirement {
+    /// A skill name, or the type name when `is_type` is set.
+    pub name: String,
+    /// True for the `TYPE.Text` spelling.
+    #[serde(default)]
+    pub is_type: bool,
+    /// Ranks required.
+    pub min_ranks: u32,
+}
+
 /// One `PRERACE` value.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "kind", content = "value")]
@@ -765,6 +831,10 @@ pub struct CompiledEntity {
     pub id: EntityId,
     pub category: crate::vocab::EntityCategory,
     pub name: String,
+    /// PCGen `TYPE:` tags, e.g. `Metamagic` on a feat.  `PREABILITY` and
+    /// `PRETYPE` match against these, and they were not captured at all.
+    #[serde(default)]
+    pub type_tags: Vec<String>,
     pub effects: Vec<Effect>,
     pub requirements: Vec<Predicate>,
     pub legacy_tags: Vec<String>,

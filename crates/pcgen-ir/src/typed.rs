@@ -901,6 +901,7 @@ fn parse_kit_entry(record: &RawRecord) -> Option<KitEntry> {
 
 fn parse_skill(record: &RawRecord) -> SkillDefinition {
     let mut skill = SkillDefinition::new(record.key.clone(), record.name.clone());
+    skill.type_tags = split_tag_list(record, "TYPE");
     skill.key_stat = tag(record, "KEYSTAT").map(|value| value.to_uppercase());
     skill.armor_check =
         tag(record, "ACHECK").is_some_and(|value| value.eq_ignore_ascii_case("YES"));

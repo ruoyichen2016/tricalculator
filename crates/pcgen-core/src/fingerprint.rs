@@ -293,6 +293,7 @@ mod tests {
             id: EntityId::from_pcgen("3e", "srd", "CLASS", key),
             category: EntityCategory::Class,
             name: key.to_string(),
+            type_tags: Vec::new(),
             effects,
             requirements: Vec::new(),
             legacy_tags: Vec::new(),

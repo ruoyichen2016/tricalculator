@@ -498,6 +498,61 @@ Two lessons, both about how I verified things:
   from one place, the grant path). Only the fourth, which observed a granted
   ability's side effect, could fail.
 
+### 5j. `PRESKILL`, `PREABILITY` and `PREMULT`
+
+**`PRESKILL` read only the last pair, and did not know `TYPE.`.**
+
+```text
+PRESKILL:x,y=z,y=z
+  x: Number (Number of skills)
+  y: Text (Skill name)   y: TYPE.Text (Skill type)
+  z: Number (Skill ranks)
+
+PRESKILL:1,Spot=10,Listen=10   either, with at least 10 ranks
+PRESKILL:2,TYPE.Spy=2,TYPE.Spy=2
+  "two Spy skills with at least two ranks in each of them"
+```
+
+507 of the RSRD's 1,626 values list more than one pair (or a count above one),
+and only the last was tested; 204 use `TYPE.`, which looked for a skill literally
+named `TYPE.Perform`. `SkillDefinition` also had no `TYPE:` tags — the thing a
+type requirement matches — so those are captured now.
+
+**`PREABILITY` had three separate faults.**
+
+```text
+PREABILITY:1,Category=Feat,TYPE.SpellFocus    one SpellFocus feat
+PREABILITY:3,Category=Feat,TYPE.Metamagic     three Metamagic feats
+PREABILITY:1,Category=SpecialQuality,[Night Vision]
+  "Requires that the creature does not have the Night Vision special quality"
+PREABILITY:1,CATEGORY=Feat,Power Attack,[Weapon Finesse]
+  "has Power Attack, and does not have Weapon Finesse"
+```
+
+- Only the **last bare name** was read, so of the RSRD's 7,183 values, the 2,481
+  with several names tested just one.
+- `TYPE.` was not understood at all — 1,303 values.
+- A **bracketed name is an exclusion**, and 924 values use one. Taken as a
+  requirement it never matched, so those gates were permanently shut.
+
+`CompiledEntity` carried no `TYPE:` tags, so ability types had to be captured
+before any of this could work.
+
+**The count means something different here.** For `PRESKILL` it is the number of
+listed specs satisfied (the reference says to repeat a `TYPE.` sub-tag once per
+instance, since each carries its own rank threshold). For `PREABILITY` it is the
+number of **held abilities** matching any listed ref — `PREABILITY:3,...,
+TYPE.Metamagic` lists one type and asks for three feats carrying it. My first
+attempt used the `PRESKILL` reading and would have failed that case; the tests
+pinned it down.
+
+**A trap the gate caught, not me.** Handling only `TYPE.Metamagic` made four RSRD
+values unparseable, and they surfaced in the unsupported-tag report rather than
+in any behavioural test — the pf35e gate failed on
+`unsupported_pending_by_tag = {'PREABILITY': 4, 'PREMULT': 2}`. The RSRD writes
+`TYPE=Metamagic`; the reference's examples write `TYPE.Metamagic`. Both spellings
+are handled now, as they already were for `PRERACE` and `PREWEAPONPROF`.
+
 ## What followed from this
 
 Both actions are done:
