@@ -44,6 +44,9 @@ pub struct PcgDraft {
     pub campaign: String,
     #[serde(default)]
     pub alignment: String,
+    /// PCGen `GENDER:`.
+    #[serde(default)]
+    pub gender: String,
     pub stats: BTreeMap<String, i32>,
     #[serde(default)]
     pub class_levels: Vec<PcgClassLevel>,

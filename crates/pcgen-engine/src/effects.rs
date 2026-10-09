@@ -1329,6 +1329,7 @@ pub(crate) fn predicate_holds(
             };
             kind.is_some_and(|kind| state.base_saves.get(&kind).copied().unwrap_or(0) >= *min)
         }
+        Predicate::Gender { prefix } => draft.gender.starts_with(prefix.as_str()),
         Predicate::ClassRequirement { specs, min_count } => {
             let met = specs
                 .iter()
@@ -1430,7 +1431,9 @@ pub(crate) fn predicate_holds(
             let available: u32 = state
                 .slots_by_power_level
                 .iter()
-                .filter(|((candidate, level), _)| candidate == power && *level >= *min_level)
+                .filter(|((candidate, level), _)| {
+                    power.is_none_or(|power| candidate == &power) && *level >= *min_level
+                })
                 .map(|(_, slots)| *slots)
                 .sum();
             available >= (*count).max(1)

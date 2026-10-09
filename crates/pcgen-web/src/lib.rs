@@ -1247,6 +1247,7 @@ pub fn pcg_from_draft(draft: &CharacterDraft) -> PcgDraft {
         race_id: draft.race_id.clone(),
         campaign: draft.campaign.clone(),
         alignment: draft.alignment.clone(),
+        gender: draft.gender.clone(),
         stats: draft.stats.clone(),
         class_levels: draft
             .class_levels
@@ -2189,6 +2190,7 @@ pub fn draft_from_pcg(draft: PcgDraft) -> CharacterDraft {
         race_id: draft.race_id,
         campaign: draft.campaign,
         alignment: draft.alignment,
+        gender: draft.gender,
         stats: draft.stats,
         class_levels: draft
             .class_levels

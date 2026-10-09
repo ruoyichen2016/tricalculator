@@ -666,6 +666,45 @@ Recorded rather than built: no `.pcg` in the vendored test data carries a
 is no measurable behaviour to correct. This is a missing constraint, like
 `FOLLOWERADJUSTMENT`, not a defect.
 
+### 5o. A coverage sweep instead of another tag at a time
+
+Rather than reading one more spec, ask the importer what it cannot account for.
+The RSRD basics and the 3e SRD report **zero** unsupported and zero legacy tags;
+UA reported four `BONUS` rows and the third-party packs a handful each.
+
+**`PREGENDER` had no data behind it.** The four UA `BONUS` rows were
+`BONUS:PCLEVEL|Cleric|1|PREGENDER:F`, and `PREGENDER` was not parsed. But the
+gap was deeper than the predicate: `PREGENDER` has 60 uses in the vendored data,
+**40 of the 42 vendored `.pcg` files carry a `GENDER:` line**, and the character
+model had no gender field at all — so the import dropped it and the requirement
+could never be evaluated either way.
+
+The reference: *"The character's gender must start with the text specified. The
+test is case sensitive so \"male\" is not the same as \"Male\"."* That prefix
+comparison and its case sensitivity are what the tests pin down.
+
+**`PRESPELLTYPE` was implemented, but not its `ANY`.** The reference lists
+`Arcane`, `Divine`, `Psionic` and `ANY` for the second parameter; `ANY` failed
+`SpellPowerType::from_pcgen`, so the whole tag became unsupported. A spell's own
+power is concrete, so `ANY` belongs to the *requirement*: the predicate's `power`
+is now optional and `None` means any.
+
+**A fragility worth naming:** `lower_bonus_effect` reads its qualifiers with
+`parse_predicate(part, "")?`, so a single unparseable predicate discards the
+whole bonus — the numeric effect is lost because of a gate. That is how four
+`BONUS:PCLEVEL` rows disappeared. It is left as it is for now, since the
+conservative direction is to withhold a gated bonus rather than grant it
+ungated, but a `PRE*` tag we cannot read costs the entire bonus rather than just
+its condition.
+
+### 5p. What the sweep leaves
+
+After these fixes the unsupported tags are all in third-party datasets outside
+the acceptance cohort: `PRESPELLTYPE`, `PREVISION`, `PREABILITY`, `PREMULT`,
+`PRESIZENEQ`, `PRE`, `PRECSKILL`, `PRESPELLDESCRIPTOR`. The legacy-pending ones
+(`SAB`, `NAMEISPI`, `DESCISPI`, `FACTSET`, `SPELLKNOWN`, `BONUSSPELLSTAT`) are
+recognised-but-unread, which is the intended state for reporting metadata.
+
 ## What followed from this
 
 Both actions are done:

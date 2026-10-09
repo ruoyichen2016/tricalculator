@@ -966,6 +966,15 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
         }
         // PRECLASS:x,y=z,y=z — at least x of the listed class requirements.
         // Only the first pair was read and the count was ignored.
+        // PREGENDER:M — the gender must start with the text, case sensitively.
+        "PREGENDER" => {
+            let prefix = parts
+                .iter()
+                .map(|part| part.trim())
+                .find(|part| !part.is_empty() && part.parse::<u32>().is_err())?
+                .to_string();
+            Some(Predicate::Gender { prefix })
+        }
         "PRECLASS" => {
             let min_count = parts
                 .iter()
@@ -1502,7 +1511,11 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
             let (count_str, spec) = body.split_once(',')?;
             let count = count_str.trim().parse::<u32>().ok()?;
             let (power_str, level_str) = spec.split_once('=')?;
-            let power = SpellPowerType::from_pcgen(power_str)?;
+            let power = if power_str.trim().eq_ignore_ascii_case("any") {
+                None
+            } else {
+                Some(SpellPowerType::from_pcgen(power_str)?)
+            };
             let min_level = level_str.trim().parse::<u32>().ok()?;
             Some(Predicate::SpellType {
                 power,

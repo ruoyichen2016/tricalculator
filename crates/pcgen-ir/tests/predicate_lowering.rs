@@ -304,7 +304,7 @@ fn prespell_predicates_lower() {
     assert!(matches!(
         requirements[0],
         Predicate::SpellType {
-            power: SpellPowerType::Arcane,
+            power: Some(SpellPowerType::Arcane),
             min_level: 9,
             count: 1
         }

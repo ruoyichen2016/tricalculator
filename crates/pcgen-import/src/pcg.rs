@@ -31,6 +31,7 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
         race_id: "Human".to_string(),
         campaign: "3e".to_string(),
         alignment: "N".to_string(),
+        gender: String::new(),
         stats: BTreeMap::new(),
         class_levels: Vec::new(),
         skills: BTreeMap::new(),
@@ -63,6 +64,7 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
             "CHARACTERNAME" => draft.name = value.to_string(),
             "RACE" => draft.race_id = value.to_string(),
             "ALIGN" => draft.alignment = value.to_string(),
+            "GENDER" => draft.gender = value.to_string(),
             "GAMEMODE" | "CAMPAIGN" => draft.campaign = value.to_string(),
             "STAT" => {
                 let parts = split_pipe(value);

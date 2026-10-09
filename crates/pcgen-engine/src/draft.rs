@@ -40,6 +40,10 @@ pub struct CharacterDraft {
     pub campaign: String,
     #[serde(default)]
     pub alignment: String,
+    /// PCGen `GENDER:`.  40 of the 42 vendored `.pcg` files carry one, and it
+    /// was dropped on import, so `PREGENDER` could never be evaluated.
+    #[serde(default)]
+    pub gender: String,
     pub stats: BTreeMap<String, i32>,
     #[serde(default)]
     pub class_levels: Vec<DraftClassLevel>,
@@ -125,6 +129,7 @@ impl Default for CharacterDraft {
             race_id: "Human".to_string(),
             campaign: "3e".to_string(),
             alignment: "N".to_string(),
+            gender: String::new(),
             stats: BTreeMap::new(),
             class_levels: Vec::new(),
             advancement: Vec::new(),

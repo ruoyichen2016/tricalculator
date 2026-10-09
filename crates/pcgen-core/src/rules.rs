@@ -115,6 +115,15 @@ pub enum Predicate {
     RaceType {
         type_tag: String,
     },
+    /// `PREGENDER:x` — the character's gender starts with `x`.
+    ///
+    /// PCGen's reference: "The character's gender must start with the text
+    /// specified. The test is case sensitive so \"male\" is not the same as
+    /// \"Male\"."  60 uses in the vendored data, and the character model had no
+    /// gender at all.
+    Gender {
+        prefix: String,
+    },
     /// `PRECLASS:x,y=z,y=z` — at least `min_count` of the listed class
     /// requirements are met.
     ///
@@ -193,7 +202,12 @@ pub enum Predicate {
     /// The character can cast at least `count` spells of `power` at spell
     /// level `>= min_level` (PCGen `PRESPELLTYPE:w,type=level`).
     SpellType {
-        power: SpellPowerType,
+        /// `None` for `PRESPELLTYPE:1,ANY=3` — any kind of spell slot.
+        ///
+        /// PCGen's reference lists `Arcane`, `Divine`, `Psionic` and `ANY` for
+        /// this parameter. A spell's own power is concrete, so `ANY` belongs to
+        /// the requirement rather than to `SpellPowerType`.
+        power: Option<SpellPowerType>,
         min_level: u32,
         count: u32,
     },

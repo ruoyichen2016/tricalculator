@@ -329,6 +329,7 @@ fn demo_draft() -> CharacterDraft {
         race_id: "Human".to_string(),
         campaign: "3e".to_string(),
         alignment: "N".to_string(),
+        gender: String::new(),
         stats: BTreeMap::from([
             ("STR".to_string(), 14),
             ("DEX".to_string(), 12),
@@ -1485,6 +1486,7 @@ fn draft_from_pcg(draft: PcgDraft) -> CharacterDraft {
         race_id: draft.race_id,
         campaign: draft.campaign,
         alignment: draft.alignment,
+        gender: draft.gender,
         stats: draft.stats,
         class_levels: draft
             .class_levels

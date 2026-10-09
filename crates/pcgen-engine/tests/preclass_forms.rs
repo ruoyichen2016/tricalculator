@@ -184,3 +184,46 @@ fn any_accepts_any_class() {
     assert!(active("1,ANY=3", &[("Fighter", 3)]));
     assert!(!active("1,ANY=3", &[("Fighter", 2)]));
 }
+
+#[test]
+fn prespelltype_accepts_any_power() {
+    // PCGen's reference lists `Arcane`, `Divine`, `Psionic` and `ANY` for this
+    // parameter. `ANY` used to fail `SpellPowerType::from_pcgen`, which made the
+    // whole `PRESPELLTYPE` tag unsupported.
+    use pcgen_ir::{lower_records, RawRecord, RawTag, SourceRef};
+    let source = SourceRef::new("/tmp/any.lst", 1, "any.pcc");
+    let record = RawRecord {
+        category: "ABILITY".to_string(),
+        key: "Gated".to_string(),
+        name: "Gated".to_string(),
+        tags: vec![
+            RawTag {
+                name: "CATEGORY".to_string(),
+                value: "Special Ability".to_string(),
+                source: source.clone(),
+            },
+            RawTag {
+                name: "PRESPELLTYPE".to_string(),
+                value: "1,ANY=3".to_string(),
+                source: source.clone(),
+            },
+        ],
+        source,
+        raw: String::new(),
+    };
+    let (pack, _) = lower_records(Some("35e".to_string()), Vec::new(), &[record]);
+    let entity = pack
+        .entities
+        .iter()
+        .find(|entity| entity.id.key.eq_ignore_ascii_case("gated"))
+        .expect("Gated");
+    assert!(
+        entity.unsupported_tags.is_empty(),
+        "ANY must parse: {:?}",
+        entity.unsupported_tags
+    );
+    assert_eq!(
+        format!("{:?}", entity.requirements[0]),
+        "SpellType { power: None, min_level: 3, count: 1 }"
+    );
+}
