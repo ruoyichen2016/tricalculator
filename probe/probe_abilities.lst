@@ -1,1 +1,0 @@
-Probe25	CATEGORY:Special Ability	TYPE:Probe	PREMULT:2,[PREVAREQ:MartialArtsTaken,5],[!PREABILITY:1,CATEGORY=Special Ability,Martial Arts ~ Martial Arts Damage Cap (2d10)]
