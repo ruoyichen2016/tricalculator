@@ -134,7 +134,10 @@ fn write_progression(hasher: &mut FingerprintHasher, name: &str, progression: &C
         hasher.write(excluded);
     }
     if let Some(exchange) = &progression.exchange_level {
-        hasher.write(exchange);
+        hasher.write(&exchange.donating_class);
+        hasher.write(&exchange.minimum_level.to_string());
+        hasher.write(&exchange.maximum_levels.to_string());
+        hasher.write(&exchange.floor_level.to_string());
     }
     for skill in &progression.class_skills {
         hasher.write(skill);

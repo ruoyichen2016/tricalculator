@@ -60,7 +60,7 @@ pub struct ClassInteraction {
     #[serde(default)]
     pub excluded_class: Option<String>,
     #[serde(default)]
-    pub exchange_level: Option<String>,
+    pub exchange_level: Option<pcgen_core::ExchangeLevel>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]

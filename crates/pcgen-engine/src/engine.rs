@@ -2191,63 +2191,102 @@ fn parse_hit_die(value: &str) -> Option<i32> {
 
 /// A PCGen `HITDIE:` value.
 ///
-/// The raw data uses three spellings, and the scope suffix (`|CLASS.TYPE=Monster`)
-/// was not stripped, so four values silently failed to parse — including
-/// `8|CLASS.TYPE=Monster`, where the die is plainly 8.
+/// From PCGen's own tag reference (`docs/listfilepages/datafilestagpages/
+/// datafilesclasses.html`):
+///
+/// ```text
+/// HITDIE:x
+///   x: Number        Hit Die size
+///   x: %+Number      added to the Hit Die
+///   x: %-Number      subtracted from the Hit Die
+///   x: %*Number      Hit Die is multiplied by
+///   x: %/Number      Hit Die is divided by
+///   x: %upNumber     stepped up by
+///   x: %downNumber   stepped down by
+///   x: %HupNumber    stepped up by
+///   x: %HdownNumber  stepped down by
+/// ```
+///
+/// The raw data uses three of these and appends a `|CLASS.TYPE=Monster` scope.
+/// Neither the scope nor the `%` was handled, so four values silently returned
+/// `None` and the override did nothing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum HitDieRule {
-    /// `HITDIE:8` or `HITDIE:%/8` — the die is this.
+    /// `HITDIE:8` — the die is this.
     Fixed(i32),
-    /// `HITDIE:%up1` / `%down1` — relative to the class's own die.
+    /// `%+N`, `%-N`, `%*N`, `%/N` — arithmetic on the class's own die.
+    Adjust(Adjustment, i32),
+    /// `%upN` / `%downN` (and the `%H` spellings) — steps of two: 4, 6, 8, 10, 12.
     Steps(i32),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Adjustment {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
 }
 
 impl HitDieRule {
     fn apply(self, class_die: Option<i32>) -> Option<i32> {
         match self {
             HitDieRule::Fixed(die) => Some(die),
-            // Die sizes move in steps of two: 4, 6, 8, 10, 12.
-            HitDieRule::Steps(steps) => class_die.map(|die| {
-                let stepped = die + steps * 2;
-                stepped.clamp(4, 12)
+            HitDieRule::Adjust(how, amount) => class_die.map(|die| match how {
+                Adjustment::Add => die + amount,
+                Adjustment::Subtract => die - amount,
+                Adjustment::Multiply => die * amount,
+                // Integer division on purpose: PCGen's fractional Hit Die
+                // mechanic is `%/8` on a d8, which is a die of 1.
+                Adjustment::Divide => die / amount.max(1),
             }),
+            HitDieRule::Steps(steps) => class_die.map(|die| (die + steps * 2).clamp(4, 12)),
         }
+        .map(|die| die.max(1))
     }
 }
 
 /// Parse a `HITDIE:` value, ignoring its `|CLASS.TYPE=...` scope suffix.
+///
+/// Order matters: lowering stores these with a `d` in front (`d%/12`,
+/// `d%up1`), so the `d` has to come off before the `%` is recognisable.
 fn parse_hit_die_rule(value: &str) -> Option<HitDieRule> {
-    // Order matters: lowering stores these with a `d` in front (`d%/12`,
-    // `d%up1`), so the `d` has to come off before the `%` is recognisable.
     let head = value
         .split('|')
         .next()?
         .trim()
         .trim_start_matches(['d', 'D']);
-    if let Some(body) = head.strip_prefix('%') {
-        // `%/8` sets the die; `%up1` / `%down1` step it.
-        if let Some(die) = body.strip_prefix('/') {
-            return die
+    let Some(body) = head.strip_prefix('%') else {
+        return parse_hit_die(head).map(HitDieRule::Fixed);
+    };
+    // `%Hup1` / `%Hdown1` are alternate spellings of `%up1` / `%down1`.
+    let body = body.strip_prefix(['H', 'h']).unwrap_or(body);
+    for (prefix, adjustment) in [
+        ("+", Adjustment::Add),
+        ("-", Adjustment::Subtract),
+        ("*", Adjustment::Multiply),
+        ("/", Adjustment::Divide),
+    ] {
+        if let Some(amount) = body.strip_prefix(prefix) {
+            return amount
                 .trim()
                 .parse::<i32>()
                 .ok()
-                .filter(|d| *d > 0)
-                .map(HitDieRule::Fixed);
+                .map(|amount| HitDieRule::Adjust(adjustment, amount));
         }
-        let lower = body.to_ascii_lowercase();
-        if let Some(steps) = lower.strip_prefix("up") {
-            return steps.trim().parse::<i32>().ok().map(HitDieRule::Steps);
-        }
-        if let Some(steps) = lower.strip_prefix("down") {
-            return steps
-                .trim()
-                .parse::<i32>()
-                .ok()
-                .map(|n| HitDieRule::Steps(-n));
-        }
-        return None;
     }
-    parse_hit_die(head).map(HitDieRule::Fixed)
+    let lower = body.to_ascii_lowercase();
+    if let Some(steps) = lower.strip_prefix("up") {
+        return steps.trim().parse::<i32>().ok().map(HitDieRule::Steps);
+    }
+    if let Some(steps) = lower.strip_prefix("down") {
+        return steps
+            .trim()
+            .parse::<i32>()
+            .ok()
+            .map(|n| HitDieRule::Steps(-n));
+    }
+    None
 }
 
 pub(crate) fn effective_class_levels(

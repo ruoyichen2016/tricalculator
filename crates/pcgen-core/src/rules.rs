@@ -523,6 +523,36 @@ pub struct ProhibitedSpell {
     pub condition: Option<Predicate>,
 }
 
+/// A PCGen `EXCHANGELEVEL:` value.
+///
+/// From PCGen's tag reference:
+///
+/// ```text
+/// EXCHANGELEVEL:w|x|y|z
+///   w: Text   Class Name
+///   x: Number Class level, minimum level required in donating class
+///   y: Number Class level, maximum levels donated from class
+///   z: Number Class level, lowest that donation can lower donating class level to
+///
+/// EXCHANGELEVEL:Ex Paladin|11|10|1
+///   "Up to 10 levels of Ex Paladin can be exchanged as long as there were at
+///    least 11 levels of Ex Paladin available."
+/// ```
+///
+/// It was carried as a raw string and reached the snapshot that way — the same
+/// shape of leak as `NATURALATTACKS`.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct ExchangeLevel {
+    /// `w` — the class whose levels are donated.
+    pub donating_class: String,
+    /// `x` — levels needed in the donating class before any may be exchanged.
+    pub minimum_level: u32,
+    /// `y` — the most levels that may be donated.
+    pub maximum_levels: u32,
+    /// `z` — the lowest the donating class may be reduced to.
+    pub floor_level: u32,
+}
+
 /// One `NATURALATTACKS` entry.
 ///
 /// PCGen writes `Bite,Weapon.Natural.Weapon Group Natural.Melee.Finesseable...,*1,1d6`.

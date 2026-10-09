@@ -82,9 +82,24 @@ fn a_scope_suffix_does_not_hide_the_die() {
 
 #[test]
 fn the_percent_forms_are_understood() {
-    // `%/N` sets the die outright.
-    assert_eq!(hit_points(Some("%/12")), 21, "d12 is 7 per level");
-    // `%upN` / `%downN` move it, relative to the class's own die.
-    assert_eq!(hit_points(Some("%up1")), 18, "d8 one step up is d10");
-    assert_eq!(hit_points(Some("%down1")), 12, "d8 one step down is d6");
+    // PCGen's tag reference defines these as arithmetic on the class's own die:
+    //   %+N added, %-N subtracted, %*N multiplied, %/N divided,
+    //   %upN / %downN stepped (and the %Hup / %Hdown spellings).
+    //
+    // `%/N` is division, not "set to N". The RSRD's `Eighth Hitdie` template is
+    // `HITDIE:%/8`, the fractional-Hit-Die mechanic: a d8 monster becomes a d1.
+    // Reading it as "set to 8" left the die exactly as it was.
+
+    // HP is `die / 2 + 1` per level, over 3 levels: d4 -> 9, d8 -> 15,
+    // d12 -> 21, d16 -> 27, d1 -> 3.
+    assert_eq!(hit_points(Some("%+4")), 21, "d8 + 4 is d12");
+    assert_eq!(hit_points(Some("%-4")), 9, "d8 - 4 is d4");
+    assert_eq!(hit_points(Some("%*2")), 27, "d8 * 2 is d16");
+    assert_eq!(hit_points(Some("%/8")), 3, "d8 / 8 is a d1");
+
+    // Stepping moves in twos: d8 one step up is d10, one step down is d6.
+    assert_eq!(hit_points(Some("%up1")), 18);
+    assert_eq!(hit_points(Some("%down1")), 12);
+    assert_eq!(hit_points(Some("%Hup1")), 18, "%Hup is the same as %up");
+    assert_eq!(hit_points(Some("%Hdown1")), 12);
 }

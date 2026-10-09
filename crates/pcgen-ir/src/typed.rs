@@ -489,7 +489,8 @@ fn parse_class(record: &RawRecord) -> ClassDefinition {
         tag(record, "LEVELSPERFEAT").and_then(|value| value.trim().parse().ok());
     class.hit_die_override = tag(record, "HITDIE").map(normalize_hit_die);
     class.excluded_class = tag(record, "EXCLASS").map(str::to_string);
-    class.exchange_level = tag(record, "EXCHANGELEVEL").map(str::to_string);
+    class.exchange_level =
+        tag(record, "EXCHANGELEVEL").and_then(crate::rulepack::parse_exchange_level);
     for add in tags(record, "ADDLEVEL") {
         let mut parts = add.split('|').map(str::trim);
         if let Some(class_name) = parts.next().filter(|name| !name.is_empty()) {

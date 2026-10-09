@@ -345,7 +345,7 @@ pub struct ClassDefinition {
     pub excluded_class: Option<String>,
     /// Exchange-level tag (PCGen `EXCHANGELEVEL:`).
     #[serde(default)]
-    pub exchange_level: Option<String>,
+    pub exchange_level: Option<crate::rules::ExchangeLevel>,
     /// Additional class levels (PCGen `ADDLEVEL:Class|n`).
     #[serde(default)]
     pub add_levels: BTreeMap<String, u32>,
@@ -752,9 +752,9 @@ pub struct ClassProgression {
     /// (`EXCLASS`).
     #[serde(default)]
     pub excluded_class: Option<String>,
-    /// Raw `EXCHANGELEVEL` specification.
+    /// PCGen `EXCHANGELEVEL` specification.
     #[serde(default)]
-    pub exchange_level: Option<String>,
+    pub exchange_level: Option<crate::rules::ExchangeLevel>,
     pub class_skills: Vec<String>,
 }
 

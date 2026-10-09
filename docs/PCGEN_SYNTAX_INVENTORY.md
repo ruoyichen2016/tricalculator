@@ -312,8 +312,57 @@ rather than defects:
   because the engine has no encumbrance or armour speed penalty at all. `负重` is
   listed as in scope in `M9_PERSONAL_BUILDER.md`, and carrying capacity is
   likewise absent.
-- `exchange_level` is passed to the snapshot as a raw string
-  (`Ex Paladin|11|10|1`), which is the same shape of leak as `NATURALATTACKS`.
+- `exchange_level` was passed to the snapshot as a raw string
+  (`Ex Paladin|11|10|1`), the same shape of leak as `NATURALATTACKS`. Now
+  structured — see §5f.
+
+### 5f. PCGen ships its own tag reference, and it corrected two of my guesses
+
+`raw/pcgen-master/docs/listfilepages/datafilestagpages/datafilesclasses.html`
+is the authoritative spec for these tags. It is worth reading **before**
+implementing rather than after, which is what I did here.
+
+**`HITDIE` — my `%/N` was wrong.** The reference:
+
+```text
+HITDIE:x
+  x: Number        Hit Die size
+  x: %+Number      added to the Hit Die
+  x: %-Number      subtracted from the Hit Die
+  x: %*Number      Hit Die is multiplied by
+  x: %/Number      Hit Die is divided by
+  x: %upNumber     stepped up by
+  x: %downNumber   stepped down by
+  x: %HupNumber / %HdownNumber   the same
+```
+
+`%/N` is **division**, not "set to N". I had read `%/8` on the `Eighth Hitdie`
+template as "the die is 8" and returned `Fixed(8)`, which left a d8 monster
+exactly as it was. It is the fractional-Hit-Die mechanic: a d8 becomes a d1. The
+other four operators (`%+`, `%-`, `%*`) were not handled at all, and `%Hup` /
+`%Hdown` are alternative spellings I had also missed.
+
+**`EXCHANGELEVEL` — the four numbers now have names.** The reference:
+
+```text
+EXCHANGELEVEL:w|x|y|z
+  w: Class Name
+  x: Class level, minimum level required in donating class
+  y: Class level, maximum levels donated from class
+  z: Class level, lowest that donation can lower donating class level to
+
+EXCHANGELEVEL:Ex Paladin|11|10|1
+  "Up to 10 levels of Ex Paladin can be exchanged as long as there were at
+   least 11 levels of Ex Paladin available."
+```
+
+So the value is `ExchangeLevel { donating_class, minimum_level, maximum_levels,
+floor_level }`, not an opaque string. Without the reference I would have had to
+guess, and the honest options were a guessed name or no name at all.
+
+**The lesson**: this repository vendors PCGen's documentation, so for any tag
+whose semantics are not obvious, the spec is one `grep` away. Both of these had
+been guessed at — one wrongly.
 
 The rest were checked and are sound: `proficiency` (`SHIELD|Shield (Heavy)`) is
 read via `starts_with`, `hit_die_override` now parses, `natural_attacks` is

@@ -60,10 +60,13 @@ fn progression_fields_are_typed_into_runtime_table() {
     assert_eq!(progression.hit_die, "d12");
     assert_eq!(progression.levels_per_feat, 2);
     assert_eq!(progression.excluded_class.as_deref(), Some("Ex Fighter"));
-    assert_eq!(
-        progression.exchange_level.as_deref(),
-        Some("Ex Paladin|11|10|1")
-    );
+    // Structured from PCGen's `w|x|y|z` spec: donating class, minimum level in
+    // it, the most levels that may be donated, and the floor.
+    let exchange = progression.exchange_level.clone().expect("EXCHANGELEVEL");
+    assert_eq!(exchange.donating_class, "Ex Paladin");
+    assert_eq!(exchange.minimum_level, 11);
+    assert_eq!(exchange.maximum_levels, 10);
+    assert_eq!(exchange.floor_level, 1);
     assert_eq!(progression.feat_slots(1), 1);
     assert_eq!(progression.feat_slots(2), 2);
     assert_eq!(progression.feat_slots(4), 3);
@@ -99,8 +102,12 @@ fn hitdie_skillmult_and_levelsperfeat_reach_snapshot() {
         Some("Ex Fighter")
     );
     assert_eq!(
-        snapshot.class_interactions[0].exchange_level.as_deref(),
-        Some("Ex Paladin|11|10|1")
+        snapshot.class_interactions[0]
+            .exchange_level
+            .clone()
+            .expect("EXCHANGELEVEL")
+            .donating_class,
+        "Ex Paladin"
     );
 }
 

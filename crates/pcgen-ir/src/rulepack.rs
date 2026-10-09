@@ -751,6 +751,27 @@ pub(crate) fn parse_added_domain(value: &str) -> pcgen_core::AddedDomain {
     }
 }
 
+/// Parse `Ex Paladin|11|10|1`.
+///
+/// `w|x|y|z` per PCGen's tag reference: the donating class, the level it must
+/// reach before anything may be exchanged, the most levels that may be donated,
+/// and the lowest it may be reduced to.
+pub(crate) fn parse_exchange_level(value: &str) -> Option<pcgen_core::ExchangeLevel> {
+    let parts: Vec<&str> = value.split('|').map(str::trim).collect();
+    let donating_class = parts.first()?.to_string();
+    if donating_class.is_empty() {
+        return None;
+    }
+    let number =
+        |index: usize| -> u32 { parts.get(index).and_then(|p| p.parse().ok()).unwrap_or(0) };
+    Some(pcgen_core::ExchangeLevel {
+        donating_class,
+        minimum_level: number(1),
+        maximum_levels: number(2),
+        floor_level: number(3),
+    })
+}
+
 /// Parse `Claw,...,*2,1d8|Bite,...,*1,1d8` into one entry per attack.
 ///
 /// `|` separates attacks within one `NATURALATTACKS` tag, and `,` separates the
