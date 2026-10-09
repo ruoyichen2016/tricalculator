@@ -90,6 +90,7 @@ impl RawLstLine {
         }
         self.name
             .trim_end_matches(".MOD")
+            .trim_end_matches(".FORGET")
             .split(".COPY=")
             .next()
             .unwrap_or(&self.name)

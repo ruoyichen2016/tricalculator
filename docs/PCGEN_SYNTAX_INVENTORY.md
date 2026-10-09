@@ -621,6 +621,51 @@ iteration order. They are now collected per name and the highest evaluated value
 wins, with a definition that fails to evaluate reported and skipped rather than
 discarding the whole variable.
 
+### 5m. Patch order, and a test that asserted a fiction
+
+PCGen's file-format notes give the order explicitly:
+
+```text
+The order of operations is: Native line, COPY, MOD, then FORGET, but the order
+of operation is also controlled by the RANK tag in the PCC file.
+
+Given:  1.MOD  1.FORGET  2.COPY  2.Blank  2.MOD  3.MOD
+Order:  2.Blank  2.COPY  1.MOD  2.MOD  3.MOD  1.FORGET
+```
+
+**`.FORGET` never worked.** The pass looks the record up by `RawLstLine::key()`,
+which strips `.MOD` and everything from `.COPY=` on — but not `.FORGET`. So
+`Fighter.FORGET` keyed as `fighter.forget` and never matched `fighter`.
+
+What hid it was the test. `patched.rs`'s test helper built its key as
+`name.split('.').next()`, which the parser never produces, so the test passed
+against a key that cannot occur. Replacing it with the real rule made the
+built-in test fail immediately, which is how the fault surfaced.
+
+**A `.MOD` before its base was dropped.** The pass is one stream-order sweep, so
+a MOD arriving before the native line found no base and was pushed through
+unmerged. The order above says a MOD applies *after* the native line however the
+two are ordered, so deferred MODs are now held and applied at the end.
+
+`.COPY=` was **already correct**, and I broke it before checking: the lookup uses
+`key()`, which is the base name, so a "fix" to derive the base from the record
+name myself was both unnecessary and wrong for the `CATEGORY=Feat|X.COPY=Y`
+spelling. Reverted. Worth recording because the mistake was to change working
+code on the strength of a test whose helper was itself unrepresentative.
+
+### 5n. `NUMCHOICES` / `SELECT` — a constraint, not a parse
+
+`CHOOSE:NUMCHOICES=3|SKILLSNAMED|Spot|Listen|Search` caps the total selections a
+chooser may take; `SELECT:n` sets how many are taken at once. `NUMCHOICES` has no
+readers at all (119 uses in 35e) and `SELECT` is handled only for kits, so the
+spec string becomes an opaque key in `draft.choices` and the cap is never
+enforced.
+
+Recorded rather than built: no `.pcg` in the vendored test data carries a
+`CHOICE:` line, so nothing in the acceptance cohort exercises a chooser and there
+is no measurable behaviour to correct. This is a missing constraint, like
+`FOLLOWERADJUSTMENT`, not a defect.
+
 ## What followed from this
 
 Both actions are done:

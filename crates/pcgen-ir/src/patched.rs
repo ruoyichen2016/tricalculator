@@ -10,6 +10,10 @@ use indexmap::IndexMap;
 pub fn apply_record_patches(records: &[RawRecord]) -> Vec<RawRecord> {
     let mut output: Vec<RawRecord> = Vec::new();
     let mut index_by_key: IndexMap<String, usize> = IndexMap::new();
+    // `.MOD` rows whose base has not been seen yet.  PCGen's order is "Native
+    // line, COPY, MOD, then FORGET", so a MOD is applied after the native line
+    // however the two are ordered in the stream.
+    let mut deferred_mods: Vec<(String, RawRecord)> = Vec::new();
 
     for record in records {
         let category = record.category.to_ascii_uppercase();
@@ -36,10 +40,9 @@ pub fn apply_record_patches(records: &[RawRecord]) -> Vec<RawRecord> {
                 merge_tags_with_clear(&mut base.tags, &record.tags);
                 output[index] = base;
             } else {
-                // A deferred MOD with no base is kept so typed lowering can
-                // report it rather than silently dropping the source.
-                output.push(record.clone());
-                index_by_key.insert(map_key, output.len() - 1);
+                // No base yet: hold the MOD until the pass is over, then apply
+                // it to whatever base turned up.
+                deferred_mods.push((map_key.clone(), record.clone()));
             }
         } else if let Some((_, target)) = name.split_once(".COPY=") {
             let target = target.trim().to_string();
@@ -59,6 +62,18 @@ pub fn apply_record_patches(records: &[RawRecord]) -> Vec<RawRecord> {
         } else {
             output.push(record.clone());
             index_by_key.insert(map_key, output.len() - 1);
+        }
+    }
+
+    for (map_key, record) in deferred_mods {
+        if let Some(&index) = index_by_key.get(&map_key) {
+            let mut base = output[index].clone();
+            merge_tags_with_clear(&mut base.tags, &record.tags);
+            output[index] = base;
+        } else {
+            // Still no base: keep the row so typed lowering can report it
+            // rather than silently dropping the source.
+            output.push(record);
         }
     }
 
@@ -95,7 +110,17 @@ mod tests {
         let source = SourceRef::new("/tmp/test.lst", 1, "test.pcc");
         RawRecord {
             category: category.to_string(),
-            key: name.split('.').next().unwrap_or(name).to_string(),
+            // Mirror `RawLstLine::key`: `.MOD` and `.FORGET` come off, and
+            // everything from `.COPY=` on is the target rather than the base.
+            // This used to be `name.split('.').next()`, which the parser never
+            // produces — the FORGET test passed against a fiction.
+            key: name
+                .trim_end_matches(".MOD")
+                .trim_end_matches(".FORGET")
+                .split(".COPY=")
+                .next()
+                .unwrap_or(name)
+                .to_string(),
             name: name.to_string(),
             tags: tags
                 .iter()
