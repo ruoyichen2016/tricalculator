@@ -110,6 +110,9 @@ semantic_completion 100.0%
 - **Post-M9**：`PREALIGN` 的两种取值形态——数值 key 不再被丢弃（保留为 fail-closed
   的 `Alignment`，而不是整条前置消失），`PREALIGN:Deity` 实现 `alignMatches` 的
   「角色阵营 == 神祇阵营」特例。第三方资料 unsupported 401→393。
+- **Post-M9**：`PRECHECK` → `Predicate::Check`（新增 `EffectState.total_saves` =
+  base + 属性调整）；同时修掉 `PRECHECKBASE` 丢掉 count 的老问题（`BaseSave` 保留以
+  兼容旧 pack）。第三方资料 unsupported 393→373。
 - monster class `classlevel()` BAB 公式修复（`classlevel()` 空括号）
 
 累计：`legacy_tags` 4289 → 1284，`unsupported` 337 → 0，`semantic_completion` 46.8% → 100.0%。

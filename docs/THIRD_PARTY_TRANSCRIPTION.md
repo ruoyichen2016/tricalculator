@@ -142,18 +142,23 @@ rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
   Erotic Fantasy). They were being *dropped*, which left those prestige classes
   with no alignment restriction; they are now kept as keys no alignment file
   defines, so the requirement fails closed. `PREALIGN:Deity` — the one special
-  case in `PreAlignTester` — is also implemented now.
+  case in `PreAlignTester` — is also implemented now;
+- `PRECHECK` (17 tags), lowered to `Predicate::Check` against a new
+  `EffectState.total_saves` (base save plus the save's ability modifier). It also
+  took `PREMULT` from 31 to 28, for the usual reason: a `PREMULT` whose inner
+  predicate cannot be read is itself unsupported. The same pass fixed
+  `PRECHECKBASE`, which had been dropping the reference's count — see §5x.
 
-**Current total, re-measured over the same 189 campaigns: 393 unsupported
-occurrences across 14 tag kinds**, against 401 / 15 after the `PRECSKILL` round,
-750 / 17 after the `PREREGION` round, 1,171 / 18 after the `PREATT` round and
-1,409 / 20 at transcription. `BONUS` is 280 of the 393 and is the visible
-over-approximation described above — the effect is kept and the unreadable gate
-is what is reported — so the remaining actionable queue is the 113 occurrences
-behind it: `PREMULT` (31), `PRECHECK` (17), `PRESPELLDESCRIPTOR` (14),
-`PRECAMPAIGN` (9), `PRESPELLSCHOOLSUB` (9), `PRECHARACTERTYPE` (9), `PRESA` (7),
-`PREUATT` (4), `PREDR` (3), `PREREACHGTEQ` (3), `PRESKILLTOT` (3),
-`PRECLASSLEVELMAX` (2), `PREITEM` (2).
+**Current total, re-measured over the same 189 campaigns: 373 unsupported
+occurrences across 13 tag kinds**, against 393 / 14 after the `PREALIGN` round,
+401 / 15 after the `PRECSKILL` round, 750 / 17 after the `PREREGION` round,
+1,171 / 18 after the `PREATT` round and 1,409 / 20 at transcription. `BONUS` is
+280 of the 373 and is the visible over-approximation described above — the effect
+is kept and the unreadable gate is what is reported — so the remaining actionable
+queue is the 93 occurrences behind it: `PREMULT` (28),
+`PRESPELLDESCRIPTOR` (14), `PRECAMPAIGN` (9), `PRESPELLSCHOOLSUB` (9),
+`PRECHARACTERTYPE` (9), `PRESA` (7), `PREUATT` (4), `PREDR` (3),
+`PREREACHGTEQ` (3), `PRESKILLTOT` (3), `PRECLASSLEVELMAX` (2), `PREITEM` (2).
 
 ## The 7 campaigns that could not be transcribed
 

@@ -2426,7 +2426,7 @@ pub(crate) fn stat_modifier_for_pack(pack: &CompiledRulePack, stat: &str, score:
     stat_modifier(score)
 }
 
-fn save_ability_modifier(stat_mods: &BTreeMap<String, i32>, kind: SaveKind) -> i32 {
+pub(crate) fn save_ability_modifier(stat_mods: &BTreeMap<String, i32>, kind: SaveKind) -> i32 {
     let stat = match kind {
         SaveKind::Fortitude => "CON",
         SaveKind::Reflex => "DEX",

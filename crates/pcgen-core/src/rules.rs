@@ -111,9 +111,32 @@ pub enum Predicate {
     },
     /// Base save bonus at least `min` for one save kind
     /// (PCGen `PRECHECKBASE:1,Will=2`).
+    ///
+    /// Superseded by [`Self::Check`], which keeps the reference's count; this
+    /// shape is still evaluated so packs written before that change keep
+    /// working.
     BaseSave {
         save: String,
         min: i32,
+    },
+    /// `PRECHECK:x,y=z,y=z` / `PRECHECKBASE:x,y=z,y=z` — at least `min_count` of
+    /// the listed saves meet their minimum.
+    ///
+    /// PCGen's reference:
+    ///
+    /// ```text
+    /// PRECHECK:1,Fortitude=5,Reflex=3      Fortitude >= 5 OR Reflex >= 3
+    /// PRECHECK:2,Fortitude=5,Reflex=3,Willpower=4   any two of the three
+    /// ```
+    ///
+    /// `base` selects `PRECHECKBASE` (class progression only, no ability
+    /// modifier and no magic) over `PRECHECK` (the total save).  The count was
+    /// being dropped by the old single-spec lowering, which turned the second
+    /// example into "Fortitude >= 5".
+    Check {
+        base: bool,
+        specs: Vec<SaveSpec>,
+        min_count: u32,
     },
     HasTag {
         tag: String,
@@ -757,6 +780,15 @@ pub struct SkillSpec {
     /// True for the `TYPE.Text` spelling.
     #[serde(default)]
     pub is_type: bool,
+}
+
+/// One `PRECHECK` / `PRECHECKBASE` value: a save name and its minimum.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct SaveSpec {
+    /// A defined save name, e.g. `Fortitude`.
+    pub save: String,
+    /// The total (or base) save must be at least this.
+    pub min: i32,
 }
 
 /// One `PRERACE` value.

@@ -800,13 +800,14 @@ whose gate cannot be read is discarded entirely, so the character quietly loses
 a bonus it should have.
 
 The remaining kinds are genuinely unimplemented: `PRE` (21), `PRESA` (12),
-`PRECHECK`, `PRESKILLTOT`, `PREHP`, `PRESIZENEQ`,
+`PRESKILLTOT`, `PREHP`, `PRESIZENEQ`,
 `PREDEITYDOMAIN`, `PRESRLT`, `PRESPELLSCHOOLSUB`,
 `PRESPELLDESCRIPTOR`, `PRECLASSLEVELMAX`, `PRETEXT`. None appear in the
 acceptance cohort.  Several names on the original list have since been lowered:
 `PRELEVELMAX`, `PREATT`, `PREHANDSGT`, multi-mode `PREMOVE`, `PREREGION`
-(see §5u) and `PRECSKILL` (see §5v); `PRELEVEL` now supports both `MIN=` and
-`MAX=`.  See the current `CHANGELOG.md`.
+(see §5u), `PRECSKILL` (see §5v), `PREALIGN`'s value forms (see §5w) and
+`PRECHECK` (see §5x); `PRELEVEL` now supports both `MIN=` and `MAX=`.  See the
+current `CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
 
@@ -1025,6 +1026,48 @@ that fails does `Deity` mean "the same alignment as the character's god". The
 second half was missing, so Complete Divine's *Arcane Disciple*
 (`PREALIGN:Deity`) could never be satisfied. `EffectState.deity_alignment` — the
 value `PREDEITYALIGN` already needed — answers it, so no new state was required.
+
+### 5x. `PRECHECK`, and the count `PRECHECKBASE` had been losing
+
+`PRECHECKBASE` was implemented early and `PRECHECK` was not, but they are the same
+parser — `PreCheckParser` handles both kinds — so reading it settled both:
+
+```java
+public int passes(final Prerequisite prereq, final PlayerCharacter character, CDOMObject source) {
+    final int operand = character.getVariableValue(prereq.getOperand(), "").intValue();
+    final int characterCheckBonus = character.getTotalCheck(check);
+    runningTotal = prereq.getOperator().compare(characterCheckBonus, operand) > 0 ? 1 : 0;
+    ...
+}
+```
+
+and `PlayerCharacter.getTotalCheck`:
+
+```java
+return getBaseCheck(check) + (int) getTotalBonusTo("SAVE", check.getKeyName());
+```
+
+So `PRECHECK` is the total save and `PRECHECKBASE` the class-progression base. The
+ability modifier is not a special case in the tester: it arrives as a
+`BONUS:SAVE|Fortitude|CON` on the save's own definition in `rsrd__saves.lst`.
+`EffectState.total_saves` is therefore `base_saves` plus the save's ability
+modifier, built before the effect loop — bonuses applied by *effects* are excluded
+for the same reason `total_bonus`/`PRETOTALAB` excludes them: the predicate has to
+be answerable while the loop is still running.
+
+**The count was the real defect.** `AbstractPrerequisiteListParser` puts the count
+in the operand and the `y=z` pairs in sub-requirements, and the reference's own
+example is `PRECHECKBASE:2,Fortitude=5,Reflex=3,Willpower=4` — "any two of the
+three". The old lowering took the first part containing `=` and ignored the rest,
+so that line became "Fortitude >= 5": a *stricter* test than the reference, and one
+that silently rejects characters the feat is meant to allow. Both kinds now lower
+to `Predicate::Check { base, specs, min_count }`, with the value taken from the
+last `=` segment as §5t requires.
+
+`Predicate::BaseSave` is kept and still evaluates — a pack written before this
+change has to keep loading, and `pcgen pack-info` must not fail on it — but nothing
+emits it any more. Both the deserialisation and the evaluation are covered by
+tests.
 
 ## What followed from this
 

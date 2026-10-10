@@ -835,3 +835,78 @@ fn prealign_keeps_numeric_keys_instead_of_dropping_the_requirement() {
     assert_eq!(report.coverage.unsupported_tags, 1);
     assert!(pack.entities[0].requirements.is_empty());
 }
+
+#[test]
+fn precheck_and_precheckbase_lower_with_the_count() {
+    let total = record("FEAT", "Iron Will", &[("PRECHECK", "1,Will=5")]);
+    let (pack, report) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[total]);
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::Check {
+            base: false,
+            specs: vec![pcgen_core::SaveSpec {
+                save: "Will".to_string(),
+                min: 5,
+            }],
+            min_count: 1,
+        }
+    );
+
+    // The reference's "any two of the three" example. Reading only the first
+    // `=` part turned this into "Fortitude >= 5".
+    let any_two = record(
+        "FEAT",
+        "Steadfast",
+        &[("PRECHECKBASE", "2,Fortitude=5,Reflex=3,Willpower=4")],
+    );
+    let (pack, _) = lower_records(
+        Some("35e".to_string()),
+        vec!["pred".to_string()],
+        &[any_two],
+    );
+    let Predicate::Check {
+        base,
+        specs,
+        min_count,
+    } = &pack.entities[0].requirements[0]
+    else {
+        panic!("expected Check, got {:?}", pack.entities[0].requirements[0]);
+    };
+    assert!(*base);
+    assert_eq!(*min_count, 2);
+    assert_eq!(specs.len(), 3);
+    assert_eq!(specs[0].save, "Fortitude");
+    assert_eq!(specs[0].min, 5);
+    assert_eq!(specs[2].save, "Willpower");
+
+    let negated = record("FEAT", "Frail", &[("!PRECHECK", "1,Will=5")]);
+    let (pack, _) = lower_records(
+        Some("35e".to_string()),
+        vec!["pred".to_string()],
+        &[negated],
+    );
+    assert!(matches!(
+        &pack.entities[0].requirements[0],
+        Predicate::Not(inner) if matches!(**inner, Predicate::Check { .. })
+    ));
+}
+
+#[test]
+fn the_old_base_save_predicate_still_deserializes() {
+    // `PRECHECKBASE` used to lower to this shape. Packs written then must keep
+    // loading, so the variant stays even though nothing emits it now.
+    let predicate: Predicate =
+        serde_json::from_str(r#"{"base_save":{"save":"Will","min":2}}"#).expect("old pack");
+    assert_eq!(
+        predicate,
+        Predicate::BaseSave {
+            save: "Will".to_string(),
+            min: 2,
+        }
+    );
+}

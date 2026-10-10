@@ -1636,13 +1636,44 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
             let min = body.parse::<u32>().ok()?;
             Some(Predicate::TotalBab { min })
         }
-        // PRECHECKBASE:n,Save=value — base save bonus of one kind.
-        "PRECHECKBASE" => {
-            let part = parts.iter().find(|part| part.contains('='))?;
-            let (save, min) = part.split_once('=')?;
-            Some(Predicate::BaseSave {
-                save: save.trim().to_string(),
-                min: min.trim().parse::<i32>().ok()?,
+        // PRECHECK:n,Save=value / PRECHECKBASE:n,Save=value — at least `n` of
+        // the listed saves meet their minimum.
+        //
+        // `PreCheckParser` handles both kinds as a list parser: the leading
+        // number is the count, and each remaining part is split on the *last*
+        // `=` (see §5t) into a save name and its minimum.  The old lowering read
+        // only the first `=` part and dropped the count, so
+        // `PRECHECKBASE:2,Fortitude=5,Reflex=3` became "Fortitude >= 5" — a
+        // stricter test than the reference's "either".
+        "PRECHECK" | "PRECHECKBASE" => {
+            let base = tag_upper == "PRECHECKBASE";
+            let min_count = parts
+                .iter()
+                .find(|part| !part.trim().is_empty())
+                .and_then(|part| part.trim().parse::<u32>().ok())
+                .unwrap_or(1);
+            let specs: Vec<pcgen_core::SaveSpec> = parts
+                .iter()
+                .skip_while(|part| part.trim().parse::<u32>().is_ok() || part.trim().is_empty())
+                .filter_map(|part| {
+                    let (save, value) = part.trim().rsplit_once('=')?;
+                    let save = save.trim();
+                    if save.is_empty() {
+                        return None;
+                    }
+                    Some(pcgen_core::SaveSpec {
+                        save: save.to_string(),
+                        min: value.trim().parse::<i32>().ok()?,
+                    })
+                })
+                .collect();
+            if specs.is_empty() {
+                return None;
+            }
+            Some(Predicate::Check {
+                base,
+                specs,
+                min_count,
             })
         }
         "PRETYPE" => {

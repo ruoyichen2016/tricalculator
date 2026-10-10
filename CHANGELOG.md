@@ -1,5 +1,24 @@
 ## Unreleased
 
+### 补齐谓词：`PRECHECK`，并修掉 `PRECHECKBASE` 丢掉的 count
+
+- 新增 `Predicate::Check { base, specs, min_count }` 与 `SaveSpec { save, min }`。
+  `PRECHECK` 与 `PRECHECKBASE` 由同一个 `PreCheckParser` 处理：前导数字是 count，
+  其余每段按**最后一个** `=` 拆成豁免名与下限（§5t 的规则）。
+- `PRECHECK` 取**总**豁免：`getTotalCheck = getBaseCheck + getTotalBonusTo("SAVE", kind)`，
+  属性调整经由豁免自身的定义进入（`rsrd__saves.lst` 的 `Fortitude ... BONUS:SAVE|Fortitude|CON`）。
+  引擎新增 `EffectState.total_saves`（base + 属性调整）；效果期加成按 `total_bab` 的既有
+  先例排除，因为谓词必须在效果循环内求值。
+- **顺带修 bug**：`PRECHECKBASE` 此前只读第一个含 `=` 的段并丢掉 count，于是
+  `PRECHECKBASE:2,Fortitude=5,Reflex=3,Willpower=4` 被读成「Fortitude >= 5」——
+  比 reference 的「三者中任意两项」**更严格**，会静默拒绝本该允许的角色。
+- `Predicate::BaseSave` 保留并继续求值（旧 pack 必须还能反序列化、还能答），但 lowering
+  不再产生它；反序列化与求值都有测试覆盖。
+- 第三方资料：unsupported 393 → **373**（`PRECHECK` 17 → 0，另有 3 条被它拖垮的
+  `PREMULT`，31 → 28）；验收 cohort 只有一个 `PRECHECKBASE:1,Will=2`（单段、count 1），
+  语义不变。新增 6 个回归测试；
+  `cargo test --workspace`：**471 passed / 0 failed / 2 ignored**。
+
 ### 修复 `PREALIGN` 的两种取值形态
 
 - **数值 key 不再被丢弃**：`PreAlignParser` 不做任何校验，key 就是原文，而

@@ -102,6 +102,14 @@ pub struct EffectState {
     pub total_bab: i32,
     /// Class progression base saves used by `PRECHECKBASE`.
     pub base_saves: BTreeMap<SaveKind, i32>,
+    /// Base saves plus the save's ability modifier, used by `PRECHECK`.
+    ///
+    /// PCGen's `getTotalCheck` is `getBaseCheck + getTotalBonusTo("SAVE", kind)`,
+    /// and the ability modifier reaches the save through a `BONUS:SAVE|Fortitude|CON`
+    /// on the save's own definition (`rsrd__saves.lst`).  Bonuses applied by
+    /// effects are deliberately excluded, exactly as `total_bab` excludes them:
+    /// this value has to be answerable before the effect loop runs.
+    pub total_saves: BTreeMap<SaveKind, i32>,
     /// Spell power types the character can cast (stage-A derived).
     pub spell_powers: BTreeSet<SpellPowerType>,
     /// Highest spell level with a slot per power type.
@@ -377,6 +385,20 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
             ability_modifiers.insert(stat.to_string(), (score - 10).div_euclid(2));
         }
     }
+    // `PRECHECK` asks for the total save, which is the base save plus the save's
+    // ability modifier.  Built here rather than in the snapshot because
+    // `predicate_holds` runs inside the effect loop and cannot see it there.
+    let total_saves: BTreeMap<SaveKind, i32> =
+        [SaveKind::Fortitude, SaveKind::Reflex, SaveKind::Will]
+            .into_iter()
+            .map(|kind| {
+                let base = base_saves.get(&kind).copied().unwrap_or(0);
+                (
+                    kind,
+                    base + crate::engine::save_ability_modifier(&ability_modifiers, kind),
+                )
+            })
+            .collect();
     let mut state = EffectState {
         size: base_size,
         legs: 2,
@@ -401,6 +423,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         ability_modifiers,
         total_bab: prereq_bab,
         base_saves,
+        total_saves,
         spell_powers,
         max_spell_level,
         slots_by_power_level,
@@ -1366,6 +1389,17 @@ fn skill_requirement_holds(
     })
 }
 
+/// Map a PCGen save name to its kind.  The abbreviations are what the data
+/// uses in `PRECHECK`-style gates as well as the full names.
+fn save_kind(name: &str) -> Option<SaveKind> {
+    match name.trim().to_ascii_lowercase().as_str() {
+        "fort" | "fortitude" => Some(SaveKind::Fortitude),
+        "ref" | "reflex" => Some(SaveKind::Reflex),
+        "will" => Some(SaveKind::Will),
+        _ => None,
+    }
+}
+
 /// Does one `PRECSKILL` selector name a class skill for this character?
 fn class_skill_spec_holds(spec: &pcgen_core::SkillSpec, state: &EffectState) -> bool {
     let wanted = spec.name.trim().to_ascii_lowercase();
@@ -1507,14 +1541,28 @@ pub(crate) fn predicate_holds(
             min.is_none_or(|min| value >= min) && max.is_none_or(|max| value <= max)
         }
         Predicate::TotalBab { min } => state.total_bab >= *min as i32,
-        Predicate::BaseSave { save, min } => {
-            let kind = match save.to_ascii_lowercase().as_str() {
-                "fort" | "fortitude" => Some(SaveKind::Fortitude),
-                "ref" | "reflex" => Some(SaveKind::Reflex),
-                "will" => Some(SaveKind::Will),
-                _ => None,
+        Predicate::BaseSave { save, min } => save_kind(save)
+            .is_some_and(|kind| state.base_saves.get(&kind).copied().unwrap_or(0) >= *min),
+        // `PreCheckTester` counts how many of the listed saves clear their
+        // minimum and compares that count with the operand.
+        Predicate::Check {
+            base,
+            specs,
+            min_count,
+        } => {
+            let saves = if *base {
+                &state.base_saves
+            } else {
+                &state.total_saves
             };
-            kind.is_some_and(|kind| state.base_saves.get(&kind).copied().unwrap_or(0) >= *min)
+            let met = specs
+                .iter()
+                .filter(|spec| {
+                    save_kind(&spec.save)
+                        .is_some_and(|kind| saves.get(&kind).copied().unwrap_or(0) >= spec.min)
+                })
+                .count() as u32;
+            met >= (*min_count).max(1)
         }
         Predicate::Gender { prefix } => draft.gender.starts_with(prefix.as_str()),
         // `PreRegionTester` upper-cases both sides and asks `startsWith`.  The
@@ -2162,4 +2210,34 @@ fn class_progression_is_populated(progression: &pcgen_core::ClassProgression) ->
         || !progression.fortitude.is_empty()
         || !progression.reflex.is_empty()
         || !progression.will.is_empty()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_old_base_save_predicate_still_evaluates() {
+        // `PRECHECKBASE` used to lower to `BaseSave`.  Packs written then still
+        // have to answer, so the variant is kept alongside `Check`.
+        let mut state = EffectState::default();
+        state.base_saves.insert(SaveKind::Will, 3);
+        let draft = CharacterDraft::default();
+        assert!(predicate_holds(
+            Some(&Predicate::BaseSave {
+                save: "Will".to_string(),
+                min: 2,
+            }),
+            &draft,
+            &state
+        ));
+        assert!(!predicate_holds(
+            Some(&Predicate::BaseSave {
+                save: "Will".to_string(),
+                min: 4,
+            }),
+            &draft,
+            &state
+        ));
+    }
 }
