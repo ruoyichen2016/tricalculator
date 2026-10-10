@@ -10,11 +10,12 @@
 - 工作区：10 crate（core / formula / ir / import / engine / builder / output /
   cli / web / **transpile**）。`pcgen-transpile` 是构建期转写器，把
   `.pcc`/`.lst` 规范化成 pack 目录，使运行期不再解释 PCGen 文本。
-- 测试：`cargo test --workspace` **571 passed / 2 ignored**（`scripts/check.sh`
-  额外再跑一次 `pcgen-web`，合计 **610 passed / 2 ignored**）。
+- 测试：`cargo test --workspace` **584 passed / 2 ignored**（`scripts/check.sh`
+  额外再跑一次 `pcgen-web`，合计 **623 passed / 2 ignored**）。
 - **第 13–17 轮批量验证已完成**：按用户要求把编译攒到批次末尾一次执行；批次后
   `cargo test --workspace` **547 passed / 2 ignored**，clippy / fmt / coverage gate
-  （15/0/0）/ broad oracle（字段级 100%）/ `scripts/check.sh`（**586 passed / 2 ignored**）
+  （15/0/0）/ broad oracle（字段级 100%，25 computed = 25 case-gated）/ `scripts/check.sh`
+（**623 passed / 2 ignored**）
   全部通过，第三方 unsupported **42 → 32**。
 - 第三方资料（189 个 top-level campaign，固定 checkout，`import-report
   --histogram` 汇总）：unsupported **1,409 → 32**（第 13–17 轮批量里：`PREDR` 3 → 0、

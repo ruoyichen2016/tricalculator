@@ -220,8 +220,9 @@ rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
   unchanged by it.
 
 **Current total, re-measured over the same 189 campaigns: 4 unsupported
-occurrences across 1 tag kind** — every one of them a `BONUS`.  Against 5 / 1
-before the `PRELEGS` round, 23 / 1 before the `PRESPELLTYPE` round, 25 / 2 before the `PRESPELLCAST` round, 32 / 4
+occurrences across 1 tag kind** — every one of them a `BONUS`, and re-measured
+after the `PRELEGS` and `PREEQUIP*` rounds.  Against 5 / 1 before the `PRELEGS`
+round, 23 / 1 before the `PRESPELLTYPE` round, 25 / 2 before the `PRESPELLCAST` round, 32 / 4
 before `PRESKILLTOT` and `PREUATT`,
 42 / 8 after the `PREFACT` round, 304 / 8 after the `PRESA` round,
 311 / 9 after the `PRECHARACTERTYPE` round, 332 / 10 after the `PRECAMPAIGN`

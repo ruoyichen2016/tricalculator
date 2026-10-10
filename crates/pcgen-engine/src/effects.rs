@@ -2086,6 +2086,17 @@ pub(crate) fn predicate_holds(
                             })
                         })
                         .count() as u32,
+                    // `PreItemTester` itself has no branch for these two, so the
+                    // `PREITEM` lowering never emits them; they are answered the
+                    // way its `TYPE` branch counts, because that is the branch
+                    // that does not stop at the first matching item.
+                    pcgen_core::ItemSpec::BaseItem(_) | pcgen_core::ItemSpec::WieldCategory(_) => {
+                        draft
+                            .equipment
+                            .iter()
+                            .filter(|item| equip_spec_matches(spec, item, state, draft))
+                            .count() as u32
+                    }
                 })
                 .sum();
             available >= (*min_count).max(1)
@@ -2401,34 +2412,33 @@ pub(crate) fn predicate_holds(
             if specs.is_empty() {
                 // The loose shape, kept for packs written before the keys were
                 // typed and for the `BONUS` qualifier path that still builds it.
-                let matches =
-                    |item: &String, value: &str| item == value || item.contains(value);
+                let matches = |item: &String, value: &str| item == value || item.contains(value);
                 let in_scope = |set: &BTreeSet<String>| {
                     values
                         .iter()
                         .any(|value| set.iter().any(|item| matches(item, value)))
                 };
+                // The hand slots are a partition, as the reference's locations
+                // are: a two-handed weapon is `EQUIPPED_BOTH` and is *not* in the
+                // primary or secondary hand, so `PREEQUIPPRIMARY` does not match a
+                // greatsword.  The old `primary | both` union made it match one.
                 return match slot.as_str() {
-                    "primary" => {
-                        in_scope(&state.equipped_primary) || in_scope(&state.equipped_both)
-                    }
-                    "secondary" => {
-                        in_scope(&state.equipped_secondary) || in_scope(&state.equipped_both)
-                    }
+                    "primary" => in_scope(&state.equipped_primary),
+                    "secondary" => in_scope(&state.equipped_secondary),
                     "both" => in_scope(&state.equipped_both),
                     _ => in_scope(&state.equipment_values),
                 };
             }
             let in_slot = |item: &String| {
                 let key = normalized(item);
+                // The hand slots are a partition, as the reference's locations
+                // are: a two-handed weapon is `EQUIPPED_BOTH`, not a primary or
+                // secondary one.  The union this used to be made a greatsword
+                // answer `PREEQUIPPRIMARY` — invisible until `TYPE=` keys started
+                // matching, because a name key only ever matched its own item.
                 match slot.as_str() {
-                    "primary" => {
-                        state.equipped_primary.contains(&key) || state.equipped_both.contains(&key)
-                    }
-                    "secondary" => {
-                        state.equipped_secondary.contains(&key)
-                            || state.equipped_both.contains(&key)
-                    }
+                    "primary" => state.equipped_primary.contains(&key),
+                    "secondary" => state.equipped_secondary.contains(&key),
                     "both" => state.equipped_both.contains(&key),
                     _ => true,
                 }
@@ -2439,9 +2449,10 @@ pub(crate) fn predicate_holds(
             let matched = specs
                 .iter()
                 .filter(|spec| {
-                    draft.equipment.iter().any(|item| {
-                        in_slot(item) && equip_spec_matches(spec, item, state, draft)
-                    })
+                    draft
+                        .equipment
+                        .iter()
+                        .any(|item| in_slot(item) && equip_spec_matches(spec, item, state, draft))
                 })
                 .count() as u32;
             matched >= *min_count

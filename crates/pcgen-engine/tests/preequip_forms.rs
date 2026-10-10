@@ -139,19 +139,43 @@ fn a_base_item_key_reads_the_customisation() {
 
 #[test]
 fn a_wield_category_key_reads_the_wield() {
-    assert!(gated("PREEQUIP:1,WIELDCATEGORY=OneHanded", &["Longsword"], &[]));
-    assert!(!gated("PREEQUIP:1,WIELDCATEGORY=TwoHanded", &["Longsword"], &[]));
-    assert!(gated("PREEQUIP:1,WIELDCATEGORY=TwoHanded", &["Greatsword"], &[]));
+    assert!(gated(
+        "PREEQUIP:1,WIELDCATEGORY=OneHanded",
+        &["Longsword"],
+        &[]
+    ));
+    assert!(!gated(
+        "PREEQUIP:1,WIELDCATEGORY=TwoHanded",
+        &["Longsword"],
+        &[]
+    ));
+    assert!(gated(
+        "PREEQUIP:1,WIELDCATEGORY=TwoHanded",
+        &["Greatsword"],
+        &[]
+    ));
     // The reference's spelling of a category varies, so the comparison folds case
     // and separators.
-    assert!(gated("PREEQUIP:1,WIELDCATEGORY=two-handed", &["Greatsword"], &[]));
+    assert!(gated(
+        "PREEQUIP:1,WIELDCATEGORY=two-handed",
+        &["Greatsword"],
+        &[]
+    ));
 }
 
 #[test]
 fn the_count_is_a_count_of_keys() {
     // Both named keys have to match.
-    assert!(gated("PREEQUIP:2,Longsword,Chainmail", &["Longsword", "Chainmail"], &[]));
-    assert!(!gated("PREEQUIP:2,Longsword,Chainmail", &["Longsword"], &[]));
+    assert!(gated(
+        "PREEQUIP:2,Longsword,Chainmail",
+        &["Longsword", "Chainmail"],
+        &[]
+    ));
+    assert!(!gated(
+        "PREEQUIP:2,Longsword,Chainmail",
+        &["Longsword"],
+        &[]
+    ));
     // One key cannot be two.
     assert!(!gated("PREEQUIP:2,Longsword", &["Longsword"], &[]));
     assert!(gated("PREEQUIP:1,Longsword", &["Longsword"], &[]));
@@ -163,7 +187,11 @@ fn the_count_is_a_count_of_keys() {
 fn the_hand_slots_still_narrow_the_search() {
     // A greatsword is held in both hands and is not in the primary hand.
     assert!(gated("PREEQUIPBOTH:1,TYPE=Weapon", &["Greatsword"], &[]));
-    assert!(!gated("PREEQUIPPRIMARY:1,TYPE=Weapon", &["Greatsword"], &[]));
+    assert!(!gated(
+        "PREEQUIPPRIMARY:1,TYPE=Weapon",
+        &["Greatsword"],
+        &[]
+    ));
     assert!(gated("PREEQUIPPRIMARY:1,TYPE=Weapon", &["Longsword"], &[]));
     // Carried armor is in neither hand, but the plain form does not care where it
     // is held.

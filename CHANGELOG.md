@@ -7,6 +7,27 @@
 > 0 failed / 2 ignored**（PF35e、cohort matrix、deep-field 均通过；archive differential 为
 > 预期的 `SKIP`）。第三方 unsupported 由 **42 → 32**。
 
+### 批检：第 23–24 轮（第 25 轮，已实测）
+
+- `cargo test --workspace` **584 passed / 0 failed / 2 ignored**；`cargo fmt --check` 与
+  `cargo clippy --workspace --all-targets -- -D warnings` 均干净。
+- coverage gate **pass=15 / fail=0 / skip=0**；`scripts/check.sh` **623 passed / 0 failed /
+  2 ignored**；PF35e extension gate、cohort matrix（42 PCG / 25 primary / 2 extended）、
+  broad oracle（25 computed = 25 case-gated + 0 known-diverging）全部通过；
+  archive differential 仍为 `SKIP`（未构建参照二进制）。
+- 第三方 unsupported：**5 → 4 / 1 种 tag**（全部是 `BONUS` gate 不可读的可见过近似），
+  逐条确认这 4 条为 2 × `PRECLASS:1,TYPE=Base`（坏数据）+ 2 ×
+  `PREEQUIPTWOWEAPON:2,TYPE=Nekode`（缺装备槽位模型）。
+- **批检时发现并修掉两个问题**（都属于本轮批次，见下）：
+  1. `Predicate::Item`（`PREITEM`）对 `ItemSpec` 的 match 因为新增两个变体而不再穷尽 →
+     编译失败；已按 `PreItemTester` 没有这两个分支的事实补上（按不 break 的 `TYPE` 分支语义计数，
+     并注明 `PREITEM` lowering 不会产生它们）。
+  2. **手部槽位必须是划分而不是并集**：`PREEQUIPPRIMARY`/`PREEQUIPSECONDARY` 原本取
+     `primary ∪ both` / `secondary ∪ both`，而 reference 的 `EquipmentLocation` 对每件物品
+     只有一个值——双手武器是 `EQUIPPED_BOTH`，**不属于** primary。以前用名字 key 时看不出
+     来（名字只会命中自己那件物品），一旦 `TYPE=` 开始正确匹配，双手武器就会错误地满足
+     `PREEQUIPPRIMARY`（新测试立刻抓到）。已把两处（类型化与旧 values 路径）都改为划分。
+
 ### 修复 `PREEQUIP*` 的 key 匹配：`TYPE=` 等前缀不再被当成物品名（第 24 轮）
 
 - **发现（比目标更有价值）**：`Predicate::Equipped` 把 key 原样存成小写文本，于是
@@ -29,8 +50,9 @@
 - `ItemSpec` 是新增变体、`Equipped.specs`/`min_count` 都是 `serde(default)`，旧 pack 可正常
   反序列化；`BONUS` 的 qualifier 路径（`equipped_condition`）仍走旧的宽松 `values`，
   行为不变（有注释说明为何不在那里改）。
-- 验收 cohort（DS/RSRD）**0 处 `PREEQUIP*`**，故谓词层面可证不影响 cohort；PF35e 门禁使用
-  pathfinder 数据（含 208 处），其变化将在批检时归因。测试与门禁按批次约定一起验证。
+- 验收 cohort（DS/RSRD）**0 处 `PREEQUIP*`**，故谓词层面可证不影响 cohort。批检确认：
+  PF35e 门禁与 broad oracle 均**未移动**（PF35e 的变体校验不经过这些谓词），
+  `scripts/check.sh` 623 passed / 0 failed。
 
 ### 补齐 `PRELEGS` 全家族，并真正读取 `LEGS:`（第 23 轮）
 
@@ -52,8 +74,8 @@
 - 操作数用 `Integer.parseInt` 读取（tester 会因非数字抛 `PrerequisiteException`），
   因此非数字/non-u32 保持 unsupported。
 - 第三方资料：unsupported **5 → 4**（`PRELEGSGT` 1 → 0）；验收 cohort（RSRD）
-  **`PRELEGS*` 0 处**，且 `state.legs` 只有这两个谓词读，故可证不影响 cohort。
-  测试与门禁按批次约定一起验证。
+  **`PRELEGS*` 0 处**，且 `state.legs` 只有这两个谓词读，故可证不影响 cohort。批检确认
+  `cargo test --workspace` 584 passed / 0 failed、coverage gate 15/0/0。
 
 ### `PRESPELLTYPE` 的法术类型改为自由文本（第 22 轮，已实测）
 

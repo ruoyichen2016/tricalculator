@@ -1937,6 +1937,15 @@ be satisfied, and `PREEQUIP:0,...` always is.  `ItemSpec`'s list therefore carri
 `min_count`, defaulting to 1 through `serde` so that packs written before it existed
 keep the meaning they had (any key matching).
 
+Checking this in exposed one more thing, which the batch round fixed: the hand slots
+were a **union** rather than a partition — `PREEQUIPPRIMARY` searched
+`primary | both` and `PREEQUIPSECONDARY` searched `secondary | both`, while the
+reference's `EquipmentLocation` holds exactly one value per item and a two-handed
+weapon is `EQUIPPED_BOTH`, not a primary one.  With name keys the difference was
+invisible, because a name only ever matched its own item; the moment `TYPE=` keys
+started matching, a greatsword answered `PREEQUIPPRIMARY`.  Both paths now search
+the single slot they name.
+
 The `BONUS` qualifier path (`equipped_condition`) still builds the loose `values`
 form, deliberately: those qualifiers were written to be passed through as text, and
 typing them here would change what existing characters' bonuses mean.  The engine
