@@ -466,14 +466,17 @@ fn parse_class(record: &RawRecord) -> ClassDefinition {
         .find_map(|value| value.split_once('|').map(|(_, power)| power))
         .and_then(SpellPowerType::from_pcgen)
         .unwrap_or_default();
-    // `PCClass.getSpellType` reads `FACT:SpellType` verbatim and answers `None`
-    // when the class declares none.
+    // `FACT:SpellType` verbatim, and *empty* when the class declares none.
+    //
+    // The two consumers disagree about that case and both are right: `getSpellType`
+    // (used by `PRESPELLCAST`) answers `None`, while `countSpellCastTypeLevel`
+    // (used by `PRESPELLTYPE`) skips a class whose fact is unset.  Keeping the raw
+    // text lets each of them apply its own rule instead of baking one in here.
     class.spell_type = tags(record, "FACT")
         .filter_map(|value| value.split_once('|'))
         .find(|(name, _)| name.trim().eq_ignore_ascii_case("SpellType"))
         .map(|(_, value)| value.trim().to_string())
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| "None".to_string());
+        .unwrap_or_default();
     class.requires_spellbook =
         tag(record, "SPELLBOOK").is_some_and(|value| value.eq_ignore_ascii_case("YES"));
     class.type_tags = type_tags(record);

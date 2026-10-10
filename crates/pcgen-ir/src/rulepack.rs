@@ -5,7 +5,6 @@ pub use pcgen_core::pack::{CompiledPackHeader, CompiledRulePack, ImportReport};
 use crate::patches::PatchOperation;
 use crate::source::{RawRecord, RawTag};
 use crate::typed::{build_typed_definitions, parse_creature_traits};
-use pcgen_core::domain::SpellPowerType;
 use pcgen_core::GrantMode;
 use pcgen_core::{
     CompiledEntity, Effect, EffectAction, EffectPhase, EntityId, Modifier, ModifierOperation,
@@ -2230,21 +2229,43 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
         }
         // PRESPELLTYPE:count,type=level — can cast `count` spells of `type`
         // at spell level `level` or higher.
+        // PRESPELLTYPE:count,type=level,type=level — the character has spell slots
+        // of that type at that level.
+        //
+        // `PreSpellTypeParser` is a list parser, so the leading number is the count
+        // and each pair is a sub-requirement; `PreSpellTypeTester` passes the type
+        // straight to `countSpellCastTypeLevel`, which matches it against the
+        // class's `FACT:SpellType` *text* — with `Any` as the wildcard — so a type
+        // the typed `SpellPowerType` has never heard of, such as the data's
+        // `Shadow Magic`, is an ordinary string here.
+        //
+        // The pair is split on its *last* `=`, because that is how the reference
+        // finds the value: it reads `tokens[tokens.length - 1]` as the level and
+        // rebuilds the key from the rest.  `ANY` is legal for this parser and the
+        // tester's `NumberFormatException` handler turns it into level 1; anything
+        // else that is not a number makes the parser throw, so it stays
+        // unsupported rather than guessing.
         "PRESPELLTYPE" => {
             let (count_str, rest) = body.split_once(',')?;
             let count = count_str.trim().parse::<u32>().ok()?;
             let specs: Vec<pcgen_core::SpellTypeSpec> = rest
                 .split(',')
                 .filter_map(|pair| {
-                    let (power_str, level_str) = pair.split_once('=')?;
-                    let power = if power_str.trim().eq_ignore_ascii_case("any") {
-                        None
+                    let (spell_type, level) = pair.rsplit_once('=')?;
+                    let spell_type = spell_type.trim();
+                    if spell_type.is_empty() {
+                        return None;
+                    }
+                    let level = level.trim();
+                    let min_level = if level.eq_ignore_ascii_case("any") {
+                        1
                     } else {
-                        Some(SpellPowerType::from_pcgen(power_str)?)
+                        level.parse::<u32>().ok()?
                     };
                     Some(pcgen_core::SpellTypeSpec {
-                        power,
-                        min_level: level_str.trim().parse::<u32>().ok()?,
+                        spell_type: (!spell_type.eq_ignore_ascii_case("any"))
+                            .then(|| spell_type.to_string()),
+                        min_level,
                     })
                 })
                 .collect();

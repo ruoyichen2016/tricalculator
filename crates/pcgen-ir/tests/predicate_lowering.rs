@@ -1,4 +1,4 @@
-use pcgen_core::{EffectAction, Predicate, SpellPowerType};
+use pcgen_core::{EffectAction, Predicate};
 use pcgen_ir::{lower_records, RawRecord, RawTag, SourceRef};
 
 fn record(category: &str, name: &str, tags: &[(&str, &str)]) -> RawRecord {
@@ -377,7 +377,7 @@ fn prespell_predicates_lower() {
             count: 1
         } if specs
             == &vec![pcgen_core::SpellTypeSpec {
-                power: Some(SpellPowerType::Arcane),
+                spell_type: Some("Arcane".to_string()),
                 min_level: 9,
             }]
     ));
@@ -2058,4 +2058,100 @@ fn prespellcast_keeps_every_token_and_the_spell_type_is_text() {
         lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[unknown]);
     assert!(pack.entities[0].requirements.is_empty());
     assert_eq!(report.coverage.unsupported_tags, 1);
+}
+
+#[test]
+fn prespelltype_takes_the_spell_type_as_text() {
+    // The third-party form that the queue could not read: `Shadow Magic` is a real
+    // spell type in that data, but not one `SpellPowerType` has a variant for.
+    let shadow = record(
+        "FEAT",
+        "Shadow Adept",
+        &[("PRESPELLTYPE", "1,Shadow Magic=1")],
+    );
+    let (pack, report) = lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[shadow]);
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::SpellType {
+            specs: vec![pcgen_core::SpellTypeSpec {
+                spell_type: Some("Shadow Magic".to_string()),
+                min_level: 1,
+            }],
+            count: 1,
+        }
+    );
+
+    // `any` is the wildcard and stays `None`; `=ANY` is a legal level for this
+    // parser and the tester's `NumberFormatException` handler reads it as 1.
+    let wildcard = record("FEAT", "Any Caster", &[("PRESPELLTYPE", "1,any=1")]);
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["pred".to_string()],
+        &[wildcard],
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::SpellType {
+            specs: vec![pcgen_core::SpellTypeSpec {
+                spell_type: None,
+                min_level: 1,
+            }],
+            count: 1,
+        }
+    );
+
+    let any_level = record("FEAT", "Any Level", &[("PRESPELLTYPE", "1,Arcane=ANY")]);
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["pred".to_string()],
+        &[any_level],
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::SpellType {
+            specs: vec![pcgen_core::SpellTypeSpec {
+                spell_type: Some("Arcane".to_string()),
+                min_level: 1,
+            }],
+            count: 1,
+        }
+    );
+
+    // Three malformed shapes stay unsupported rather than being guessed at: an
+    // empty type, a pair with no value at all (the parser's `requiresValue` throws
+    // on it) and a level that is neither a number nor `ANY`.
+    for value in ["1,=3", "1,Arcane", "1,Arcane=x"] {
+        let bad = record("FEAT", "Bad", &[("PRESPELLTYPE", value)]);
+        let (pack, report) =
+            lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[bad]);
+        assert!(
+            pack.entities[0].requirements.is_empty(),
+            "{value} should not lower"
+        );
+        assert_eq!(report.coverage.unsupported_tags, 1, "{value}");
+    }
+}
+
+#[test]
+fn the_typed_spell_type_still_loads_from_an_old_pack() {
+    // Packs written while the field was `power: SpellPowerType` carry its name;
+    // the alias reads it as the text it now is, and `None` still means `ANY`.
+    let typed: pcgen_core::SpellTypeSpec =
+        serde_json::from_str(r#"{"power":"arcane","min_level":9}"#).expect("old pack");
+    assert_eq!(
+        typed,
+        pcgen_core::SpellTypeSpec {
+            spell_type: Some("arcane".to_string()),
+            min_level: 9,
+        }
+    );
+    let any: pcgen_core::SpellTypeSpec =
+        serde_json::from_str(r#"{"power":null,"min_level":3}"#).expect("old pack");
+    assert_eq!(any.spell_type, None);
+    assert_eq!(any.min_level, 3);
 }

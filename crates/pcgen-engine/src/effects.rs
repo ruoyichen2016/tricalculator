@@ -184,7 +184,12 @@ pub struct EffectState {
     /// Highest spell level with a slot per power type.
     pub max_spell_level: BTreeMap<SpellPowerType, u32>,
     /// Total spell slots keyed by `(power, spell level)`.
-    pub slots_by_power_level: BTreeMap<(SpellPowerType, u32), u32>,
+    /// Spell slots by (spell type text, level), for `PRESPELLTYPE`.
+    ///
+    /// Keyed by the class's `FACT:SpellType` text rather than the typed power,
+    /// because `countSpellCastTypeLevel` matches that text — and because a class
+    /// may carry one this codebase has no [`SpellPowerType`] for.
+    pub spell_slots_by_type: BTreeMap<(String, u32), u32>,
     /// Character has a class that casts from a spellbook.
     pub has_spellbook: bool,
     /// Casting mode per class id.
@@ -361,12 +366,20 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
                 })
                 .map(|class| class.spell_type.clone())
         })
-        .filter(|spell_type| !spell_type.is_empty())
+        // `getSpellType` answers `None` when the class declares no spell type,
+        // which is what `PRESPELLCAST:TYPE=None` asks about.
+        .map(|spell_type| {
+            if spell_type.is_empty() {
+                "None".to_string()
+            } else {
+                spell_type
+            }
+        })
         .collect();
     let initial = initial_entities(pack, draft);
     let prereq_bab = crate::bab::derive_prereq_bab(pack, draft, &initial);
     let base_saves = crate::bab::derive_base_saves(pack, draft);
-    let (spell_powers, max_spell_level, slots_by_power_level, has_spellbook, class_casting) =
+    let (spell_powers, max_spell_level, spell_slots_by_type, has_spellbook, class_casting) =
         derive_spellcasting_prereq(pack, draft);
     let race = pack.races.get(&draft.race_id);
     let mut templates: BTreeSet<String> = race
@@ -572,7 +585,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         total_saves,
         spell_powers,
         max_spell_level,
-        slots_by_power_level,
+        spell_slots_by_type,
         has_spellbook,
         class_casting,
         spell_types,
@@ -1406,13 +1419,13 @@ fn derive_spellcasting_prereq(
 ) -> (
     BTreeSet<SpellPowerType>,
     BTreeMap<SpellPowerType, u32>,
-    BTreeMap<(SpellPowerType, u32), u32>,
+    BTreeMap<(String, u32), u32>,
     bool,
     BTreeMap<String, CastingType>,
 ) {
     let mut powers = BTreeSet::new();
     let mut max_spell_level: BTreeMap<SpellPowerType, u32> = BTreeMap::new();
-    let mut slots: BTreeMap<(SpellPowerType, u32), u32> = BTreeMap::new();
+    let mut slots: BTreeMap<(String, u32), u32> = BTreeMap::new();
     let mut has_spellbook = false;
     let mut class_casting = BTreeMap::new();
     for entry in crate::engine::effective_class_levels(pack, draft) {
@@ -1427,6 +1440,22 @@ fn derive_spellcasting_prereq(
         class_casting.insert(class.id.clone(), class.casting_type);
         if class.requires_spellbook {
             has_spellbook = true;
+        }
+        // `countSpellCastTypeLevel` walks every class and matches the
+        // `FACT:SpellType` text with no spellcasting-ability filter — and skips a
+        // class whose fact is unset, which is why an empty text contributes
+        // nothing here.
+        if !class.spell_type.is_empty() {
+            if let Some(table) = class.spell_slots.get(&entry.level) {
+                for (level, count) in table.iter().enumerate() {
+                    if *count == 0 {
+                        continue;
+                    }
+                    *slots
+                        .entry((class.spell_type.to_ascii_lowercase(), level as u32))
+                        .or_insert(0) += *count;
+                }
+            }
         }
         if class.spellcasting_ability.is_none() && !class.is_psionic {
             continue;
@@ -1443,16 +1472,14 @@ fn derive_spellcasting_prereq(
         if power != SpellPowerType::Unknown {
             powers.insert(power);
         }
-        let slot_power = power;
         if let Some(table) = class.spell_slots.get(&entry.level) {
             for (level, count) in table.iter().enumerate() {
                 if *count == 0 {
                     continue;
                 }
                 let level = level as u32;
-                *slots.entry((slot_power, level)).or_insert(0) += *count;
                 max_spell_level
-                    .entry(slot_power)
+                    .entry(power)
                     .and_modify(|current| *current = (*current).max(level))
                     .or_insert(level);
             }
@@ -2189,19 +2216,30 @@ pub(crate) fn predicate_holds(
             .choices
             .get("AGE.CATEGORY")
             .is_some_and(|value| value.eq_ignore_ascii_case(category)),
+        // `PreSpellTypeTester` asks `countSpellCastTypeLevel` for the listed type
+        // at the listed level and compares the answer with 1; the list's
+        // sub-requirements count multiples, so the wrapper sums those counts and
+        // compares them with the operand.  Each pair is therefore counted on its
+        // own — two pairs naming the same type count its slots twice, which is
+        // what the reference does.
         Predicate::SpellType { specs, count } => {
-            // The pairs are alternatives: "at least one 3rd level spell from any
-            // of the Arcane, Divine, or Psionic types".
-            let available: u32 = state
-                .slots_by_power_level
+            let available: u32 = specs
                 .iter()
-                .filter(|((candidate, level), _)| {
-                    specs.iter().any(|spec| {
-                        spec.power.as_ref().is_none_or(|power| candidate == power)
-                            && *level >= spec.min_level
-                    })
+                .map(|spec| {
+                    state
+                        .spell_slots_by_type
+                        .iter()
+                        .filter(|((spell_type, level), _)| {
+                            spec.spell_type.as_deref().is_none_or(|wanted| {
+                                // `countSpellCastTypeLevel` treats `Any` as the
+                                // wildcard and compares case-insensitively.
+                                wanted.eq_ignore_ascii_case("any")
+                                    || wanted.eq_ignore_ascii_case(spell_type)
+                            }) && *level >= spec.min_level
+                        })
+                        .map(|(_, slots)| *slots)
+                        .sum::<u32>()
                 })
-                .map(|(_, slots)| *slots)
                 .sum();
             available >= (*count).max(1)
         }

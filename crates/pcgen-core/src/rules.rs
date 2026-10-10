@@ -4,7 +4,6 @@
 //! The engine sees stable IDs, predicates, effects, modifiers, and
 //! provenance, never raw `.lst` tags.
 
-use crate::domain::SpellPowerType;
 use crate::identity::EntityId;
 use crate::rational::Rational;
 use serde::{Deserialize, Serialize};
@@ -413,7 +412,8 @@ pub enum Predicate {
     /// `PreSpellCastTester` compares the value with `aClass.getSpellType()`
     /// through `equalsIgnoreCase`, and `getSpellType` returns the class's
     /// `FACT:SpellType` verbatim — so this is a string, not a
-    /// [`SpellPowerType`]: the data contains `TYPE=Arcane=1`, which names no class
+    /// [`SpellPowerType`](crate::domain::SpellPowerType): the data contains
+    /// `TYPE=Arcane=1`, which names no class
     /// and is false rather than unreadable.
     HasSpellType {
         spell_type: String,
@@ -934,13 +934,20 @@ pub struct MovementSpec {
 }
 
 /// One `PRESPELLTYPE` pair.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SpellTypeSpec {
-    /// `None` for `ANY` — any kind of spell slot.
+    /// The spell type as written, matched against a class's `FACT:SpellType`;
+    /// `None` for `ANY`, which matches every type.
     ///
-    /// A spell's own power is concrete, so `ANY` belongs to the requirement
-    /// rather than to `SpellPowerType`.
-    pub power: Option<SpellPowerType>,
+    /// `PreSpellTypeTester` passes the key straight to
+    /// `countSpellCastTypeLevel`, whose own comparison is
+    /// `classSpellType.equalsIgnoreCase(spellType)` with `"Any"` as the wildcard
+    /// — so the type is text, not a
+    /// [`SpellPowerType`](crate::domain::SpellPowerType).  Packs written while it
+    /// was typed carry the power's name in `power`; that name is read here
+    /// through the serde alias, and `None` still means `ANY` exactly as it did.
+    #[serde(default, alias = "power", skip_serializing_if = "Option::is_none")]
+    pub spell_type: Option<String>,
     pub min_level: u32,
 }
 

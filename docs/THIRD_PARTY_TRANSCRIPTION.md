@@ -158,6 +158,11 @@ rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
   lowered to one shape that the engine read as strict. **2,519** pairs in these
   packs have a symbolic operand and were compared one step too strictly. Nothing
   moves in the table below, because `PREVAR*` already lowered;
+- `PRESPELLTYPE` (754 occurrences in all, 18 of them previously unreadable): the
+  spell type was a `SpellPowerType`, so `1,Shadow Magic=N` — a real spell type in
+  that data — made the whole tag unreadable.  It is text in the reference, matched
+  against the class's `FACT:SpellType` with `Any` as the wildcard; the field is now
+  a string, and packs written while it was typed still load through a serde alias;
 - not a reduction on its own but the end of the `PREMULT` queue, `PRESPELLCAST`: the
   lowering read only the first token, so `TYPE=Arcane,TYPE=Divine` tested Arcane
   alone, and it typed the spell type as a `SpellPowerType`, so `TYPE=Arcane=1` — a
@@ -202,9 +207,10 @@ rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
   these packs now evaluate against the spell's `SCHOOL:`. The total below is
   unchanged by it.
 
-**Current total, re-measured over the same 189 campaigns: 23 unsupported
-occurrences across 1 tag kind** — every one of them a `BONUS`.  Against 25 / 2
-before the `PRESPELLCAST` round, 32 / 4 before `PRESKILLTOT` and `PREUATT`,
+**Current total, re-measured over the same 189 campaigns: 5 unsupported
+occurrences across 1 tag kind** — every one of them a `BONUS`.  Against 23 / 1
+before the `PRESPELLTYPE` round, 25 / 2 before the `PRESPELLCAST` round, 32 / 4
+before `PRESKILLTOT` and `PREUATT`,
 42 / 8 after the `PREFACT` round, 304 / 8 after the `PRESA` round,
 311 / 9 after the `PRECHARACTERTYPE` round, 332 / 10 after the `PRECAMPAIGN`
 round, 341 / 11 after the `PRESPELLSCHOOL` round, 350 / 12 after the
@@ -214,19 +220,20 @@ the `PREALIGN` round, 401 / 15 after the `PRECSKILL` round, 750 / 17 after the
 transcription.
 
 What is left is the over-approximation described at the top of this file and
-nothing else: 23 `BONUS` rows whose *gate* cannot be read, with the effect kept and
-the raw gate reported.  Reading their gates shows they are not a single unknown
-tag, and two of the three groups are correctly modellable — so this is a stopping
-point for the *reported* queue, not for the work:
+nothing else: 5 `BONUS` rows whose *gate* cannot be read, with the effect kept and
+the raw gate reported.  Each of the five has now been read, and they are three
+different things:
 
-* 18 rows, in two packs, are gated on `PRESPELLTYPE:1,Shadow Magic=N`.  `Shadow
-  Magic` is a real spell type in that data but not one of the three the typed
-  `SpellPowerType` understands, so the arm declines it — the same free-string
-  problem `PRESPELLCAST` had in the round that closed the `PREMULT` queue;
-* 1 row is gated on `PREEQUIPTWOWEAPON:2,TYPE=Nekode`, a tag this codebase has no
-  arm for at all;
-* 4 rows remain in the 4e, Final Fantasy and Underdark packs and have not been read
-  yet.
+* 2 rows, in the 4e `players_handbook`, are gated on `PRECLASS:1,TYPE=Base`.  This
+  is broken data rather than a missing model: `PreClassParser` is a list parser, so
+  `TYPE=Base` reaches `Integer.parseInt("Base")` in the single-element branch, the
+  `ANY` escape does not apply and the parser throws a `PersistenceLayerException`.
+  PCGen cannot load the tag either, so there is no behaviour to match;
+* 1 row, in Final Fantasy, is gated on `PRELEGSGT:2`.  `PRELEGSGTEQ` is modelled;
+  the strict sibling is not, and this is the only occurrence;
+* 2 rows, in the Underdark pack and in the curated `_all_35e3e` that includes it,
+  are gated on `PREEQUIPTWOWEAPON:2,TYPE=Nekode`.  The `PREEQUIP*` family is
+  modelled; this member of it is not.
 
 ## The 7 campaigns that could not be transcribed
 

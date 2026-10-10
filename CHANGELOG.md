@@ -7,6 +7,28 @@
 > 0 failed / 2 ignored**（PF35e、cohort matrix、deep-field 均通过；archive differential 为
 > 预期的 `SKIP`）。第三方 unsupported 由 **42 → 32**。
 
+### `PRESPELLTYPE` 的法术类型改为自由文本（第 22 轮，已实测）
+
+- `SpellTypeSpec.power: Option<SpellPowerType>` → `spell_type: Option<String>`，并用
+  `#[serde(default, alias = "power")]` 保证**旧 pack 仍可反序列化**：旧字段里的
+  `"arcane"`/`"divine"` 被当作同名文本读入，`null`（即旧的 `ANY`）依旧表示通配。
+- 语义按 `PreSpellTypeTester` / `countSpellCastTypeLevel`：类型是**文本**，与职业的
+  `FACT:SpellType` 原文做 `equalsIgnoreCase` 比较，`Any` 是通配；**未声明该 fact 的职业被
+  直接跳过**（而不是当成某种类型）。
+- `EffectState.slots_by_power_level` 换成 `spell_slots_by_type: BTreeMap<(String, u32), u32>`
+  （键为法术类型文本），与 `PRESPELLCAST` 的「字符串集合」口径一致。
+- 每个 `type=level` 对**各自计数后再相加**（reference 的列表包装是 countMultiples），因此
+  同一类型的两个对会重复计数，与 reference 一致。
+- 层级按 reference 的 `tokens[tokens.length - 1]` 取（即按**最后一个** `=` 切分）；
+  `=ANY` 合法并被 tester 的 `NumberFormatException` 分支读成 1；其它非数字层级、空类型、
+  以及缺少 `=` 的项都保持 unsupported（reference 会抛异常）。
+- 影响：第三方 unsupported **23 → 5**，其中 18 条正是 `PRESPELLTYPE:1,Shadow Magic=N`
+  （自定义法术类型）。验收 cohort（RSRD）**`PRESPELLTYPE` 与 `PRESPELLCAST` 均为 0 处**，
+  故可证不影响 cohort；coverage gate 15/0/0 实测确认。
+- 剩余 5 条已逐条读取（见 `docs/THIRD_PARTY_TRANSCRIPTION.md`）：2 条
+  `PRECLASS:1,TYPE=Base`（reference 自身会抛 `PersistenceLayerException`，属**坏数据**）、
+  1 条 `PRELEGSGT:2`、2 条 `PREEQUIPTWOWEAPON:2,TYPE=Nekode`。
+
 ### 修复 `PRESPELLCAST`：保留每个 token，并把法术类型当作文本（第 21 轮，已实测）
 
 - `Predicate::HasSpellPower { power: SpellPowerType }` 换成

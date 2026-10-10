@@ -135,6 +135,10 @@ semantic_completion 100.0%
 - **Post-M9**：`PREFACT` → `Predicate::Fact`，新增 `FACT` 模型（`CompiledEntity.facts`
   + `EffectState.location_facts`，只 lower `abilities`/`race` 两个可枚举 location）。
   第三方资料 unsupported **304→42**（`BONUS` 268→23、`PREMULT` 19→2），是本循环最大一次下降。
+- **Post-M9**：`PRESPELLTYPE` 的法术类型改为**自由文本**（`SpellTypeSpec.spell_type`
+  用 serde `alias = "power"` 兼容旧 pack；`spell_slots_by_type` 取代
+  `slots_by_power_level`；未声明 `FACT:SpellType` 的职业被跳过）。第三方 unsupported
+  23→5。
 - **Post-M9**：`PRESPELLCAST` 语义修复：每个逗号 token 都读（多 token = 任一成立），
   法术类型改为**文本**比较（`HasSpellType`，`ClassDefinition.spell_type` 取
   `FACT:SpellType` 原文，未声明为 `None`）。第三方 unsupported 25→23，`PREMULT` 归零。

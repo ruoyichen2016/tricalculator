@@ -810,8 +810,8 @@ see §5aa, §5ab, §5ac and §5ad.  Several names on the original list have sinc
 `PRESPELLSCHOOL` (see §5z), `PRECAMPAIGN` (see §5aa), `PRECHARACTERTYPE`
 (see §5ab), `PRESA` (see §5ac), `PREFACT` (see §5ad), `PREDR` (see §5ae), the
 `PREVAR*` boundary (see §5af), `PREREACH` (see §5ag), `PREITEM` (see §5ah),
-`PRECLASSLEVELMAX` (see §5ai), `PRESKILLTOT` (see §5aj), `PREUATT` (see §5ak) and
-`PRESPELLCAST` (see §5al);
+`PRECLASSLEVELMAX` (see §5ai), `PRESKILLTOT` (see §5aj), `PREUATT` (see §5ak),
+`PRESPELLCAST` (see §5al) and `PRESPELLTYPE` (see §5am);
 `PRELEVEL` now supports both `MIN=` and `MAX=`.  See the current `CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
@@ -1777,6 +1777,61 @@ be answered by a pack's catalogue.
 
 The acceptance cohort contains no `PRESPELLCAST` at all, so the change is provably
 cohort-neutral, and the coverage gate confirmed it rather than assuming it.
+
+### 5am. `PRESPELLTYPE`, which had the same typing problem as `PRESPELLCAST`
+
+The round before this one made `PRESPELLCAST`'s spell type a string.  This one does
+the same for `PRESPELLTYPE`, and for the same reason: the reference treats the type
+as text everywhere, and the data has types the three-variant enum cannot name.
+Eighteen of the twenty-three entries still in the third-party queue were
+`PRESPELLTYPE:1,Shadow Magic=N` — `Shadow Magic` is a real spell type in that data,
+and the typed field is what made the tag unreadable.
+
+`PreSpellTypeTester` does very little of its own work:
+
+```java
+final String castingType = prereq.getKey();
+try { requiredLevel = Integer.parseInt(prereq.getOperand()); }
+catch (NumberFormatException e) { requiredLevel = 1; ... }
+int count = character.countSpellCastTypeLevel(castingType, requiredLevel);
+final int runningTotal = prereq.getOperator().compare(count, 1);
+```
+
+and `countSpellCastTypeLevel` matches the class's `FACT:SpellType` with
+`equalsIgnoreCase`, treating `"Any"` as the wildcard — and **skipping** a class whose
+fact is unset, because it reads the raw fact rather than going through
+`getSpellType`.  That last point is why `ClassDefinition.spell_type` keeps the fact's
+raw text and stays *empty* when the class declares none: `PRESPELLCAST` needs `None`
+there and `PRESPELLTYPE` needs "no entry at all", and the two cannot both be
+expressed by baking one of them into the parsed value.
+
+Three parser details are modelled rather than approximated, all of them read out of
+`AbstractPrerequisiteListParser` rather than guessed:
+
+* the pair is split on its **last** `=`; the reference takes
+  `tokens[tokens.length - 1]` as the value and rebuilds the key from the rest, so
+  `Shadow Magic=1` is the type `Shadow Magic` at level 1;
+* `=ANY` is a legal value (`isAnyLegal()` defaults to true) and the tester's
+  `NumberFormatException` handler turns it into level 1 — which is why the level is
+  no longer simply "must parse";
+* an element with no `=` at all, and a level that is neither a number nor `ANY`,
+  both make the parser throw, so they stay unsupported instead of being guessed at.
+
+Each pair is counted on its own and the counts are summed before the comparison,
+because the list wrapper marks its sub-requirements `countMultiples`; two pairs
+naming the same type therefore count its slots twice, exactly as the reference does.
+
+The stored state changes with it: `EffectState.slots_by_power_level` becomes
+`spell_slots_by_type`, keyed by the spell type text.  That is also closer to
+`countSpellCastTypeLevel`, which has no spellcasting-ability filter — a class with a
+custom spell type and a `CAST` table answers this prerequisite in PCGen whether or
+not it declares a `SPELLSTAT`.
+
+`SpellTypeSpec` is serialised in every stored pack, so the field is renamed with
+`#[serde(default, alias = "power")]`: a pack written while it was a `SpellPowerType`
+carries `"power": "arcane"`, which reads back as the text `arcane` — the same
+comparison, case-insensitively — and `"power": null`, which meant `ANY`, still means
+`ANY`.  A test loads both shapes.
 
 ## What followed from this
 

@@ -77,5 +77,5 @@ fn every_spell_type_pair_is_read() {
 fn any_is_still_understood_alongside_others() {
     let (unsupported, requirements) = lowered("Gated", "PRESPELLTYPE", "1,ANY=3");
     assert!(unsupported.is_empty(), "{unsupported:?}");
-    assert!(requirements.contains("power: None"), "{requirements}");
+    assert!(requirements.contains("spell_type: None"), "{requirements}");
 }

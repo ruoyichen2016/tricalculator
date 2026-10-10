@@ -10,8 +10,8 @@
 - 工作区：10 crate（core / formula / ir / import / engine / builder / output /
   cli / web / **transpile**）。`pcgen-transpile` 是构建期转写器，把
   `.pcc`/`.lst` 规范化成 pack 目录，使运行期不再解释 PCGen 文本。
-- 测试：`cargo test --workspace` **565 passed / 2 ignored**（`scripts/check.sh`
-  额外再跑一次 `pcgen-web`，合计 **604 passed / 2 ignored**）。
+- 测试：`cargo test --workspace` **571 passed / 2 ignored**（`scripts/check.sh`
+  额外再跑一次 `pcgen-web`，合计 **610 passed / 2 ignored**）。
 - **第 13–17 轮批量验证已完成**：按用户要求把编译攒到批次末尾一次执行；批次后
   `cargo test --workspace` **547 passed / 2 ignored**，clippy / fmt / coverage gate
   （15/0/0）/ broad oracle（字段级 100%）/ `scripts/check.sh`（**586 passed / 2 ignored**）
@@ -25,12 +25,12 @@
   17 → 0，连带 `PREMULT` 31 → 28；`PREALIGN` 8 → 0；`PRECSKILL`/`!PRECSKILL`
   30 → 0 并连带 319 条以它为 gate 的 `BONUS`，`BONUS` 599 → 280；`PREREGION`
   65 → 0 并连带 `PREMULT` 387 → 31）。此后 `PRESKILLTOT` 3 → 0、`PREUATT` 4 → 0（32 → 25），`PRESPELLCAST` 修好后
-  `PREMULT` 2 → 0（25 → **23**）。剩余 23 条**全部是** `BONUS`，即「gate 不可读但效果保留」
-  的可见过近似，不是被丢弃的效果。读它们各自的 gate 可见：18 条是
-  `PRESPELLTYPE:1,Shadow Magic=N`（自定义法术类型，与 `PRESPELLCAST` 同类问题，**可建模**）、
-  1 条是 `PREEQUIPTWOWEAPON:2,TYPE=Nekode`（本代码库**尚无该 tag**），另有 4 条尚未读取。
-  因此循环继续，直到这批 gate 也被判定为已建模或明确 out-of-scope。这些 pack 在验收
-  cohort 之外，门禁不覆盖它们。
+  `PREMULT` 2 → 0（25 → 23），`PRESPELLTYPE` 的文本化再清掉 18 条（23 → **5**）。
+  剩余 5 条**全部是** `BONUS`，即「gate 不可读但效果保留」的可见过近似，不是被丢弃的
+  效果；逐条读出后为：2 条 `PRECLASS:1,TYPE=Base`（reference 自身抛异常，**坏数据**）、
+  1 条 `PRELEGSGT:2`（缺 `GTEQ` 的严格兄弟）、2 条 `PREEQUIPTWOWEAPON:2,TYPE=Nekode`
+  （`PREEQUIP*` 家族的缺项）。后两者仍可建模，故循环继续；这两个 tag 处理完后需要重新
+  评估停止条件。这些 pack 在验收 cohort 之外，门禁不覆盖它们。
 - **已知缺口（独立一轮，已量化）**：按身份选取的实体（RACE/TEMPLATE/EQUIPMOD/…）
   其 `requirements` 只在**授予路径**上被检查，`initial_entities` 不看它们。RSRD 中
   同时带 requirements 与 effects 的此类实体：EQUIPMOD 402、TEMPLATE 155、ABILITY 141、
