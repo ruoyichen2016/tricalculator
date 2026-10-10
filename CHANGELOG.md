@@ -5,6 +5,20 @@
 > 因此下面这一节的**测试数量与 unsupported 数字是待验证的预期值**，验证后会在批次收尾
 > 轮统一订正。
 
+### 补齐谓词：`PREREACH` 及其六个比较 kind（待批量验证）
+
+- 新增 `Predicate::ReachAtLeast { feet }` / `ReachAtMost { feet }`；严格、相等、不等
+  三种 kind 按 size 家族已有的写法**组合**出来（`GT` = 至少 且 非至多，`LT` 反之，
+  `EQ` = 两者，`NEQ` = 两者的否定），不引入比较符枚举。
+- 语义按 `PreReachParser`（`compType = kind.substring(5)`，空即 `gteq`）与
+  `PreReachTester`（`ReachFacet.getReach` 与操作数比较）。**`ReachFacet` 只读种族与
+  模板**：`IntegerKey.REACH` 的默认值是 **5**（不是 0），种族未设该键时按 5 计；模板
+  覆盖种族值；最后加 `BONUS:COMBAT|REACH`。**刻意不读能力**——数据里带 `REACH:` 的行
+  （野性变身形态）在 `ph_templates.lst` 里本来就是模板，而 facet 也不读能力。
+- 第三方资料：unsupported 预期 39 → 36（`PREREACHGTEQ` 3 → 0）；`PREREACHGTEQ:CL+5`
+  这类非整数操作数（reference 的 `Integer.parseInt` 会失败）保持 unsupported。
+- 测试数量与门禁在批次收尾轮统一确认。
+
 ### 修复 `PREVAR*` 的边界与字面量操作数（待批量验证，非 unsupported 项）
 
 - `Predicate::VariableCompare` 新增 `strict`（`#[serde(default)]`），把

@@ -135,6 +135,9 @@ semantic_completion 100.0%
 - **Post-M9**：`PREFACT` → `Predicate::Fact`，新增 `FACT` 模型（`CompiledEntity.facts`
   + `EffectState.location_facts`，只 lower `abilities`/`race` 两个可枚举 location）。
   第三方资料 unsupported **304→42**（`BONUS` 268→23、`PREMULT` 19→2），是本循环最大一次下降。
+- **Post-M9（待批量验证）**：`PREREACH`/`PREREACHGTEQ` 等 7 个 kind →
+  `Predicate::ReachAtLeast` / `ReachAtMost`（按 size 家族的组合写法），新增
+  `EffectState.reach_feet`（种族 REACH，默认 5；模板覆盖；`BONUS:COMBAT|REACH` 相加）。
 - **Post-M9（待批量验证）**：`PREVAR*` 语义修复（非 unsupported 项）：
   `VariableCompare` 新增 `strict` 以区分 GT/GTEQ 与 LT/LTEQ 的边界（第三方 2519 对
   符号操作数受影响），`variable_value` 增加字面量回退。

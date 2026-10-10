@@ -1631,3 +1631,72 @@ fn the_old_variable_compare_shape_still_loads() {
         }
     );
 }
+
+#[test]
+fn prereach_kinds_compose_from_the_two_directions() {
+    // The third-party form: the feat `Large and in Charge` needs reach 10.
+    let feat = record("FEAT", "Large and in Charge", &[("PREREACHGTEQ", "10")]);
+    let (pack, report) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[feat]);
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::ReachAtLeast { feet: 10 }
+    );
+
+    // The other kinds compose the way the size family does; a bare `PREREACH`
+    // means `gteq`, which is what `kind.substring(5)` being empty gives.
+    let cases = [
+        ("PREREACH", Predicate::ReachAtLeast { feet: 10 }),
+        ("PREREACHLTEQ", Predicate::ReachAtMost { feet: 10 }),
+        (
+            "PREREACHEQ",
+            Predicate::All(vec![
+                Predicate::ReachAtLeast { feet: 10 },
+                Predicate::ReachAtMost { feet: 10 },
+            ]),
+        ),
+        (
+            "PREREACHGT",
+            Predicate::All(vec![
+                Predicate::ReachAtLeast { feet: 10 },
+                Predicate::Not(Box::new(Predicate::ReachAtMost { feet: 10 })),
+            ]),
+        ),
+        (
+            "PREREACHLT",
+            Predicate::All(vec![
+                Predicate::ReachAtMost { feet: 10 },
+                Predicate::Not(Box::new(Predicate::ReachAtLeast { feet: 10 })),
+            ]),
+        ),
+        (
+            "PREREACHNEQ",
+            Predicate::Not(Box::new(Predicate::All(vec![
+                Predicate::ReachAtLeast { feet: 10 },
+                Predicate::ReachAtMost { feet: 10 },
+            ]))),
+        ),
+    ];
+    for (tag, expected) in cases {
+        let row = record("FEAT", "Reach Gate", &[(tag, "10")]);
+        let (pack, report) =
+            lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[row]);
+        assert_eq!(report.coverage.unsupported_tags, 0, "{tag}");
+        assert_eq!(pack.entities[0].requirements[0], expected, "{tag}");
+    }
+
+    // The tester parses the operand with `Integer.parseInt`, so anything else is
+    // malformed rather than a formula to evaluate.
+    let symbolic = record("FEAT", "Reach Formula", &[("PREREACHGTEQ", "CL+5")]);
+    let (pack, report) = lower_records(
+        Some("35e".to_string()),
+        vec!["pred".to_string()],
+        &[symbolic],
+    );
+    assert!(pack.entities[0].requirements.is_empty());
+    assert_eq!(report.coverage.unsupported_tags, 1);
+}

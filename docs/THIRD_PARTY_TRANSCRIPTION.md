@@ -158,6 +158,10 @@ rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
   lowered to one shape that the engine read as strict. **2,519** pairs in these
   packs have a symbolic operand and were compared one step too strictly. Nothing
   moves in the table below, because `PREVAR*` already lowered;
+- `PREREACHGTEQ` (3 tags), lowered to `Predicate::ReachAtLeast` — and, because the
+  reference reads the comparison out of the tag name, the other six kinds of the
+  family with it. Pending the batch verification, so the total below does not yet
+  include it;
 - `PREDR` (3 tags), lowered to `Predicate::DamageReduction`. Pending the batch
   verification described at the top of `CHANGELOG.md`, so the total below does not
   yet include it;

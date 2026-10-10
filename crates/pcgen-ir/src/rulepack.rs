@@ -2199,6 +2199,33 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 Some(Predicate::HasSpellPower { power })
             }
         }
+        // PREREACH and its six operator kinds.  `PreReachParser` reads the
+        // comparison out of the tag name (`kind.substring(5)`, empty meaning
+        // `gteq`) and `PreReachTester` compares the character's reach with the
+        // operand, so the strict and equal kinds compose from the two directions
+        // exactly as the size family does.
+        "PREREACH" | "PREREACHEQ" | "PREREACHGT" | "PREREACHGTEQ" | "PREREACHLT"
+        | "PREREACHLTEQ" | "PREREACHNEQ" => {
+            let feet = body.trim().parse::<i32>().ok()?;
+            let at_least = Predicate::ReachAtLeast { feet };
+            let at_most = Predicate::ReachAtMost { feet };
+            match tag_upper.as_str() {
+                "PREREACH" | "PREREACHGTEQ" => Some(at_least),
+                "PREREACHLTEQ" => Some(at_most),
+                "PREREACHEQ" => Some(Predicate::All(vec![at_least, at_most])),
+                "PREREACHGT" => Some(Predicate::All(vec![
+                    at_least,
+                    Predicate::Not(Box::new(at_most)),
+                ])),
+                "PREREACHLT" => Some(Predicate::All(vec![
+                    at_most,
+                    Predicate::Not(Box::new(at_least)),
+                ])),
+                _ => Some(Predicate::Not(Box::new(Predicate::All(vec![
+                    at_least, at_most,
+                ])))),
+            }
+        }
         // PRESIZEEQ / PRESIZEGTEQ use the creature's current size.
         "PRESIZEEQ" => {
             let size = parts.iter().rev().find(|part| !part.is_empty())?;

@@ -808,8 +808,8 @@ see §5aa, §5ab, §5ac and §5ad.  Several names on the original list have sinc
 (see §5u), `PRECSKILL` (see §5v), `PREALIGN`'s value forms (see §5w),
 `PRECHECK` (see §5x), `PRESPELLDESCRIPTOR` (see §5y), `PRESPELLSCHOOLSUB` and
 `PRESPELLSCHOOL` (see §5z), `PRECAMPAIGN` (see §5aa), `PRECHARACTERTYPE`
-(see §5ab), `PRESA` (see §5ac), `PREFACT` (see §5ad), `PREDR` (see §5ae) and the
-`PREVAR*` boundary (see §5af);
+(see §5ab), `PRESA` (see §5ac), `PREFACT` (see §5ad), `PREDR` (see §5ae), the
+`PREVAR*` boundary (see §5af) and `PREREACH` (see §5ag);
 `PRELEVEL` now supports both `MIN=` and `MAX=`.  See the current `CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
@@ -1461,6 +1461,59 @@ full expression evaluation.
 Old packs keep loading: `strict` is `serde(default)`, so a pack written before the
 boundary was kept reads as the inclusive form — which is what `GTEQ` and `LTEQ`
 mean, and 34,737 of the 34,742 pairs use those two kinds.
+
+### 5ag. `PREREACH`, whose operator lives in the tag name
+
+`PreReachParser` handles seven kinds and takes the comparison straight out of the
+kind's suffix:
+
+```java
+String compType = kind.substring(5);
+if (compType.isEmpty()) compType = "gteq";
+prereq.setOperator(compType);
+prereq.setOperand(formula);
+```
+
+so `PREREACH:10` and `PREREACHGTEQ:10` are the same test, `PREREACHLTEQ` is `<=`,
+and `PREREACHGT`/`LT`/`EQ`/`NEQ` fill out the set. `PreReachTester` then compares
+`ReachFacet.getReach` with the operand and returns 0 or 1.
+
+The two directions are modelled as `ReachAtLeast` / `ReachAtMost` and the other
+four kinds are **composed** from them — `GT` is "at least and not at most", `LT` the
+reverse, `EQ` both, `NEQ` the negation — which is how `PRESIZEEQ` and `PRESIZELT`
+already compose the size family, and avoids inventing a comparison-operator type for
+one family.
+
+**Where the reach comes from** is the part worth writing down, because it is
+narrower than it looks:
+
+```java
+final Race aRace = raceFacet.get(id);
+int reach = 0;
+if (aRace != null) reach = aRace.getSafe(IntegerKey.REACH);
+for (PCTemplate template : templateFacet.getSet(id)) {
+    Integer r = template.get(IntegerKey.REACH);
+    if (r != null) reach = r;
+}
+reach += (int) bonusCheckingFacet.getBonus(id, "COMBAT", "REACH");
+```
+
+Three things follow. `IntegerKey.REACH` is declared as `getConstant("REACH", 5)`, so
+`getSafe` returns **5**, not 0, when the race never sets the key. A template
+*overrides* the race rather than adding to it — and the last template with a value
+wins, not the largest. And `BONUS:COMBAT|REACH` is added last, which in this
+codebase is an ordinary modifier on the target `COMBAT.REACH` in
+`external_modifiers`, so evaluation adds it without needing a second pass.
+
+**Abilities are deliberately not consulted.** In the third-party data most `REACH:`
+rows sit on wild-shape forms, which looks like an ability carrying reach — but they
+are in `ph_templates.lst`, and `ReachFacet` reads only the race and the templates.
+Reading every active entity's reach (which is what the snapshot's merged
+`reach_feet` does) would have made `PREREACHGTEQ:10` true for a druid who had merely
+*learned* a form.
+
+The operand must be an integer: `Integer.parseInt` is what the tester calls, so
+`PREREACHGTEQ:CL+5` stays unsupported rather than being evaluated as a formula.
 
 ## What followed from this
 

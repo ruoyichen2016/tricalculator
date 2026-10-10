@@ -94,6 +94,16 @@ pub struct EffectState {
     /// that belong to it, for `PRESPELLSCHOOL`.  Same shape and same reason as
     /// [`Self::spell_descriptors`].
     pub spell_schools: BTreeMap<String, Vec<u32>>,
+    /// The character's reach in feet, for `PREREACH`.
+    ///
+    /// `ReachFacet.getReach` reads the *race's* `REACH` — whose key default is 5 —
+    /// then lets any template override it, and finally adds
+    /// `BONUS:COMBAT|REACH`.  Abilities are deliberately not consulted: the facet
+    /// does not read them, and the wild-shape rows that carry `REACH:` in the data
+    /// are templates.
+    /// `None` means the character has no reach of its own, which PCGen reads as
+    /// the key's default of 5 feet rather than as zero.
+    pub reach_feet: Option<i32>,
     /// The character's own damage reduction by type (lower-cased), for `PREDR`.
     ///
     /// This is PCGen's *non-bonus* half: `BONUS:DR|<type>` arrives as an ordinary
@@ -626,6 +636,24 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         }
     }
     state.damage_reduction = damage_reduction;
+
+    // `ReachFacet.getReach`, in the same pre-loop pass: the race's `REACH` (the
+    // key's default is 5) with templates overriding it.  `BONUS:COMBAT|REACH` is
+    // added at evaluation time, where it is order-independent.
+    let mut reach_feet = None;
+    for index in &initial {
+        let Some(entity) = pack.entities.get(*index) else {
+            continue;
+        };
+        if entity.category == pcgen_core::EntityCategory::Race {
+            reach_feet = entity.traits.reach_feet;
+        } else if entity.category == pcgen_core::EntityCategory::Template {
+            if entity.traits.reach_feet.is_some() {
+                reach_feet = entity.traits.reach_feet;
+            }
+        }
+    }
+    state.reach_feet = reach_feet;
 
     for index in initial {
         queued.insert(index);
@@ -1550,6 +1578,19 @@ fn spell_trait_count(levels: Option<&Vec<u32>>, min_level: u32) -> u32 {
         .unwrap_or(0)
 }
 
+/// `ReachFacet.getReach`: the base reach plus `BONUS:COMBAT|REACH`.
+fn reach_value(state: &EffectState) -> i32 {
+    let bonus: i32 = state
+        .external_modifiers
+        .iter()
+        .filter(|(name, _)| name.eq_ignore_ascii_case("COMBAT.REACH"))
+        .map(|(_, value)| *value)
+        .sum();
+    // `IntegerKey.REACH` is declared with a default of 5, and `getSafe` returns
+    // that default when the race never set the key.
+    state.reach_feet.unwrap_or(5) + bonus
+}
+
 /// Split a `DR:` value such as `5/Magic` into its amount and its type.
 ///
 /// The type is lower-cased because `PREDR` and `BONUS:DR` name it in whatever
@@ -1808,6 +1849,8 @@ pub(crate) fn predicate_holds(
             met >= (*min_count).max(1)
         }
         Predicate::Gender { prefix } => draft.gender.starts_with(prefix.as_str()),
+        Predicate::ReachAtLeast { feet } => reach_value(&state) >= *feet,
+        Predicate::ReachAtMost { feet } => reach_value(&state) <= *feet,
         // `PreDamageReductionTester` compares the character's reduction for one
         // type with the pair's value; its sub-prerequisites are not
         // `countMultiples`, so each contributes 0 or 1 and the wrapper counts how

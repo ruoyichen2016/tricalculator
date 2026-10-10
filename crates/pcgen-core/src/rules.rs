@@ -148,6 +148,21 @@ pub enum Predicate {
     SizeAtMost {
         size: String,
     },
+    /// Creature reach is at least this many feet (PCGen `PREREACH` and
+    /// `PREREACHGTEQ`).
+    ///
+    /// `PreReachParser` takes the comparison from the kind's suffix —
+    /// `kind.substring(5)`, defaulting to `gteq` for a bare `PREREACH` — and
+    /// `PreReachTester` compares `ReachFacet.getReach` with the operand.  The
+    /// strict, equal and unequal kinds are composed from these two directions the
+    /// way the size family already is.
+    ReachAtLeast {
+        feet: i32,
+    },
+    /// Creature reach is at most this many feet (PCGen `PREREACHLTEQ`).
+    ReachAtMost {
+        feet: i32,
+    },
     /// Creature has at least this many legs (PCGen `PRELEGSGTEQ`).
     LegsAtLeast {
         count: u32,
