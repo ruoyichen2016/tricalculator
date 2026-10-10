@@ -10,6 +10,12 @@
 /dist/
 /data/packs/*/
 
+# Third-party packs transcribed into the canonical pack format.  The sources
+# under data/packs/custom/ are other publishers' copyrighted material and are
+# local-only, so their transcriptions are too: build them with
+# `pcgen transpile`, never commit them.
+/data/packs/transcribed/
+
 !/data/packs/custom/
 !/data/packs/custom/README.md
 !/data/packs/custom/original/

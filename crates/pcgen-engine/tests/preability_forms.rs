@@ -183,3 +183,54 @@ fn both_type_spellings_are_read() {
         ]
     ));
 }
+
+/// The lowered `PREABILITY` predicate, for asserting on the reading itself.
+fn lowered(preability: &str) -> String {
+    let records = vec![record(
+        "ABILITY",
+        "Gated",
+        &[("CATEGORY", "Special Ability"), ("PREABILITY", preability)],
+    )];
+    let (pack, _) = lower_records(Some("35e".to_string()), Vec::new(), &records);
+    let entity = pack
+        .entities
+        .iter()
+        .find(|entity| entity.id.key.eq_ignore_ascii_case("gated"))
+        .expect("Gated");
+    assert!(
+        entity.unsupported_tags.is_empty(),
+        "must parse: {:?}",
+        entity.unsupported_tags
+    );
+    format!("{:?}", entity.requirements[0])
+}
+
+#[test]
+fn a_name_containing_an_equals_sign_is_not_discarded() {
+    // `Weapon Focus (TYPE=Bow)` is one ability name, not a `key=value`
+    // qualifier. Skipping every part containing `=` emptied the wanted list, so
+    // the whole predicate was reported unsupported — 45 values in the curated
+    // packs were lost this way.
+    //
+    // The reference splits the name into key `Weapon Focus` and sub-key
+    // `TYPE=Bow`, then resolves the sub-key against the ability's association
+    // list and the weapon proficiency's types. That is not modelled, so the text
+    // is kept verbatim and matches only that exact name: it fails closed rather
+    // than silently accepting any `Weapon Focus`.
+    assert_eq!(
+        lowered("1,CATEGORY=Feat,Weapon Focus (TYPE=Bow)"),
+        "AbilityRequirement { category: \"Feat\", wanted: [Name(\"Weapon Focus (TYPE=Bow)\")], excluded: [], min_count: 1 }"
+    );
+}
+
+#[test]
+fn checkmult_is_a_flag_and_not_a_wanted_ability() {
+    // `CHECKMULT` marks the requirement as counting multiple instances of the
+    // same ability. Read as a name it became a phantom ability in the wanted
+    // list. Counting multiples is still not modelled, but the flag must not
+    // masquerade as a requirement.
+    assert_eq!(
+        lowered("1,CHECKMULT,CATEGORY=Feat,Power Attack"),
+        "AbilityRequirement { category: \"Feat\", wanted: [Name(\"Power Attack\")], excluded: [], min_count: 1 }"
+    );
+}

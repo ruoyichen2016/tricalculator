@@ -37,11 +37,12 @@ pub fn load_pcc(path: impl AsRef<Path>) -> Result<LoadedPcc, ImportError> {
     for file in graph.files_in_load_order() {
         let source_id = file.path.display().to_string();
         for data_file in &file.data_files {
-            let text =
-                fs::read_to_string(&data_file.resolved_path).map_err(|source| ImportError::Io {
+            let text = crate::text::read_text(&data_file.resolved_path).map_err(|source| {
+                ImportError::Io {
                     path: data_file.resolved_path.clone(),
                     source,
-                })?;
+                }
+            })?;
             let lines = tokenize_lst(data_file.resolved_path.clone(), source_id.clone(), &text);
             for line in lines {
                 let source = SourceRef::new(

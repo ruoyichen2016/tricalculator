@@ -227,3 +227,62 @@ fn prespelltype_accepts_any_power() {
         "SpellType { specs: [SpellTypeSpec { power: None, min_level: 3 }], count: 1 }"
     );
 }
+
+/// The lowered `PRECLASS` predicate, for asserting on the reading itself.
+fn lowered(preclass: &str) -> String {
+    let records = vec![record(
+        "ABILITY",
+        "Gated",
+        &[("CATEGORY", "Special Ability"), ("PRECLASS", preclass)],
+    )];
+    let (pack, _) = lower_records(Some("35e".to_string()), Vec::new(), &records);
+    let entity = pack
+        .entities
+        .iter()
+        .find(|entity| entity.id.key.eq_ignore_ascii_case("gated"))
+        .expect("Gated");
+    assert!(
+        entity.unsupported_tags.is_empty(),
+        "must parse: {:?}",
+        entity.unsupported_tags
+    );
+    format!("{:?}", entity.requirements[0])
+}
+
+/// Was the `PRECLASS` value reported as unsupported rather than transcribed?
+fn unsupported(preclass: &str) -> bool {
+    let records = vec![record(
+        "ABILITY",
+        "Gated",
+        &[("CATEGORY", "Special Ability"), ("PRECLASS", preclass)],
+    )];
+    let (pack, _) = lower_records(Some("35e".to_string()), Vec::new(), &records);
+    let entity = pack
+        .entities
+        .iter()
+        .find(|entity| entity.id.key.eq_ignore_ascii_case("gated"))
+        .expect("Gated");
+    !entity.unsupported_tags.is_empty()
+}
+
+#[test]
+fn a_class_name_may_omit_the_level() {
+    // `PRECLASS:1,Bard` — the Babylon 5 and Star Wars templates are written this
+    // way. The reference reads the whole part as the key and falls back to the
+    // count for the level, so this is "a Bard of at least 1st". Requiring
+    // `=level` dropped all 21 of them.
+    assert_eq!(
+        lowered("1,Bard"),
+        "ClassRequirement { specs: [Class { class_id: \"Bard\", min_level: 1 }], min_count: 1 }"
+    );
+}
+
+#[test]
+fn a_non_numeric_level_is_reported_rather_than_transcribed() {
+    // `SPELLCASTER.Divine=9th`: the reference reads the whole part as the key and
+    // the level as the count, producing the key `SPELLCASTER.Divine=9th`, which
+    // can never name a class. Transcribing that would carry nonsense forward, so
+    // the predicate is left unsupported and the value is reported instead.
+    assert!(unsupported("1,SPELLCASTER.Divine=9th"));
+    assert!(unsupported("1,SPELLCASTER.Arcane=1st+ level."));
+}

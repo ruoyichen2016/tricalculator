@@ -12,7 +12,6 @@
 
 pub use pcgen_ir::tags::{is_known_tag, is_name_prefix_tag};
 use serde::{Deserialize, Serialize};
-use std::fs;
 use std::path::{Path, PathBuf};
 
 /// Location of a source line.
@@ -193,7 +192,7 @@ pub fn tokenize_lst_file(
     source_id: impl Into<String>,
 ) -> std::io::Result<Vec<RawLstLine>> {
     let path = path.as_ref();
-    let text = fs::read_to_string(path)?;
+    let text = crate::text::read_text(path)?;
     Ok(tokenize_lst(path.to_path_buf(), source_id, &text))
 }
 

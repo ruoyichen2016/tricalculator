@@ -186,6 +186,24 @@ pub fn build_typed_definitions(records: &[RawRecord]) -> TypedDefinitions {
         }
     }
 
+    // A variant's owner is inferred from hints in the record
+    // (`PREVARGTEQ:BarbarianLVL,5`, `SORTKEY`, the `KEY:` group, an anchor type
+    // tag), and a hint is sometimes a group or pool name rather than a class.
+    // The loader refuses a pack whose variant names an undeclared class, so an
+    // unsubstantiated owner is dropped here rather than written out as a pack
+    // that cannot be read back.
+    let declared: Vec<String> = typed.classes.keys().cloned().collect();
+    for variant in typed.variants.values_mut() {
+        let unsubstantiated = variant.applies_to.as_deref().is_some_and(|class| {
+            !declared
+                .iter()
+                .any(|known| known.eq_ignore_ascii_case(class))
+        });
+        if unsubstantiated {
+            variant.applies_to = None;
+        }
+    }
+
     typed.progressions = typed
         .classes
         .values()
@@ -1310,26 +1328,43 @@ fn apply_acf_conventions(record: &RawRecord, variant: &mut VariantDefinition) {
         .or_else(|| tag(record, "SORTKEY").map(str::to_string))
         .or_else(|| {
             let owner = record.key.split_once('~').map(|(owner, _)| owner.trim())?;
-            // `Totem Barbarian` -> `Barbarian`: a trailing word that is itself a
-            // known class prefix of some anchor tag.
-            let last = owner.split_whitespace().last().unwrap_or(owner);
-            let has_anchor = type_tags.iter().any(|tag| {
-                let lower = tag.to_ascii_lowercase();
-                let probe = last.to_ascii_lowercase();
-                lower.starts_with(&probe) && lower.len() > probe.len() && !tag.contains(' ')
+            // A pool name is not part of the class: `Wizard ACF` -> `Wizard`, and
+            // a bare `ACF` leaves nothing. `KEY:ACF ~ Bard Inspire Competence`
+            // named the *pool*, and taking it as the owner produced a variant
+            // whose class no pack declares — the pack then refused to load back.
+            let owner = owner
+                .split_whitespace()
+                .filter(|word| !is_pool_name(word))
+                .collect::<Vec<_>>()
+                .join(" ");
+            if owner.is_empty() {
+                return None;
+            }
+            // A group name need not be the class: `Totem Barbarian` ->
+            // `Barbarian` (the last word) but `Bard Variant` -> `Bard` (the
+            // first). The class is whichever word names a displaced-feature
+            // anchor, preferring the last so the common case is unchanged.
+            let anchor_word = owner.split_whitespace().rfind(|word| {
+                let probe = word.to_ascii_lowercase();
+                type_tags.iter().any(|tag| {
+                    let lower = tag.to_ascii_lowercase();
+                    lower.starts_with(&probe) && lower.len() > probe.len() && !tag.contains(' ')
+                })
             });
-            Some(if has_anchor {
-                last.to_string()
-            } else {
-                owner.to_string()
+            Some(match anchor_word {
+                Some(word) => word.to_string(),
+                None => owner,
             })
         })
         .or_else(|| {
-            type_tags
+            let group = type_tags
                 .iter()
-                .find(|tag| !descriptors.contains(&tag.to_ascii_lowercase().as_str()))
-                .and_then(|group| group.split_whitespace().next())
-                .map(str::to_string)
+                .find(|tag| !descriptors.contains(&tag.to_ascii_lowercase().as_str()))?;
+            // A displaced-feature anchor is `<Class><Feature>`, so the class is the
+            // leading run before the first lower-to-upper boundary:
+            // `BardInspireCompetence` -> `Bard`. Using the whole tag invented a
+            // class name that no pack declares.
+            Some(class_prefix(group.split_whitespace().next()?).to_string())
         });
 
     let owner = class_hint.unwrap_or_default();
@@ -1364,6 +1399,23 @@ fn apply_acf_conventions(record: &RawRecord, variant: &mut VariantDefinition) {
     if !leveled.is_empty() {
         variant.grants = leveled;
     }
+}
+
+/// Pool names that appear where a class name would but are not classes.
+fn is_pool_name(name: &str) -> bool {
+    name.eq_ignore_ascii_case("ACF") || name.eq_ignore_ascii_case("Internal")
+}
+
+/// The class named by a displaced-feature anchor: `BardInspireCompetence` ->
+/// `Bard`. A tag with no lower-to-upper boundary is returned whole.
+fn class_prefix(tag: &str) -> &str {
+    let bytes = tag.as_bytes();
+    for index in 1..bytes.len() {
+        if bytes[index - 1].is_ascii_lowercase() && bytes[index].is_ascii_uppercase() {
+            return &tag[..index];
+        }
+    }
+    tag
 }
 
 /// The class named by a `PREVARGTEQ:<Class>LVL,<n>` guard, if any.
@@ -1740,5 +1792,65 @@ mod tests {
         assert!(spell.is_psionic);
         assert_eq!(spell.class_levels.get("Psion"), Some(&1));
         assert_eq!(spell.class_levels.get("Wilder"), Some(&1));
+    }
+
+    #[test]
+    fn pool_names_are_recognised() {
+        assert!(is_pool_name("ACF"));
+        assert!(is_pool_name("acf"));
+        assert!(is_pool_name("Internal"));
+        assert!(!is_pool_name("Bard"));
+        assert!(!is_pool_name("Barbarian"));
+    }
+
+    #[test]
+    fn an_anchor_splits_at_the_class_feature_boundary() {
+        // A displaced-feature anchor is `<Class><Feature>`.
+        assert_eq!(class_prefix("BardInspireCompetence"), "Bard");
+        assert_eq!(class_prefix("BarbarianUncannyDodge"), "Barbarian");
+        assert_eq!(class_prefix("DruidWoodlandStride"), "Druid");
+        // No boundary: the tag is already a class.
+        assert_eq!(class_prefix("Bard"), "Bard");
+    }
+
+    #[test]
+    fn a_pool_name_is_not_a_class_and_the_anchor_names_one() {
+        // `KEY:ACF ~ Bard Inspire Competence` names the *pool* in its `KEY:`
+        // prefix. Taking it as the owner produced a variant whose class no pack
+        // declares, so the pack refused to load back; the class is really the
+        // anchor's `Bard` prefix.
+        let bard = record("CLASS", "Bard", &[("HD", "6"), ("TYPE", "PC.Base")]);
+        let acf = record(
+            "ABILITY",
+            "ACF ~ Bard Inspire Competence",
+            &[("CATEGORY", "ACF"), ("TYPE", "BardInspireCompetence")],
+        );
+        let typed = build_typed_definitions(&[bard, acf]);
+        let variant = typed.variants.values().next().expect("variant");
+        assert_eq!(variant.applies_to.as_deref(), Some("Bard"));
+        assert!(
+            variant
+                .replaces
+                .iter()
+                .any(|target| target.contains("BardInspireCompetence")),
+            "the displaced anchor must be recorded: {:?}",
+            variant.replaces
+        );
+    }
+
+    #[test]
+    fn an_unsubstantiated_owner_is_dropped() {
+        // `Rage Choice ~ Hunter` infers the owner `Rage Choice`, which is a group
+        // name. The pack declares no such class, and the loader refuses a pack
+        // whose variant names an undeclared class, so the owner is dropped rather
+        // than written out.
+        let ability = record(
+            "ABILITY",
+            "Rage Choice ~ Hunter",
+            &[("CATEGORY", "ACF"), ("TYPE", "SpecialQuality")],
+        );
+        let typed = build_typed_definitions(&[ability]);
+        let variant = typed.variants.values().next().expect("variant");
+        assert_eq!(variant.applies_to, None);
     }
 }

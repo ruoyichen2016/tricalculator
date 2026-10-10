@@ -125,7 +125,7 @@ impl PccFile {
     /// Load and parse a `.pcc` file from disk.
     pub fn load(path: impl AsRef<Path>) -> Result<Self, PccError> {
         let path = path.as_ref();
-        let text = fs::read_to_string(path).map_err(|source| PccError::Io {
+        let text = crate::text::read_text(path).map_err(|source| PccError::Io {
             path: path.to_path_buf(),
             source,
         })?;

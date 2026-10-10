@@ -21,7 +21,7 @@ pub enum PcgDraftError {
 }
 
 pub fn parse_pcg_draft_file(path: impl AsRef<Path>) -> Result<PcgDraft, PcgDraftError> {
-    let text = fs::read_to_string(path)?;
+    let text = crate::text::read_text(path)?;
     parse_pcg_draft_str(&text)
 }
 

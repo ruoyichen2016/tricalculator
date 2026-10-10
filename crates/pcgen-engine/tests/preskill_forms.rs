@@ -145,3 +145,60 @@ fn the_rank_threshold_is_per_skill() {
     assert!(!active("1,TYPE.Perform=5", &[("Perform (Dance)", 4.9)]));
     assert!(active("1,TYPE.Perform=5", &[("Perform (Dance)", 5.0)]));
 }
+
+/// The lowered `PRESKILL` predicate, for asserting on the reading itself.
+///
+/// The reference splits the part on every `=` and takes the value from the
+/// *last* segment, so a name may contain `=`. Splitting on the first `=` left
+/// `Knowledge (TYPE=Other)=3` as name `Knowledge (TYPE` plus ranks `Other)=3`,
+/// which failed to parse and dropped the requirement.
+fn lowered(preskill: &str) -> String {
+    let records = vec![record(
+        "ABILITY",
+        "Gated",
+        &[("CATEGORY", "Special Ability"), ("PRESKILL", preskill)],
+    )];
+    let (pack, _) = lower_records(Some("35e".to_string()), Vec::new(), &records);
+    let entity = pack
+        .entities
+        .iter()
+        .find(|entity| entity.id.key.eq_ignore_ascii_case("gated"))
+        .expect("Gated");
+    assert!(
+        entity.unsupported_tags.is_empty(),
+        "must parse: {:?}",
+        entity.unsupported_tags
+    );
+    format!("{:?}", entity.requirements[0])
+}
+
+#[test]
+fn a_skill_name_may_contain_an_equals_sign() {
+    // The reference's own example: three ranks in the skill named
+    // `Knowledge (TYPE=Other)`.
+    assert_eq!(
+        lowered("1,Knowledge (TYPE=Other)=3"),
+        "SkillRanks { specs: [SkillRequirement { name: \"Knowledge (TYPE=Other)\", is_type: false, min_ranks: 3 }], min_count: 1 }"
+    );
+}
+
+#[test]
+fn the_equals_spelling_of_a_type_keeps_its_rank() {
+    // `TYPE=Perform=8` — the rank is after the last `=`, the key is the `TYPE=`
+    // spelling of a skill type.
+    assert_eq!(
+        lowered("1,TYPE=Perform=8"),
+        "SkillRanks { specs: [SkillRequirement { name: \"Perform\", is_type: true, min_ranks: 8 }], min_count: 1 }"
+    );
+}
+
+#[test]
+fn the_equals_spelling_of_a_type_may_omit_the_rank() {
+    // `PRESKILL:3,TYPE=Knowledge` — the Draconomicon writes the type with `=`
+    // and no rank at all. The reference falls back to the count for the value,
+    // so this is three ranks in a Knowledge-type skill.
+    assert_eq!(
+        lowered("3,TYPE=Knowledge"),
+        "SkillRanks { specs: [SkillRequirement { name: \"Knowledge\", is_type: true, min_ranks: 3 }], min_count: 3 }"
+    );
+}

@@ -18,6 +18,7 @@
 pub mod loader;
 pub mod pcc;
 pub mod pcg;
+pub mod text;
 pub mod tokenizer;
 
 // Re-export the neutral runtime IR so `pcgen_import::CompiledRulePack` etc.

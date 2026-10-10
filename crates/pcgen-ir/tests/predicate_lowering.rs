@@ -68,6 +68,34 @@ fn prerule_bonus_lowers_to_rule_enabled() {
 }
 
 #[test]
+fn pretext_is_a_vacuous_gate_and_does_not_discard_the_bonus() {
+    // PCGen's reference: "This tag in itself does not disqualify anything but
+    // alerts the player to the additional pre-requisites." Reading it as an
+    // unknown tag made `parse_predicate` return `None`, which discarded the
+    // whole effect — 7,358 occurrences across the third-party packs.
+    let record = record(
+        "RACE",
+        "Dwarf",
+        &[(
+            "BONUS",
+            "SKILL|Diplomacy|4|PRETEXT:Mind-affecting Spells Only",
+        )],
+    );
+    let (pack, report) = lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[record]);
+    assert_eq!(report.coverage.unsupported_tags, 0);
+    assert_eq!(pack.entities[0].effects.len(), 1, "the bonus must survive");
+    let condition = pack.entities[0].effects[0]
+        .condition
+        .clone()
+        .expect("condition");
+    // Vacuously true: an empty conjunction holds for every character.
+    assert!(
+        matches!(condition, Predicate::All(ref items) if items.is_empty()),
+        "expected a vacuous gate, got {condition:?}"
+    );
+}
+
+#[test]
 fn legs_predicate_lowers() {
     let record = record(
         "RACE",

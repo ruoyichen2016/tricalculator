@@ -26,12 +26,16 @@ fn record(category: &str, name: &str, tags: &[(&str, &str)]) -> RawRecord {
     }
 }
 
-fn lower(record: RawRecord) -> (pcgen_ir::CompiledRulePack, pcgen_ir::ImportReport) {
+fn lower_all(records: &[RawRecord]) -> (pcgen_ir::CompiledRulePack, pcgen_ir::ImportReport) {
     lower_records(
         Some("35e".to_string()),
         vec!["abilities.pcc".to_string()],
-        &[record],
+        records,
     )
+}
+
+fn lower(record: RawRecord) -> (pcgen_ir::CompiledRulePack, pcgen_ir::ImportReport) {
+    lower_all(&[record])
 }
 
 #[test]
@@ -48,7 +52,11 @@ fn variant_record_is_parsed_and_its_tags_are_not_legacy() {
             ("CSKILL", "Intimidate"),
         ],
     );
-    let (pack, report) = lower(r);
+    // The class must actually be declared: the pack loader refuses a variant
+    // naming a class the pack does not define, so an owner is only kept when it
+    // is real. The class goes last so `entities[0]` stays the variant.
+    let fighter = record("CLASS", "Fighter", &[("HD", "10")]);
+    let (pack, report) = lower_all(&[r, fighter]);
 
     let variant = pack
         .variants

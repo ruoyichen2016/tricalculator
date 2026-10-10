@@ -805,6 +805,80 @@ The remaining kinds are genuinely unimplemented: `PRE` (21), `PRESA` (12),
 `PRESPELLDESCRIPTOR`, `PRECLASSLEVELMAX`, `PRETEXT`. None appear in the
 acceptance cohort.
 
+### 5t. The reference parser, and three §5s diagnoses corrected
+
+§5s bisected the third-party failures to exact values, but it had only the
+*values*. Reading PCGen's own parser settled what they mean — and refuted three of
+the causes I had written down there.
+
+**One rule explains every one of these forms.** `AbstractPrerequisiteListParser`
+splits the part on **every** `=`, takes the value from the **last** segment, and
+rebuilds the key from the remaining segments joined with `=`:
+
+```java
+String[] tokens = thisElement.split("=");
+int valueIdx = tokens.length - 1;
+min = Integer.parseInt(tokens[valueIdx]);
+subreq.setKey(getRequirementKey(tokens));   // tokens[0..n-1] joined with "="
+```
+
+and when that last segment is *not* a number, the whole element becomes the key and
+the value falls back to the count (`subreq.setOperand(elements[0])`). So:
+
+| Value | Key | Value |
+|---|---|---|
+| `Spot=10` | `Spot` | 10 |
+| `TYPE.Perform=8` | `TYPE.Perform` | 8 |
+| `Knowledge (TYPE=Other)=3` | `Knowledge (TYPE=Other)` | 3 |
+| `TYPE=Perform=8` | `TYPE=Perform` | 8 |
+| `TYPE=Knowledge` | `TYPE=Knowledge` | the count |
+| `1,Bard` | `Bard` | the count |
+
+**Correction 1: `PRESKILL` was a split-point bug, not a `TYPE=` bug.** §5s said
+"only `TYPE.` is stripped, not `TYPE=`" — but `strip_type_prefix` has always
+handled both spellings. The real fault was `split_once('=')`: on `TYPE=Perform=8`
+it left the ranks as `Perform=8`, and on `Knowledge (TYPE=Other)=3` it left the name
+as `Knowledge (TYPE`. Splitting on the **last** `=` fixes both, and the spec's own
+example is the test.
+
+**Correction 2: `PRECLASS:1,%` is not a wildcard and `=9th` is not optionality.**
+§5s filed `%` under "the level is optional". `PreClassTester` looks the key up
+literally (`character.getClassKeyed(aString)`); there is no `%` handling anywhere,
+and a non-numeric level leaves the key as the whole text. Both are malformed data
+that the reference itself reduces to nonsense — `SPELLCASTER.Divine=9th` becomes the
+key `SPELLCASTER.DIVINE=9TH`. They are now reported as unsupported rather than
+transcribed as nonsense.
+
+The real `PRECLASS` gap was the *opposite* of what §5s recorded: **a bare class
+name**, `PRECLASS:1,Bard`, which is valid, means "a Bard of at least 1st", and
+accounts for all 21 occurrences (the Babylon 5 and Star Wars templates).
+
+**Correction 3: `PRETEXT` is a documented no-op, not an unimplemented tag.** §5s
+listed it among "genuinely unimplemented". The reference says:
+
+> This tag in itself does not disqualify anything but alerts the player to the
+> additional pre-requisites.
+
+There are no mechanics to implement. The 7,358 occurrences were `PRETEXT` used as a
+*gate inside* `BONUS`/`TEMPBONUS`, where `parse_predicate` returned `None` and the
+`?` in `lower_bonus_effect` discarded the whole effect. It now lowers to an empty
+conjunction — vacuously true — which is exactly "does not disqualify anything".
+
+Across all 393 third-party `.pcc` files this took unsupported tags from **9,409 to
+2,035** (−78%), with entities and tag occurrences unchanged.
+
+**One more fault the value list hid: `CHECKMULT`.** 19 `PREABILITY` values read
+`1,CHECKMULT,CATEGORY=Feat,Weapon Focus`. `CHECKMULT` is a flag meaning "count
+multiple instances of the same ability"; read as a name it became a phantom ability
+in the wanted list. It is skipped now. Counting multiples is still not modelled.
+
+**What is genuinely out of scope.** `Weapon Focus (TYPE=Bow)` is not a name with a
+stray `=`: the reference splits it into key `Weapon Focus` and a **sub-key**
+`TYPE=Bow`, then resolves that sub-key against the ability's association list and
+the weapon proficiency's types (`PrerequisiteUtilities.dealWithSubKey`). Nothing in
+the engine tracks ability choices or associations, so the text is preserved
+verbatim and fails closed rather than silently matching any `Weapon Focus`.
+
 ## What followed from this
 
 Both actions are done:

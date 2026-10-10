@@ -34,6 +34,27 @@ fn record(name: &str, key: &str, tags: &[(&str, &str)]) -> RawRecord {
     }
 }
 
+/// A minimal `CLASS:` header.
+///
+/// A variant's owner is only kept when the pack actually declares that class:
+/// the pack loader refuses a variant naming an undeclared class, so a fixture
+/// that asserts an owner must declare the class too.
+fn class_record(name: &str) -> RawRecord {
+    let source = SourceRef::new("/tmp/ua_classes.lst", 1, "ua.pcc");
+    RawRecord {
+        category: "CLASS".to_string(),
+        key: name.to_string(),
+        name: name.to_string(),
+        tags: vec![RawTag {
+            name: "HD".to_string(),
+            value: "8".to_string(),
+            source: source.clone(),
+        }],
+        source,
+        raw: String::new(),
+    }
+}
+
 fn lower(records: &[RawRecord]) -> pcgen_ir::CompiledRulePack {
     let (pack, _) = lower_records(Some("35e".to_string()), vec!["ua.pcc".to_string()], records);
     pack
@@ -55,7 +76,7 @@ fn smite_evil() -> RawRecord {
 
 #[test]
 fn acf_record_becomes_a_variant() {
-    let pack = lower(&[smite_evil()]);
+    let pack = lower(&[class_record("Cleric"), smite_evil()]);
     let variant = pack
         .variants
         .get("Cleric ~ Smite Evil")
@@ -102,7 +123,7 @@ fn acf_grants_carry_their_level() {
             ),
         ],
     );
-    let pack = lower(&[ape]);
+    let pack = lower(&[class_record("Barbarian"), ape]);
     let variant = pack.variants.get("Totem Barbarian ~ Ape").expect("variant");
 
     // The class comes from the `PREVARGTEQ:BarbarianLVL` guard, not from the

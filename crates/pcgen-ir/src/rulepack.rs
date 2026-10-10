@@ -953,6 +953,14 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
     }
     let (tag, body) = raw.split_once(':')?;
     let tag_upper = tag.to_ascii_uppercase();
+    // `PRETEXT:x` is display-only.  PCGen's reference: "This tag in itself does
+    // not disqualify anything but alerts the player to the additional
+    // pre-requisites."  It is therefore vacuously true, and reading it as an
+    // unknown tag discarded every effect it gated — 7,358 occurrences across the
+    // third-party packs, mostly `TEMPBONUS:...|PRETEXT:...`.
+    if tag_upper == "PRETEXT" {
+        return Some(Predicate::All(Vec::new()));
+    }
     let parts: Vec<&str> = body.split(',').map(str::trim).collect();
     match tag_upper.as_str() {
         "PRESTAT" => {
@@ -1035,40 +1043,59 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 .find(|part| !part.trim().is_empty())
                 .and_then(|part| part.trim().parse::<u32>().ok())
                 .unwrap_or(1);
-            let specs: Vec<pcgen_core::ClassSpec> = parts
+            let mut specs: Vec<pcgen_core::ClassSpec> = Vec::new();
+            for part in parts
                 .iter()
                 .skip_while(|part| part.trim().parse::<u32>().is_ok() || part.trim().is_empty())
-                .filter_map(|part| {
-                    let (name, level) = part.split_once('=')?;
-                    let name = name.trim();
-                    let min_level = level.trim().parse::<u32>().ok()?;
-                    if name.is_empty() {
-                        return None;
-                    }
-                    let upper = name.to_ascii_uppercase();
-                    if upper == "ANY" {
-                        return Some(pcgen_core::ClassSpec::Any { min_level });
-                    }
-                    if let Some(rest) = upper.strip_prefix("SPELLCASTER") {
-                        // `SPELLCASTER` alone, or `SPELLCASTER.Arcane`.
-                        let kind = rest.trim_start_matches(['.', '=']).trim();
-                        return Some(pcgen_core::ClassSpec::Spellcaster {
-                            kind: (!kind.is_empty()).then(|| kind.to_string()),
-                            min_level,
-                        });
-                    }
-                    if let Some(kind) = strip_type_prefix(name) {
-                        return Some(pcgen_core::ClassSpec::Type {
-                            type_tag: kind.to_string(),
-                            min_level,
-                        });
-                    }
-                    Some(pcgen_core::ClassSpec::Class {
-                        class_id: name.to_string(),
+            {
+                let trimmed = part.trim();
+                if trimmed.is_empty() {
+                    continue;
+                }
+                // The reference splits on every `=` and takes the value from the
+                // last segment. `PRECLASS:1,Bard` has no `=` at all: it is valid,
+                // and the level falls back to the count, which is how the Babylon 5
+                // and Star Wars templates are written.
+                let (name, min_level) = match trimmed.rsplit_once('=') {
+                    Some((name, value)) => match value.trim().parse::<u32>() {
+                        Ok(level) => (name.trim().to_string(), level),
+                        // `=9th`, `=1st+ level.`: the reference reads the whole
+                        // part as the key and the level as the count, yielding a
+                        // key that can never name a class. Flag it rather than
+                        // transcribe the nonsense.
+                        Err(_) => return None,
+                    },
+                    None => (trimmed.to_string(), min_count),
+                };
+                if name.is_empty() {
+                    return None;
+                }
+                let upper = name.to_ascii_uppercase();
+                if upper == "ANY" {
+                    specs.push(pcgen_core::ClassSpec::Any { min_level });
+                    continue;
+                }
+                if let Some(rest) = upper.strip_prefix("SPELLCASTER") {
+                    // `SPELLCASTER` alone, or `SPELLCASTER.Arcane`.
+                    let kind = rest.trim_start_matches(['.', '=']).trim();
+                    specs.push(pcgen_core::ClassSpec::Spellcaster {
+                        kind: (!kind.is_empty()).then(|| kind.to_string()),
                         min_level,
-                    })
-                })
-                .collect();
+                    });
+                    continue;
+                }
+                if let Some(kind) = strip_type_prefix(&name) {
+                    specs.push(pcgen_core::ClassSpec::Type {
+                        type_tag: kind.to_string(),
+                        min_level,
+                    });
+                    continue;
+                }
+                specs.push(pcgen_core::ClassSpec::Class {
+                    class_id: name,
+                    min_level,
+                });
+            }
             if specs.is_empty() {
                 return None;
             }
@@ -1341,13 +1368,18 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 if trimmed.is_empty() {
                     continue;
                 }
-                // `TYPE=X` and `TYPE.X` are both in the data; only `CATEGORY=`
-                // and friends are qualifiers to skip.
-                if let Some(kind) = strip_type_prefix(trimmed) {
-                    wanted.push(pcgen_core::AbilityRef::Type(kind.to_string()));
+                // `CHECKMULT` is a modifier flag, not an ability name.
+                if trimmed.eq_ignore_ascii_case("CHECKMULT") {
                     continue;
                 }
-                if trimmed.contains('=') {
+                // `CATEGORY=x` / `CATEGORY.x` is the qualifier already read above.
+                let upper = trimmed.to_ascii_uppercase();
+                if upper.starts_with("CATEGORY=") || upper.starts_with("CATEGORY.") {
+                    continue;
+                }
+                // `TYPE=X` and `TYPE.X` name an ability type.
+                if let Some(kind) = strip_type_prefix(trimmed) {
+                    wanted.push(pcgen_core::AbilityRef::Type(kind.to_string()));
                     continue;
                 }
                 // `[Name]` is an exclusion, per the reference's examples.
@@ -1357,15 +1389,13 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                     }
                     continue;
                 }
-                match trimmed
-                    .strip_prefix("TYPE.")
-                    .or_else(|| trimmed.strip_prefix("type."))
-                {
-                    Some(kind) => {
-                        wanted.push(pcgen_core::AbilityRef::Type(kind.trim().to_string()))
-                    }
-                    None => wanted.push(pcgen_core::AbilityRef::Name(trimmed.to_string())),
-                }
+                // An ability name may itself contain `=`: `Weapon Focus (TYPE=Bow)`
+                // is one name, and the reference splits it into key `Weapon Focus`
+                // plus sub-key `TYPE=Bow`, then resolves that sub-key against the
+                // ability's association list and the weapon proficiency's types.
+                // That is not modelled here, so the text is kept verbatim: it will
+                // fail to match rather than silently match any `Weapon Focus`.
+                wanted.push(pcgen_core::AbilityRef::Name(trimmed.to_string()));
             }
             if wanted.is_empty() && excluded.is_empty() {
                 return None;
@@ -1385,29 +1415,43 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 .find(|part| !part.trim().is_empty())
                 .and_then(|part| part.trim().parse::<u32>().ok())
                 .unwrap_or(1);
-            let specs: Vec<pcgen_core::SkillRequirement> = parts
+            let mut specs: Vec<pcgen_core::SkillRequirement> = Vec::new();
+            for part in parts
                 .iter()
                 .skip_while(|part| part.trim().parse::<u32>().is_ok() || part.trim().is_empty())
-                .filter_map(|part| {
-                    let (name, ranks) = part.split_once('=')?;
-                    let name = name.trim();
-                    if name.is_empty() {
-                        return None;
-                    }
-                    let (is_type, name) = match name
-                        .strip_prefix("TYPE.")
-                        .or_else(|| name.strip_prefix("type."))
-                    {
-                        Some(kind) => (true, kind.trim().to_string()),
-                        None => (false, name.to_string()),
-                    };
-                    Some(pcgen_core::SkillRequirement {
-                        name,
-                        is_type,
-                        min_ranks: ranks.trim().parse().ok()?,
-                    })
-                })
-                .collect();
+            {
+                let trimmed = part.trim();
+                if trimmed.is_empty() {
+                    continue;
+                }
+                // The reference splits the part on every `=` and takes the value
+                // from the *last* segment, so a skill name may itself contain `=`:
+                // `Knowledge (TYPE=Other)=3` is three ranks in the skill named
+                // `Knowledge (TYPE=Other)`. When that last segment is not a number
+                // the whole part is the key and the value falls back to the count,
+                // which is how `TYPE=Knowledge` (three ranks in a Knowledge-type
+                // skill) is written.
+                let (name, min_ranks) = match trimmed.rsplit_once('=') {
+                    Some((name, value)) => match value.trim().parse::<u32>() {
+                        Ok(ranks) => (name.trim().to_string(), ranks),
+                        Err(_) => (trimmed.to_string(), min_count),
+                    },
+                    // `PRESKILL` requires a value; a bare name is malformed.
+                    None => return None,
+                };
+                if name.is_empty() {
+                    return None;
+                }
+                let (is_type, name) = match strip_type_prefix(&name) {
+                    Some(kind) => (true, kind.to_string()),
+                    None => (false, name),
+                };
+                specs.push(pcgen_core::SkillRequirement {
+                    name,
+                    is_type,
+                    min_ranks,
+                });
+            }
             if specs.is_empty() {
                 return None;
             }

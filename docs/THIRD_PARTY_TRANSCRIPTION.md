@@ -1,0 +1,134 @@
+# Third-party packs, transcribed into the canonical format
+
+`data/packs/custom/` holds other publishers' PCGen data: 393 `.pcc` files across
+five collections, 161 MB of `.lst` source. This note records the run that
+transcribed them into the normalised pack format, what it produced, and what is
+still missing.
+
+The transcriptions are **local-only**. The sources are copyrighted commercial
+material, so the output lives in `data/packs/transcribed/`, which `.gitignore`
+excludes. Nothing here is published.
+
+## Running it
+
+```sh
+# one pack
+cargo run -q -p pcgen-cli -- transpile --pcc <campaign>.pcc --out data/packs/transcribed/<name>
+
+# read it back without re-interpreting any PCGen text
+cargo run -q -p pcgen-cli -- pack-info --pack data/packs/transcribed/<name> --json
+```
+
+Transcription is deliberately a separate, expensive step: `transpile` interprets
+the PCGen text once and persists the result; `pack-info` then loads that
+directory without parsing anything. That split is what makes the round-trip check
+below meaningful — a pack that writes but does not read back is a broken build
+artefact, not a data problem.
+
+## Scope: 196 campaigns, not 393 files
+
+Most `.pcc` files are sub-packs included by a parent, so transcribing all 393
+would duplicate their contents many times over. The run transcribes only the
+**top-level** campaigns — those no other `.pcc` includes — which is 196 of the
+393. The include graph is resolved by reading each file's `PCC:` lines.
+
+## Result
+
+| | |
+|---|---|
+| Top-level campaigns | 196 |
+| Transcribed | **189** |
+| Failed | 7 |
+| Entities | 342,934 |
+| Tag occurrences | 1,762,682 |
+| Unsupported tags | 1,409 (**0.08%**) |
+| Legacy (recognised, carried) tags | 115,333 |
+| Round-trip (`pack-info` reads it back) | **189 / 189** |
+| Output size | 635 MB |
+
+## What blocked it, and what that changed
+
+The first run transcribed 169 of 196. Three reading defects accounted for the
+rest, and all three were fixed rather than worked around:
+
+- **`PREABILITY`, `PRESKILL`, `PRECLASS` value forms.** PCGen splits a
+  prerequisite part on *every* `=`, reads the value from the **last** segment,
+  and rebuilds the key from the rest. Splitting at the first `=` silently dropped
+  `Weapon Focus (TYPE=Bow)`, `TYPE=Perform=8` and `Knowledge (TYPE=Other)=3`, and
+  a bare `PRECLASS:1,Bard` was rejected outright. See
+  `PCGEN_SYNTAX_INVENTORY.md` §5t.
+- **`PRETEXT` inside a `BONUS`.** It is a documented no-op — "does not disqualify
+  anything" — but as an unknown predicate it discarded the whole effect it gated.
+  7,358 occurrences. Across all 393 packs this alone took unsupported tags from
+  9,409 to 2,035.
+- **Windows-1252 data.** 20 of the 27 failures were `.lst` files that are not
+  valid UTF-8. `pcgen_import::text::read_text` now tries UTF-8 and falls back to
+  Windows-1252, which recovered *Book of Exalted Deeds*, *Frostburn*, *Races of
+  the Wild* and 17 others.
+
+One further defect only the round-trip check could find: 16 packs **wrote but
+would not load back**, because a variant's owning class had been inferred from a
+pool or group name (`KEY:ACF ~ Bard Inspire Competence` → class `ACF`). The
+loader refuses a variant naming an undeclared class. The owner is now derived
+from the displaced-feature anchor (`BardInspireCompetence` → `Bard`) and, when it
+cannot be substantiated by a class the pack declares, dropped instead of written.
+
+## What is still unsupported
+
+1,409 tags (0.08% of occurrences) across the 189 packs:
+
+| Tag | Count | Note |
+|---|---|---|
+| `BONUS` | 599 | an unreadable gate discards the whole bonus |
+| `PREMULT` | 387 | grouping operator |
+| `PRELEVELMAX` | 190 | |
+| `PREREGION` | 65 | |
+| `PREATT` | 27 | |
+| `!PRECSKILL` | 18 | |
+| `PRECHECK` | 17 | |
+| `PRESPELLDESCRIPTOR` | 14 | |
+| `PRECSKILL` | 12 | |
+| `PREMOVE` | 12 | |
+| `PRECAMPAIGN`, `PREHANDSGT`, `PRESPELLSCHOOLSUB`, `PRECHARACTERTYPE` | 9 each | |
+| `PREALIGN` | 8 | |
+| `PRESA` | 7 | |
+| `PREUATT` | 4 | |
+| `PREDR`, `PREREACHGTEQ`, `PRESKILLTOT` | 3 each | |
+| `PRECLASSLEVELMAX`, `PREITEM` | 2 each | |
+
+`BONUS` is the one worth attention first: like `PRETEXT` before it, an
+unreadable predicate makes `lower_bonus_effect` discard the entire bonus, so a
+character silently loses a bonus it should have. Making an unreadable gate fail
+*visibly* — keep the effect, flag the condition — would be a smaller lie than
+dropping it.
+
+## The 7 campaigns that could not be transcribed
+
+Every one is a **missing source file** in the checkout, not a parser failure:
+
+| Campaign | Missing |
+|---|---|
+| `2e/for_gold_and_glory/core` | `core_abilitycategories.lst` |
+| `35e/paizo/dragon_magazine` | `dm336_abilities.lst` |
+| `5e/marching_modron_press/epic_characters` | `ec_abilities_hoto.lst` |
+| `5e/wizards_of_the_coast/basic_rules` | `./core/universal_rules/_universal_rules.pcc` |
+| `modern/green_ronin/the_psychics_handbook` | `tph_feats_hidden.lst` |
+| `talislanta/morrigan_press_inc/core` | `rsrd_equip_weap_natural.lst` |
+| `zen_test/blanks/xxx` | `xxx_abilities_feat.lst` |
+
+These are incomplete third-party checkouts. Nothing in the importer can recover
+them; they need the missing files.
+
+## What this does not claim
+
+- **The acceptance cohort is unchanged.** The coverage gate still runs over
+  three sub-packs (`ds-3e`, `ds-35e`, `ds-psi`) and is a drift guard, not a
+  measure of third-party coverage. These 189 packs are outside it.
+- **Legacy tags are carried, not interpreted.** 115,333 of them. They are
+  recognised so the source is not lost, but they carry no mechanics.
+- **Non-d20 systems are transcribed too** (2e, 4e, 5e, Star Wars, Traveller,
+  Talislanta). The canonical format is system-agnostic; whether the engine has
+  anything useful to do with a 5e pack is a separate question.
+- **A clean round-trip means the pack is readable, not that it is right.** The
+  differential oracle and the deep-field oracle still cover only the RSRD/SRD
+  cases they were built for.
