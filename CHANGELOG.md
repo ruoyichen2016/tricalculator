@@ -5,6 +5,30 @@
 > 因此下面这一节的**测试数量与 unsupported 数字是待验证的预期值**，验证后会在批次收尾
 > 轮统一订正。
 
+### 补齐谓词：`PRECLASSLEVELMAX`（待批量验证）
+
+- 复用现有 `Predicate::ClassRequirement` 与 `Not` / `AtLeast`，**不需要改引擎**：
+  reference 里这个 tag 没有自己的 tester——`PreClassLevelMaxParser` 把它**改写成
+  `PRECLASS` 的反面**（kind 改成 `class`、算子设成 `LT`、操作数 +1、并清掉
+  `countMultiples`），parser 自己的注释就给了对照：
+  `PRECLASSLEVELMAX:Barbarian=1` ≡ `!PRECLASS:Barbarian=2`，
+  `PRECLASSLEVELMAX:2,Fighter=1,SPELLCASTER=2` ≡
+  `PREMULT:2,[!PRECLASS:Fighter=2],[!PRECLASS:SPELLCASTER=3]`。
+  所以本实现把每对 `y=z` lower 成 `Not(ClassRequirement{ y 的 spec, min_level = z+1 })`，
+  外层用 `AtLeast { n: x }`（每项 0/1，正好对应被清掉的 `countMultiples`）。
+- 顺带把 `PRECLASS` 里的类别名分类逻辑抽成 `class_spec_from`，两条 tag 共用（`ANY` /
+  `SPELLCASTER[.kind]` / `TYPE.X` / 类名），避免复制。
+- 没有等级的 `y`（如 `PRECLASSLEVELMAX:1,Fighter`）**不建模**：parser 的注释与它用的
+  通用 list parser 对操作数说法不一致，而第三方数据里总是写出等级，保持 unsupported
+  比猜一个值更诚实。
+- **同时记录一个查证中发现的既有分歧**（本轮不改，见 `PCGEN_SYNTAX_INVENTORY.md` §5ai）：
+  `PreClassTester` 在 `TYPE=X` 且**非** countMultiples 时取各匹配职业等级的 **max**
+  （`runningTotal = Math.max(runningTotal, display.getLevel(cl))`），而本引擎的
+  `class_spec_holds` 对 `Type` 是**求和**。该分歧同样影响 `PRECLASS`（RSRD 有 51 处
+  `TYPE.`），且会牵动 cohort，因此单独一轮处理。
+- 第三方资料：unsupported 预期 34 → 32（`PRECLASSLEVELMAX` 2 → 0）。
+- 测试数量与门禁在批次收尾轮统一确认。
+
 ### 补齐谓词：`PREITEM`（待批量验证）
 
 - 新增 `Predicate::Item { specs, min_count }` 与 `ItemSpec { Name | Types }`；

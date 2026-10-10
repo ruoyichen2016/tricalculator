@@ -135,6 +135,9 @@ semantic_completion 100.0%
 - **Post-M9**：`PREFACT` → `Predicate::Fact`，新增 `FACT` 模型（`CompiledEntity.facts`
   + `EffectState.location_facts`，只 lower `abilities`/`race` 两个可枚举 location）。
   第三方资料 unsupported **304→42**（`BONUS` 268→23、`PREMULT` 19→2），是本循环最大一次下降。
+- **Post-M9（待批量验证）**：`PRECLASSLEVELMAX` → `Not(ClassRequirement{…, min_level=z+1})`
+  的 `AtLeast`（即 reference 里对 `PRECLASS` 的反写），并把 `class_spec_from` 抽出复用。
+  同时记录 `PRECLASS` 的 `TYPE=` 聚合分歧（max vs sum，见 §5ai）。
 - **Post-M9（待批量验证）**：`PREITEM` → `Predicate::Item`（名字含 `%` 通配 / `TYPE=` 点分
   类型列表，按**持有**而非已装备计数）；同时修掉旧实现把它 lower 成 `Predicate::Equipped`
   且只认 `TYPE=` 的错误。新增 `EffectState.item_types`。

@@ -158,6 +158,8 @@ rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
   lowered to one shape that the engine read as strict. **2,519** pairs in these
   packs have a symbolic operand and were compared one step too strictly. Nothing
   moves in the table below, because `PREVAR*` already lowered;
+- `PRECLASSLEVELMAX` (2 tags), lowered to the negated `ClassRequirement` the reference
+  rewrites it into — this tag has no tester of its own;
 - `PREITEM` (2 tags), lowered to `Predicate::Item`. The old lowering asked whether an
   item was *equipped* and understood only `TYPE=` entries, so the name entries were
   unsupported and the type entry asked the wrong question;

@@ -809,7 +809,8 @@ see §5aa, §5ab, §5ac and §5ad.  Several names on the original list have sinc
 `PRECHECK` (see §5x), `PRESPELLDESCRIPTOR` (see §5y), `PRESPELLSCHOOLSUB` and
 `PRESPELLSCHOOL` (see §5z), `PRECAMPAIGN` (see §5aa), `PRECHARACTERTYPE`
 (see §5ab), `PRESA` (see §5ac), `PREFACT` (see §5ad), `PREDR` (see §5ae), the
-`PREVAR*` boundary (see §5af), `PREREACH` (see §5ag) and `PREITEM` (see §5ah);
+`PREVAR*` boundary (see §5af), `PREREACH` (see §5ag), `PREITEM` (see §5ah) and
+`PRECLASSLEVELMAX` (see §5ai);
 `PRELEVEL` now supports both `MIN=` and `MAX=`.  See the current `CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
@@ -1566,6 +1567,69 @@ then by a customised item's `BASEITEM`, then as written — the order
 `Engine::resolve_equipment` already applies — so `+2 scale mail` still counts as
 armour for `TYPE=Armor`. Without that step a customised item would have no types at
 all, which is the sort of gap that looks like a data problem and is not one.
+
+### 5ai. `PRECLASSLEVELMAX`, which is `PRECLASS` written backwards
+
+There is no `PreClassLevelMaxTester`. The parser rewrites the tag into the inverse of
+`PRECLASS` and documents the transformation in its own comment:
+
+```text
+// ClassLevelMax is basically the inverse of class
+//
+// PRECLASSLEVELMAX:Barbarian=1     !PRECLASS:Barbarian=2
+// !PRECLASSLEVELMAX:Barbarian=1    PRECLASS:Barbarian=2
+// PRECLASSLEVELMAX:Fighter=1,SPELLCASTER=2  PREMULT:2,[!PRECLASS:Fighter=2],[!PRECLASS:SPELLCASTER=3]
+```
+
+and does it by hand:
+
+```java
+oper = Integer.toString(Integer.parseInt(oper) + 1);
+p.setOperand(oper);
+p.setOperator(PrerequisiteOperator.LT);
+p.setCountMultiples(false);
+```
+
+`class_levels < z + 1` is `class_levels <= z`, so `y=z` means "at most z levels", and
+clearing `countMultiples` is what makes each entry contribute 0 or 1 to the group's
+count rather than the class levels themselves. Modelling it as
+`Not(ClassRequirement { spec, min_level: z + 1 })` inside an `AtLeast { n: x }` needs
+no new tester and no engine change, and the reference's own example is a test case.
+
+A pair with no level (`PRECLASSLEVELMAX:1,Fighter`) is deliberately left unsupported.
+The parser's comment says such an entry becomes `!PRECLASS:Fighter=3` — the *count*
+plus one — while the generic list parser it delegates to assigns a valueless element
+the operand `1`. The two readings disagree and the third-party data always states a
+level, so guessing would be worse than staying visible.
+
+#### A divergence found while verifying this one, not fixed here
+
+`PreClassTester` aggregates a `TYPE=X` entry differently depending on whether the
+sub-prerequisite counts multiples:
+
+```java
+if (cl.isType(typeString)) {
+    if (prereq.isCountMultiples()) {
+        if (display.getLevel(cl) >= preClass) countedTotal++;
+    } else {
+        runningTotal = Math.max(runningTotal, display.getLevel(cl));
+    }
+}
+```
+
+With `countMultiples` — which the list parser sets when the tag lists more than one
+entry — it counts the classes of that type that reach the level. Without it, which is
+the single-entry form `PRECLASS:1,TYPE.Base=2`, it takes the **maximum** level among
+them. `class_spec_holds` currently **sums** the levels of every matching class
+instead, so a Fighter 1 / Wizard 1 fails `PRECLASS:1,TYPE.Base=2` here and passes it
+in PCGen.
+
+That is a pre-existing divergence in `PRECLASS`, not something this round introduces,
+and it reaches the acceptance data: the RSRD has 51 `TYPE.` values. It is recorded
+rather than fixed here because it changes cohort numbers and the current batch is
+still unverified — a cohort-moving change should land on a green baseline, so that a
+gate failure can be attributed to it rather than to the batch. It is the next
+candidate once the batch verification is done.
 
 ## What followed from this
 

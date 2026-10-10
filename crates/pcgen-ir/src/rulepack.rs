@@ -775,6 +775,40 @@ fn lower_choose(tag: &crate::source::RawTag) -> Option<Effect> {
 }
 
 /// `TYPE=X` or `TYPE.X`, case-insensitively — both spellings appear in the data.
+/// Classify one `PRECLASS`-family entry's name at the given level.
+///
+/// `PRECLASS` and `PRECLASSLEVELMAX` share the vocabulary — a class name,
+/// `TYPE.X` / `TYPE=X`, `SPELLCASTER[.kind]` and `ANY` — and differ only in what
+/// the level means.
+fn class_spec_from(name: &str, level: u32) -> Option<pcgen_core::ClassSpec> {
+    let name = name.trim();
+    if name.is_empty() {
+        return None;
+    }
+    let upper = name.to_ascii_uppercase();
+    if upper == "ANY" {
+        return Some(pcgen_core::ClassSpec::Any { min_level: level });
+    }
+    if let Some(rest) = upper.strip_prefix("SPELLCASTER") {
+        // `SPELLCASTER` alone, or `SPELLCASTER.Arcane`.
+        let kind = rest.trim_start_matches(['.', '=']).trim();
+        return Some(pcgen_core::ClassSpec::Spellcaster {
+            kind: (!kind.is_empty()).then(|| kind.to_string()),
+            min_level: level,
+        });
+    }
+    if let Some(kind) = strip_type_prefix(name) {
+        return Some(pcgen_core::ClassSpec::Type {
+            type_tag: kind.to_string(),
+            min_level: level,
+        });
+    }
+    Some(pcgen_core::ClassSpec::Class {
+        class_id: name.to_string(),
+        min_level: level,
+    })
+}
+
 fn strip_type_prefix(value: &str) -> Option<&str> {
     let lower = value.to_ascii_lowercase();
     for prefix in ["type=", "type."] {
@@ -1211,39 +1245,52 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                     },
                     None => (trimmed.to_string(), min_count),
                 };
-                if name.is_empty() {
-                    return None;
-                }
-                let upper = name.to_ascii_uppercase();
-                if upper == "ANY" {
-                    specs.push(pcgen_core::ClassSpec::Any { min_level });
-                    continue;
-                }
-                if let Some(rest) = upper.strip_prefix("SPELLCASTER") {
-                    // `SPELLCASTER` alone, or `SPELLCASTER.Arcane`.
-                    let kind = rest.trim_start_matches(['.', '=']).trim();
-                    specs.push(pcgen_core::ClassSpec::Spellcaster {
-                        kind: (!kind.is_empty()).then(|| kind.to_string()),
-                        min_level,
-                    });
-                    continue;
-                }
-                if let Some(kind) = strip_type_prefix(&name) {
-                    specs.push(pcgen_core::ClassSpec::Type {
-                        type_tag: kind.to_string(),
-                        min_level,
-                    });
-                    continue;
-                }
-                specs.push(pcgen_core::ClassSpec::Class {
-                    class_id: name,
-                    min_level,
-                });
+                specs.push(class_spec_from(&name, min_level)?);
             }
             if specs.is_empty() {
                 return None;
             }
             Some(Predicate::ClassRequirement { specs, min_count })
+        }
+        // PRECLASSLEVELMAX:x,y=z — at most `z` levels in each listed class.
+        //
+        // There is no tester for this tag: `PreClassLevelMaxParser` rewrites it
+        // into the *inverse* of `PRECLASS`, changing the kind to `class`, setting
+        // the operator to `LT` and adding one to the operand — so
+        // `PRECLASSLEVELMAX:Barbarian=1` is `!PRECLASS:Barbarian=2` — and clearing
+        // `countMultiples` so each entry contributes 0 or 1 to the group's count.
+        // Modelling it as the negated `ClassRequirement` at `z + 1` reproduces
+        // that without a second tester.
+        "PRECLASSLEVELMAX" => {
+            let min_count = parts
+                .iter()
+                .find(|part| !part.trim().is_empty())
+                .and_then(|part| part.trim().parse::<u32>().ok())
+                .unwrap_or(1);
+            let mut items = Vec::new();
+            for part in parts
+                .iter()
+                .skip_while(|part| part.trim().parse::<u32>().is_ok() || part.trim().is_empty())
+            {
+                let trimmed = part.trim();
+                if trimmed.is_empty() {
+                    continue;
+                }
+                // The level is required here.  A pair without one is not modelled:
+                // the parser's own comment and its generic list parser disagree
+                // about what the operand would be, and the third-party data always
+                // states one, so guessing would be worse than staying visible.
+                let (name, level) = trimmed.rsplit_once('=')?;
+                let level = level.trim().parse::<u32>().ok()?;
+                items.push(Predicate::Not(Box::new(Predicate::ClassRequirement {
+                    specs: vec![class_spec_from(name, level.saturating_add(1))?],
+                    min_count: 1,
+                })));
+            }
+            if items.is_empty() {
+                return None;
+            }
+            Some(Predicate::AtLeast { n: min_count, items })
         }
         "PREVARGT" | "PREVARLT" | "PREVARGTEQ" | "PREVARLTEQ" | "PREVAREQ" | "PREVARNEQ" => {
             let (name, value) = if let Some((name, value)) = body.split_once('=') {

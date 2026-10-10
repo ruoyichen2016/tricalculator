@@ -1765,3 +1765,72 @@ fn preitem_lowers_to_name_and_type_entries() {
     assert!(pack.entities[0].requirements.is_empty());
     assert_eq!(report.coverage.unsupported_tags, 1);
 }
+
+#[test]
+fn preclasslevelmax_is_the_inverse_of_preclass() {
+    // The reference's own comment gives the rewrite for this one:
+    //   PRECLASSLEVELMAX:2,Fighter=1,SPELLCASTER=2
+    //     -> PREMULT:2,[!PRECLASS:Fighter=2],[!PRECLASS:SPELLCASTER=3]
+    let feat = record(
+        "FEAT",
+        "Multilingual",
+        &[("PRECLASSLEVELMAX", "2,Fighter=1,SPELLCASTER=2")],
+    );
+    let (pack, report) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[feat]);
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::AtLeast {
+            n: 2,
+            items: vec![
+                Predicate::Not(Box::new(Predicate::ClassRequirement {
+                    specs: vec![pcgen_core::ClassSpec::Class {
+                        class_id: "Fighter".to_string(),
+                        // `z + 1`, because the rewrite negates `>= z + 1`.
+                        min_level: 2,
+                    }],
+                    min_count: 1,
+                })),
+                Predicate::Not(Box::new(Predicate::ClassRequirement {
+                    specs: vec![pcgen_core::ClassSpec::Spellcaster {
+                        kind: None,
+                        min_level: 3,
+                    }],
+                    min_count: 1,
+                })),
+            ],
+        }
+    );
+
+    // The third-party form, on the feat `Multilingual`.
+    let typed = record(
+        "FEAT",
+        "Multilingual",
+        &[("PRECLASSLEVELMAX", "1,TYPE.Base=1")],
+    );
+    let (pack, _) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[typed]);
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::AtLeast {
+            n: 1,
+            items: vec![Predicate::Not(Box::new(Predicate::ClassRequirement {
+                specs: vec![pcgen_core::ClassSpec::Type {
+                    type_tag: "Base".to_string(),
+                    min_level: 2,
+                }],
+                min_count: 1,
+            }))],
+        }
+    );
+
+    // A pair with no level is not modelled: the parser's comment and its generic
+    // list parser disagree about the operand, so it stays visible instead.
+    let bare = record("FEAT", "No Level", &[("PRECLASSLEVELMAX", "1,Fighter")]);
+    let (pack, report) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[bare]);
+    assert!(pack.entities[0].requirements.is_empty());
+    assert_eq!(report.coverage.unsupported_tags, 1);
+}
