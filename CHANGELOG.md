@@ -7,6 +7,31 @@
 > 0 failed / 2 ignored**（PF35e、cohort matrix、deep-field 均通过；archive differential 为
 > 预期的 `SKIP`）。第三方 unsupported 由 **42 → 32**。
 
+### 补齐 `PREEQUIPTWOWEAPON`：装备槽位模型（第 26 轮，已实测）
+
+- **新增装备槽位模型**：`.pcg` 的 `EQUIPSET:<槽位>|ID:<路径>|VALUE:<物品>` 与
+  `CALCEQUIPSET:<路径>` 此前**完全未被解析**。现在：
+  - `PcgDraft` / `CharacterDraft` 新增 `equip_slots: BTreeMap<String, String>`
+    （物品名小写 → 位置；`serde(default)`，旧 pack/旧 draft 均可反序列化）；
+  - `pcg.rs` 解析两类行，并按 `EquipSet.setEquipLocation` 的映射把**槽位名**折算为位置
+    （`Primary Hand`/`Natural-Primary`→`primary`、`Secondary*`→`secondary`、
+    `Both Hands`→`both`、`Two Weapons`/`Double Weapon`→`two_hands`、
+    `Unarmed`/`Shield`→`neither`；**其余槽位名（`Carried`、`Default Set` 等）reference
+    根本不给位置**，故不生成条目——放在 `Carried` 的武器是「携带」而非「装备」）；
+  - **只取工作集及其子集**：`CALCEQUIPSET` 指名的工作集（id 前缀 + `.` 判定），
+    其它集合是角色未使用的备选配置；未指名时全部计入；
+  - 写出时把槽位还原成 PCGen 可读的 `EQUIPSET:`/`CALCEQUIPSET:` 行，保证 `.pcg`
+    读写往返不丢信息（用物品自身的拼写而非小写键）。
+- `Predicate::Equipped` 新增 `two_hands` 槽位；`EffectState.equipped_two_hands` 由
+  `draft.equip_slots` 构建——**故意独立**：手部槽位仍由物品定义的 `WIELD` 推导，
+  把整套位置改由装备槽位驱动会改变既有 `PREEQUIP*` 的含义（属更大改动，见 §5ap）。
+- 验收 cohort 仍不受影响（其 `.pcg` 只有 `Default Set`、无 `Two Weapons`/`Double Weapon`
+  行，且 `PREEQUIP*` 谓词为 0 处）；`3e_FigFae.pcg`（golden fixture）带
+  `EQUIPSET:Two Weapons|ID:0.1.1|VALUE:Rapier` 与 `CALCEQUIPSET:0.1`，测试据此固定。
+- **第三方 unsupported：4 → 2 / 1 种 tag**。`cargo test --workspace` **589 passed /
+  0 failed / 2 ignored**；coverage gate **15/0/0**；`scripts/check.sh` **628 passed /
+  0 failed / 2 ignored**；PF35e、cohort matrix、broad oracle 全部通过。
+
 ### 批检：第 23–24 轮（第 25 轮，已实测）
 
 - `cargo test --workspace` **584 passed / 0 failed / 2 ignored**；`cargo fmt --check` 与

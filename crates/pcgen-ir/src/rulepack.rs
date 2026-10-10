@@ -1362,11 +1362,16 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
         // for the `EQ`/`GTEQ` operators it always receives, so `PREEQUIPTWOWEAPON:2`
         // does not mean "two of them" — the count only matters when the list
         // parser had a numeric value to work with.
-        "PREEQUIP" | "PREEQUIPPRIMARY" | "PREEQUIPSECONDARY" | "PREEQUIPBOTH" => {
+        "PREEQUIP" | "PREEQUIPPRIMARY" | "PREEQUIPSECONDARY" | "PREEQUIPBOTH"
+        | "PREEQUIPTWOWEAPON" => {
             let slot = match tag_upper.as_str() {
                 "PREEQUIPPRIMARY" => "primary",
                 "PREEQUIPSECONDARY" => "secondary",
                 "PREEQUIPBOTH" => "both",
+                // `EQUIPPED_TWO_HANDS`: "either a double weapon or one of a pair
+                // of weapons", which the `.pcg`'s `Two Weapons` and `Double Weapon`
+                // equip slots assign.
+                "PREEQUIPTWOWEAPON" => "two_hands",
                 _ => "any",
             };
             let specs: Vec<pcgen_core::ItemSpec> = parts

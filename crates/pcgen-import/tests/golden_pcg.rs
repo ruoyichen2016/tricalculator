@@ -50,6 +50,12 @@ fn figfae_golden_preserves_half_rank() {
     assert_eq!(character.skills["Climb"], 7.0);
     assert_eq!(character.skills["Jump"], 7.0);
     assert_eq!(character.skills["Disable Device"], 3.5);
+    // The fixture fights with a rapier in each hand, and says so in its equip set:
+    // `EQUIPSET:Two Weapons|ID:0.1.1|VALUE:Rapier` under `CALCEQUIPSET:0.1`.
+    assert_eq!(
+        character.equip_slots.get("rapier").map(String::as_str),
+        Some("two_hands")
+    );
 }
 
 #[test]

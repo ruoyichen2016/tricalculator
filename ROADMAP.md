@@ -10,12 +10,12 @@
 - 工作区：10 crate（core / formula / ir / import / engine / builder / output /
   cli / web / **transpile**）。`pcgen-transpile` 是构建期转写器，把
   `.pcc`/`.lst` 规范化成 pack 目录，使运行期不再解释 PCGen 文本。
-- 测试：`cargo test --workspace` **584 passed / 2 ignored**（`scripts/check.sh`
-  额外再跑一次 `pcgen-web`，合计 **623 passed / 2 ignored**）。
+- 测试：`cargo test --workspace` **589 passed / 2 ignored**（`scripts/check.sh`
+  额外再跑一次 `pcgen-web`，合计 **628 passed / 2 ignored**）。
 - **第 13–17 轮批量验证已完成**：按用户要求把编译攒到批次末尾一次执行；批次后
   `cargo test --workspace` **547 passed / 2 ignored**，clippy / fmt / coverage gate
   （15/0/0）/ broad oracle（字段级 100%，25 computed = 25 case-gated）/ `scripts/check.sh`
-（**623 passed / 2 ignored**）
+（**628 passed / 2 ignored**）
   全部通过，第三方 unsupported **42 → 32**。
 - 第三方资料（189 个 top-level campaign，固定 checkout，`import-report
   --histogram` 汇总）：unsupported **1,409 → 32**（第 13–17 轮批量里：`PREDR` 3 → 0、
@@ -25,15 +25,20 @@
   `PRESPELLSCHOOLSUB` 9 → 0；`PRESPELLDESCRIPTOR` 14 → 0，连带 `PREMULT` 28 → 19；`PRECHECK`
   17 → 0，连带 `PREMULT` 31 → 28；`PREALIGN` 8 → 0；`PRECSKILL`/`!PRECSKILL`
   30 → 0 并连带 319 条以它为 gate 的 `BONUS`，`BONUS` 599 → 280；`PREREGION`
-  65 → 0 并连带 `PREMULT` 387 → 31）。此后 `PRESKILLTOT` 3 → 0、`PREUATT` 4 → 0（32 → 25），`PRESPELLCAST` 修好后
-  `PREMULT` 2 → 0（25 → 23），`PRESPELLTYPE` 的文本化再清掉 18 条（23 → **5**）。
-`PRELEGS` 全家族补齐后又清掉 1 条（5 → **4**）。
-  同一轮还顺带修掉了 `PREEQUIP*` 家族的一个**静默恒假**缺陷（`TYPE=` 等前缀被当成物品名；
-  第三方 450 处、pathfinder 208 处受影响，验收 cohort 0 处故谓词层面不受影响）。剩余 4 条**全部是** `BONUS`，即
-  「gate 不可读但效果保留」的可见过近似，不是被丢弃的效果；逐条读出后为：2 条
-  `PRECLASS:1,TYPE=Base`（reference 自身抛异常，**坏数据**）、2 条
-  `PREEQUIPTWOWEAPON:2,TYPE=Nekode`（`PREEQUIP*` 家族的缺项，**可建模**）。后者处理完后
-  需要重新评估停止条件。这些 pack 在验收 cohort 之外，门禁不覆盖它们。
+  65 → 0 并连带 `PREMULT` 387 → 31）。此后 `PRESKILLTOT` 3 → 0、`PREUATT` 4 → 0
+  （32 → 25），`PRESPELLCAST` 修好后 `PREMULT` 2 → 0（25 → 23），`PRESPELLTYPE` 的文本化
+  再清掉 18 条（23 → 5），`PRELEGS` 全家族补齐清掉 1 条（5 → 4），
+  `PREEQUIPTWOWEAPON` 的装备槽位模型再清掉 2 条（4 → **2**）。
+- **队列终点（停止条件第 2 条已满足）**：剩余 2 条全部是 4e `players_handbook` 里
+  `PRECLASS:1,TYPE=Base` 的坏数据——reference 自身在 list parser 的单元素分支走到
+  `Integer.parseInt("Base")`、`ANY` 逃逸不适用而抛 `PersistenceLayerException`，PCGen 也载入
+  不了，因此没有行为可对齐、没有语义可伪造。循环据此转入待机。这些 pack 在验收 cohort
+  之外，门禁不覆盖它们；`BONUS` 的「gate 不可读但效果保留」过近似机制本身未变，只是现在
+  189 个 campaign 里已**没有**任何一条这样的 `BONUS`。
+- **第 24 轮顺带修复**：`PREEQUIP*` 家族此前把 key 原样当文本，`TYPE=`/`BASEITEM=`/
+  `WIELDCATEGORY=` 前缀形式**静默恒假**（第三方 450 处、pathfinder 208 处；验收 cohort
+  0 处故谓词层面不受影响）；同时把「手部槽位」从并集改成**划分**（双手武器属
+  `EQUIPPED_BOTH`，不再满足 `PREEQUIPPRIMARY`）。
 - **已知缺口（独立一轮，已量化）**：按身份选取的实体（RACE/TEMPLATE/EQUIPMOD/…）
   其 `requirements` 只在**授予路径**上被检查，`initial_entities` 不看它们。RSRD 中
   同时带 requirements 与 effects 的此类实体：EQUIPMOD 402、TEMPLATE 155、ABILITY 141、

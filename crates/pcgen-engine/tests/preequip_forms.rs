@@ -97,6 +97,44 @@ fn gated(gate: &str, equipment: &[&str], base_items: &[(&str, &str)]) -> bool {
     apply_effects(&pack, &draft).variables.contains_key("Gated")
 }
 
+/// The same gate, with the character's equip-set slots filled in.
+fn gated_with_slots(
+    gate: &str,
+    equipment: &[&str],
+    equip_slots: &std::collections::BTreeMap<String, String>,
+) -> bool {
+    let records = vec![
+        record("RACE", "Test Race", &[("SIZE", "M"), ("TYPE", "Humanoid")]),
+        record(
+            "EQUIPMENT",
+            "Rapier",
+            &[("TYPE", "Weapon.Melee"), ("WIELD", "OneHanded")],
+        ),
+        record(
+            "FEAT",
+            "Gated Feat",
+            &[
+                ("TYPE", "General"),
+                ("BONUS", &format!("VAR|Gated|1|{gate}")),
+            ],
+        ),
+    ];
+    let (pack, report) = lower_records(
+        Some("3e".to_string()),
+        vec!["preequip".to_string()],
+        &records,
+    );
+    assert_eq!(report.coverage.unsupported_tags, 0);
+    let draft = CharacterDraft {
+        race_id: "Test Race".to_string(),
+        equipment: equipment.iter().map(|item| (*item).to_string()).collect(),
+        equip_slots: equip_slots.clone(),
+        abilities: vec![("FEAT".to_string(), "Gated Feat".to_string())],
+        ..CharacterDraft::default()
+    };
+    apply_effects(&pack, &draft).variables.contains_key("Gated")
+}
+
 #[test]
 fn a_type_key_matches_the_items_types() {
     // The fix: this used to look for an item named `type=weapon`.
@@ -203,4 +241,44 @@ fn the_hand_slots_still_narrow_the_search() {
 fn a_negated_equip_holds_for_the_other_item() {
     assert!(gated("!PREEQUIP:1,TYPE=Weapon", &["Chainmail"], &[]));
     assert!(!gated("!PREEQUIP:1,TYPE=Weapon", &["Longsword"], &[]));
+}
+
+#[test]
+fn the_two_weapons_slot_comes_from_the_equip_set() {
+    // `EQUIPPED_TWO_HANDS` is not an item property: the `.pcg`'s equip set puts a
+    // weapon there with a `Two Weapons` or `Double Weapon` slot, which is what
+    // `draft.equip_slots` carries.
+    let two_hands =
+        std::collections::BTreeMap::from([("Rapier".to_string(), "two_hands".to_string())]);
+    assert!(gated_with_slots(
+        "PREEQUIPTWOWEAPON:1,TYPE=Weapon",
+        &["Rapier"],
+        &two_hands
+    ));
+    assert!(!gated_with_slots(
+        "PREEQUIPTWOWEAPON:1,TYPE=Armor",
+        &["Rapier"],
+        &two_hands
+    ));
+    // An item in the primary hand is not in the two-weapons location.
+    let primary = std::collections::BTreeMap::from([("Rapier".to_string(), "primary".to_string())]);
+    assert!(!gated_with_slots(
+        "PREEQUIPTWOWEAPON:1,TYPE=Weapon",
+        &["Rapier"],
+        &primary
+    ));
+    // Nor is one the file says nothing about.
+    assert!(!gated_with_slots(
+        "PREEQUIPTWOWEAPON:1,TYPE=Weapon",
+        &["Rapier"],
+        &std::collections::BTreeMap::new()
+    ));
+    // The double-weapon spelling of the slot is the same location.
+    let double =
+        std::collections::BTreeMap::from([("Rapier".to_string(), "two_hands".to_string())]);
+    assert!(gated_with_slots(
+        "PREEQUIPTWOWEAPON:1,Rapier",
+        &["Rapier"],
+        &double
+    ));
 }

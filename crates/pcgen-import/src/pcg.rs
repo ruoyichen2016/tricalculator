@@ -44,6 +44,7 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
         equipment_modifiers: BTreeMap::new(),
         equipment_base_items: BTreeMap::new(),
         equipment_display_names: BTreeMap::new(),
+        equip_slots: BTreeMap::new(),
         abilities: Vec::new(),
         templates: Vec::new(),
         advancement: Vec::new(),
@@ -54,6 +55,8 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
         deity_domains: Vec::new(),
     };
     let mut class_hp: BTreeMap<(String, u32), i32> = BTreeMap::new();
+    let mut equip_rows: Vec<(String, String, String)> = Vec::new();
+    let mut working_equip_set = String::new();
 
     for raw_line in input.lines() {
         let line = raw_line.trim_end_matches('\r').trim();
@@ -109,6 +112,30 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
                     }
                 }
             }
+            // `EQUIPSET:<slot>|ID:<path>|VALUE:<item>|QUANTITY:<n>` — one row per
+            // slot of an equip set, and `CALCEQUIPSET:<path>` names the set the
+            // character is actually using.  Both are collected and resolved after
+            // the loop, because the working set may be named after its rows.
+            "EQUIPSET" => {
+                let parts = split_pipe(value);
+                let slot = parts.first().copied().unwrap_or_default().trim();
+                let id = parts
+                    .iter()
+                    .find_map(|part| part.strip_prefix("ID:"))
+                    .unwrap_or_default();
+                let item = parts
+                    .iter()
+                    .find_map(|part| part.strip_prefix("VALUE:"))
+                    .unwrap_or_default();
+                if !item.trim().is_empty() {
+                    equip_rows.push((
+                        id.trim().to_string(),
+                        slot.to_string(),
+                        item.trim().to_string(),
+                    ));
+                }
+            }
+            "CALCEQUIPSET" => working_equip_set = value.trim().to_string(),
             "EQUIPBASEITEM" => {
                 let parts = split_pipe(value);
                 if let (Some(item), Some(base)) = (parts.first(), parts.get(1)) {
@@ -224,7 +251,64 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
     if draft.name.trim().is_empty() {
         return Err(PcgDraftError::MissingName);
     }
+    // Only the working set and its children count: the other sets in the file are
+    // alternative configurations the character is not using.  An item in a slot the
+    // reference assigns no location to — `Carried`, `Default Set`, `Not Carried` —
+    // gets no entry, which is exactly what `EquipSet.setEquipLocation` does with it.
+    for (id, slot, item) in equip_rows {
+        if !working_equip_set.is_empty()
+            && id != working_equip_set
+            && !id
+                .strip_prefix(&working_equip_set)
+                .is_some_and(|rest| rest.starts_with('.'))
+        {
+            continue;
+        }
+        if let Some(location) = equip_location_from_slot(&slot) {
+            draft
+                .equip_slots
+                .insert(item.to_ascii_lowercase(), location.to_string());
+        }
+    }
     Ok(draft)
+}
+
+/// The slot name that stands for a location, for writing an equip set back out.
+fn equip_slot_from_location(location: &str) -> Option<&'static str> {
+    match location {
+        "primary" => Some("Primary Hand"),
+        "secondary" => Some("Secondary Hand"),
+        "both" => Some("Both Hands"),
+        "two_hands" => Some("Two Weapons"),
+        "neither" => Some("Unarmed"),
+        _ => None,
+    }
+}
+
+/// `EquipSet.setEquipLocation`'s mapping from a slot's name to the location its
+/// weapons are given.
+///
+/// Any other name falls off the reference's chain without assigning one, so it
+/// produces no location here either — a weapon sitting in `Carried` is possessed,
+/// not equipped.
+fn equip_location_from_slot(slot: &str) -> Option<&'static str> {
+    let name = slot.trim();
+    if name.eq_ignore_ascii_case("Primary Hand") || name.eq_ignore_ascii_case("Natural-Primary") {
+        Some("primary")
+    } else if name.to_ascii_lowercase().starts_with("secondary hand")
+        || name.eq_ignore_ascii_case("Natural-Secondary")
+    {
+        Some("secondary")
+    } else if name.eq_ignore_ascii_case("Both Hands") {
+        Some("both")
+    } else if name.eq_ignore_ascii_case("Double Weapon") || name.eq_ignore_ascii_case("Two Weapons")
+    {
+        Some("two_hands")
+    } else if name.eq_ignore_ascii_case("Unarmed") || name.eq_ignore_ascii_case("Shield") {
+        Some("neither")
+    } else {
+        None
+    }
 }
 
 /// Serialize a draft to `.pcg` text.
@@ -308,6 +392,29 @@ pub fn write_pcg_draft_string(draft: &PcgDraft) -> Result<String, PcgDraftError>
     }
     for (item, display) in &draft.equipment_display_names {
         writeln!(out, "EQUIPDISPLAY:{item}|{display}").ok();
+    }
+    // The equip set is written back as one flat working set whose rows carry the
+    // location the slot stands for, so a read/write/read round trip keeps them.
+    if !draft.equip_slots.is_empty() {
+        writeln!(out, "EQUIPSET:Default Set|ID:0.1").ok();
+        for (index, (item, location)) in draft.equip_slots.iter().enumerate() {
+            if let Some(slot) = equip_slot_from_location(location) {
+                // The map is keyed by the lower-cased name; write the item's own
+                // spelling when the possessed list knows it, so the file still
+                // names an item PCGen would recognise.
+                let named = draft
+                    .equipment
+                    .iter()
+                    .find(|name| name.eq_ignore_ascii_case(item))
+                    .unwrap_or(item);
+                writeln!(
+                    out,
+                    "EQUIPSET:{slot}|ID:0.1.{index:02}|VALUE:{named}|QUANTITY:1.0"
+                )
+                .ok();
+            }
+        }
+        writeln!(out, "CALCEQUIPSET:0.1").ok();
     }
     for (category, key) in &draft.abilities {
         match draft.choices.get(key) {
@@ -734,6 +841,58 @@ GESTALTJSON:[{\"character_level\":1,\"lanes\":[{\"lane_id\":\"a\",\"class_id\":\
             parse_pcg_draft_str(&text).expect("reparse").character_type,
             "Monster"
         );
+    }
+
+    #[test]
+    fn equip_slots_come_from_the_working_set_and_its_children() {
+        let text = "CHARACTERNAME:Equip Test\n\
+                    EQUIPNAME:Rapier\n\
+                    EQUIPSET:Default Set|ID:0.1\n\
+                    EQUIPSET:Two Weapons|ID:0.1.1|VALUE:Rapier|QUANTITY:2.0\n\
+                    EQUIPSET:Primary Hand|ID:0.2.1|VALUE:Longsword|QUANTITY:1.0\n\
+                    CALCEQUIPSET:0.1\n";
+        let draft = parse_pcg_draft_str(text).unwrap();
+        assert_eq!(
+            draft.equip_slots.get("rapier").map(String::as_str),
+            Some("two_hands")
+        );
+        // The longsword's row is in a sibling set, which the character is not using.
+        assert!(!draft.equip_slots.contains_key("longsword"));
+    }
+
+    #[test]
+    fn a_slot_the_reference_gives_no_location_leaves_the_item_out() {
+        // `Carried` is not one of the names `EquipSet.setEquipLocation` maps, so a
+        // weapon there is possessed rather than equipped and has no location.
+        let text = "CHARACTERNAME:Carried Test\n\
+                    EQUIPNAME:Rapier\n\
+                    EQUIPSET:Carried|ID:0.1.1|VALUE:Rapier|QUANTITY:1.0\n\
+                    CALCEQUIPSET:0.1\n";
+        let draft = parse_pcg_draft_str(text).unwrap();
+        assert!(draft.equip_slots.is_empty(), "{:?}", draft.equip_slots);
+
+        // With no working set named, every row counts.
+        let unnamed = "CHARACTERNAME:Unnamed\n\
+                       EQUIPNAME:Rapier\n\
+                       EQUIPSET:Two Weapons|ID:0.1.1|VALUE:Rapier|QUANTITY:2.0\n";
+        let draft = parse_pcg_draft_str(unnamed).unwrap();
+        assert_eq!(
+            draft.equip_slots.get("rapier").map(String::as_str),
+            Some("two_hands")
+        );
+    }
+
+    #[test]
+    fn equip_slots_survive_a_write_and_read() {
+        let text = "CHARACTERNAME:Round Trip\n\
+                    EQUIPNAME:Rapier\n\
+                    EQUIPSET:Default Set|ID:0.1\n\
+                    EQUIPSET:Two Weapons|ID:0.1.1|VALUE:Rapier|QUANTITY:2.0\n\
+                    CALCEQUIPSET:0.1\n";
+        let draft = parse_pcg_draft_str(text).unwrap();
+        let written = write_pcg_draft_string(&draft).unwrap();
+        assert!(written.contains("VALUE:Rapier"), "{written}");
+        assert_eq!(parse_pcg_draft_str(&written).unwrap(), draft);
     }
 
     #[test]

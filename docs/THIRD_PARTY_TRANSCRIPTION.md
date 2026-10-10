@@ -219,10 +219,20 @@ rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
   these packs now evaluate against the spell's `SCHOOL:`. The total below is
   unchanged by it.
 
-**Current total, re-measured over the same 189 campaigns: 4 unsupported
-occurrences across 1 tag kind** — every one of them a `BONUS`, and re-measured
-after the `PRELEGS` and `PREEQUIP*` rounds.  Against 5 / 1 before the `PRELEGS`
-round, 23 / 1 before the `PRESPELLTYPE` round, 25 / 2 before the `PRESPELLCAST` round, 32 / 4
+**Current total, re-measured over the same 189 campaigns: 2 unsupported
+occurrences across 1 tag kind.**  Both are `BONUS` rows in the 4e
+`players_handbook`, both gated on `PRECLASS:1,TYPE=Base`, and both are broken data
+rather than missing work:
+
+```java
+// `PreClassParser` is a list parser, so `TYPE=Base` reaches
+// Integer.parseInt("Base") in the single-element branch, the `ANY` escape does not
+// apply, and the parser throws a PersistenceLayerException.
+```
+
+PCGen cannot load the tag either, so there is no behaviour to match and nothing to
+guess at: this is the queue's end.  Against 4 / 1 before the `PREEQUIPTWOWEAPON`
+round, 5 / 1 before the `PRELEGS` round, 23 / 1 before the `PRESPELLTYPE` round, 25 / 2 before the `PRESPELLCAST` round, 32 / 4
 before `PRESKILLTOT` and `PREUATT`,
 42 / 8 after the `PREFACT` round, 304 / 8 after the `PRESA` round,
 311 / 9 after the `PRECHARACTERTYPE` round, 332 / 10 after the `PRECAMPAIGN`
@@ -232,19 +242,22 @@ the `PREALIGN` round, 401 / 15 after the `PRECSKILL` round, 750 / 17 after the
 `PREREGION` round, 1,171 / 18 after the `PREATT` round and 1,409 / 20 at
 transcription.
 
-What is left is the over-approximation described at the top of this file and
-nothing else: 4 `BONUS` rows whose *gate* cannot be read, with the effect kept and
-the raw gate reported.  Each of the four has been read, and they are two different
-things:
+What is left is the two broken-data rows above.  Everything else that the queue
+ever held has been read, lowered, and covered by a test, and the tags that remain
+unsupported are unsupported because the reference itself refuses them.
 
-* 2 rows, in the 4e `players_handbook`, are gated on `PRECLASS:1,TYPE=Base`.  This
-  is broken data rather than a missing model: `PreClassParser` is a list parser, so
-  `TYPE=Base` reaches `Integer.parseInt("Base")` in the single-element branch, the
-  `ANY` escape does not apply and the parser throws a `PersistenceLayerException`.
-  PCGen cannot load the tag either, so there is no behaviour to match;
-* 2 rows, in the Underdark pack and in the curated `_all_35e3e` that includes it,
-  are gated on `PREEQUIPTWOWEAPON:2,TYPE=Nekode`.  The `PREEQUIP*` family is
-  modelled; this member of it is not.
+Two things are worth keeping in view when reading that sentence, because they are
+the reason the number is small rather than the reason it is *only* two:
+
+* the `BONUS` over-approximation described at the top of this file is what it always
+  was — an unreadable gate keeps its effect rather than dropping it — and `BONUS` no
+  longer has a single such row, which means every `BONUS` gate in these 189
+  campaigns now parses;
+* the count is of *tags*, not of semantics.  Two known semantic divergences are
+  documented rather than fixed, because neither is reachable from this queue and
+  both need their own attributed round: the `PRECLASS` `TYPE=` aggregation
+  (`PCGEN_SYNTAX_INVENTORY.md` §5ai) and the class-level rows whose requirements the
+  engine does not evaluate (`§5p`).
 
 ## The 7 campaigns that could not be transcribed
 

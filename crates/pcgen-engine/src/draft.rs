@@ -69,6 +69,15 @@ pub struct CharacterDraft {
     /// `OUTPUTNAME:` display name per item, keyed by item name (lower-cased).
     #[serde(default)]
     pub equipment_display_names: BTreeMap<String, String>,
+    /// Where each item sits in the character's equip set, keyed by item name
+    /// (lower-cased): `primary`, `secondary`, `both`, `two_hands` or `neither`.
+    ///
+    /// Comes from the `.pcg`'s `EQUIPSET:` rows.  Only `PREEQUIPTWOWEAPON` reads
+    /// it so far; the hand slots are still derived from each item definition's
+    /// `WIELD`, and moving them here would change what existing `PREEQUIP*`
+    /// requirements mean.
+    #[serde(default)]
+    pub equip_slots: BTreeMap<String, String>,
     #[serde(default)]
     pub abilities: Vec<(String, String)>,
     /// Applied creature templates (PCGen `TEMPLATE:` / `.pcg`).
@@ -152,6 +161,7 @@ impl Default for CharacterDraft {
             equipment_modifiers: BTreeMap::new(),
             equipment_base_items: BTreeMap::new(),
             equipment_display_names: BTreeMap::new(),
+            equip_slots: BTreeMap::new(),
             abilities: Vec::new(),
             templates: Vec::new(),
             active_states: Vec::new(),

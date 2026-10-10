@@ -812,7 +812,7 @@ see §5aa, §5ab, §5ac and §5ad.  Several names on the original list have sinc
 `PREVAR*` boundary (see §5af), `PREREACH` (see §5ag), `PREITEM` (see §5ah),
 `PRECLASSLEVELMAX` (see §5ai), `PRESKILLTOT` (see §5aj), `PREUATT` (see §5ak),
 `PRESPELLCAST` (see §5al), `PRESPELLTYPE` (see §5am), the `PRELEGS` family
-(see §5an) and the `PREEQUIP*` keys (see §5ao);
+(see §5an), the `PREEQUIP*` keys (see §5ao) and `PREEQUIPTWOWEAPON` (see §5ap);
 `PRELEVEL` now supports both `MIN=` and `MAX=`.  See the current `CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
@@ -1951,6 +1951,63 @@ form, deliberately: those qualifiers were written to be passed through as text, 
 typing them here would change what existing characters' bonuses mean.  The engine
 reads `specs` when it is non-empty and falls back to `values` otherwise, so both
 shapes work and only the tag path moved.
+
+### 5ap. `PREEQUIPTWOWEAPON`, and the equip set the reader never opened
+
+`PREEQUIPTWOWEAPON` asks about `EquipmentLocation.EQUIPPED_TWO_HANDS`, which is
+documented as "either a double weapon or one of a pair of weapons".  Unlike the hand
+slots it cannot be derived from any item property, and that is not a shortcoming of
+the data — it is how the reference works.  The location is assigned when the
+character's **equip set** is read:
+
+```java
+else if (name.equals(Constants.EQUIP_LOCATION_DOUBLE))
+    eq_item.addWeaponToLocation(qty, EquipmentLocation.EQUIPPED_TWO_HANDS, aPC);
+else if (name.equals(Constants.EQUIP_LOCATION_TWOWEAPONS))
+{
+    Float quantity = (qty.doubleValue() < 2.0) ? 2.0f : qty;
+    setQty(quantity);
+    eq_item.addWeaponToLocation(quantity, EquipmentLocation.EQUIPPED_TWO_HANDS, aPC);
+}
+```
+
+`EQUIPSET:` and `CALCEQUIPSET:` were not parsed at all, so `draft.equipment` was the
+flat `EQUIPNAME:` list, and nothing in the model knew that a rapier could be *two*
+rapiers used together.  The fixture says exactly that, which is why the golden test
+now pins it:
+
+```text
+EQUIPNAME:Rapier|OUTPUTORDER:1|COST:20|WT:3.0|QUANTITY:2.0
+EQUIPSET:Default Set|ID:0.1
+EQUIPSET:Two Weapons|ID:0.1.1|VALUE:Rapier|QUANTITY:2.0
+CALCEQUIPSET:0.1
+```
+
+Three decisions in the reading are worth recording.
+
+**Only the working set and its children count.**  `CALCEQUIPSET` names the set the
+character is using; the others in the file are alternative configurations.  The
+child test is on the id *path* (`0.1` is the parent of `0.1.1`), which is also why
+the ids are kept as opaque strings — the same files contain `0.01`.
+
+**Most slot names produce no location.**  `EquipSet.setEquipLocation` maps
+`Primary Hand`, `Secondary*`, `Both Hands`, `Double Weapon`, `Unarmed` and
+`Shield`; everything else — `Carried`, `Equipped`, `Not Carried`, and the root
+`Default Set` itself — falls off the end without assigning one.  So a weapon in
+`Carried` is possessed, not equipped, and gets no entry here either.
+
+**The new set is read only by the new predicate.**  `equipped_two_hands` is built
+from `draft.equip_slots`, while `equipped_primary`, `equipped_secondary` and
+`equipped_both` still come from the items' `WIELD` tags.  Driving those from the
+equip set as well would be more faithful and is the natural next step, but it would
+change what every existing `PREEQUIP*` requirement means for every existing
+character, which is a bigger change than a queue entry and needs its own attributed
+round.
+
+The `.pcg` writer was extended in the same commit, because a slot that survives a
+read but not a write is a slot the web builder would quietly drop: the slots are
+written back as one flat working set, naming each item with its own spelling rather
+than the lower-cased key the map is stored under.
 
 ## What followed from this
 

@@ -73,6 +73,17 @@ pub struct PcgDraft {
     /// `OUTPUTNAME:` display name per item, keyed by item name (lower-cased).
     #[serde(default)]
     pub equipment_display_names: BTreeMap<String, String>,
+    /// Where each item sits in the character's equip set, keyed by item name
+    /// (lower-cased).
+    ///
+    /// Read from the `.pcg`'s `EQUIPSET:` rows, which name a slot (`Primary Hand`,
+    /// `Two Weapons`, `Carried`, ...) and the item in it; `CALCEQUIPSET:` names the
+    /// working set, and only its own rows and its children's are used.  The value
+    /// is the location the slot puts a weapon in — `primary`, `secondary`, `both`,
+    /// `two_hands` or `neither` — or absent for a slot the reference assigns no
+    /// location to at all, which is most of them.
+    #[serde(default)]
+    pub equip_slots: BTreeMap<String, String>,
     #[serde(default)]
     pub abilities: Vec<(String, String)>,
     #[serde(default)]

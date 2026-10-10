@@ -205,6 +205,9 @@ pub struct EffectState {
     pub movement: BTreeMap<String, u32>,
     /// Equipped item names, type tags and wielding categories (lower-cased).
     pub equipment_values: BTreeSet<String>,
+    /// Items in the two-weapons location (`PREEQUIPTWOWEAPON`), which the `.pcg`'s
+    /// `Two Weapons` and `Double Weapon` equip slots assign.
+    pub equipped_two_hands: BTreeSet<String>,
     /// Items occupying the primary hand (`PREEQUIPPRIMARY`).
     pub equipped_primary: BTreeSet<String>,
     /// Items occupying the secondary hand (`PREEQUIPSECONDARY`).
@@ -465,6 +468,15 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
     let mut equipped_primary = BTreeSet::new();
     let mut equipped_secondary = BTreeSet::new();
     let mut equipped_both = BTreeSet::new();
+    // `PreEquipTwoWeaponTester` asks about `EquipmentLocation.EQUIPPED_TWO_HANDS`,
+    // which comes from the character's equip *slots* rather than from the items'
+    // `WIELD` tags — that is what the `.pcg`'s `EQUIPSET:` rows are for.
+    let equipped_two_hands: BTreeSet<String> = draft
+        .equip_slots
+        .iter()
+        .filter(|(_, location)| location.as_str() == "two_hands")
+        .map(|(item, _)| normalized(item))
+        .collect();
     for item in &draft.equipment {
         let normalized_item = normalized(item);
         equipment_values.insert(normalized_item.clone());
@@ -625,6 +637,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         item_wields,
         equipped_primary,
         equipped_secondary,
+        equipped_two_hands,
         equipped_both,
         weapon_proficiencies,
         languages,
@@ -2426,6 +2439,7 @@ pub(crate) fn predicate_holds(
                     "primary" => in_scope(&state.equipped_primary),
                     "secondary" => in_scope(&state.equipped_secondary),
                     "both" => in_scope(&state.equipped_both),
+                    "two_hands" => in_scope(&state.equipped_two_hands),
                     _ => in_scope(&state.equipment_values),
                 };
             }
@@ -2440,6 +2454,7 @@ pub(crate) fn predicate_holds(
                     "primary" => state.equipped_primary.contains(&key),
                     "secondary" => state.equipped_secondary.contains(&key),
                     "both" => state.equipped_both.contains(&key),
+                    "two_hands" => state.equipped_two_hands.contains(&key),
                     _ => true,
                 }
             };

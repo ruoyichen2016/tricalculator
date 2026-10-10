@@ -2289,6 +2289,40 @@ fn preequip_keys_are_read_the_way_the_reference_reads_them() {
 }
 
 #[test]
+fn preequiptwoweapon_reads_the_two_weapons_slot() {
+    // `EQUIPPED_TWO_HANDS` — a double weapon or one of a pair — which the `.pcg`'s
+    // `Two Weapons` and `Double Weapon` slots assign.  The leading `2` is still a
+    // count of keys, so one key with `2` can never be satisfied.
+    let record = record(
+        "FEAT",
+        "Two Weapon Fighter",
+        &[("PREEQUIPTWOWEAPON", "2,TYPE=Nekode")],
+    );
+    let (pack, report) = lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[record]);
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    match &pack.entities[0].requirements[0] {
+        Predicate::Equipped {
+            slot,
+            specs,
+            min_count,
+            ..
+        } => {
+            assert_eq!(slot, "two_hands");
+            assert_eq!(*min_count, 2);
+            assert_eq!(
+                specs,
+                &vec![pcgen_core::ItemSpec::Types(vec!["Nekode".to_string()])]
+            );
+        }
+        other => panic!("{other:?}"),
+    }
+}
+
+#[test]
 fn the_preequip_hand_variants_keep_their_slots() {
     for (tag, slot) in [
         ("PREEQUIPPRIMARY", "primary"),
