@@ -113,6 +113,9 @@ semantic_completion 100.0%
 - **Post-M9**：`PRECHECK` → `Predicate::Check`（新增 `EffectState.total_saves` =
   base + 属性调整）；同时修掉 `PRECHECKBASE` 丢掉 count 的老问题（`BaseSave` 保留以
   兼容旧 pack）。第三方资料 unsupported 393→373。
+- **Post-M9**：`PRESPELLDESCRIPTOR` → `Predicate::SpellDescriptor`（新增
+  `EffectState.spell_descriptors`；多组 `y=z` 是**相加**，与 `PRESPELLTYPE` 的「任选其一」
+  不同）。第三方资料 unsupported 373→350。
 - monster class `classlevel()` BAB 公式修复（`classlevel()` 空括号）
 
 累计：`legacy_tags` 4289 → 1284，`unsupported` 337 → 0，`semantic_completion` 46.8% → 100.0%。

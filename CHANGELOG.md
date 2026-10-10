@@ -1,5 +1,22 @@
 ## Unreleased
 
+### 补齐谓词：`PRESPELLDESCRIPTOR`
+
+- 新增 `Predicate::SpellDescriptor { specs, count }` 与
+  `SpellDescriptorSpec { descriptor, min_level }`。
+- 语义按 `PreSpellDescriptorTester`：统计角色**已知**的、带该 descriptor 且等级 ≥ z
+  的法术；`countedTotal` 在 `countMultiples` 下把**数量**原样返回，list wrapper 再把各
+  subreq 的计数**相加**后与 x 比较——所以多组 `y=z` 是**相加**，而不是 `PRESPELLTYPE`
+  那种「任选其一」。等级窗口照 reference 取 `[z, 20]`。
+- 引擎新增 `EffectState.spell_descriptors`（descriptor → 已知法术等级列表），在效果循环
+  前由 `pack.spells` 的 `DESCRIPTOR:` 与 `draft.spells` 的等级 join 出来——因为
+  `predicate_holds` 拿不到 pack，和 `skill_types` / `ability_traits` 同理。
+- reference 里那个 deprecated 拼写 `PRESPELLDESCRIPTOR:y,x,z` **不支持**，而且不是偷懒：
+  当前解析器同样拒绝它（`Integer.parseInt(elements[0])` 在 descriptor 上抛异常）。
+- 第三方资料：unsupported 373 → **350**（`PRESPELLDESCRIPTOR` 14 → 0，另有 9 条被它
+  拖垮的 `PREMULT`，28 → 19）；验收 cohort 不含该 tag。新增 5 个回归测试；
+  `cargo test --workspace`：**476 passed / 0 failed / 2 ignored**。
+
 ### 补齐谓词：`PRECHECK`，并修掉 `PRECHECKBASE` 丢掉的 count
 
 - 新增 `Predicate::Check { base, specs, min_count }` 与 `SaveSpec { save, min }`。

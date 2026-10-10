@@ -910,3 +910,54 @@ fn the_old_base_save_predicate_still_deserializes() {
         }
     );
 }
+
+#[test]
+fn prespelldescriptor_lowers_to_descriptor_pairs() {
+    let feat = record(
+        "FEAT",
+        "Mindbender",
+        &[("PRESPELLDESCRIPTOR", "4,Mind-Affecting=3")],
+    );
+    let (pack, report) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[feat]);
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::SpellDescriptor {
+            specs: vec![pcgen_core::SpellDescriptorSpec {
+                descriptor: "Mind-Affecting".to_string(),
+                min_level: 3,
+            }],
+            count: 4,
+        }
+    );
+
+    // The pairs add up, so every one of them is kept.
+    let energy = record(
+        "FEAT",
+        "Energy Substitution",
+        &[("PRESPELLDESCRIPTOR", "1,Acid=3,Cold=3,Electricity=3,Fire=3")],
+    );
+    let (pack, _) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[energy]);
+    let Predicate::SpellDescriptor { specs, count } = &pack.entities[0].requirements[0] else {
+        panic!("expected SpellDescriptor");
+    };
+    assert_eq!(*count, 1);
+    assert_eq!(specs.len(), 4);
+    assert_eq!(specs[3].descriptor, "Fire");
+    assert_eq!(specs[3].min_level, 3);
+
+    let negated = record("FEAT", "Pure Heart", &[("!PRESPELLDESCRIPTOR", "1,Evil=3")]);
+    let (pack, _) = lower_records(
+        Some("35e".to_string()),
+        vec!["pred".to_string()],
+        &[negated],
+    );
+    assert!(matches!(
+        &pack.entities[0].requirements[0],
+        Predicate::Not(inner) if matches!(**inner, Predicate::SpellDescriptor { .. })
+    ));
+}

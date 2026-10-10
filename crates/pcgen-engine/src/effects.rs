@@ -80,6 +80,12 @@ pub struct EffectState {
     /// `PRECSKILL`.  Built from the character's classes, including any class
     /// skills an archetype or substitution level swaps in.
     pub class_skills: BTreeSet<String>,
+    /// Spell descriptor (lowercased) to the levels of the draft's known spells
+    /// that carry it, for `PRESPELLDESCRIPTOR`.
+    ///
+    /// `predicate_holds` has no pack, so each known spell's descriptors are
+    /// resolved here once, from `pack.spells`.
+    pub spell_descriptors: BTreeMap<String, Vec<u32>>,
     /// Ability key (normalised) to its name, category and `TYPE:` tags, for
     /// `PREABILITY`.  Built once because `predicate_holds` has no pack.
     pub ability_traits: BTreeMap<String, AbilityTraits>,
@@ -231,6 +237,20 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
     // the character's classes rather than of anything spent.  It has to be known
     // before the effect loop, like vision and the base saves.
     let class_skills = character_class_skills(pack, draft, &skill_types);
+    // `PRESPELLDESCRIPTOR` counts the character's known spells per descriptor, so
+    // each draft spell has to be joined to its `DESCRIPTOR:` list here.
+    let mut spell_descriptors: BTreeMap<String, Vec<u32>> = BTreeMap::new();
+    for spell in &draft.spells {
+        let Some(definition) = find_spell(pack, &spell.name) else {
+            continue;
+        };
+        for descriptor in &definition.descriptors {
+            spell_descriptors
+                .entry(descriptor.to_ascii_lowercase())
+                .or_default()
+                .push(spell.level);
+        }
+    }
     let race_creature_type = pack
         .races
         .get(&draft.race_id)
@@ -407,6 +427,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         race_subtypes,
         skill_types,
         class_skills,
+        spell_descriptors,
         ability_traits,
         class_traits,
         vision,
@@ -1389,6 +1410,21 @@ fn skill_requirement_holds(
     })
 }
 
+/// Resolve a known spell's definition by key or by display name.
+fn find_spell<'a>(
+    pack: &'a CompiledRulePack,
+    name: &str,
+) -> Option<&'a pcgen_core::SpellDefinition> {
+    pack.spells.get(name).or_else(|| {
+        pack.spells
+            .iter()
+            .find(|(key, spell)| {
+                key.eq_ignore_ascii_case(name) || spell.name.eq_ignore_ascii_case(name)
+            })
+            .map(|(_, spell)| spell)
+    })
+}
+
 /// Map a PCGen save name to its kind.  The abbreviations are what the data
 /// uses in `PRECHECK`-style gates as well as the full names.
 fn save_kind(name: &str) -> Option<SaveKind> {
@@ -1690,6 +1726,28 @@ pub(crate) fn predicate_holds(
                     })
                 })
                 .map(|(_, slots)| *slots)
+                .sum();
+            available >= (*count).max(1)
+        }
+        // `PreSpellDescriptorTester` counts the known spells matching its one
+        // descriptor at or above the required level, and the list wrapper adds
+        // those counts up before comparing with the operand.  The level window
+        // is the reference's: `aggregateSpellList(..., requiredLevel, 20)`.
+        Predicate::SpellDescriptor { specs, count } => {
+            let available: u32 = specs
+                .iter()
+                .map(|spec| {
+                    state
+                        .spell_descriptors
+                        .get(&spec.descriptor.to_ascii_lowercase())
+                        .map(|levels| {
+                            levels
+                                .iter()
+                                .filter(|level| **level >= spec.min_level && **level <= 20)
+                                .count() as u32
+                        })
+                        .unwrap_or(0)
+                })
                 .sum();
             available >= (*count).max(1)
         }

@@ -1774,6 +1774,42 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 prefix: body.to_string(),
             })
         }
+        // PRESPELLDESCRIPTOR:count,descriptor=level — at least `count` known
+        // spells carry the listed descriptors at or above the stated levels.
+        //
+        // `PreSpellDescriptorParser` is a list parser: the leading number is the
+        // count, and each `y=z` pair is a sub-requirement.  Its tester returns
+        // the *number* of known spells matching its one descriptor, and the list
+        // wrapper sums the sub-requirements, so the pairs add up rather than
+        // being alternatives.  The documented deprecated spelling (`y,x,z`) is
+        // rejected by the reference parser too — `Integer.parseInt(elements[0])`
+        // throws on a descriptor — so it is not supported here either.
+        "PRESPELLDESCRIPTOR" => {
+            let (count_str, rest) = body.split_once(',')?;
+            let count = count_str.trim().parse::<u32>().ok()?;
+            let specs: Vec<pcgen_core::SpellDescriptorSpec> = rest
+                .split(',')
+                .filter_map(|pair| {
+                    // The value is the *last* `=` segment, as everywhere else.
+                    let (descriptor, level) = pair.rsplit_once('=')?;
+                    let descriptor = descriptor.trim();
+                    if descriptor.is_empty() {
+                        return None;
+                    }
+                    Some(pcgen_core::SpellDescriptorSpec {
+                        descriptor: descriptor.to_string(),
+                        min_level: level.trim().parse::<u32>().ok()?,
+                    })
+                })
+                .collect();
+            if specs.is_empty() {
+                return None;
+            }
+            Some(Predicate::SpellDescriptor {
+                specs,
+                count: count.max(1),
+            })
+        }
         // PRESPELLTYPE:count,type=level — can cast `count` spells of `type`
         // at spell level `level` or higher.
         "PRESPELLTYPE" => {

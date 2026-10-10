@@ -311,6 +311,23 @@ pub enum Predicate {
     /// The character has a class that casts from a spellbook
     /// (PCGen `PRESPELLBOOK:YES`).
     HasSpellbook,
+    /// `PRESPELLDESCRIPTOR:x,y=z,y=z` — the character knows at least `count`
+    /// spells that carry the listed descriptors at or above the stated spell
+    /// levels.
+    ///
+    /// PCGen's reference: "Sets spell descriptor requirements. (i.e. Fire, Acid,
+    /// Sonic, Evil, Good, Mind-Affecting, etc.)", and its own example is
+    /// `PRESPELLDESCRIPTOR:4,Mind-Affecting=3` — "at least four 3rd level or
+    /// higher Mind-Affecting spells".
+    ///
+    /// The pairs *sum*: `PreSpellDescriptorTester` returns the number of known
+    /// spells matching its one descriptor, and the list wrapper adds the
+    /// sub-requirements up before comparing with the count.  That is unlike
+    /// [`Self::SpellType`], whose pairs the reference describes as alternatives.
+    SpellDescriptor {
+        specs: Vec<SpellDescriptorSpec>,
+        count: u32,
+    },
     /// The character has a class of this power type
     /// (PCGen `PRESPELLCAST:TYPE=Arcane`).
     HasSpellPower {
@@ -789,6 +806,15 @@ pub struct SaveSpec {
     pub save: String,
     /// The total (or base) save must be at least this.
     pub min: i32,
+}
+
+/// One `PRESPELLDESCRIPTOR` pair: a spell descriptor and the minimum spell level.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct SpellDescriptorSpec {
+    /// A spell descriptor, e.g. `Mind-Affecting`.
+    pub descriptor: String,
+    /// Only spells of at least this level count.
+    pub min_level: u32,
 }
 
 /// One `PRERACE` value.

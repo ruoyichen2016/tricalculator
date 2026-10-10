@@ -802,12 +802,12 @@ a bonus it should have.
 The remaining kinds are genuinely unimplemented: `PRE` (21), `PRESA` (12),
 `PRESKILLTOT`, `PREHP`, `PRESIZENEQ`,
 `PREDEITYDOMAIN`, `PRESRLT`, `PRESPELLSCHOOLSUB`,
-`PRESPELLDESCRIPTOR`, `PRECLASSLEVELMAX`, `PRETEXT`. None appear in the
+`PRECLASSLEVELMAX`, `PRETEXT`. None appear in the
 acceptance cohort.  Several names on the original list have since been lowered:
 `PRELEVELMAX`, `PREATT`, `PREHANDSGT`, multi-mode `PREMOVE`, `PREREGION`
-(see §5u), `PRECSKILL` (see §5v), `PREALIGN`'s value forms (see §5w) and
-`PRECHECK` (see §5x); `PRELEVEL` now supports both `MIN=` and `MAX=`.  See the
-current `CHANGELOG.md`.
+(see §5u), `PRECSKILL` (see §5v), `PREALIGN`'s value forms (see §5w),
+`PRECHECK` (see §5x) and `PRESPELLDESCRIPTOR` (see §5y); `PRELEVEL` now supports
+both `MIN=` and `MAX=`.  See the current `CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
 
@@ -1068,6 +1068,43 @@ last `=` segment as §5t requires.
 change has to keep loading, and `pcgen pack-info` must not fail on it — but nothing
 emits it any more. Both the deserialisation and the evaluation are covered by
 tests.
+
+### 5y. `PRESPELLDESCRIPTOR`, and where its pairs *add up*
+
+`PRESPELLDESCRIPTOR:x,y=z` looks like `PRESPELLTYPE:x,y=z` and is not: the pairs
+behave differently, and the difference is in the tester, not the parser.
+
+`PreSpellDescriptorTester` handles one descriptor at a time:
+
+```java
+final String descriptor = prereq.getKey();
+final int requiredLevel = Integer.parseInt(prereq.getOperand());
+final List<Spell> aArrayList = character.aggregateSpellList("No-Match", "A", descriptor, requiredLevel, 20);
+final int runningTotal = prereq.getOperator().compare(aArrayList.size(), 1);
+return countedTotal(prereq, runningTotal);
+```
+
+`PrerequisiteOperator.compare(a, b)` returns `a` when the comparison passes, and
+`countedTotal` hands that straight back for a `countMultiples` sub-requirement —
+so the sub-requirement reports the **number of known spells**, not 0/1. The list
+wrapper then sums the sub-requirements and compares the total with `x`. Hence
+`PRESPELLDESCRIPTOR:4,Mind-Affecting=3` is "at least four 3rd level or higher
+Mind-Affecting spells", and `PRESPELLDESCRIPTOR:2,Fire=3,Acid=3` is satisfied by
+one Fire spell plus one Acid spell. `PRESPELLTYPE`, by contrast, is described in
+the reference as "any of" its types.
+
+The level window is the reference's own `[requiredLevel, 20]`, so a spell the
+character knows above 20th level would not count; that is kept rather than
+simplified to an open-ended `>=`.
+
+`EffectState.spell_descriptors` maps a lowercased descriptor to the levels of the
+draft's known spells that carry it. It has to be precomputed because
+`predicate_holds` receives no pack — the same reason `skill_types`,
+`ability_traits` and `class_traits` exist.
+
+The reference also lists a deprecated spelling, `PRESPELLDESCRIPTOR:y,x,z`. It is
+not supported, and not merely skipped: the current parser rejects it as well,
+because `Integer.parseInt(elements[0])` throws on a descriptor name.
 
 ## What followed from this
 
