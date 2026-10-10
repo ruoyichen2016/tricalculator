@@ -287,10 +287,17 @@ pub enum Predicate {
     HandsAtMost {
         count: u32,
     },
-    /// The character has a movement mode of at least `feet` (PCGen `PREMOVE`).
+    /// The character has a movement mode of at least `feet` (PCGen `PREMOVE`
+    /// with a single mode).
     MovementAtLeast {
         mode: String,
         feet: u32,
+    },
+    /// The character has at least `min_count` of the listed movement modes
+    /// (PCGen `PREMOVE:x,Walk=30,Fly=20`).
+    MovementCount {
+        min_count: u32,
+        specs: Vec<MovementSpec>,
     },
     /// Equipped-item query (PCGen `PREEQUIP*`).  `slot` is one of
     /// `any`, `primary`, `secondary`, `both`.
@@ -652,6 +659,15 @@ pub struct VisionSpec {
     pub kind: String,
     /// `None` for `ANY` — the distance is not constrained.
     pub min_distance: Option<u32>,
+}
+
+/// One movement mode requirement in a `PREMOVE` list.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MovementSpec {
+    /// Movement mode, lower-cased, e.g. `walk` or `fly`.
+    pub mode: String,
+    /// Minimum rate in feet.
+    pub feet: u32,
 }
 
 /// One `PRESPELLTYPE` pair.

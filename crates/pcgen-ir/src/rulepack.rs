@@ -1584,7 +1584,9 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
             })
         }
         "PREMULT" => parse_premult(body),
-        "PRETOTALAB" => {
+        // `PREATT` is documented as a minimum base attack bonus.  PCGen also
+        // has `PRETOTALAB`; both lower to the same runtime predicate.
+        "PRETOTALAB" | "PREATT" => {
             let body = body.strip_prefix("Q:").unwrap_or(body).trim();
             let min = body.parse::<u32>().ok()?;
             Some(Predicate::TotalBab { min })
@@ -1790,6 +1792,14 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 .find(|part| !part.is_empty())
                 .and_then(|part| part.parse::<u32>().ok())?,
         }),
+        // Strictly more than n hands: at least n + 1.
+        "PREHANDSGT" => Some(Predicate::HandsAtLeast {
+            count: body
+                .split(|ch: char| !ch.is_ascii_digit())
+                .find(|part| !part.is_empty())
+                .and_then(|part| part.parse::<u32>().ok())?
+                .saturating_add(1),
+        }),
         "PREHANDSGTEQ" => Some(Predicate::HandsAtLeast {
             count: body.trim().parse::<u32>().ok()?,
         }),
@@ -1800,15 +1810,43 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 Predicate::HandsAtMost { count },
             ]))
         }
-        // PREMOVE:n,Mode=rate[|TYPE=...] — has movement mode `Mode`.
+        // PREMOVE:x,Mode=rate,Mode2=rate2[|TYPE=...] — at least `x` of the
+        // listed movement modes meet their minimum rate.
         "PREMOVE" => {
-            let spec = body.split('|').next()?.trim();
-            let movement = spec.split_once(',')?.1;
-            let (mode, rate) = movement.split_once('=')?;
-            Some(Predicate::MovementAtLeast {
-                mode: mode.trim().to_ascii_lowercase(),
-                feet: rate.trim().parse::<u32>().ok()?.max(1),
-            })
+            let body = body.split('|').next()?.trim();
+            let mut fields = body
+                .split(',')
+                .map(str::trim)
+                .filter(|part| !part.is_empty());
+            let min_count = fields
+                .next()
+                .and_then(|part| part.parse::<u32>().ok())
+                .unwrap_or(1)
+                .max(1);
+            let mut specs = Vec::new();
+            for movement in fields {
+                let (mode, rate) = movement.split_once('=')?;
+                let mode = mode.trim().to_ascii_lowercase();
+                let feet = rate.trim().parse::<u32>().ok()?;
+                if mode.is_empty() {
+                    return None;
+                }
+                specs.push(pcgen_core::MovementSpec {
+                    mode,
+                    feet: feet.max(1),
+                });
+            }
+            match specs.len() {
+                0 => None,
+                1 if min_count == 1 => {
+                    let spec = specs.into_iter().next().expect("one spec");
+                    Some(Predicate::MovementAtLeast {
+                        mode: spec.mode,
+                        feet: spec.feet,
+                    })
+                }
+                _ => Some(Predicate::MovementCount { min_count, specs }),
+            }
         }
         _ => None,
     }

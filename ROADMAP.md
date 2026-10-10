@@ -10,8 +10,8 @@
 - 工作区：10 crate（core / formula / ir / import / engine / builder / output /
   cli / web / **transpile**）。`pcgen-transpile` 是构建期转写器，把
   `.pcc`/`.lst` 规范化成 pack 目录，使运行期不再解释 PCGen 文本。
-- 测试：`cargo test --workspace` **446 passed / 2 ignored**（`scripts/check.sh`
-  额外再跑一次 `pcgen-web`，合计 **485 passed / 2 ignored**）。
+- 测试：`cargo test --workspace` **448 passed / 2 ignored**（`scripts/check.sh`
+  额外再跑一次 `pcgen-web`，合计 **487 passed / 2 ignored**）。
 - 全量门禁：`bash scripts/check.sh` 通过；`coverage_gate.py`
   **pass=15 / fail=0 / skip=0**，broad primary cohort **25/25**，
   PF35e extension gate 通过。archive differential 因旧 archive 二进制已清理而

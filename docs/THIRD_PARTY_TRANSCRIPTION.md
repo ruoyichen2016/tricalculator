@@ -106,10 +106,17 @@ smaller lie than silently dropping a bonus.
 The 1,409 unsupported count above therefore still measures uninterpreted tags,
 but no longer measures silently lost `BONUS` / `TEMPBONUS` effects.
 
-After that run, `PRELEVELMAX` (190 tags) was also lowered, and `PRELEVEL` now
+After that run, several listed predicates were lowered, and `PRELEVEL` now
 honours both `MIN=` and `MAX=`.  The table above is the original transcription
 snapshot and has not been re-counted; the underlying source run would need to be
 repeated to freeze a new unsupported total.
+
+Subsequent reductions not reflected above:
+
+- `PRELEVELMAX` (190 tags);
+- `PREATT` (27 tags), aliased to the existing `PRETOTALAB` predicate;
+- `PREHANDSGT` (9 tags), lowered to `HandsAtLeast { n + 1 }`;
+- multi-mode `PREMOVE` (12 tags), now represented as `MovementCount`.
 
 ## The 7 campaigns that could not be transcribed
 

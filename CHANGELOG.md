@@ -1,5 +1,15 @@
 ## Unreleased
 
+### 补齐谓词：`PREATT` / `PREHANDSGT` / 多模式 `PREMOVE`
+
+- `PREATT:x` 与 `PRETOTALAB` 同义，lower 为 `TotalBab { min }`；
+- `PREHANDSGT:x` lower 为 `HandsAtLeast { count: x + 1 }`；
+- `PREMOVE:x,Walk=30,Fly=20` 支持多个移动模式，lower 为新的
+  `MovementCount { min_count, specs }`；单模式仍保持原来的
+  `MovementAtLeast { mode, feet }` 形状，旧 pack 不受影响。
+
+新增测试后 `cargo test --workspace`：**448 passed / 0 failed / 2 ignored**。
+
 ### 修复：`PRELEVEL` 上下界与 `PRELEVELMAX`
 
 `PRELEVEL` 此前只取第一个数字并一律当作最小等级，导致 `PRELEVEL:MAX=10`

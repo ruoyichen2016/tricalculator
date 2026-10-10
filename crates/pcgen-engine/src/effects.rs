@@ -1579,6 +1579,18 @@ pub(crate) fn predicate_holds(
         Predicate::MovementAtLeast { mode, feet } => {
             state.movement.get(mode).is_some_and(|rate| *rate >= *feet)
         }
+        Predicate::MovementCount { min_count, specs } => {
+            specs
+                .iter()
+                .filter(|spec| {
+                    state
+                        .movement
+                        .get(&spec.mode)
+                        .is_some_and(|rate| *rate >= spec.feet)
+                })
+                .count() as u32
+                >= *min_count
+        }
         Predicate::Equipped { slot, values } => {
             let matches = |item: &String, value: &str| item == value || item.contains(value);
             let in_scope = |set: &BTreeSet<String>| {

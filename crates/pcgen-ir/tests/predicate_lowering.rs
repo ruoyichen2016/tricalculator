@@ -467,6 +467,48 @@ fn pretemplate_tolerates_trailing_bracket_in_data() {
 }
 
 #[test]
+fn preatt_and_prehandsgt_lower_to_existing_predicates() {
+    let record = record(
+        "FEAT",
+        "Big Brawler",
+        &[("PREATT", "6"), ("PREHANDSGT", "2")],
+    );
+    let (pack, report) = lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[record]);
+    assert_eq!(report.coverage.unsupported_tags, 0);
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::TotalBab { min: 6 }
+    );
+    assert_eq!(
+        pack.entities[0].requirements[1],
+        Predicate::HandsAtLeast { count: 3 }
+    );
+}
+
+#[test]
+fn premove_with_multiple_modes_lowers_to_a_count() {
+    let record = record(
+        "RACE",
+        "Amphibious Runner",
+        &[("PREMOVE", "1,Walk=30,Swim=20|TYPE=Racial")],
+    );
+    let (pack, report) = lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[record]);
+    assert_eq!(report.coverage.unsupported_tags, 0);
+    let condition = pack.entities[0].requirements[0].clone();
+    let Predicate::MovementCount { min_count, specs } = condition else {
+        panic!("expected MovementCount, got {condition:?}");
+    };
+    assert_eq!(min_count, 1);
+    assert_eq!(specs.len(), 2);
+    assert!(specs
+        .iter()
+        .any(|spec| spec.mode == "walk" && spec.feet == 30));
+    assert!(specs
+        .iter()
+        .any(|spec| spec.mode == "swim" && spec.feet == 20));
+}
+
+#[test]
 fn prelevel_bounds_and_prelevelmax_lower() {
     let record = record(
         "FEAT",

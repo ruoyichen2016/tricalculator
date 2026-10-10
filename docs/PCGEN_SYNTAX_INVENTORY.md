@@ -800,12 +800,12 @@ whose gate cannot be read is discarded entirely, so the character quietly loses
 a bonus it should have.
 
 The remaining kinds are genuinely unimplemented: `PRE` (21), `PRESA` (12),
-`PREREGION`, `PRECHECK`, `PRESKILLTOT`, `PREHP`, `PRESIZENEQ`, `PREHANDSGT`,
+`PREREGION`, `PRECHECK`, `PRESKILLTOT`, `PREHP`, `PRESIZENEQ`,
 `PREDEITYDOMAIN`, `PRESRLT`, `PRECSKILL`, `PRESPELLSCHOOLSUB`,
 `PRESPELLDESCRIPTOR`, `PRECLASSLEVELMAX`, `PRETEXT`. None appear in the
-acceptance cohort.  (`PRELEVELMAX` was listed here when this section was written;
-it has since been lowered, and `PRELEVEL` now supports both `MIN=` and `MAX=`.
-See the current `CHANGELOG.md`.)
+acceptance cohort.  Several names on the original list have since been lowered:
+`PRELEVELMAX`, `PREATT`, `PREHANDSGT`, and multi-mode `PREMOVE`; `PRELEVEL` now
+supports both `MIN=` and `MAX=`.  See the current `CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
 
