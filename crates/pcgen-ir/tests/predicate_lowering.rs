@@ -1,4 +1,4 @@
-use pcgen_core::{Predicate, SpellPowerType};
+use pcgen_core::{EffectAction, Predicate, SpellPowerType};
 use pcgen_ir::{lower_records, RawRecord, RawTag, SourceRef};
 
 fn record(category: &str, name: &str, tags: &[(&str, &str)]) -> RawRecord {
@@ -1203,4 +1203,140 @@ fn precharactertype_lowers_to_a_type_list() {
         &pack.entities[0].requirements[0],
         Predicate::Not(inner) if matches!(**inner, Predicate::CharacterType { .. })
     ));
+}
+
+#[test]
+fn sa_tags_lower_to_granted_special_abilities() {
+    let rogue = record(
+        "CLASS",
+        "Rogue",
+        &[
+            ("SAB", "Sneak Attack +%d%|Sneak Attack|Sneak Attack Die"),
+            ("SA", "Evasion"),
+        ],
+    );
+    let (pack, report) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[rogue]);
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    let names: Vec<&str> = pack.entities[0]
+        .effects
+        .iter()
+        .filter_map(|effect| match &effect.action {
+            EffectAction::GrantSpecialAbility { name } => Some(name.as_str()),
+            _ => None,
+        })
+        .collect();
+    // The key name is the first `|`-separated token; the rest is display text and
+    // the variables its `%` placeholders consume.
+    assert_eq!(names, vec!["Sneak Attack +%d%", "Evasion"]);
+    assert!(pack.entities[0]
+        .effects
+        .iter()
+        .all(|effect| effect.condition.is_none()));
+}
+
+#[test]
+fn a_qualified_sa_carries_its_prerequisites() {
+    let template = record(
+        "TEMPLATE",
+        "Bone Creature",
+        &[("SAB", "Create Skeletal Warrior (Su)|PRELEVEL:MIN=15")],
+    );
+    let (pack, _) = lower_records(
+        Some("35e".to_string()),
+        vec!["pred".to_string()],
+        &[template],
+    );
+    assert_eq!(
+        pack.entities[0].effects[0].condition,
+        Some(Predicate::CharacterLevel {
+            min: Some(15),
+            max: None,
+        })
+    );
+
+    // Several prerequisites are all required, and display text is skipped.
+    let multi = record(
+        "TEMPLATE",
+        "Fascinating",
+        &[(
+            "SAB",
+            "Facinate(Ex)|PRELEVEL:MIN=10|PRESKILL:1,TYPE.Perform=3",
+        )],
+    );
+    let (pack, _) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[multi]);
+    let Some(Predicate::All(parts)) = &pack.entities[0].effects[0].condition else {
+        panic!(
+            "expected All, got {:?}",
+            pack.entities[0].effects[0].condition
+        );
+    };
+    assert_eq!(parts.len(), 2);
+}
+
+#[test]
+fn sa_clear_edits_only_this_record() {
+    let cleared = record(
+        "TEMPLATE",
+        "Alternate Form",
+        &[
+            ("SAB", "Alternate Form %/day|AltForm"),
+            ("SAB", ".CLEAR.Alternate Form %/day|AltForm"),
+            ("SAB", "Scent (Ex)"),
+        ],
+    );
+    let (pack, _) = lower_records(
+        Some("35e".to_string()),
+        vec!["pred".to_string()],
+        &[cleared],
+    );
+    let names: Vec<&str> = pack.entities[0]
+        .effects
+        .iter()
+        .filter_map(|effect| match &effect.action {
+            EffectAction::GrantSpecialAbility { name } => Some(name.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(names, vec!["Scent (Ex)"]);
+}
+
+#[test]
+fn presa_lowers_to_prefixes_and_a_count() {
+    let feat = record("FEAT", "Watchful Spirit", &[("PRESA", "1,Watchful Spirit")]);
+    let (pack, report) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[feat]);
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::SpecialAbility {
+            prefixes: vec!["Watchful Spirit".to_string()],
+            min_count: 1,
+        }
+    );
+
+    // The reference's own example.
+    let three = record(
+        "FEAT",
+        "Divine Feat",
+        &[("PRESA", "1,Turn undead,Rebuke undead,Smite Evil")],
+    );
+    let (pack, _) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[three]);
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::SpecialAbility {
+            prefixes: vec![
+                "Turn undead".to_string(),
+                "Rebuke undead".to_string(),
+                "Smite Evil".to_string(),
+            ],
+            min_count: 1,
+        }
+    );
 }

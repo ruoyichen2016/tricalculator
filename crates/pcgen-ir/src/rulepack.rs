@@ -3,7 +3,7 @@
 pub use pcgen_core::pack::{CompiledPackHeader, CompiledRulePack, ImportReport};
 
 use crate::patches::PatchOperation;
-use crate::source::RawRecord;
+use crate::source::{RawRecord, RawTag};
 use crate::typed::{build_typed_definitions, parse_creature_traits};
 use pcgen_core::domain::SpellPowerType;
 use pcgen_core::GrantMode;
@@ -153,6 +153,11 @@ pub fn lower_records(
                 match lower_choose(tag) {
                     Some(effect) => effects.push(effect),
                     None => unsupported_tags.push(format!("CHOOSE:{}", tag.value)),
+                }
+            } else if upper == "SA" || upper == "SAB" {
+                match lower_special_ability(tag, phase, &provenance, &mut effects) {
+                    Some(()) => {}
+                    None => unsupported_tags.push(format!("{}:{}", tag.name, tag.value)),
                 }
             } else if crate::tags::is_predicate_tag(&upper) {
                 match parse_predicate(&format!("{}:{}", tag.name, tag.value), "") {
@@ -975,6 +980,86 @@ pub(crate) fn parse_damage_reduction(value: &str) -> pcgen_core::DamageReduction
     }
 }
 
+/// Lower an `SA:`/`SAB:` tag into a granted special ability.
+///
+/// The tag's shape is `<key name>|<display text>|<PRE...>`, where the tokens after
+/// the key name are display text until one "looks like a prerequisite" — PCGen's
+/// `looksLikeAPrerequisite` is just a `PRE` prefix test — and the rest are
+/// prerequisites for the ability.  `SabLst` puts the first token into
+/// `new SpecialAbility(firstToken)`, and `PreSpecialAbilityTester` matches
+/// `PRESA` against that key name with `startsWith`, which is why the display text
+/// and the `%` placeholders do not have to be modelled here.
+///
+/// `.CLEAR` and `.CLEAR.Text` are per-object list edits, so they are applied to
+/// the effects collected for *this* record, in tag order.
+fn lower_special_ability(
+    tag: &RawTag,
+    phase: EffectPhase,
+    provenance: &Provenance,
+    effects: &mut Vec<Effect>,
+) -> Option<()> {
+    let mut parts = tag.value.split('|').map(str::trim);
+    let head = parts.next().unwrap_or_default();
+    let upper = head.to_ascii_uppercase();
+    if upper == ".CLEAR" {
+        effects.retain(|effect| !matches!(effect.action, EffectAction::GrantSpecialAbility { .. }));
+        return Some(());
+    }
+    // `SAB:.CLEAR.Text` removes the ability whose name matches the text up to its
+    // first open parenthesis, and only within this object.  The prefix is checked
+    // through `get` so a value that is not `.CLEAR.` cannot split a character.
+    let cleared = head
+        .get(..7)
+        .filter(|prefix| prefix.eq_ignore_ascii_case(".CLEAR."))
+        .map(|_| clear_key(&head[7..]));
+    if let Some(wanted) = cleared {
+        effects.retain(|effect| match &effect.action {
+            EffectAction::GrantSpecialAbility { name } => clear_key(name) != wanted,
+            _ => true,
+        });
+        return Some(());
+    }
+    if head.is_empty() {
+        return None;
+    }
+    let mut conditions = Vec::new();
+    for part in parts {
+        if part.is_empty() {
+            continue;
+        }
+        if !part.to_ascii_uppercase().starts_with("PRE") {
+            // Display text.
+            continue;
+        }
+        if let Some(predicate) = parse_predicate(part, "") {
+            conditions.push(predicate);
+        }
+    }
+    let condition = match conditions.len() {
+        0 => None,
+        1 => conditions.pop(),
+        _ => Some(Predicate::All(conditions)),
+    };
+    effects.push(Effect {
+        phase,
+        condition,
+        action: EffectAction::GrantSpecialAbility {
+            name: head.to_string(),
+        },
+        source: provenance.clone(),
+    });
+    Some(())
+}
+
+/// The text `.CLEAR.Text` compares against: everything before the first `(`.
+fn clear_key(text: &str) -> String {
+    text.split('(')
+        .next()
+        .unwrap_or(text)
+        .trim()
+        .to_ascii_lowercase()
+}
+
 fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
     let raw = raw.trim();
     // A leading `!` negates the whole predicate (`!PRETYPE`, `!PRERACE`,
@@ -1295,6 +1380,27 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
             } else {
                 Some(Predicate::KnownSpell { names })
             }
+        }
+        // PRESA:count,name,name — the character has special abilities whose names
+        // start with these texts.  `PreSpecialAbilityTester` counts, per listed
+        // text, how many of the character's abilities start with it, and the list
+        // wrapper sums those counts.
+        "PRESA" => {
+            let (count_str, rest) = body.split_once(',')?;
+            let min_count = count_str.trim().parse::<u32>().ok()?;
+            let prefixes: Vec<String> = rest
+                .split(',')
+                .map(str::trim)
+                .filter(|part| !part.is_empty())
+                .map(str::to_string)
+                .collect();
+            if prefixes.is_empty() {
+                return None;
+            }
+            Some(Predicate::SpecialAbility {
+                prefixes,
+                min_count: min_count.max(1),
+            })
         }
         // PRECHARACTERTYPE:count,type,type — the character's type is one of them.
         //

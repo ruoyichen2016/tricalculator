@@ -799,18 +799,17 @@ unsatisfiable predicate rather than a visibly unsupported one. And a `BONUS`
 whose gate cannot be read is discarded entirely, so the character quietly loses
 a bonus it should have.
 
-The remaining kinds are genuinely unimplemented: `PRE` (21), `PRESA` (12),
-`PRESKILLTOT`, `PREHP`, `PRESIZENEQ`,
-`PREDEITYDOMAIN`, `PRESRLT`,
-`PRECLASSLEVELMAX`, `PRETEXT`. None appear in the
-acceptance cohort.  `PRECAMPAIGN` and `PRECHARACTERTYPE` were on this list and are
-now lowered — see §5aa and §5ab.  Several names on the original list have since been lowered:
+The remaining kinds are genuinely unimplemented: `PRE` (21), `PRESKILLTOT`,
+`PREHP`, `PRESIZENEQ`, `PREDEITYDOMAIN`, `PRESRLT`, `PRECLASSLEVELMAX`,
+`PRETEXT`. None appear in the acceptance cohort.  `PRECAMPAIGN`,
+`PRECHARACTERTYPE` and `PRESA` were on this list and are now lowered — see §5aa,
+§5ab and §5ac.  Several names on the original list have since been lowered:
 `PRELEVELMAX`, `PREATT`, `PREHANDSGT`, multi-mode `PREMOVE`, `PREREGION`
 (see §5u), `PRECSKILL` (see §5v), `PREALIGN`'s value forms (see §5w),
 `PRECHECK` (see §5x), `PRESPELLDESCRIPTOR` (see §5y), `PRESPELLSCHOOLSUB` and
-`PRESPELLSCHOOL` (see §5z), `PRECAMPAIGN` (see §5aa) and `PRECHARACTERTYPE`
-(see §5ab); `PRELEVEL` now supports both `MIN=` and `MAX=`.  See the current
-`CHANGELOG.md`.
+`PRESPELLSCHOOL` (see §5z), `PRECAMPAIGN` (see §5aa), `PRECHARACTERTYPE`
+(see §5ab) and `PRESA` (see §5ac); `PRELEVEL` now supports both `MIN=` and `MAX=`.
+See the current `CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
 
@@ -1265,6 +1264,51 @@ is the parser inventing data.
 the list wrapper sums the matches, so `PRECHARACTERTYPE:1,NPC,Monster` is "either"
 and a character — who has exactly one type — can only ever match one of them; a
 count above one is satisfiable only by a list that names the same type twice.
+
+### 5ac. `PRESA`, and the `SA:`/`SAB:` tags nothing was reading
+
+`PRESA:x,y,y` is a prerequisite about the character's special abilities. The tag
+that creates them is `SAB:x`, and the first surprise is that this codebase did not
+read it: `SA:`/`SAB:` are in none of the families lowering reports on — not a
+`BONUS`, not a `PRE`, not a `CHOOSE` — so **2,378** of them across the 189
+third-party packs were dropped without so much as an unsupported count. Modelling
+them is therefore the larger half of this round.
+
+**The key name is only the first token.** `SabLst` does
+
+```java
+SpecialAbility sa = new SpecialAbility(firstToken.intern());
+```
+
+and everything after the first `|` is display text and the variables its `%`
+placeholders consume. So `SAB:Sneak Attack +%d%|Sneak Attack|Sneak Attack Die` has
+the key name `Sneak Attack +%d%`. The tester then matches with a prefix test:
+
+```java
+final String aString = prereq.getKey().toUpperCase();
+for (SpecialAbility sa : character.getSpecialAbilityList())
+    if (sa.getKeyName().toUpperCase().startsWith(aString)) runningTotal++;
+```
+
+which is why `PRESA:1,Sneak Attack` finds it, and why the display text and the `%`
+substitution do not have to be modelled at all — they matter to the character
+sheet, not to the prerequisite.
+
+**Two qualifiers come with the tag.** "SAB tags can be qualified with PRE tags",
+and 21 of the 2,378 occurrences use that, so the prerequisite rides on the effect's
+`condition` and a special ability whose gate fails is not granted. `.CLEAR` and
+`.CLEAR.Text` (2 occurrences) are list edits *within the same object*, so they are
+applied to the effects collected for that record, in tag order.
+
+**Order is a real hazard here.** The prerequisite is evaluated when the effect loop
+reaches the entity carrying it, but the special ability may come from a race or a
+class row processed later. `special_abilities` is therefore collected from the
+initially-active entities *before* the loop, and entities granted during the loop
+add theirs as they are applied. Without that, a feat's `PRESA` would depend on the
+pack's entity ordering.
+
+The acceptance data has no `SA:`/`SAB:` at all, so this round is provably
+cohort-neutral — which is what the coverage gate confirmed rather than assumed.
 
 ## What followed from this
 

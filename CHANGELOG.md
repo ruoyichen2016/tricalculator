@@ -1,5 +1,28 @@
 ## Unreleased
 
+### 补齐谓词：`PRESA`，以及此前被静默丢弃的 `SA:`/`SAB:`
+
+- 新增 `Predicate::SpecialAbility { prefixes, min_count }` 与
+  `EffectAction::GrantSpecialAbility { name }`；`EffectState` 新增
+  `special_abilities`。
+- **`SA:`/`SAB:` 此前完全没被建模**——它们既不在 `is_predicate_tag` 也不在
+  BONUS/CHOOSE/ABILITY 家族里，所以连 unsupported 都不报，直接被丢掉。第三方资料里
+  有 **2378** 条（189 个 pack）。现在它们成为「授予特殊能力」的 effect，并计入
+  `known_tag`。
+- 语义按 `PreSpecialAbilityTester`：`sa.getKeyName().toUpperCase().startsWith(key)`——
+  **前缀匹配**，不是相等。这是必须的：`SAB` 的 key name 只是第一个 `|` 分隔的 token，
+  所以 `SAB:Sneak Attack +%d%|Sneak Attack|Sneak Attack Die` 的 key name 是
+  `Sneak Attack +%d%`，靠前缀才能被 `PRESA:1,Sneak Attack` 命中。列表计数同样是**相加**。
+- 另外两处照源码处理：`SAB tags can be qualified with PRE tags`（21 条）——条件挂在
+  effect 的 `condition` 上，不通过就不授予；`.CLEAR` / `.CLEAR.Text`（2 条）是**本对象内**
+  的列表编辑，按 tag 顺序作用。显示文本与 `%` 占位符**刻意不建模**：它们只影响角色卡
+  显示，`PRESA` 匹配的是 key name。
+- 顺序问题：`special_abilities` 在 effect 循环**之前**从初始激活实体收集，否则一个前置的
+  结果会取决于实体处理顺序；循环中授予的实体会在应用时追加自己的 SA。
+- 第三方资料：unsupported 311 → **304**（`PRESA` 7 → 0）。验收 cohort 里 `SA:`/`SAB:` 为
+  **0** 条，因此本轮可证不影响 cohort。新增 9 个回归测试；
+  `cargo test --workspace`：**509 passed / 0 failed / 2 ignored**。
+
 ### 补齐谓词：`PRECHARACTERTYPE` 与 draft 的 character type
 
 - 新增 `Predicate::CharacterType { types, min_count }`；`CharacterDraft` 新增

@@ -461,6 +461,22 @@ pub enum Predicate {
         specs: Vec<SpellSchoolSpec>,
         count: u32,
     },
+    /// `PRESA:x,y,y` — the character has special abilities whose names start with
+    /// the listed texts.
+    ///
+    /// PCGen's reference: "Checks for the specified special abilities as a
+    /// prerequisite.  Special abilities applied by the SAB tag will satisfy this
+    /// prerequisite", with `PRESA:1,Turn undead,Rebuke undead,Smite Evil` as its
+    /// example.  `PreSpecialAbilityTester` matches with `startsWith`, not equality:
+    /// an `SAB`'s key name is its first `|`-separated token, so the rogue's
+    /// `SAB:Sneak Attack +%d%|Sneak Attack` is found by `PRESA:1,Sneak Attack`.
+    ///
+    /// The counts sum across the listed texts, as they do for the other list
+    /// prerequisites.
+    SpecialAbility {
+        prefixes: Vec<String>,
+        min_count: u32,
+    },
     /// `PRECHARACTERTYPE:x,y,y` — the character's type is one of the listed ones.
     ///
     /// PCGen's reference: "Sets requisites for character type", with
@@ -626,6 +642,16 @@ pub enum EffectAction {
     },
     Choose {
         spec: String,
+    },
+    /// `SA:`/`SAB:` — grant the character a special ability.
+    ///
+    /// The name is the tag's first `|`-separated token, which is the key name
+    /// `PRESA` matches against; the remaining tokens are display text and the
+    /// variables its `%` placeholders consume.  A tag qualified with `PRE...`
+    /// tokens carries them as this effect's `condition`, so a special ability whose
+    /// gate fails is not granted.
+    GrantSpecialAbility {
+        name: String,
     },
     DeclareVariable {
         name: String,
@@ -1361,6 +1387,7 @@ impl RuleCoverage {
                     self.grant_effects += 1
                 }
                 EffectAction::Choose { .. } => self.choose_effects += 1,
+                EffectAction::GrantSpecialAbility { .. } => self.grant_effects += 1,
                 EffectAction::DeclareVariable { .. }
                 | EffectAction::DefineVariable { .. }
                 | EffectAction::SetVariable { .. } => self.variable_effects += 1,

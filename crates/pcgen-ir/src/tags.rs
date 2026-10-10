@@ -67,6 +67,8 @@ pub fn is_known_tag(tag: &str) -> bool {
             | "CCSKILL"
             | "AUTO"
             | "CHOOSE"
+            | "SA"
+            | "SAB"
             | "ADD"
             | "HD"
             | "BAB"

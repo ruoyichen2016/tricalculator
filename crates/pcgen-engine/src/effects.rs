@@ -94,6 +94,14 @@ pub struct EffectState {
     /// that belong to it, for `PRESPELLSCHOOL`.  Same shape and same reason as
     /// [`Self::spell_descriptors`].
     pub spell_schools: BTreeMap<String, Vec<u32>>,
+    /// The character's special abilities (`SA:`/`SAB:`), by key name, for
+    /// `PRESA`.
+    ///
+    /// Collected from the initially-active entities before the effect loop, so a
+    /// prerequisite anywhere in the pack sees the whole set rather than whichever
+    /// entity happened to be processed first; entities granted during the loop add
+    /// theirs as they are applied.
+    pub special_abilities: BTreeSet<String>,
     /// The campaigns the pack was compiled from, for `PRECAMPAIGN`.
     ///
     /// `PRECAMPAIGN` asks about the *loaded sources*, not about the character, so
@@ -546,6 +554,25 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
     }
     resolve_variables(&mut state, &variable_defs);
 
+    // Collect the special abilities of the initially-active entities before the
+    // effect loop: `PRESA` is a prerequisite on feats and abilities, and the loop
+    // evaluates a prerequisite when it reaches the entity carrying it, so reading
+    // the set as it is built would make the answer depend on entity order.
+    let mut abilities: Vec<String> = Vec::new();
+    for index in &initial {
+        let Some(entity) = pack.entities.get(*index) else {
+            continue;
+        };
+        for effect in &entity.effects {
+            if let EffectAction::GrantSpecialAbility { name } = &effect.action {
+                if predicate_holds(effect.condition.as_ref(), draft, &state) {
+                    abilities.push(name.clone());
+                }
+            }
+        }
+    }
+    state.special_abilities.extend(abilities);
+
     for index in initial {
         queued.insert(index);
     }
@@ -825,6 +852,11 @@ fn apply_action(
         }
         EffectAction::Choose { spec } => {
             apply_choose(spec, draft, state, source_entity, pack);
+        }
+        // An entity granted during the loop contributes its special abilities as
+        // it is applied.  The initially-active set was already collected above.
+        EffectAction::GrantSpecialAbility { name } => {
+            state.special_abilities.insert(name.clone());
         }
     }
 }
@@ -1671,6 +1703,27 @@ pub(crate) fn predicate_holds(
             met >= (*min_count).max(1)
         }
         Predicate::Gender { prefix } => draft.gender.starts_with(prefix.as_str()),
+        // `PreSpecialAbilityTester` counts, for each listed text, the character's
+        // abilities whose key name *starts with* it, and the list wrapper sums the
+        // counts.  `startsWith` is load-bearing: an `SAB`'s key name is its first
+        // `|`-separated token, so `Sneak Attack +%d%` is found by `Sneak Attack`.
+        Predicate::SpecialAbility {
+            prefixes,
+            min_count,
+        } => {
+            let matched = prefixes
+                .iter()
+                .map(|prefix| {
+                    let prefix = prefix.trim().to_ascii_lowercase();
+                    state
+                        .special_abilities
+                        .iter()
+                        .filter(|ability| ability.to_ascii_lowercase().starts_with(&prefix))
+                        .count() as u32
+                })
+                .sum::<u32>();
+            matched >= (*min_count).max(1)
+        }
         // `PreCharactertypeTester` compares the character's type with each listed
         // key; the list wrapper sums the matches, and a character has exactly one
         // type.

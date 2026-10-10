@@ -10,11 +10,11 @@
 - 工作区：10 crate（core / formula / ir / import / engine / builder / output /
   cli / web / **transpile**）。`pcgen-transpile` 是构建期转写器，把
   `.pcc`/`.lst` 规范化成 pack 目录，使运行期不再解释 PCGen 文本。
-- 测试：`cargo test --workspace` **500 passed / 2 ignored**（`scripts/check.sh`
-  额外再跑一次 `pcgen-web`，合计 **539 passed / 2 ignored**）。
+- 测试：`cargo test --workspace` **509 passed / 2 ignored**（`scripts/check.sh`
+  额外再跑一次 `pcgen-web`，合计 **548 passed / 2 ignored**）。
 - 第三方资料（189 个 top-level campaign，固定 checkout，`import-report
-  --histogram` 汇总）：unsupported **1,409 → 311**（本轮 `PRECHARACTERTYPE` 9 → 0，
-  连带 `BONUS` 280 → 268；`PRECAMPAIGN` 9 → 0；
+  --histogram` 汇总）：unsupported **1,409 → 304**（本轮 `PRESA` 7 → 0；
+  `PRECHARACTERTYPE` 9 → 0，连带 `BONUS` 280 → 268；`PRECAMPAIGN` 9 → 0；
   `PRESPELLSCHOOLSUB` 9 → 0；`PRESPELLDESCRIPTOR` 14 → 0，连带 `PREMULT` 28 → 19；`PRECHECK`
   17 → 0，连带 `PREMULT` 31 → 28；`PREALIGN` 8 → 0；`PRECSKILL`/`!PRECSKILL`
   30 → 0 并连带 319 条以它为 gate 的 `BONUS`，`BONUS` 599 → 280；`PREREGION`
