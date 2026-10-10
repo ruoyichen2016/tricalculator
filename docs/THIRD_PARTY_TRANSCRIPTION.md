@@ -158,6 +158,9 @@ rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
   lowered to one shape that the engine read as strict. **2,519** pairs in these
   packs have a symbolic operand and were compared one step too strictly. Nothing
   moves in the table below, because `PREVAR*` already lowered;
+- `PRESKILLTOT` (3 tags), lowered to `Predicate::SkillTotal`. The third-party form is
+  `PRESKILLTOT:=1` — an entry whose skill name is empty — which the reference accepts
+  and which matches no skill, so the gate is faithfully always false;
 - `PRECLASSLEVELMAX` (2 tags), lowered to the negated `ClassRequirement` the reference
   rewrites it into — this tag has no tester of its own;
 - `PREITEM` (2 tags), lowered to `Predicate::Item`. The old lowering asked whether an

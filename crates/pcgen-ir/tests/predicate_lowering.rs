@@ -1845,3 +1845,98 @@ fn preclasslevelmax_is_the_inverse_of_preclass() {
     assert!(pack.entities[0].requirements.is_empty());
     assert_eq!(report.coverage.unsupported_tags, 1);
 }
+
+#[test]
+fn preskilltot_lowers_to_a_total_over_the_listed_skills() {
+    // The reference's own example: thirty ranks across three skills.
+    let feat = record(
+        "FEAT",
+        "Skill Mastery",
+        &[("PRESKILLTOT", "Spot,Listen,Search=30")],
+    );
+    let (pack, report) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[feat]);
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::SkillTotal {
+            specs: vec![
+                pcgen_core::SkillSpec {
+                    name: "Spot".to_string(),
+                    is_type: false,
+                },
+                pcgen_core::SkillSpec {
+                    name: "Listen".to_string(),
+                    is_type: false,
+                },
+                pcgen_core::SkillSpec {
+                    name: "Search".to_string(),
+                    is_type: false,
+                },
+            ],
+            total: 30,
+        }
+    );
+
+    // The third-party form: an empty skill list, which the reference accepts and
+    // which simply matches no skill.
+    let empty = record("FEAT", "Sanctify Weapon", &[("PRESKILLTOT", "=1")]);
+    let (pack, _) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[empty]);
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::SkillTotal {
+            specs: vec![pcgen_core::SkillSpec {
+                name: String::new(),
+                is_type: false,
+            }],
+            total: 1,
+        }
+    );
+
+    // A `TYPE.` entry is a type selector, and a formula with no `=` leaves the
+    // total at 0 — the parser only assigns it from a token that carries one.
+    let typed = record("FEAT", "Skill Focus", &[("PRESKILLTOT", "TYPE.Knowledge,Spot")]);
+    let (pack, _) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[typed]);
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::SkillTotal {
+            specs: vec![
+                pcgen_core::SkillSpec {
+                    name: "Knowledge".to_string(),
+                    is_type: true,
+                },
+                pcgen_core::SkillSpec {
+                    name: "Spot".to_string(),
+                    is_type: false,
+                },
+            ],
+            total: 0,
+        }
+    );
+
+    // The reference reads the value with `Integer.parseInt` off the *first* `=`, so
+    // a non-numeric one is malformed rather than a skill name to keep.
+    let bad = record("FEAT", "Bad Total", &[("PRESKILLTOT", "Spot=Listen")]);
+    let (pack, report) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[bad]);
+    assert!(pack.entities[0].requirements.is_empty());
+    assert_eq!(report.coverage.unsupported_tags, 1);
+
+    // That same first-`=` split makes the `TYPE=Text` spelling unusable here, which
+    // is a property of the reference rather than of this lowering: `TYPE=Knowledge=8`
+    // hands `Integer.parseInt` the string `Knowledge`, so PCGen rejects the tag too.
+    let typed_equals = record(
+        "FEAT",
+        "Typed Total",
+        &[("PRESKILLTOT", "TYPE=Knowledge=8")],
+    );
+    let (pack, report) = lower_records(
+        Some("35e".to_string()),
+        vec!["pred".to_string()],
+        &[typed_equals],
+    );
+    assert!(pack.entities[0].requirements.is_empty());
+    assert_eq!(report.coverage.unsupported_tags, 1);
+}

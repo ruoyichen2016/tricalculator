@@ -1781,6 +1781,45 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
         }
         // PRESKILL:x,y=z,y=z — at least x of the listed skills have z ranks.
         // Only the last pair was read, and `TYPE.` was not understood.
+        // PRESKILLTOT:Spot,Listen,Search=30 — the character's total ranks across
+        // the listed skills.
+        //
+        // `PreSkillTotalParser` splits the formula on commas and reads a `=value`
+        // off any token carrying one — the *last* such token wins, and a formula
+        // with none leaves the total at 0 — then marks every sub-requirement
+        // `totalValues`, which makes `PreSkillTester` add the ranks of the matching
+        // skills instead of stopping at the first.  A value that is not a number is
+        // malformed: the reference's `Integer.parseInt` throws on it, and the
+        // reference splits on the *first* `=`, so a skill name containing one
+        // cannot be written here.
+        "PRESKILLTOT" => {
+            let mut total = 0i32;
+            let mut specs: Vec<pcgen_core::SkillSpec> = Vec::new();
+            for part in parts.iter().map(|part| part.trim()) {
+                if part.is_empty() {
+                    continue;
+                }
+                let (name, value) = match part.split_once('=') {
+                    Some((name, value)) => (name.trim(), Some(value.trim())),
+                    None => (part, None),
+                };
+                if let Some(value) = value {
+                    total = value.parse::<i32>().ok()?;
+                }
+                // An empty name is kept: the reference accepts `PRESKILLTOT:=1`
+                // and it simply matches no skill, which is a truthful answer and
+                // better than calling the tag unknown.
+                let (is_type, name) = match strip_type_prefix(name) {
+                    Some(kind) => (true, kind.to_string()),
+                    None => (false, name.to_string()),
+                };
+                specs.push(pcgen_core::SkillSpec { name, is_type });
+            }
+            if specs.is_empty() {
+                return None;
+            }
+            Some(Predicate::SkillTotal { specs, total })
+        }
         "PRESKILL" => {
             let min_count = parts
                 .iter()

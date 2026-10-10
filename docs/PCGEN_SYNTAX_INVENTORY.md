@@ -809,8 +809,8 @@ see §5aa, §5ab, §5ac and §5ad.  Several names on the original list have sinc
 `PRECHECK` (see §5x), `PRESPELLDESCRIPTOR` (see §5y), `PRESPELLSCHOOLSUB` and
 `PRESPELLSCHOOL` (see §5z), `PRECAMPAIGN` (see §5aa), `PRECHARACTERTYPE`
 (see §5ab), `PRESA` (see §5ac), `PREFACT` (see §5ad), `PREDR` (see §5ae), the
-`PREVAR*` boundary (see §5af), `PREREACH` (see §5ag), `PREITEM` (see §5ah) and
-`PRECLASSLEVELMAX` (see §5ai);
+`PREVAR*` boundary (see §5af), `PREREACH` (see §5ag), `PREITEM` (see §5ah),
+`PRECLASSLEVELMAX` (see §5ai) and `PRESKILLTOT` (see §5aj);
 `PRELEVEL` now supports both `MIN=` and `MAX=`.  See the current `CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
@@ -1630,6 +1630,60 @@ rather than fixed here because it changes cohort numbers and the current batch i
 still unverified — a cohort-moving change should land on a green baseline, so that a
 gate failure can be attributed to it rather than to the batch. It is the next
 candidate once the batch verification is done.
+
+### 5aj. `PRESKILLTOT`, where the parser's shortcuts become the semantics
+
+`PRESKILLTOT:Spot,Listen,Search=30` reads like a variant of `PRESKILL`, and the two
+do share a vocabulary, but the aggregation is the opposite. `PreSkillTotalParser`
+marks every listed skill `totalValues`:
+
+```java
+Prerequisite subreq = new Prerequisite();
+subreq.setKind("skill");
+subreq.setKey(token);
+subreq.setTotalValues(true);
+prereq.addPrerequisite(subreq);
+```
+
+and `PreSkillTester` reads that flag in two places:
+
+```java
+if (prereq.isTotalValues()) {
+    runningTotal += SkillRankControl.getTotalRank(character, aSkill).intValue();
+}
+...
+if (prereq.isCountMultiples() || prereq.isTotalValues()) {
+    // For counted totals we want to count all occurances, not just the first
+    foundMatch = false;
+}
+```
+
+So it *adds* ranks instead of counting skills that clear a threshold, and it keeps
+scanning after a match — which is what makes a `TYPE.Text` entry sum every skill of
+that type rather than asking whether one of them is high enough. The group then
+compares the total with the operand, and the operand is whatever the last token
+carrying an `=` set. That last detail is not a detail: a formula with no `=` at all
+(`PRESKILLTOT:Spot,Listen`) leaves the operand at 0 and is therefore **always
+satisfied**, and the code is kept rather than tidied into "the total is required".
+
+**Two forms are rejected by the reference itself**, and both stay unsupported here
+rather than being guessed at. The value is read with `Integer.parseInt` off the
+*first* `=`, so `Spot=Listen` throws; and that same first-`=` split makes the
+`TYPE=Text` spelling unusable for this tag, because `TYPE=Knowledge=8` hands
+`Integer.parseInt` the string `Knowledge`. Only `TYPE.Text=8` works, which is the
+spelling the data and the tests use.
+
+**The third-party form is degenerate but real.** All three occurrences are
+`PRESKILLTOT:=1` — one entry whose skill name is empty. The reference accepts it, no
+skill has an empty name, so the total is 0 and the requirement can never hold.
+Lowering it is the faithful answer: the tag is now *known* to be false instead of
+unknown. The test pins that down, because it looks like a modelling gap and is not
+one.
+
+**One bug only a sum could expose.** `EffectState.skill_types` records both a
+skill's id and its name for each of its type tags, so a skill whose key and name
+agree appears twice. A count of matching skills is unaffected; a sum would double
+them, so `skill_total_ranks` de-duplicates by lower-cased name before adding.
 
 ## What followed from this
 

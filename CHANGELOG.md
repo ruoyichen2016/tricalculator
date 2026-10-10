@@ -7,6 +7,27 @@
 > 0 failed / 2 ignored**（PF35e、cohort matrix、deep-field 均通过；archive differential 为
 > 预期的 `SKIP`）。第三方 unsupported 由 **42 → 32**。
 
+### 补齐谓词：`PRESKILLTOT`
+
+- 新增 `Predicate::SkillTotal { specs: Vec<SkillSpec>, total: i32 }`（复用 `PRECSKILL`
+  已有的 `SkillSpec` 选择器），引擎侧抽出共用的 `skill_ranks` 并新增 `skill_total_ranks`。
+- 语义按 `PreSkillTotalParser` / `PreSkillTester`：parser 把每个列出的技能标成
+  `totalValues`，于是 tester **把匹配技能的 ranks 相加**（而不是像 `PRESKILL` 那样数
+  「达到阈值的技能个数」），并且**不在首个命中处 break**——所以 `TYPE.Text` 条目会把该类型
+  的**所有**技能等级求和。整条 tag 的算子保持默认 GTEQ。
+- **保留 parser 的两个行为而不「顺手修正」**：总数取自**最后一个**带 `=` 的 token；整条
+  formula 没有 `=` 时总数留在 **0**，所以 `PRESKILLTOT:Spot,Listen` 恒成立。
+- **`TYPE=Text` 拼写在此 tag 下不可用**，这是 reference 自身的性质：parser 按**第一个** `=`
+  切分，`TYPE=Knowledge=8` 会把 `Knowledge` 交给 `Integer.parseInt` 而抛异常。因此该形态
+  保持 unsupported，并在测试里固定下来。
+- 第三方数据的形式 `PRESKILLTOT:=1`（技能名为空）**按 reference 忠实 lower**：没有技能叫空
+  名字，总数为 0，恒不成立——这与 PCGen 的计算一致，测试里显式固定（它看起来像建模缺口，
+  其实不是）。
+- 顺带修掉一个求和才会暴露的重复计数：`skill_types` 对每个类型标签同时记录技能的 id 与
+  name，二者相同时会重复；计数不受影响，**求和会翻倍**，故 `skill_total_ranks` 先按小写名去重。
+- 第三方资料：unsupported **32 → 29**（`PRESKILLTOT` 3 → 0）。测试与门禁按批次约定，
+  与后续几轮一起验证。
+
 ### 补齐谓词：`PRECLASSLEVELMAX`
 
 - 复用现有 `Predicate::ClassRequirement` 与 `Not` / `AtLeast`，**不需要改引擎**：

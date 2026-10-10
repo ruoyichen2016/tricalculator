@@ -68,6 +68,23 @@ pub enum Predicate {
         specs: Vec<SkillRequirement>,
         min_count: u32,
     },
+    /// `PRESKILLTOT:x,x=y` — the character's total ranks across the listed skills.
+    ///
+    /// PCGen's reference: "A comma-delimited list of skills whose total non-bonus
+    /// ranks must equal y", with `PRESKILLTOT:Spot,Listen,Search=30` as its
+    /// example.  `PreSkillTotalParser` marks every listed skill `totalValues`, so
+    /// `PreSkillTester` *adds* each matching skill's ranks instead of counting
+    /// skills that reach a threshold, and the group's operand is the total from
+    /// the `=y` token.
+    ///
+    /// Two consequences of that parser are kept rather than tidied away: the total
+    /// is taken from the *last* token carrying an `=`, and a formula with no `=`
+    /// at all leaves it at 0 — so `PRESKILLTOT:Spot,Listen` is always satisfied.
+    SkillTotal {
+        specs: Vec<SkillSpec>,
+        /// The total the tag asked for; `0` when the formula stated none.
+        total: i32,
+    },
     /// `PRECSKILL:x,y,y` — at least `min_count` of the listed skills are *class
     /// skills* for this character.
     ///

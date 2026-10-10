@@ -1577,23 +1577,55 @@ fn skill_requirement_holds(
     state: &EffectState,
     draft: &CharacterDraft,
 ) -> bool {
-    let rank_of = |skill: &str| -> f64 {
-        draft
-            .skills
-            .iter()
-            .find(|(name, _)| name.eq_ignore_ascii_case(skill))
-            .map(|(_, ranks)| *ranks)
-            .unwrap_or(0.0)
-    };
     if !spec.is_type {
-        return rank_of(&spec.name) >= f64::from(spec.min_ranks);
+        return skill_ranks(draft, &spec.name) >= f64::from(spec.min_ranks);
     }
     let wanted = spec.name.to_ascii_lowercase();
     state.skill_types.get(&wanted).is_some_and(|skills| {
         skills
             .iter()
-            .any(|skill| rank_of(skill) >= f64::from(spec.min_ranks))
+            .any(|skill| skill_ranks(draft, skill) >= f64::from(spec.min_ranks))
     })
+}
+
+/// The character's ranks in one named skill, compared case-insensitively.
+fn skill_ranks(draft: &CharacterDraft, skill: &str) -> f64 {
+    draft
+        .skills
+        .iter()
+        .find(|(name, _)| name.eq_ignore_ascii_case(skill))
+        .map(|(_, ranks)| *ranks)
+        .unwrap_or(0.0)
+}
+
+/// The character's ranks summed over the skills one `PRESKILLTOT` entry names.
+///
+/// `PreSkillTester` marks those sub-requirements `totalValues`, which both makes
+/// it add `getTotalRank` instead of counting and stops it breaking at the first
+/// match — so a `TYPE.Text` entry sums every skill of that type rather than
+/// asking whether one of them reaches a threshold.
+fn skill_total_ranks(
+    spec: &pcgen_core::SkillSpec,
+    state: &EffectState,
+    draft: &CharacterDraft,
+) -> f64 {
+    if !spec.is_type {
+        return skill_ranks(draft, &spec.name);
+    }
+    let Some(skills) = state.skill_types.get(&spec.name.to_ascii_lowercase()) else {
+        return 0.0;
+    };
+    // `skill_types` records a skill's id *and* its name for every type tag it
+    // carries, so a skill whose key and name agree appears twice.  A count of
+    // matching skills does not care; a sum would double them.
+    let mut seen = BTreeSet::new();
+    let mut total = 0.0;
+    for skill in skills {
+        if seen.insert(skill.to_ascii_lowercase()) {
+            total += skill_ranks(draft, skill);
+        }
+    }
+    total
 }
 
 /// How many known spells carry one trait at or above `min_level`?
@@ -1926,6 +1958,17 @@ pub(crate) fn predicate_holds(
         }
         Predicate::ReachAtLeast { feet } => reach_value(state) >= *feet,
         Predicate::ReachAtMost { feet } => reach_value(state) <= *feet,
+        // `PreSkillTotalParser` marks every listed skill `totalValues`, so
+        // `PreSkillTester` adds each matching skill's ranks and the group compares
+        // that total with the operand.  A formula with no `=` leaves the operand at
+        // 0, which is why `PRESKILLTOT:Spot,Listen` always holds.
+        Predicate::SkillTotal { specs, total } => {
+            let ranks: f64 = specs
+                .iter()
+                .map(|spec| skill_total_ranks(spec, state, draft))
+                .sum();
+            ranks >= f64::from(*total)
+        }
         // `PreDamageReductionTester` compares the character's reduction for one
         // type with the pair's value; its sub-prerequisites are not
         // `countMultiples`, so each contributes 0 or 1 and the wrapper counts how
