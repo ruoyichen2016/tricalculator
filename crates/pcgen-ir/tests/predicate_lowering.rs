@@ -720,3 +720,73 @@ fn region_on_a_race_row_is_not_consumed() {
     );
     assert_eq!(report.coverage.unsupported_tags, 0);
 }
+
+#[test]
+fn precskill_lowers_to_class_skill_selectors() {
+    let feat = record(
+        "FEAT",
+        "Skilled City Dweller",
+        &[("PRECSKILL", "2,Spot,TYPE.Spy")],
+    );
+    let (pack, report) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[feat]);
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    let Predicate::ClassSkill { specs, min_count } = &pack.entities[0].requirements[0] else {
+        panic!(
+            "expected ClassSkill, got {:?}",
+            pack.entities[0].requirements[0]
+        );
+    };
+    assert_eq!(*min_count, 2);
+    assert_eq!(
+        specs,
+        &vec![
+            pcgen_core::SkillSpec {
+                name: "Spot".to_string(),
+                is_type: false,
+            },
+            pcgen_core::SkillSpec {
+                name: "Spy".to_string(),
+                is_type: true,
+            },
+        ]
+    );
+
+    // The 5e data spells the negative form, which is a plain negation.
+    let negated = record("ABILITY", "Athletics", &[("!PRECSKILL", "1,Athletics")]);
+    let (pack, report) =
+        lower_records(Some("5e".to_string()), vec!["pred".to_string()], &[negated]);
+    assert_eq!(report.coverage.unsupported_tags, 0);
+    assert!(matches!(
+        &pack.entities[0].requirements[0],
+        Predicate::Not(inner) if matches!(**inner, Predicate::ClassSkill { .. })
+    ));
+}
+
+#[test]
+fn a_bonus_gated_on_precskill_is_lowered_not_reported() {
+    // 319 `BONUS` occurrences across the third-party packs were reported as
+    // unsupported only because their gate was `PRECSKILL`, which the tag-name
+    // histogram attributes to `BONUS`. Lowering the gate has to clear the report
+    // *and* keep the effect with a real condition.
+    let record = record(
+        "ABILITY",
+        "Skilled City Dweller",
+        &[("BONUS", "SKILL|Diplomacy|2|PRECSKILL:1,Handle Animal")],
+    );
+    let (pack, report) =
+        lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[record]);
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    assert_eq!(pack.entities[0].effects.len(), 1, "the bonus must survive");
+    assert!(matches!(
+        pack.entities[0].effects[0].condition,
+        Some(Predicate::ClassSkill { .. })
+    ));
+}

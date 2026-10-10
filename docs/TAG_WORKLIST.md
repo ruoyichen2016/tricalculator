@@ -102,6 +102,11 @@ semantic_completion 100.0%
   落到 `CreatureTraits.region`/`.subregion`，不再计入 legacy。验收数据集不含该
   tag，cohort 数字不变；第三方资料 unsupported 1,171→750（见
   `THIRD_PARTY_TRANSCRIPTION.md`）。
+- **Post-M9**：`PRECSKILL`/`!PRECSKILL` → `Predicate::ClassSkill` +
+  `SkillSpec`；`EffectState.class_skills` 按角色职业构建（含 archetype /
+  substitution level 换入的 class skill）。第三方资料 unsupported 750→401
+  （含 319 条以 `PRECSKILL` 为 gate 的 `BONUS`）。未建模：模板/种族/专长上的
+  全局 `CSKILL:`/`CCSKILL:` 与 `SERVESAS`。
 - monster class `classlevel()` BAB 公式修复（`classlevel()` 空括号）
 
 累计：`legacy_tags` 4289 → 1284，`unsupported` 337 → 0，`semantic_completion` 46.8% → 100.0%。

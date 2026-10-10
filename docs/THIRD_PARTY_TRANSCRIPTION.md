@@ -126,18 +126,29 @@ Subsequent reductions not reflected above:
 - `PREREGION` (65 tags), lowered to `Predicate::Region` against a new
   template `REGION` / `SUBREGION` model. It also took `PREMULT` from 387 to 31:
   a `PREMULT` whose *inner* predicate was unreadable was itself unsupported, so
-  356 grouping operators cleared with it.
+  356 grouping operators cleared with it;
+- `PRECSKILL` / `!PRECSKILL` (30 tags), lowered to `Predicate::ClassSkill`
+  against a class-skill set built from the character's classes. It also took
+  `BONUS` from 599 to 280, because a `BONUS` whose gate is unreadable is
+  reported under its own tag name: 319 of them were gated on `PRECSKILL`.
+  Not modelled: the global `CSKILL:` / `CCSKILL:` that PCGen also accepts on
+  templates, races and abilities, and `SERVESAS` imitators.
 
-**Current total, re-measured over the same 189 campaigns: 750 unsupported
-occurrences across 17 tag kinds**, against 1,171 / 18 after the `PREATT` round
-and 1,409 / 20 at transcription. `BONUS` is 599 of the 750 and is the visible
-over-approximation described above — the effect is kept and the unreadable gate
-is what is reported — so the remaining actionable queue is the 151 occurrences
-behind it: `!PRECSKILL` (18), `PRECHECK` (17), `PRESPELLDESCRIPTOR` (14),
-`PRECSKILL` (12), `PRECAMPAIGN` (9), `PRESPELLSCHOOLSUB` (9),
-`PRECHARACTERTYPE` (9), `PREALIGN` (8), `PRESA` (7), `PREUATT` (4), `PREDR`
-(3), `PREREACHGTEQ` (3), `PRESKILLTOT` (3), `PRECLASSLEVELMAX` (2),
-`PREITEM` (2).
+The `BONUS` drop is a reporting change, not a lost effect, and it was checked
+rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
+`PRECSKILL` gate, `lowered_effects` is 117 before and after while
+`unsupported_tags` goes 99 to 0.
+
+**Current total, re-measured over the same 189 campaigns: 401 unsupported
+occurrences across 15 tag kinds**, against 750 / 17 after the `PREREGION` round,
+1,171 / 18 after the `PREATT` round and 1,409 / 20 at transcription. `BONUS` is
+280 of the 401 and is the visible over-approximation described above — the effect
+is kept and the unreadable gate is what is reported — so the remaining actionable
+queue is the 121 occurrences behind it: `PREMULT` (31),
+`PRECHECK` (17), `PRESPELLDESCRIPTOR` (14), `PRECAMPAIGN` (9),
+`PRESPELLSCHOOLSUB` (9), `PRECHARACTERTYPE` (9), `PREALIGN` (8), `PRESA` (7),
+`PREUATT` (4), `PREDR` (3), `PREREACHGTEQ` (3), `PRESKILLTOT` (3),
+`PRECLASSLEVELMAX` (2), `PREITEM` (2).
 
 ## The 7 campaigns that could not be transcribed
 

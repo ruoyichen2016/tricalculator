@@ -801,12 +801,12 @@ a bonus it should have.
 
 The remaining kinds are genuinely unimplemented: `PRE` (21), `PRESA` (12),
 `PRECHECK`, `PRESKILLTOT`, `PREHP`, `PRESIZENEQ`,
-`PREDEITYDOMAIN`, `PRESRLT`, `PRECSKILL`, `PRESPELLSCHOOLSUB`,
+`PREDEITYDOMAIN`, `PRESRLT`, `PRESPELLSCHOOLSUB`,
 `PRESPELLDESCRIPTOR`, `PRECLASSLEVELMAX`, `PRETEXT`. None appear in the
 acceptance cohort.  Several names on the original list have since been lowered:
-`PRELEVELMAX`, `PREATT`, `PREHANDSGT`, multi-mode `PREMOVE`, and `PREREGION`
-(see §5u); `PRELEVEL` now supports both `MIN=` and `MAX=`.  See the current
-`CHANGELOG.md`.
+`PRELEVELMAX`, `PREATT`, `PREHANDSGT`, multi-mode `PREMOVE`, `PREREGION`
+(see §5u) and `PRECSKILL` (see §5v); `PRELEVEL` now supports both `MIN=` and
+`MAX=`.  See the current `CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
 
@@ -931,6 +931,50 @@ active templates before the effect loop, the same pass that supplies `VISION` an
 spell resistance. This cleared 65 `PREREGION` occurrences **and** 356 `PREMULT`
 occurrences, because a `PREMULT` whose inner predicate fails to lower is itself
 reported as unsupported.
+
+### 5v. `PRECSKILL`, which is not `PRESKILL`
+
+`PRECSKILL` reads like a sibling of `PRESKILL` and is not one. The reference
+says "the number of skills that must be considered **Class Skills**"; the value
+has no `=z`, and `PreCSkillParser` is an `AbstractPrerequisiteListParser`, so
+`PRECSKILL:1,Spot,Listen` is a count plus names — never ranks.
+
+`PreCSkillTester` asks `character.isClassSkill(skill)`, and that method walks the
+character's *classes*:
+
+```java
+public boolean isClassSkill(Skill sk) {
+    for (PCClass cl : getClassSet()) {
+        if (isClassSkill(cl, sk)) { return true; }
+    }
+    return false;
+}
+```
+
+So the model side is a class-skill set built from the effective class levels —
+the union across classes, plus whatever an archetype or substitution level swaps
+in, which PCGen's `class_skills_for_lane` also merges. It is built before the
+effect loop, like `VISION` and the base saves.
+
+One lowering wart has to be undone here: `CSKILL:TYPE=Craft` is stored as the bare
+text `Craft`, because the class-skill list strips the `TYPE=` marker. A class-skill
+entry that names a known skill type therefore expands to every skill of that type,
+and the bare entry is kept too — a skill really can be named `Craft`.
+
+**Deliberately not modelled, and worth stating:** PCGen also accepts `CSKILL:` /
+`CCSKILL:` *globally* — on templates, races and abilities — through
+`GlobalToSkillCostFacet`, and resolves `SERVESAS` skill imitators. Neither is
+modelled, and none of the checkout's 30 `PRECSKILL` occurrences needs them: the 12
+positive ones name core skills (Handle Animal, Knowledge (Nature), Survival, Ride)
+that the classes grant, and the 18 negated ones are 5e, where there is no class
+skill concept to consult. `PRECSKILL` is also the
+one predicate here whose `TYPE.` selector PCGen counts *per matching skill*
+(`runningTotal++` inside the loop) rather than per selector; with a single
+selector and a count of 1 — every occurrence in the data — the two agree.
+
+Lowered to `Predicate::ClassSkill { specs, min_count }` with a new `SkillSpec`
+selector. `SkillRequirement` was not reused: a `min_ranks` field that means
+nothing here is a trap for the next reader.
 
 ## What followed from this
 

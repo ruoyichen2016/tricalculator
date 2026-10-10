@@ -68,6 +68,20 @@ pub enum Predicate {
         specs: Vec<SkillRequirement>,
         min_count: u32,
     },
+    /// `PRECSKILL:x,y,y` — at least `min_count` of the listed skills are *class
+    /// skills* for this character.
+    ///
+    /// PCGen's reference: "Sets skill requirements. (x) Number (The number of
+    /// skills that must be considered Class Skills for the check to succeed)".
+    /// It is not about ranks — `PRESKILL` is — and `PreCSkillTester` asks
+    /// `character.isClassSkill(skill)` for each name or `TYPE.` match.
+    ///
+    /// Distinct from [`Self::SkillRanks`]: that one asks what the character has
+    /// *spent*, this one asks what the character's classes *grant*.
+    ClassSkill {
+        specs: Vec<SkillSpec>,
+        min_count: u32,
+    },
     Alignment {
         allowed: Vec<String>,
     },
@@ -729,6 +743,20 @@ pub struct SkillRequirement {
     pub is_type: bool,
     /// Ranks required.
     pub min_ranks: u32,
+}
+
+/// One `PRECSKILL` selector: a skill name, or a `TYPE.Text` skill type.
+///
+/// Separate from [`SkillRequirement`] because there are no ranks to ask for:
+/// the question is only whether the character's classes make the skill a *class
+/// skill*.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct SkillSpec {
+    /// A skill name, or the type name when `is_type` is set.
+    pub name: String,
+    /// True for the `TYPE.Text` spelling.
+    #[serde(default)]
+    pub is_type: bool,
 }
 
 /// One `PRERACE` value.

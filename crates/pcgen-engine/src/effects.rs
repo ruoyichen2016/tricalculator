@@ -76,6 +76,10 @@ pub struct EffectState {
     /// `PRESKILL:1,TYPE.Perform=5`.  `predicate_holds` has no pack, so the map
     /// is built once here.
     pub skill_types: BTreeMap<String, Vec<String>>,
+    /// Skills that are class skills for this character (lowercased), for
+    /// `PRECSKILL`.  Built from the character's classes, including any class
+    /// skills an archetype or substitution level swaps in.
+    pub class_skills: BTreeSet<String>,
     /// Ability key (normalised) to its name, category and `TYPE:` tags, for
     /// `PREABILITY`.  Built once because `predicate_holds` has no pack.
     pub ability_traits: BTreeMap<String, AbilityTraits>,
@@ -215,6 +219,10 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
             }
         }
     }
+    // `PRECSKILL` asks whether a skill is a *class skill*, which is a property of
+    // the character's classes rather than of anything spent.  It has to be known
+    // before the effect loop, like vision and the base saves.
+    let class_skills = character_class_skills(pack, draft, &skill_types);
     let race_creature_type = pack
         .races
         .get(&draft.race_id)
@@ -376,6 +384,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         race_creature_type,
         race_subtypes,
         skill_types,
+        class_skills,
         ability_traits,
         class_traits,
         vision,
@@ -1357,6 +1366,22 @@ fn skill_requirement_holds(
     })
 }
 
+/// Does one `PRECSKILL` selector name a class skill for this character?
+fn class_skill_spec_holds(spec: &pcgen_core::SkillSpec, state: &EffectState) -> bool {
+    let wanted = spec.name.trim().to_ascii_lowercase();
+    if wanted.is_empty() {
+        return false;
+    }
+    if !spec.is_type {
+        return state.class_skills.contains(&wanted);
+    }
+    state.skill_types.get(&wanted).is_some_and(|skills| {
+        skills
+            .iter()
+            .any(|skill| state.class_skills.contains(&skill.to_ascii_lowercase()))
+    })
+}
+
 /// Does one `PRERACE` value describe this character's race?
 fn race_spec_matches(
     spec: &pcgen_core::RaceSpec,
@@ -1438,6 +1463,16 @@ pub(crate) fn predicate_holds(
             let matches = specs
                 .iter()
                 .filter(|spec| skill_requirement_holds(spec, state, draft))
+                .count() as u32;
+            matches >= (*min_count).max(1)
+        }
+        // `PreCSkillTester` asks `character.isClassSkill(skill)` per listed
+        // selector and compares the count.  A `TYPE.` selector is satisfied when
+        // any skill of that type is a class skill.
+        Predicate::ClassSkill { specs, min_count } => {
+            let matches = specs
+                .iter()
+                .filter(|spec| class_skill_spec_holds(spec, state))
                 .count() as u32;
             matches >= (*min_count).max(1)
         }
@@ -2007,6 +2042,106 @@ fn class_progression_for<'a>(
             .iter()
             .find(|(key, _)| key.eq_ignore_ascii_case(class_key) || normalized(key) == wanted)
             .map(|(_, progression)| progression)
+    })
+}
+
+/// The skills that count as class skills for this character (lowercased).
+///
+/// PCGen's `PlayerCharacter.isClassSkill(Skill)` returns true when *any* of the
+/// character's classes lists the skill, and `SkillCostFacet` fills those lists
+/// from the class `CSKILL:` tags — which is why this walks the effective class
+/// levels rather than the character's spent ranks.
+///
+/// `CSKILL:TYPE=Craft` was lowered to the bare text `Craft`, losing the marker
+/// that said "this is a type", so an entry that names a known skill type also
+/// stands for every skill of that type.  Keeping the bare entry as well is
+/// correct: a skill really can be named `Craft`.
+///
+/// Not modelled: the *global* `CSKILL:` / `CCSKILL:` that PCGen also accepts on
+/// templates, races and abilities, and the `SERVESAS` skill imitators.
+fn character_class_skills(
+    pack: &CompiledRulePack,
+    draft: &CharacterDraft,
+    skill_types: &BTreeMap<String, Vec<String>>,
+) -> BTreeSet<String> {
+    let mut names: BTreeSet<String> = BTreeSet::new();
+    let add = |entry: &str, names: &mut BTreeSet<String>| {
+        // Class rows arrive with `TYPE=` already stripped, variant rows without,
+        // so normalise both spellings here.
+        let lowered = entry.trim().to_ascii_lowercase();
+        let lower = lowered
+            .strip_prefix("type=")
+            .unwrap_or(&lowered)
+            .trim()
+            .to_string();
+        if lower.is_empty() {
+            return;
+        }
+        if let Some(skills) = skill_types.get(&lower) {
+            names.extend(skills.iter().map(|skill| skill.to_ascii_lowercase()));
+        }
+        names.insert(lower);
+    };
+    for level in crate::engine::effective_class_levels(pack, draft) {
+        match class_progression_for(pack, &level.class_id) {
+            Some(progression) => {
+                for skill in &progression.class_skills {
+                    add(skill, &mut names);
+                }
+            }
+            None => {
+                if let Some(class) = pack.classes.get(&level.class_id).or_else(|| {
+                    pack.classes
+                        .iter()
+                        .find(|(key, _)| key.eq_ignore_ascii_case(&level.class_id))
+                        .map(|(_, class)| class)
+                }) {
+                    for skill in &class.class_skills {
+                        add(skill, &mut names);
+                    }
+                }
+            }
+        }
+    }
+    // An archetype or substitution level can swap a class skill in; PCGen's
+    // `class_skills_for_lane` does the same, and only for variants that apply to
+    // the lane's own class.
+    for frame in &draft.advancement {
+        for lane in &frame.lanes {
+            for id in [
+                lane.archetype.as_deref(),
+                lane.substitution_level.as_deref(),
+            ]
+            .into_iter()
+            .flatten()
+            {
+                let Some(variant) = find_variant(pack, id) else {
+                    continue;
+                };
+                if variant
+                    .applies_to
+                    .as_deref()
+                    .is_none_or(|applies| applies.eq_ignore_ascii_case(&lane.class_id))
+                {
+                    for skill in &variant.class_skills {
+                        add(skill, &mut names);
+                    }
+                }
+            }
+        }
+    }
+    names
+}
+
+fn find_variant<'a>(
+    pack: &'a CompiledRulePack,
+    id: &str,
+) -> Option<&'a pcgen_core::VariantDefinition> {
+    pack.variants.get(id).or_else(|| {
+        pack.variants
+            .iter()
+            .find(|(key, _)| key.eq_ignore_ascii_case(id))
+            .map(|(_, variant)| variant)
     })
 }
 

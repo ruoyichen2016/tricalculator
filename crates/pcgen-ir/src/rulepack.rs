@@ -1491,6 +1491,39 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
             }
             Some(Predicate::SkillRanks { specs, min_count })
         }
+        // PRECSKILL:x,y,y — at least x of the listed skills are class skills.
+        //
+        // Unlike `PRESKILL` there is no `=z`: the value is just a skill selector,
+        // and the question is whether the character's classes make it a class
+        // skill.  `PreCSkillParser` is a list parser, so the first part is the
+        // count and the rest are names or `TYPE.Text`.
+        "PRECSKILL" => {
+            let min_count = parts
+                .iter()
+                .find(|part| !part.trim().is_empty())
+                .and_then(|part| part.trim().parse::<u32>().ok())
+                .unwrap_or(1);
+            let specs: Vec<pcgen_core::SkillSpec> = parts
+                .iter()
+                .skip_while(|part| part.trim().parse::<u32>().is_ok() || part.trim().is_empty())
+                .map(|part| part.trim())
+                .filter(|part| !part.is_empty())
+                .map(|part| match strip_type_prefix(part) {
+                    Some(kind) => pcgen_core::SkillSpec {
+                        name: kind.to_string(),
+                        is_type: true,
+                    },
+                    None => pcgen_core::SkillSpec {
+                        name: part.to_string(),
+                        is_type: false,
+                    },
+                })
+                .collect();
+            if specs.is_empty() {
+                return None;
+            }
+            Some(Predicate::ClassSkill { specs, min_count })
+        }
         // PRERACE:x,y,y — at least x of the listed specs must describe the race.
         // The reference allows a name, the `%` wildcard, `TYPE=`, `RACETYPE=`
         // and `RACESUBTYPE=`. Only names were handled, so 1,141 of the RSRD's

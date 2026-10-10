@@ -1,5 +1,30 @@
 ## Unreleased
 
+### 补齐谓词：`PRECSKILL` 与 class-skill 模型
+
+- 新增 `Predicate::ClassSkill { specs, min_count }` 与 `SkillSpec { name, is_type }`
+  （不复用 `SkillRequirement`：`PRECSKILL` 与技能等级无关，多一个 `min_ranks`
+  字段只会误导）。`PRECSKILL:x,y,y` 与 `!PRECSKILL:...` 都能 lower。
+- 引擎在效果循环前构建 `EffectState.class_skills`：按角色**职业**取 class skill
+  并集（`PlayerCharacter.isClassSkill` 就是遍历职业），包含 advancement lane 上
+  archetype / substitution level 换入的 class skill（对应 `class_skills_for_lane`）。
+- `CSKILL:TYPE=Craft` 在 lowering 时被剥成裸文本 `Craft`，所以 class skill 集合
+  会把「名字等于某个已知技能类型」的条目展开成该类型的全部技能；裸条目本身也保留
+  （技能真的可以叫 `Craft`）。
+- `TYPE.Text` 选择器走技能类型标签；大小写不敏感，与 `PreCSkillTester` 的
+  `toUpperCase()` 一致。
+- **未建模并记录在案**：PCGen 还接受模板 / 种族 / 专长上的*全局* `CSKILL:` /
+  `CCSKILL:`（`GlobalToSkillCostFacet`），以及 `SERVESAS` 技能替身。checkout 里
+  30 条 `PRECSKILL` 都不需要它们：12 条正例点名的是核心技能（Handle Animal /
+  Knowledge (Nature) / Survival / Ride），由职业授予；18 条反例来自 5e，那里
+  本来就没有 class skill 概念。
+- 第三方资料：unsupported 750 → **401**。`!PRECSKILL` 18 → 0、`PRECSKILL` 12 → 0，
+  并连带 319 条以 `PRECSKILL` 为 gate 的 `BONUS`（`BONUS` 599 → 280）。
+  在 `homebrew_requests` 上做了前后对照：lowered_effects 恒为 117，
+  unsupported 99 → 0 —— 掉的是「报告」，不是效果。
+  验收 cohort 不受影响。新增 7 个回归测试；
+  `cargo test --workspace`：**460 passed / 0 failed / 2 ignored**。
+
 ### 补齐谓词：`PREREGION` 与模板区域模型
 
 - 新增 `Predicate::Region { prefix }`；`PREREGION:x` 与 `!PREREGION:x` 都能 lower。
