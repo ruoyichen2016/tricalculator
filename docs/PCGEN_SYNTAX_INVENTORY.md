@@ -800,12 +800,13 @@ whose gate cannot be read is discarded entirely, so the character quietly loses
 a bonus it should have.
 
 The remaining kinds are genuinely unimplemented: `PRE` (21), `PRESA` (12),
-`PREREGION`, `PRECHECK`, `PRESKILLTOT`, `PREHP`, `PRESIZENEQ`,
+`PRECHECK`, `PRESKILLTOT`, `PREHP`, `PRESIZENEQ`,
 `PREDEITYDOMAIN`, `PRESRLT`, `PRECSKILL`, `PRESPELLSCHOOLSUB`,
 `PRESPELLDESCRIPTOR`, `PRECLASSLEVELMAX`, `PRETEXT`. None appear in the
 acceptance cohort.  Several names on the original list have since been lowered:
-`PRELEVELMAX`, `PREATT`, `PREHANDSGT`, and multi-mode `PREMOVE`; `PRELEVEL` now
-supports both `MIN=` and `MAX=`.  See the current `CHANGELOG.md`.
+`PRELEVELMAX`, `PREATT`, `PREHANDSGT`, multi-mode `PREMOVE`, and `PREREGION`
+(see §5u); `PRELEVEL` now supports both `MIN=` and `MAX=`.  See the current
+`CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
 
@@ -880,6 +881,56 @@ stray `=`: the reference splits it into key `Weapon Focus` and a **sub-key**
 the weapon proficiency's types (`PrerequisiteUtilities.dealWithSubKey`). Nothing in
 the engine tracks ability choices or associations, so the text is preserved
 verbatim and fails closed rather than silently matching any `Weapon Focus`.
+
+### 5u. `PREREGION`, and the region model it needed
+
+`PREREGION:x` could not be lowered because the character had no region at all.
+The tag has two halves that the reference settles, and the second is easy to get
+wrong by pattern-matching on the name:
+
+**The region lives on the template, not on the character.** The only
+`REGION` token in PCGen is `plugin/lsttokens/template/RegionToken.java`
+(`PCTemplate`), with a companion `SUBREGION`; the character's own region is a UI
+selection in `RegionFacet`. So the model side is `CreatureTraits.region` /
+`.subregion`, parsed in `parse_template` — and `REGION:NONE` is the token's
+spelling for "nothing set", *not* a region named `NONE`.
+
+That "template-only" is load-bearing rather than pedantic: the third-party data
+writes `REGION:` on RACE and ABILITY rows too, where PCGen has no such token. Those
+are not consumed, so they stay visible as legacy instead of being half-honoured by
+an engine that reads them where the reference does not. `parse_creature_traits` is
+shared by races, templates and companion mods, so the region is deliberately *not*
+parsed there; `consumed_legacy_tag` claims the tag for `TEMPLATE` only.
+
+**The test is a case-insensitive prefix of `REGION (SUBREGION)`.** `RegionFacet`
+builds `getFullRegion()` by appending `" (SUBREGION)"` when one is set, defaulting
+the region to `Region.NONE`, and `PreRegionTester` does:
+
+```java
+final String requiredRegion = prereq.getKey().toUpperCase();
+final String characterRegion = display.getFullRegion().toUpperCase();
+final boolean sameRegion = characterRegion.startsWith(requiredRegion);
+```
+
+Three consequences the data depends on:
+
+| Written | Means |
+|---|---|
+| `PREREGION:Varisia` | region `Varisia (Magnimar)` matches |
+| `PREREGION:The` | region `The River Kingdoms` matches |
+| `PREREGION:Nidal` on an unset region | fails — `"NONE"` does not start with `"NIDAL"` |
+
+`AbstractPrerequisiteSimpleParser` sets the key to the **whole** formula, so a
+comma is not a list separator here: the Arcanis data really does name a region
+`Elorii Nations,Dwarven Enclaves`, and only that exact prefix matches. `Q:`
+(override-qualify) is stripped before the parser runs, as it is for every other
+`PRE` tag.
+
+Lowered to `Predicate::Region { prefix }`; `EffectState.region` is built from the
+active templates before the effect loop, the same pass that supplies `VISION` and
+spell resistance. This cleared 65 `PREREGION` occurrences **and** 356 `PREMULT`
+occurrences, because a `PREMULT` whose inner predicate fails to lower is itself
+reported as unsupported.
 
 ## What followed from this
 

@@ -591,3 +591,132 @@ fn choose_is_lowered_once_and_not_reported_as_legacy() {
     assert_eq!(report.coverage.legacy_by_tag.get("CHOOSE"), None);
     assert_eq!(report.coverage.legacy_pending_by_tag.get("CHOOSE"), None);
 }
+
+#[test]
+fn preregion_lowers_to_a_case_insensitive_prefix() {
+    let plain = record("FEAT", "Big Game Hunter", &[("PREREGION", "Varisia")]);
+    let (pack, report) = lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[plain]);
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::Region {
+            prefix: "Varisia".to_string()
+        }
+    );
+
+    // The whole body is one prefix, commas included.  PCGen's
+    // `AbstractPrerequisiteSimpleParser` sets the key to the entire formula, and
+    // the Arcanis data really does name a region `Elorii Nations,Dwarven
+    // Enclaves`; splitting on the comma would invent a list the reference does
+    // not have.
+    let commas = record(
+        "FEAT",
+        "Illiteracy",
+        &[("PREREGION", "Elorii Nations,Dwarven Enclaves")],
+    );
+    let (pack, _) = lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[commas]);
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::Region {
+            prefix: "Elorii Nations,Dwarven Enclaves".to_string()
+        }
+    );
+
+    // `Q:` is PCGen's override-qualify marker, stripped before the parser sees
+    // the formula, so it is not part of the region name.
+    let qualified = record("FEAT", "Centurion", &[("PREREGION", "Q:Coryan")]);
+    let (pack, _) = lower_records(
+        Some("3e".to_string()),
+        vec!["pred".to_string()],
+        &[qualified],
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::Region {
+            prefix: "Coryan".to_string()
+        }
+    );
+
+    let negated = record("FEAT", "Not From Milandir", &[("!PREREGION", "Milandir")]);
+    let (pack, report) =
+        lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[negated]);
+    assert_eq!(report.coverage.unsupported_tags, 0);
+    assert!(matches!(
+        &pack.entities[0].requirements[0],
+        Predicate::Not(inner) if matches!(**inner, Predicate::Region { .. })
+    ));
+}
+
+#[test]
+fn template_region_is_captured_and_not_reported_as_legacy() {
+    let template = record(
+        "TEMPLATE",
+        "Regional Affinity (Artume)",
+        &[
+            ("REGION", "The River Kingdoms"),
+            ("SUBREGION", "Artume"),
+            ("VISIBLE", "NO"),
+        ],
+    );
+    let (pack, report) = lower_records(
+        Some("35e".to_string()),
+        vec!["region".to_string()],
+        &[template],
+    );
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    assert_eq!(
+        report.coverage.legacy_by_tag.get("REGION"),
+        None,
+        "{:?}",
+        report.coverage.legacy_by_tag
+    );
+    assert_eq!(report.coverage.legacy_tags, 0);
+    let definition = pack
+        .templates
+        .get("Regional Affinity (Artume)")
+        .expect("template");
+    assert_eq!(
+        definition.traits.region.as_deref(),
+        Some("The River Kingdoms")
+    );
+    assert_eq!(definition.traits.subregion.as_deref(), Some("Artume"));
+}
+
+#[test]
+fn template_region_none_means_no_region_set() {
+    // `REGION:NONE` is the reference's "nothing set" spelling; storing it as a
+    // literal region would make `PREREGION:None` match a template that declares
+    // no region at all.
+    let template = record("TEMPLATE", "Unplaced", &[("REGION", "NONE")]);
+    let (pack, _) = lower_records(
+        Some("35e".to_string()),
+        vec!["region".to_string()],
+        &[template],
+    );
+    assert_eq!(pack.templates["Unplaced"].traits.region, None);
+}
+
+#[test]
+fn region_on_a_race_row_is_not_consumed() {
+    // `REGION` is a `PCTemplate` token in PCGen; a `REGION:` on a RACE row is
+    // an unrecognized token there, and the third-party data really does write
+    // one.  Reading it would invent a region the reference does not have, so it
+    // stays legacy and the engine never sees it.
+    let race = record("RACE", "Aglarond Human", &[("REGION", "Aglarond")]);
+    let (pack, report) =
+        lower_records(Some("35e".to_string()), vec!["region".to_string()], &[race]);
+    assert_eq!(pack.races["Aglarond Human"].traits.region, None);
+    assert_eq!(
+        report.coverage.legacy_by_tag.get("REGION").copied(),
+        Some(1)
+    );
+    assert_eq!(report.coverage.unsupported_tags, 0);
+}

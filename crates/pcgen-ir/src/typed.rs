@@ -645,6 +645,26 @@ fn parse_template(record: &RawRecord) -> TemplateDefinition {
         }
     }
     parse_creature_traits(record, &mut template.traits);
+    // `REGION` / `SUBREGION` are template-only tokens: PCGen's `RegionToken` and
+    // `SubregionToken` both take a `PCTemplate`.  A `REGION:` on a RACE or
+    // ABILITY row is an unrecognized token there (and does occur in the
+    // third-party data), so it is *not* read into `CreatureTraits` by the shared
+    // parser — the same tags stay visible as legacy instead of being silently
+    // half-honoured.
+    //
+    // `PREREGION` matches `REGION (SUBREGION)`, and both tokens overwrite on
+    // repetition, so the last non-`NONE` value wins; `REGION:NONE` is the
+    // reference's spelling for "nothing set".
+    template.traits.region = tags(record, "REGION")
+        .map(str::trim)
+        .filter(|value| !value.is_empty() && !value.eq_ignore_ascii_case("NONE"))
+        .last()
+        .map(str::to_string);
+    template.traits.subregion = tags(record, "SUBREGION")
+        .map(str::trim)
+        .filter(|value| !value.is_empty() && !value.eq_ignore_ascii_case("NONE"))
+        .last()
+        .map(str::to_string);
     template
 }
 

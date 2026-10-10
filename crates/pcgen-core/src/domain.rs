@@ -142,6 +142,21 @@ pub struct CreatureTraits {
     pub unencumbered_move: Vec<String>,
     #[serde(default)]
     pub attack_cycle: Vec<String>,
+    /// PCGen `REGION:` — the character's home region, declared on a creature
+    /// template (Pathfinder regional traits, Arcanis region templates).
+    ///
+    /// `PREREGION:x` tests it, and the region is a *prefix*: the data relies on
+    /// that, writing `PREREGION:Varisia` for a region named
+    /// `Varisia (Magnimar)` and `PREREGION:The` for `The River Kingdoms`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub region: Option<String>,
+    /// PCGen `SUBREGION:` — refines `REGION:` on the same template.
+    ///
+    /// PCGen builds the string `PREREGION` matches against as
+    /// `REGION (SUBREGION)`, so `Western Lands (Lhyllifel)` is a whole region
+    /// name, not a region plus a separate test.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subregion: Option<String>,
 }
 
 /// Declarative creature template definition.

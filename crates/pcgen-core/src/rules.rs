@@ -163,6 +163,17 @@ pub enum Predicate {
     Gender {
         prefix: String,
     },
+    /// `PREREGION:x` — the character's home region starts with `x`.
+    ///
+    /// PCGen's `PreRegionTester` compares `getFullRegion().toUpperCase()` with
+    /// `startsWith`, so the test is case-insensitive and prefix-based, and the
+    /// string it tests is `REGION` plus ` (SUBREGION)` when a subregion is set.
+    /// `0` and `1` are the only accepted counts, so the result is a plain
+    /// boolean.  `None` is the region reported when none is set (PCGen's
+    /// `Region.NONE`), so `PREREGION:None` matches an unset region.
+    Region {
+        prefix: String,
+    },
     /// `PRECLASS:x,y=z,y=z` — at least `min_count` of the listed class
     /// requirements are met.
     ///

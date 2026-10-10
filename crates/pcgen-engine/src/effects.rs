@@ -88,6 +88,10 @@ pub struct EffectState {
     /// Spell resistance from the race and the active templates, the highest
     /// winning.
     pub spell_resistance: Option<i32>,
+    /// The character's home region, as `PREREGION` tests it: the active
+    /// templates' `REGION`, followed by ` (SUBREGION)` when one is set.  PCGen's
+    /// `Region.NONE` (`"None"`) stands in when no template declares a region.
+    pub region: String,
     /// Total character class levels, excluding Monster (Racial) HD.
     pub character_class_levels: u32,
     /// Stable total BAB used by `PRETOTALAB` during predicate evaluation.
@@ -264,6 +268,14 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
     if let Some(race) = pack.races.get(&draft.race_id) {
         absorb(&race.traits);
     }
+    // Region is template-only, unlike vision and spell resistance: PCGen's
+    // `RegionFacet.getTemplateRegion` walks `PCTemplate` objects and a `REGION:`
+    // on a race row is an unrecognized token there.  The third-party data does
+    // put one on races, so honouring it from the race would invent a region the
+    // reference does not have.  Templates are reduced keeping the last, with the
+    // region and subregion tracked independently.
+    let mut region: Option<String> = None;
+    let mut subregion: Option<String> = None;
     for name in &templates {
         if let Some(template) = pack.templates.get(name).or_else(|| {
             pack.templates
@@ -271,6 +283,12 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
                 .find(|t| t.id.eq_ignore_ascii_case(name))
         }) {
             absorb(&template.traits);
+            if template.traits.region.is_some() {
+                region = template.traits.region.clone();
+            }
+            if template.traits.subregion.is_some() {
+                subregion = template.traits.subregion.clone();
+            }
         }
     }
     let hands = race.map(|race| race.hands).unwrap_or(2);
@@ -362,6 +380,14 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         class_traits,
         vision,
         spell_resistance,
+        region: match (region.as_deref(), subregion.as_deref()) {
+            (Some(region), Some(subregion)) => format!("{region} ({subregion})"),
+            (Some(region), None) => region.to_string(),
+            // PCGen's `Region.NONE`, which is what `getFullRegion` returns when
+            // no template sets one.
+            (None, None) => "None".to_string(),
+            (None, Some(subregion)) => format!("None ({subregion})"),
+        },
         character_class_levels: class_levels,
         ability_modifiers,
         total_bab: prereq_bab,
@@ -1444,6 +1470,13 @@ pub(crate) fn predicate_holds(
             kind.is_some_and(|kind| state.base_saves.get(&kind).copied().unwrap_or(0) >= *min)
         }
         Predicate::Gender { prefix } => draft.gender.starts_with(prefix.as_str()),
+        // `PreRegionTester` upper-cases both sides and asks `startsWith`.  The
+        // region is a prefix rather than an equality because the publishers
+        // write `PREREGION:Varisia` for a region named `Varisia (Magnimar)`.
+        Predicate::Region { prefix } => state
+            .region
+            .to_ascii_uppercase()
+            .starts_with(&prefix.to_ascii_uppercase()),
         Predicate::SpellResistance { min, max } => {
             let value = state.spell_resistance.unwrap_or(0);
             min.is_none_or(|min| value >= min) && max.is_none_or(|max| value <= max)

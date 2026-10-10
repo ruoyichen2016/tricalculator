@@ -75,6 +75,12 @@ cannot be substantiated by a class the pack declares, dropped instead of written
 
 ## What is still unsupported
 
+> **The table below is the original transcription snapshot**, taken while several
+> of these tags were still unimplemented. It is kept as the record of what the
+> run found, not as the current state; the queue is re-measured with
+> `pcgen import-report <pcc> --histogram` over the 189 campaigns, and the
+> reductions since are listed under it.
+
 1,409 tags (0.08% of occurrences) across the 189 packs:
 
 | Tag | Count | Note |
@@ -116,7 +122,22 @@ Subsequent reductions not reflected above:
 - `PRELEVELMAX` (190 tags);
 - `PREATT` (27 tags), aliased to the existing `PRETOTALAB` predicate;
 - `PREHANDSGT` (9 tags), lowered to `HandsAtLeast { n + 1 }`;
-- multi-mode `PREMOVE` (12 tags), now represented as `MovementCount`.
+- multi-mode `PREMOVE` (12 tags), now represented as `MovementCount`;
+- `PREREGION` (65 tags), lowered to `Predicate::Region` against a new
+  template `REGION` / `SUBREGION` model. It also took `PREMULT` from 387 to 31:
+  a `PREMULT` whose *inner* predicate was unreadable was itself unsupported, so
+  356 grouping operators cleared with it.
+
+**Current total, re-measured over the same 189 campaigns: 750 unsupported
+occurrences across 17 tag kinds**, against 1,171 / 18 after the `PREATT` round
+and 1,409 / 20 at transcription. `BONUS` is 599 of the 750 and is the visible
+over-approximation described above — the effect is kept and the unreadable gate
+is what is reported — so the remaining actionable queue is the 151 occurrences
+behind it: `!PRECSKILL` (18), `PRECHECK` (17), `PRESPELLDESCRIPTOR` (14),
+`PRECSKILL` (12), `PRECAMPAIGN` (9), `PRESPELLSCHOOLSUB` (9),
+`PRECHARACTERTYPE` (9), `PREALIGN` (8), `PRESA` (7), `PREUATT` (4), `PREDR`
+(3), `PREREACHGTEQ` (3), `PRESKILLTOT` (3), `PRECLASSLEVELMAX` (2),
+`PREITEM` (2).
 
 ## The 7 campaigns that could not be transcribed
 

@@ -1,5 +1,32 @@
 ## Unreleased
 
+### 补齐谓词：`PREREGION` 与模板区域模型
+
+- 新增 `Predicate::Region { prefix }`；`PREREGION:x` 与 `!PREREGION:x` 都能 lower。
+- `CreatureTraits` 增加 `region` / `subregion`（`serde(default)`，旧 pack 可读），
+  在 `parse_template` 里从模板的 `REGION:` / `SUBREGION:` 捕获（`REGION:NONE` /
+  `SUBREGION:NONE` 按 reference 视为「未设置」）。
+- **区域只在模板上**：`REGION` / `SUBREGION` 在 PCGen 里是 `PCTemplate` 的
+  token（`RegionToken` / `SubregionToken`），种族或 ABILITY 行上的 `REGION:`
+  在那里是未知 token。第三方资料确实这么写，所以只有 `TEMPLATE` 类别消费它，
+  写错位置的那条仍然是 legacy ——「被消费」和「被引擎采用」不会分叉。
+- 引擎在效果循环前构建 `EffectState.region`：取活动模板（种族固有 + draft 应用）
+  的 `REGION`，有子区域时拼成 `REGION (SUBREGION)`，都没有时为 PCGen 的
+  `Region.NONE`（`None`）。求值把两侧都转大写后做 `startsWith`，与
+  `PreRegionTester` 一致——这是*前缀*而不是相等，数据依赖它
+  （`PREREGION:Varisia` 命中 `Varisia (Magnimar)`，`PREREGION:The` 命中
+  `The River Kingdoms`）。
+- 整个 body 是一个前缀，逗号不拆分：`AbstractPrerequisiteSimpleParser` 把 key
+  设为整段 formula，Arcanis 数据里真的存在名为 `Elorii Nations,Dwarven Enclaves`
+  的区域；`Q:` 是 override-qualify 标记，解析前剥掉。
+- 第三方资料（189 个 top-level campaign，`import-report --histogram` 汇总）：
+  unsupported 1,171 → **750**——`PREREGION` 65 → 0，同时 356 条被它拖垮的
+  `PREMULT` 一并 lower（`PREMULT` 387 → 31）；distinct tag 18 → 17。
+  `REGION` legacy 例：`players_guide_to_faerun` 140 → 1，139 条模板区域变成
+  typed；剩下 1 条在 ABILITY 行上，按 reference 不可读，保持 legacy 是正确的。
+- 验收 cohort 语义不变（`PREREGION` 不在 cohort 中）。新增 5 个回归测试；
+  `cargo test --workspace`：**453 passed / 0 failed / 2 ignored**。
+
 ### 补齐谓词：`PREATT` / `PREHANDSGT` / 多模式 `PREMOVE`
 
 - `PREATT:x` 与 `PRETOTALAB` 同义，lower 为 `TotalBab { min }`；

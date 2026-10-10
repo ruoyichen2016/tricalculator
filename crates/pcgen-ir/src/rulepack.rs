@@ -1681,6 +1681,23 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 .map(|part| (*part).to_string())?;
             Some(Predicate::RaceType { type_tag })
         }
+        // PREREGION:Varisia — the character's home region starts with the given
+        // text, case-insensitively.
+        //
+        // The whole body is one prefix, commas included: it is a *prefix* test,
+        // not a list.  PCGen's `AbstractPrerequisiteSimpleParser` sets the key
+        // to the entire formula, and the data depends on that --
+        // `PREREGION:Elorii Nations,Dwarven Enclaves` is written against a
+        // region literally named that, and matches nothing else.
+        "PREREGION" => {
+            let body = body.strip_prefix("Q:").unwrap_or(body).trim();
+            if body.is_empty() {
+                return None;
+            }
+            Some(Predicate::Region {
+                prefix: body.to_string(),
+            })
+        }
         // PRESPELLTYPE:count,type=level — can cast `count` spells of `type`
         // at spell level `level` or higher.
         "PRESPELLTYPE" => {
@@ -2165,28 +2182,35 @@ fn consumed_legacy_tag(category: &str, tag_name: &str) -> bool {
         "ALIGNMENT" => matches!(name.as_str(), "VALIDFORDEITY" | "VALIDFORFOLLOWER"),
         "SPELL" => name == "DOMAINS",
         "DOMAIN" => name == "SPELLLEVEL",
-        "RACE" | "TEMPLATE" => matches!(
-            name.as_str(),
-            "REACH"
-                | "REACHMULT"
-                | "FACE"
-                | "RACESUBTYPE"
-                | "NATURALATTACKS"
-                | "UDAM"
-                | "UMULT"
-                | "DR"
-                | "SR"
-                | "CR"
-                | "VISION"
-                | "MOVECLONE"
-                | "UNENCUMBEREDMOVE"
-                | "ATTACKCYCLE"
-                | "HITDIE"
-                | "ADDLEVEL"
-                | "DEFINESTAT"
-                | "XTRASKILLPTSPERLVL"
-                | "SKILLMULT"
-        ),
+        // Region is a *template* token.  Most of the third-party packs that write
+        // `REGION:` on a RACE row are wrong about that, and PCGen ignores it
+        // there; only templates may claim the tag, so a misplaced one stays
+        // visible as legacy instead of looking consumed.
+        "RACE" | "TEMPLATE" => {
+            (category == "TEMPLATE" && matches!(name.as_str(), "REGION" | "SUBREGION"))
+                || matches!(
+                    name.as_str(),
+                    "REACH"
+                        | "REACHMULT"
+                        | "FACE"
+                        | "RACESUBTYPE"
+                        | "NATURALATTACKS"
+                        | "UDAM"
+                        | "UMULT"
+                        | "DR"
+                        | "SR"
+                        | "CR"
+                        | "VISION"
+                        | "MOVECLONE"
+                        | "UNENCUMBEREDMOVE"
+                        | "ATTACKCYCLE"
+                        | "HITDIE"
+                        | "ADDLEVEL"
+                        | "DEFINESTAT"
+                        | "XTRASKILLPTSPERLVL"
+                        | "SKILLMULT"
+                )
+        }
         "CLASS" | "CLASS_LEVEL" => matches!(
             name.as_str(),
             "UDAM"

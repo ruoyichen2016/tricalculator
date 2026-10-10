@@ -483,3 +483,74 @@ fn damage_reduction_does_not_stack_within_a_type() {
         vec!["10/Silver", "5/Magic"]
     );
 }
+
+#[test]
+fn template_region_gates_preregion_by_prefix() {
+    // PCGen's `PreRegionTester` upper-cases both sides and uses `startsWith`,
+    // so the test is a case-insensitive prefix, and the string it tests is
+    // `REGION (SUBREGION)`.  That is why `PREREGION:Varisia` works for a region
+    // named `Varisia (Magnimar)` and why the Pathfinder data can write
+    // `PREREGION:The` for `The River Kingdoms`.
+    let records = vec![
+        record(
+            "RACE",
+            "Human",
+            &[
+                ("SIZE", "M"),
+                // `REGION` is a template token; on a race row PCGen ignores it
+                // (and the third-party data does write one), so it must not
+                // become the character's region.
+                ("REGION", "Varisia"),
+                ("BONUS", "VAR|Region|2|PREREGION:The River Kingdoms"),
+                (
+                    "BONUS",
+                    "VAR|FullRegion|2|PREREGION:The River Kingdoms (Artume)",
+                ),
+                ("BONUS", "VAR|Lowercase|2|PREREGION:the river kingdoms"),
+                ("BONUS", "VAR|WrongRegion|2|PREREGION:Varisia"),
+                ("BONUS", "VAR|NotWrong|2|!PREREGION:Varisia"),
+                ("BONUS", "VAR|SubregionOnly|2|PREREGION:Artume"),
+            ],
+        ),
+        record(
+            "TEMPLATE",
+            "Regional Affinity (Artume)",
+            &[("REGION", "The River Kingdoms"), ("SUBREGION", "Artume")],
+        ),
+    ];
+    let (pack, report) = lower_records(
+        Some("35e".to_string()),
+        vec!["region".to_string()],
+        &records,
+    );
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+
+    // With no region template PCGen reports the region as `None`, so every
+    // positive region test fails and the negated one holds — including the
+    // `Varisia` the *race* row declares, which is not a region at all.
+    let unset = Engine::new(pack.clone()).evaluate(&CharacterDraft {
+        race_id: "Human".to_string(),
+        ..CharacterDraft::default()
+    });
+    assert!(!unset.variables.contains_key("Region"));
+    assert!(!unset.variables.contains_key("WrongRegion"));
+    assert!(!unset.variables.contains_key("SubregionOnly"));
+    assert_eq!(unset.variables.get("NotWrong").copied(), Some(2));
+
+    let chosen = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Human".to_string(),
+        templates: vec!["Regional Affinity (Artume)".to_string()],
+        ..CharacterDraft::default()
+    });
+    assert_eq!(chosen.variables.get("Region").copied(), Some(2));
+    assert_eq!(chosen.variables.get("FullRegion").copied(), Some(2));
+    assert_eq!(chosen.variables.get("Lowercase").copied(), Some(2));
+    assert!(!chosen.variables.contains_key("WrongRegion"));
+    // A bare subregion is not a prefix of `The River Kingdoms (Artume)`.
+    assert!(!chosen.variables.contains_key("SubregionOnly"));
+    assert_eq!(chosen.variables.get("NotWrong").copied(), Some(2));
+}

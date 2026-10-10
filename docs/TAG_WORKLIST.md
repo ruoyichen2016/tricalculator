@@ -98,6 +98,10 @@ semantic_completion 100.0%
 - **P4-PRE-5**：顶层 `!PRExxx` 统一取反为 `Not(..)`；DS-3E 的
   `!PRERACE`/`!PRETYPE`/`!PREABILITY`/`!PRECLASS`/`!PREAGESET` 清零
   （legacy_tags 2,902→2,773，semantic_completion 65.4%→67.2%）
+- **Post-M9**：`PREREGION` → `Predicate::Region`；模板 `REGION:`/`SUBREGION:`
+  落到 `CreatureTraits.region`/`.subregion`，不再计入 legacy。验收数据集不含该
+  tag，cohort 数字不变；第三方资料 unsupported 1,171→750（见
+  `THIRD_PARTY_TRANSCRIPTION.md`）。
 - monster class `classlevel()` BAB 公式修复（`classlevel()` 空括号）
 
 累计：`legacy_tags` 4289 → 1284，`unsupported` 337 → 0，`semantic_completion` 46.8% → 100.0%。
