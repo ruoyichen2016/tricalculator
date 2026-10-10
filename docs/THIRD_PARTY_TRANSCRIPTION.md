@@ -165,11 +165,8 @@ rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
   unsupported and the type entry asked the wrong question;
 - `PREREACHGTEQ` (3 tags), lowered to `Predicate::ReachAtLeast` — and, because the
   reference reads the comparison out of the tag name, the other six kinds of the
-  family with it. Pending the batch verification, so the total below does not yet
-  include it;
-- `PREDR` (3 tags), lowered to `Predicate::DamageReduction`. Pending the batch
-  verification described at the top of `CHANGELOG.md`, so the total below does not
-  yet include it;
+  family with it;
+- `PREDR` (3 tags), lowered to `Predicate::DamageReduction`;
 - `PREFACT` (never counted on its own, but the gate behind **245** `BONUS` tags and
   **18** `PREMULT` tags), lowered to `Predicate::Fact` against a new `FACT` model.
   `BONUS` fell from 268 to 23 and `PREMULT` from 19 to 2 — the single largest
@@ -193,18 +190,18 @@ rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
   these packs now evaluate against the spell's `SCHOOL:`. The total below is
   unchanged by it.
 
-**Current total, re-measured over the same 189 campaigns: 42 unsupported
-occurrences across 8 tag kinds**, against 304 / 8 after the `PRESA` round,
+**Current total, re-measured over the same 189 campaigns: 32 unsupported
+occurrences across 4 tag kinds**, against 42 / 8 after the `PREFACT` round,
+304 / 8 after the `PRESA` round,
 311 / 9 after the `PRECHARACTERTYPE` round, 332 / 10 after the `PRECAMPAIGN`
 round, 341 / 11 after the `PRESPELLSCHOOL` round, 350 / 12 after the
 `PRESPELLDESCRIPTOR` round, 373 / 13 after the `PRECHECK` round, 393 / 14 after
 the `PREALIGN` round, 401 / 15 after the `PRECSKILL` round, 750 / 17 after the
 `PREREGION` round, 1,171 / 18 after the `PREATT` round and 1,409 / 20 at
-transcription. `BONUS` is 23 of the 42 and is the visible over-approximation
+transcription. `BONUS` is 23 of the 32 and is the visible over-approximation
 described above — the effect is kept and the unreadable gate is what is reported —
-so the remaining actionable queue is the 19 occurrences behind it: `PREUATT` (4),
-`PREDR` (3), `PREREACHGTEQ` (3), `PRESKILLTOT` (3), `PRECLASSLEVELMAX` (2),
-`PREITEM` (2), `PREMULT` (2).
+so the remaining actionable queue is the 9 occurrences behind it: `PREUATT` (4),
+`PRESKILLTOT` (3) and `PREMULT` (2).
 
 ## The 7 campaigns that could not be transcribed
 

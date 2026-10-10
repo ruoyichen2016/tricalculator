@@ -10,20 +10,23 @@
 - 工作区：10 crate（core / formula / ir / import / engine / builder / output /
   cli / web / **transpile**）。`pcgen-transpile` 是构建期转写器，把
   `.pcc`/`.lst` 规范化成 pack 目录，使运行期不再解释 PCGen 文本。
-- 测试：`cargo test --workspace` **517 passed / 2 ignored**（`scripts/check.sh`
-  额外再跑一次 `pcgen-web`，合计 **556 passed / 2 ignored**）。
-- **批量验证进行中（第 13 轮起）**：按用户要求减少编译次数，第 13 轮及之后的若干轮只做
-  实现 + 文档 + commit，编译 / clippy / 测试 / 门禁 / 第三方 sweep 在批次收尾时统一执行；
-  收尾轮会订正这里的测试数量与下面的 unsupported 轨迹。
+- 测试：`cargo test --workspace` **547 passed / 2 ignored**（`scripts/check.sh`
+  额外再跑一次 `pcgen-web`，合计 **586 passed / 2 ignored**）。
+- **第 13–17 轮批量验证已完成**：按用户要求把编译攒到批次末尾一次执行；批次后
+  `cargo test --workspace` **547 passed / 2 ignored**，clippy / fmt / coverage gate
+  （15/0/0）/ broad oracle（字段级 100%）/ `scripts/check.sh`（**586 passed / 2 ignored**）
+  全部通过，第三方 unsupported **42 → 32**。
 - 第三方资料（189 个 top-level campaign，固定 checkout，`import-report
-  --histogram` 汇总）：unsupported **1,409 → 42**（本轮 `PREFACT` 清掉 `BONUS`
-  268 → 23 与 `PREMULT` 19 → 2；`PRESA` 7 → 0；
+  --histogram` 汇总）：unsupported **1,409 → 32**（第 13–17 轮批量里：`PREDR` 3 → 0、
+  `PREREACHGTEQ` 3 → 0、`PREITEM` 2 → 0、`PRECLASSLEVELMAX` 2 → 0；此前 `PREFACT`
+  清掉 `BONUS` 268 → 23 与 `PREMULT` 19 → 2；`PRESA` 7 → 0；
   `PRECHARACTERTYPE` 9 → 0，连带 `BONUS` 280 → 268；`PRECAMPAIGN` 9 → 0；
   `PRESPELLSCHOOLSUB` 9 → 0；`PRESPELLDESCRIPTOR` 14 → 0，连带 `PREMULT` 28 → 19；`PRECHECK`
   17 → 0，连带 `PREMULT` 31 → 28；`PREALIGN` 8 → 0；`PRECSKILL`/`!PRECSKILL`
   30 → 0 并连带 319 条以它为 gate 的 `BONUS`，`BONUS` 599 → 280；`PREREGION`
-  65 → 0 并连带 `PREMULT` 387 → 31）。剩下的 `BONUS` 是「gate 不可读但效果保留」
-  的可见过近似，不是被丢弃的效果。这些 pack 在验收 cohort 之外，门禁不覆盖它们。
+  65 → 0 并连带 `PREMULT` 387 → 31）。剩余 32 条里 `BONUS` 23 是「gate 不可读但效果
+  保留」的可见过近似，不是被丢弃的效果；真正待办只剩 `PREUATT` 4、`PRESKILLTOT` 3、
+  `PREMULT` 2。这些 pack 在验收 cohort 之外，门禁不覆盖它们。
 - **已知缺口（独立一轮，已量化）**：按身份选取的实体（RACE/TEMPLATE/EQUIPMOD/…）
   其 `requirements` 只在**授予路径**上被检查，`initial_entities` 不看它们。RSRD 中
   同时带 requirements 与 effects 的此类实体：EQUIPMOD 402、TEMPLATE 155、ABILITY 141、

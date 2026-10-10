@@ -49,11 +49,7 @@ fn pack_records() -> Vec<RawRecord> {
         record("EQUIPMENT", "Chainmail", &[("TYPE", "Armor.Heavy")]),
         record("EQUIPMENT", "Scale Mail", &[("TYPE", "Armor.Medium")]),
         record("EQUIPMENT", "Sword (Long)", &[("TYPE", "Weapon.Melee")]),
-        record(
-            "FEAT",
-            "Gated Feat",
-            &[("TYPE", "General")],
-        ),
+        record("FEAT", "Gated Feat", &[("TYPE", "General")]),
     ]
 }
 
@@ -133,10 +129,7 @@ fn the_count_is_a_total_across_the_entries() {
         "PREITEM:2,Chainmail,Sword (Long)",
         &["Chainmail", "Sword (Long)"]
     ));
-    assert!(!gated(
-        "PREITEM:2,Chainmail,Sword (Long)",
-        &["Chainmail"]
-    ));
+    assert!(!gated("PREITEM:2,Chainmail,Sword (Long)", &["Chainmail"]));
     // Either of two names satisfies a count of one.
     assert!(gated(
         "PREITEM:1,Sword (Long),Sword (Short)",

@@ -103,10 +103,7 @@ fn a_type_maximum_is_tested_through_preclass() {
     assert!(gated("PRECLASSLEVELMAX:1,TYPE.Base=1", &[("Fighter", 1)]));
     assert!(!gated("PRECLASSLEVELMAX:1,TYPE.Base=1", &[("Fighter", 2)]));
     // A prestige class is not a base class, so its levels are irrelevant.
-    assert!(gated(
-        "PRECLASSLEVELMAX:1,TYPE.Base=1",
-        &[("Assassin", 10)]
-    ));
+    assert!(gated("PRECLASSLEVELMAX:1,TYPE.Base=1", &[("Assassin", 10)]));
     assert!(!gated(
         "PRECLASSLEVELMAX:1,TYPE.Prestige=1",
         &[("Assassin", 2)]
@@ -116,14 +113,8 @@ fn a_type_maximum_is_tested_through_preclass() {
 #[test]
 fn the_count_is_how_many_classes_are_within_their_maximum() {
     // Both entries hold when neither class has levels.
-    assert!(gated(
-        "PRECLASSLEVELMAX:1,Fighter=1,Wizard=1",
-        &[]
-    ));
-    assert!(gated(
-        "PRECLASSLEVELMAX:2,Fighter=1,Wizard=1",
-        &[]
-    ));
+    assert!(gated("PRECLASSLEVELMAX:1,Fighter=1,Wizard=1", &[]));
+    assert!(gated("PRECLASSLEVELMAX:2,Fighter=1,Wizard=1", &[]));
     // One over its maximum leaves only the other entry holding.
     assert!(gated(
         "PRECLASSLEVELMAX:1,Fighter=1,Wizard=1",

@@ -1475,11 +1475,7 @@ fn predr_lowers_to_type_value_pairs() {
         "Sacred Warder of Bahamut",
         &[("PREDR", "1,Magic=5")],
     );
-    let (pack, report) = lower_records(
-        Some("35e".to_string()),
-        vec!["pred".to_string()],
-        &[class],
-    );
+    let (pack, report) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[class]);
     assert_eq!(
         report.coverage.unsupported_tags, 0,
         "{:?}",
@@ -1557,26 +1553,42 @@ fn prevar_keeps_the_boundary_the_kind_names() {
     // Numeric operands: the strict kinds shift by one, which is exact for the
     // integer variables the engine models.
     let cases = [
-        ("PREVARGTEQ", "X,5", Predicate::Variable {
-            name: "X".to_string(),
-            min: Some(5),
-            max: None,
-        }),
-        ("PREVARGT", "X,5", Predicate::Variable {
-            name: "X".to_string(),
-            min: Some(6),
-            max: None,
-        }),
-        ("PREVARLTEQ", "X,5", Predicate::Variable {
-            name: "X".to_string(),
-            min: None,
-            max: Some(5),
-        }),
-        ("PREVARLT", "X,5", Predicate::Variable {
-            name: "X".to_string(),
-            min: None,
-            max: Some(4),
-        }),
+        (
+            "PREVARGTEQ",
+            "X,5",
+            Predicate::Variable {
+                name: "X".to_string(),
+                min: Some(5),
+                max: None,
+            },
+        ),
+        (
+            "PREVARGT",
+            "X,5",
+            Predicate::Variable {
+                name: "X".to_string(),
+                min: Some(6),
+                max: None,
+            },
+        ),
+        (
+            "PREVARLTEQ",
+            "X,5",
+            Predicate::Variable {
+                name: "X".to_string(),
+                min: None,
+                max: Some(5),
+            },
+        ),
+        (
+            "PREVARLT",
+            "X,5",
+            Predicate::Variable {
+                name: "X".to_string(),
+                min: None,
+                max: Some(4),
+            },
+        ),
     ];
     for (tag, value, expected) in cases {
         let record = record("FEAT", "Var Gate", &[(tag, value)]);
@@ -1599,8 +1611,7 @@ fn prevar_symbolic_operands_keep_their_operator() {
     ];
     for (tag, greater, strict) in cases {
         let record = record("FEAT", "Var Gate", &[(tag, "X,Y")]);
-        let (pack, _) =
-            lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[record]);
+        let (pack, _) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[record]);
         assert_eq!(
             pack.entities[0].requirements[0],
             Predicate::VariableCompare {
@@ -1710,11 +1721,7 @@ fn preitem_lowers_to_name_and_type_entries() {
         "Dukar",
         &[("PREITEM", "1,Dukar Hand Coral")],
     );
-    let (pack, report) = lower_records(
-        Some("35e".to_string()),
-        vec!["pred".to_string()],
-        &[class],
-    );
+    let (pack, report) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[class]);
     assert_eq!(
         report.coverage.unsupported_tags, 0,
         "{:?}",
@@ -1730,7 +1737,11 @@ fn preitem_lowers_to_name_and_type_entries() {
 
     // A `TYPE=` entry becomes a type list, split on the dots the reference splits
     // on, and the count is kept.
-    let typed = record("FEAT", "Improved Natural Attack", &[("PREITEM", "1,TYPE=Natural")]);
+    let typed = record(
+        "FEAT",
+        "Improved Natural Attack",
+        &[("PREITEM", "1,TYPE=Natural")],
+    );
     let (pack, _) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[typed]);
     assert_eq!(
         pack.entities[0].requirements[0],

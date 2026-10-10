@@ -135,19 +135,19 @@ semantic_completion 100.0%
 - **Post-M9**：`PREFACT` → `Predicate::Fact`，新增 `FACT` 模型（`CompiledEntity.facts`
   + `EffectState.location_facts`，只 lower `abilities`/`race` 两个可枚举 location）。
   第三方资料 unsupported **304→42**（`BONUS` 268→23、`PREMULT` 19→2），是本循环最大一次下降。
-- **Post-M9（待批量验证）**：`PRECLASSLEVELMAX` → `Not(ClassRequirement{…, min_level=z+1})`
+- **Post-M9**：`PRECLASSLEVELMAX` → `Not(ClassRequirement{…, min_level=z+1})`
   的 `AtLeast`（即 reference 里对 `PRECLASS` 的反写），并把 `class_spec_from` 抽出复用。
   同时记录 `PRECLASS` 的 `TYPE=` 聚合分歧（max vs sum，见 §5ai）。
-- **Post-M9（待批量验证）**：`PREITEM` → `Predicate::Item`（名字含 `%` 通配 / `TYPE=` 点分
+- **Post-M9**：`PREITEM` → `Predicate::Item`（名字含 `%` 通配 / `TYPE=` 点分
   类型列表，按**持有**而非已装备计数）；同时修掉旧实现把它 lower 成 `Predicate::Equipped`
   且只认 `TYPE=` 的错误。新增 `EffectState.item_types`。
-- **Post-M9（待批量验证）**：`PREREACH`/`PREREACHGTEQ` 等 7 个 kind →
+- **Post-M9**：`PREREACH`/`PREREACHGTEQ` 等 7 个 kind →
   `Predicate::ReachAtLeast` / `ReachAtMost`（按 size 家族的组合写法），新增
   `EffectState.reach_feet`（种族 REACH，默认 5；模板覆盖；`BONUS:COMBAT|REACH` 相加）。
-- **Post-M9（待批量验证）**：`PREVAR*` 语义修复（非 unsupported 项）：
+- **Post-M9**：`PREVAR*` 语义修复（非 unsupported 项）：
   `VariableCompare` 新增 `strict` 以区分 GT/GTEQ 与 LT/LTEQ 的边界（第三方 2519 对
   符号操作数受影响），`variable_value` 增加字面量回退。
-- **Post-M9（待批量验证）**：`PREDR` → `Predicate::DamageReduction`，新增
+- **Post-M9**：`PREDR` → `Predicate::DamageReduction`，新增
   `EffectState.damage_reduction`（非加值 DR）+ `BONUS:DR` 加值合并。
 - monster class `classlevel()` BAB 公式修复（`classlevel()` 空括号）
 

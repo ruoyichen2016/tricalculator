@@ -1,11 +1,13 @@
 ## Unreleased
 
-> **批量验证中**：从第 13 轮起按用户要求「减少编译次数」，连续若干轮只做实现与文档，
-> 编译 / clippy / `cargo test` / 门禁 / 第三方 sweep 在批次结束时统一执行一次。
-> 因此下面这一节的**测试数量与 unsupported 数字是待验证的预期值**，验证后会在批次收尾
-> 轮统一订正。
+> **第 13–17 轮的批量验证已完成**（按用户要求把编译攒到批次末尾一次执行）。下列五节的
+> 数字均为实测：`cargo test --workspace` **547 passed / 0 failed / 2 ignored**（批次前
+> 517，+30），clippy `-D warnings` 与 fmt 通过，coverage gate **pass=15 / fail=0 / skip=0**，
+> broad oracle 在全部 Java 暴露字段上仍是 **100%**，`scripts/check.sh` **586 passed /
+> 0 failed / 2 ignored**（PF35e、cohort matrix、deep-field 均通过；archive differential 为
+> 预期的 `SKIP`）。第三方 unsupported 由 **42 → 32**。
 
-### 补齐谓词：`PRECLASSLEVELMAX`（待批量验证）
+### 补齐谓词：`PRECLASSLEVELMAX`
 
 - 复用现有 `Predicate::ClassRequirement` 与 `Not` / `AtLeast`，**不需要改引擎**：
   reference 里这个 tag 没有自己的 tester——`PreClassLevelMaxParser` 把它**改写成
@@ -26,10 +28,9 @@
   （`runningTotal = Math.max(runningTotal, display.getLevel(cl))`），而本引擎的
   `class_spec_holds` 对 `Type` 是**求和**。该分歧同样影响 `PRECLASS`（RSRD 有 51 处
   `TYPE.`），且会牵动 cohort，因此单独一轮处理。
-- 第三方资料：unsupported 预期 34 → 32（`PRECLASSLEVELMAX` 2 → 0）。
-- 测试数量与门禁在批次收尾轮统一确认。
+- 第三方资料：unsupported **34 → 32**（`PRECLASSLEVELMAX` 2 → 0，实测）。
 
-### 补齐谓词：`PREITEM`（待批量验证）
+### 补齐谓词：`PREITEM`
 
 - 新增 `Predicate::Item { specs, min_count }` 与 `ItemSpec { Name | Types }`；
   `EffectState` 新增 `item_types`（持有物名 → `TYPE:` 标签，按 `Engine::resolve_equipment`
@@ -41,10 +42,9 @@
 - **同时修掉一个旧错误**：`PREITEM` 原先被 lower 成 `Predicate::Equipped`（「已装备」）
   且只处理 `TYPE=` 条目——名字条目直接 unsupported，类型条目问的是错的问题。现在按
   reference 的「持有」语义实现。
-- 第三方资料：unsupported 预期 36 → 34（`PREITEM` 2 → 0，均为名字条目）。
-- 测试数量与门禁在批次收尾轮统一确认。
+- 第三方资料：unsupported **36 → 34**（`PREITEM` 2 → 0，均为名字条目，实测）。
 
-### 补齐谓词：`PREREACH` 及其六个比较 kind（待批量验证）
+### 补齐谓词：`PREREACH` 及其六个比较 kind
 
 - 新增 `Predicate::ReachAtLeast { feet }` / `ReachAtMost { feet }`；严格、相等、不等
   三种 kind 按 size 家族已有的写法**组合**出来（`GT` = 至少 且 非至多，`LT` 反之，
@@ -54,11 +54,10 @@
   模板**：`IntegerKey.REACH` 的默认值是 **5**（不是 0），种族未设该键时按 5 计；模板
   覆盖种族值；最后加 `BONUS:COMBAT|REACH`。**刻意不读能力**——数据里带 `REACH:` 的行
   （野性变身形态）在 `ph_templates.lst` 里本来就是模板，而 facet 也不读能力。
-- 第三方资料：unsupported 预期 39 → 36（`PREREACHGTEQ` 3 → 0）；`PREREACHGTEQ:CL+5`
+- 第三方资料：unsupported **39 → 36**（`PREREACHGTEQ` 3 → 0，实测）；`PREREACHGTEQ:CL+5`
   这类非整数操作数（reference 的 `Integer.parseInt` 会失败）保持 unsupported。
-- 测试数量与门禁在批次收尾轮统一确认。
 
-### 修复 `PREVAR*` 的边界与字面量操作数（待批量验证，非 unsupported 项）
+### 修复 `PREVAR*` 的边界与字面量操作数（非 unsupported 项）
 
 - `Predicate::VariableCompare` 新增 `strict`（`#[serde(default)]`），把
   `PREVARGT`/`PREVARGTEQ`、`PREVARLT`/`PREVARLTEQ` 的**边界**区分开：旧实现把两者都
@@ -72,10 +71,10 @@
   静默反向。公式（如 `ceil((CL=Horizon Walker)/10)`）仍解析为 0，已记录为已知缺口。
 - 旧 pack 兼容：`strict` 缺省为 `false`（含边界读法，也正是 GTEQ/LTEQ 的含义，占该族
   34742 对中的 34737 对）。
-- 验收 cohort（RSRD）不含任何 `PREVAR*`，因此本轮可证不影响 cohort；测试数量与门禁在
-  批次收尾轮统一确认。
+- 验收 cohort（RSRD）不含任何 `PREVAR*`，因此本轮可证不影响 cohort；批次验证实测
+  coverage gate 15/0/0、broad oracle 字段级 100%。
 
-### 补齐谓词：`PREDR`（待批量验证）
+### 补齐谓词：`PREDR`
 
 - 新增 `Predicate::DamageReduction { specs, min_count }` 与 `DamageReductionSpec { kind, min }`；
   `EffectState` 新增 `damage_reduction`（按类型小写索引的**非加值** DR）。
@@ -89,7 +88,7 @@
   角色也是成立的——测试里显式固定了这个行为。
 - 含 `|PRE` 后缀的值无法解析成整数（reference 的 `Integer.parseInt` 同样会失败），
   整条 tag 保持 unsupported。
-- 预期第三方 unsupported：42 → 39（`PREDR` 3 → 0）。
+- 第三方资料：unsupported **42 → 39**（`PREDR` 3 → 0，实测）。
 
 ### 补齐谓词：`PREFACT` 与 FACT 模型（unsupported 304 → 42）
 

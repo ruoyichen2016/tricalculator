@@ -52,7 +52,8 @@ fn gated(gate: &str, race: &[(&str, &str)], template: &[(&str, &str)]) -> bool {
             ("BONUS", &format!("VAR|Gated|1|{gate}")),
         ],
     ));
-    let (pack, report) = lower_records(Some("35e".to_string()), vec!["reach".to_string()], &records);
+    let (pack, report) =
+        lower_records(Some("35e".to_string()), vec!["reach".to_string()], &records);
     assert_eq!(
         report.coverage.unsupported_tags, 0,
         "{:?}",
@@ -116,7 +117,11 @@ fn a_template_overrides_the_races_reach() {
         &[("REACH", "15")]
     ));
     // A template that says nothing about reach leaves the race's value alone.
-    assert!(gated("PREREACHGTEQ:20", &[("REACH", "20")], &[("TYPE", "Subrace")]));
+    assert!(gated(
+        "PREREACHGTEQ:20",
+        &[("REACH", "20")],
+        &[("TYPE", "Subrace")]
+    ));
 }
 
 #[test]

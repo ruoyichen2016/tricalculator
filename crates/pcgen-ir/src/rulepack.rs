@@ -1290,7 +1290,10 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
             if items.is_empty() {
                 return None;
             }
-            Some(Predicate::AtLeast { n: min_count, items })
+            Some(Predicate::AtLeast {
+                n: min_count,
+                items,
+            })
         }
         "PREVARGT" | "PREVARLT" | "PREVARGTEQ" | "PREVARLTEQ" | "PREVAREQ" | "PREVARNEQ" => {
             let (name, value) = if let Some((name, value)) = body.split_once('=') {

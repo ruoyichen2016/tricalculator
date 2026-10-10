@@ -43,10 +43,7 @@ fn gated(gate: &str, x: i32, y: i32) -> bool {
         record(
             "RACE",
             "Test Race",
-            &[
-                ("DEFINE", &format!("X|{x}")),
-                ("DEFINE", &format!("Y|{y}")),
-            ],
+            &[("DEFINE", &format!("X|{x}")), ("DEFINE", &format!("Y|{y}"))],
         ),
         record(
             "FEAT",

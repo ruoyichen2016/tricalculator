@@ -678,12 +678,13 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         let Some(entity) = pack.entities.get(*index) else {
             continue;
         };
-        if entity.category == pcgen_core::EntityCategory::Race {
+        // The race sets the base — `None` here means the key's default — and a
+        // template overrides it only when it carries a `REACH` of its own.
+        if entity.category == pcgen_core::EntityCategory::Race
+            || (entity.category == pcgen_core::EntityCategory::Template
+                && entity.traits.reach_feet.is_some())
+        {
             reach_feet = entity.traits.reach_feet;
-        } else if entity.category == pcgen_core::EntityCategory::Template {
-            if entity.traits.reach_feet.is_some() {
-                reach_feet = entity.traits.reach_feet;
-            }
         }
     }
     state.reach_feet = reach_feet;
@@ -1923,8 +1924,8 @@ pub(crate) fn predicate_holds(
                 .sum();
             available >= (*min_count).max(1)
         }
-        Predicate::ReachAtLeast { feet } => reach_value(&state) >= *feet,
-        Predicate::ReachAtMost { feet } => reach_value(&state) <= *feet,
+        Predicate::ReachAtLeast { feet } => reach_value(state) >= *feet,
+        Predicate::ReachAtMost { feet } => reach_value(state) <= *feet,
         // `PreDamageReductionTester` compares the character's reduction for one
         // type with the pair's value; its sub-prerequisites are not
         // `countMultiples`, so each contributes 0 or 1 and the wrapper counts how
@@ -1932,7 +1933,7 @@ pub(crate) fn predicate_holds(
         Predicate::DamageReduction { specs, min_count } => {
             let matched = specs
                 .iter()
-                .filter(|spec| damage_reduction_value(&state, &spec.kind) >= spec.min)
+                .filter(|spec| damage_reduction_value(state, &spec.kind) >= spec.min)
                 .count() as u32;
             matched >= (*min_count).max(1)
         }
