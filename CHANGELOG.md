@@ -7,6 +7,29 @@
 > 0 failed / 2 ignored**（PF35e、cohort matrix、deep-field 均通过；archive differential 为
 > 预期的 `SKIP`）。第三方 unsupported 由 **42 → 32**。
 
+### 补齐 `PRELEGS` 全家族，并真正读取 `LEGS:`（第 23 轮）
+
+- 在这之前 `EffectState.legs` 是**硬编码的 2**（注释写着「defaults to biped」），
+  `LEGS:` 标签**根本没有被解析**——也就是说第三方资料里全部 **399 处 `PRELEGS*`
+  谓词**（233 × `PRELEGSGTEQ:4`、162 × `PRELEGSLTEQ:3` 等）对任何生物都给出同一个答案。
+- 按 `LegsFacet.getLegs` 实现真正的取值：种族的 `LEGS`（`IntegerKey.LEGS` 默认 **2**）作为
+  起点，然后按**顺序**遍历角色的模板，最后一个声明了 `LEGS` 的模板覆盖（`legsFacet` 底层是
+  `AbstractSourcedListFacet`，所以顺序是真实存在的语义）；**没有种族时为 0**。
+  `CreatureTraits` 新增 `legs: Option<u32>`（`serde(default, skip_serializing_if)`），
+  由共用的 `parse_creature_traits` 从 `LEGS:` 读取（`AbstractIntToken`，最小 0，故负数或
+  非数字视为解析失败）；`LEGS` 同时加入 `consumed_legacy_tag`（与同处读取的 `REACH` 一致），
+  不再被报成 legacy pending。
+- `PreLegsParser` 把 kind 后缀直接当算子（空前缀 = `gteq`），因此七种拼写都要支持：
+  `PRELEGS`/`PRELEGSGTEQ`/`PRELEGSLTEQ`/`PRELEGSGT`/`PRELEGSLT`/`PRELEGSEQ`/`PRELEGSNEQ`。
+  **不新增 IR 变体**：严格与相等形式由既有的一对谓词组合而成——`> n` 是 `Not(<= n)`、
+  `< n` 是 `Not(>= n)`、`= n` 是两者并存、`!= n` 是两者皆非；对「腿数」这种整数这是
+  **精确**的等价，不会引入四个什么新话都没说的变体。
+- 操作数用 `Integer.parseInt` 读取（tester 会因非数字抛 `PrerequisiteException`），
+  因此非数字/non-u32 保持 unsupported。
+- 第三方资料：unsupported **5 → 4**（`PRELEGSGT` 1 → 0）；验收 cohort（RSRD）
+  **`PRELEGS*` 0 处**，且 `state.legs` 只有这两个谓词读，故可证不影响 cohort。
+  测试与门禁按批次约定一起验证。
+
 ### `PRESPELLTYPE` 的法术类型改为自由文本（第 22 轮，已实测）
 
 - `SpellTypeSpec.power: Option<SpellPowerType>` → `spell_type: Option<String>`，并用

@@ -2099,15 +2099,34 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 ]))
             }
         }
-        "PRELEGSGTEQ" | "PRELEGSLTEQ" => {
-            let count = body
-                .split(|ch: char| !ch.is_ascii_digit())
-                .find(|part| !part.is_empty())
-                .and_then(|part| part.parse::<u32>().ok())?;
-            Some(if tag_upper == "PRELEGSLTEQ" {
-                Predicate::LegsAtMost { count }
-            } else {
-                Predicate::LegsAtLeast { count }
+        // PRELEGS, PRELEGSEQ/GT/GTEQ/LT/LTEQ/NEQ — how many legs the character
+        // stands on.
+        //
+        // `PreLegsParser` maps the kind's suffix straight onto the operator, with
+        // an empty suffix meaning `gteq`, and puts the whole formula in the
+        // operand — which `PreLegsTester` reads with `Integer.parseInt`, so
+        // anything but a number is an error rather than a value to interpret.
+        //
+        // The seven spellings are one comparison in four directions, and the
+        // strict and equality forms are built from the two predicates this
+        // codebase already has (`>=` and `<=`) rather than adding four more
+        // variants: `> n` is `not (<= n)`, `< n` is `not (>= n)`, `= n` is both,
+        // and `!= n` is neither.  That is exact for a count of legs, which is an
+        // integer.
+        "PRELEGS" | "PRELEGSEQ" | "PRELEGSGT" | "PRELEGSGTEQ" | "PRELEGSLT" | "PRELEGSLTEQ"
+        | "PRELEGSNEQ" => {
+            let count = body.trim().parse::<u32>().ok()?;
+            let at_least = Predicate::LegsAtLeast { count };
+            let at_most = Predicate::LegsAtMost { count };
+            Some(match tag_upper.as_str() {
+                // The bare spelling is the reference's `gteq` default.
+                "PRELEGS" | "PRELEGSGTEQ" => at_least,
+                "PRELEGSLTEQ" => at_most,
+                "PRELEGSGT" => Predicate::Not(Box::new(at_most)),
+                "PRELEGSLT" => Predicate::Not(Box::new(at_least)),
+                "PRELEGSEQ" => Predicate::All(vec![at_least, at_most]),
+                "PRELEGSNEQ" => Predicate::Not(Box::new(Predicate::All(vec![at_least, at_most]))),
+                _ => return None,
             })
         }
         // PRERULE:1,SYS_DWS_RACIAL[,SYS_DWS_EXTRA] — game-mode rule toggles.
@@ -2809,6 +2828,9 @@ fn consumed_legacy_tag(category: &str, tag_name: &str) -> bool {
             | "ATTACKCYCLE"
             | "MOVECLONE"
             | "REACH"
+            // `LEGS` is read into `CreatureTraits` by `parse_creature_traits`,
+            // like `REACH` beside it, so it is consumed rather than pending.
+            | "LEGS"
     ) {
         return true;
     }

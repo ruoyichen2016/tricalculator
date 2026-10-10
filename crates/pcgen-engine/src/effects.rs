@@ -435,6 +435,27 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
             }
         }
     }
+    // `LegsFacet.getLegs` starts from the race's `LEGS` — `IntegerKey.LEGS`
+    // defaults to 2 — and then walks the character's templates in order, the last
+    // one stating a value winning.  A character with no race has none at all.
+    let find_template = |name: &str| {
+        pack.templates.get(name).or_else(|| {
+            pack.templates
+                .values()
+                .find(|template| template.id.eq_ignore_ascii_case(name))
+        })
+    };
+    let mut legs = race.map(|race| race.traits.legs.unwrap_or(2)).unwrap_or(0);
+    for name in race
+        .map(|race| race.templates.as_slice())
+        .unwrap_or_default()
+        .iter()
+        .chain(draft.templates.iter())
+    {
+        if let Some(value) = find_template(name).and_then(|template| template.traits.legs) {
+            legs = value;
+        }
+    }
     let hands = race.map(|race| race.hands).unwrap_or(2);
     let movement = race.map(|race| race.movement.clone()).unwrap_or_default();
     let mut equipment_values = BTreeSet::new();
@@ -555,7 +576,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
             .collect();
     let mut state = EffectState {
         size: base_size,
-        legs: 2,
+        legs,
         race_types,
         race_creature_type,
         race_subtypes,

@@ -711,6 +711,9 @@ fn normalize_hit_die(value: &str) -> String {
 pub(crate) fn parse_creature_traits(record: &RawRecord, traits: &mut pcgen_core::CreatureTraits) {
     traits.reach_feet = tag(record, "REACH").and_then(|value| value.parse().ok());
     traits.reach_mult = tag(record, "REACHMULT").and_then(|value| value.parse().ok());
+    // `LegsToken` is an `AbstractIntToken` with a minimum of 0, so a negative or
+    // non-numeric value is a parse failure rather than a value to keep.
+    traits.legs = tag(record, "LEGS").and_then(|value| value.trim().parse().ok());
     traits.face = tag(record, "FACE").map(str::to_string);
     traits.race_type = tag(record, "RACETYPE").map(str::to_string);
     traits.subtypes = split_tag_list(record, "RACESUBTYPE");

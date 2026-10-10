@@ -158,6 +158,12 @@ rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
   lowered to one shape that the engine read as strict. **2,519** pairs in these
   packs have a symbolic operand and were compared one step too strictly. Nothing
   moves in the table below, because `PREVAR*` already lowered;
+- `PRELEGS` (1 tag, and a much larger correction behind it): the family's other six
+  spellings were not lowered, and `EffectState.legs` was hard-coded to 2 because the
+  `LEGS:` tag was never read — so all 399 `PRELEGS*` occurrences in this data
+  answered the same way for every creature.  `LegsFacet.getLegs` is now followed
+  (race value, default 2, then templates in order, last one winning) and `LEGS` is
+  read into the creature traits and marked consumed rather than legacy;
 - `PRESPELLTYPE` (754 occurrences in all, 18 of them previously unreadable): the
   spell type was a `SpellPowerType`, so `1,Shadow Magic=N` — a real spell type in
   that data — made the whole tag unreadable.  It is text in the reference, matched
@@ -207,9 +213,9 @@ rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
   these packs now evaluate against the spell's `SCHOOL:`. The total below is
   unchanged by it.
 
-**Current total, re-measured over the same 189 campaigns: 5 unsupported
-occurrences across 1 tag kind** — every one of them a `BONUS`.  Against 23 / 1
-before the `PRESPELLTYPE` round, 25 / 2 before the `PRESPELLCAST` round, 32 / 4
+**Current total, re-measured over the same 189 campaigns: 4 unsupported
+occurrences across 1 tag kind** — every one of them a `BONUS`.  Against 5 / 1
+before the `PRELEGS` round, 23 / 1 before the `PRESPELLTYPE` round, 25 / 2 before the `PRESPELLCAST` round, 32 / 4
 before `PRESKILLTOT` and `PREUATT`,
 42 / 8 after the `PREFACT` round, 304 / 8 after the `PRESA` round,
 311 / 9 after the `PRECHARACTERTYPE` round, 332 / 10 after the `PRECAMPAIGN`
@@ -220,17 +226,15 @@ the `PREALIGN` round, 401 / 15 after the `PRECSKILL` round, 750 / 17 after the
 transcription.
 
 What is left is the over-approximation described at the top of this file and
-nothing else: 5 `BONUS` rows whose *gate* cannot be read, with the effect kept and
-the raw gate reported.  Each of the five has now been read, and they are three
-different things:
+nothing else: 4 `BONUS` rows whose *gate* cannot be read, with the effect kept and
+the raw gate reported.  Each of the four has been read, and they are two different
+things:
 
 * 2 rows, in the 4e `players_handbook`, are gated on `PRECLASS:1,TYPE=Base`.  This
   is broken data rather than a missing model: `PreClassParser` is a list parser, so
   `TYPE=Base` reaches `Integer.parseInt("Base")` in the single-element branch, the
   `ANY` escape does not apply and the parser throws a `PersistenceLayerException`.
   PCGen cannot load the tag either, so there is no behaviour to match;
-* 1 row, in Final Fantasy, is gated on `PRELEGSGT:2`.  `PRELEGSGTEQ` is modelled;
-  the strict sibling is not, and this is the only occurrence;
 * 2 rows, in the Underdark pack and in the curated `_all_35e3e` that includes it,
   are gated on `PREEQUIPTWOWEAPON:2,TYPE=Nekode`.  The `PREEQUIP*` family is
   modelled; this member of it is not.

@@ -135,6 +135,9 @@ semantic_completion 100.0%
 - **Post-M9**：`PREFACT` → `Predicate::Fact`，新增 `FACT` 模型（`CompiledEntity.facts`
   + `EffectState.location_facts`，只 lower `abilities`/`race` 两个可枚举 location）。
   第三方资料 unsupported **304→42**（`BONUS` 268→23、`PREMULT` 19→2），是本循环最大一次下降。
+- **Post-M9**：`PRELEGS` 全家族（七种拼写）+ 真正读取 `LEGS:`（`CreatureTraits.legs`、
+  `LegsFacet` 的「种族默认 2、模板按序覆盖、无种族为 0」）。严格/相等形式复用已有
+  `LegsAtLeast`/`LegsAtMost` 组合。第三方 unsupported 5→4。
 - **Post-M9**：`PRESPELLTYPE` 的法术类型改为**自由文本**（`SpellTypeSpec.spell_type`
   用 serde `alias = "power"` 兼容旧 pack；`spell_slots_by_type` 取代
   `slots_by_power_level`；未声明 `FACT:SpellType` 的职业被跳过）。第三方 unsupported

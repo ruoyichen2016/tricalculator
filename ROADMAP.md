@@ -26,11 +26,11 @@
   30 → 0 并连带 319 条以它为 gate 的 `BONUS`，`BONUS` 599 → 280；`PREREGION`
   65 → 0 并连带 `PREMULT` 387 → 31）。此后 `PRESKILLTOT` 3 → 0、`PREUATT` 4 → 0（32 → 25），`PRESPELLCAST` 修好后
   `PREMULT` 2 → 0（25 → 23），`PRESPELLTYPE` 的文本化再清掉 18 条（23 → **5**）。
-  剩余 5 条**全部是** `BONUS`，即「gate 不可读但效果保留」的可见过近似，不是被丢弃的
-  效果；逐条读出后为：2 条 `PRECLASS:1,TYPE=Base`（reference 自身抛异常，**坏数据**）、
-  1 条 `PRELEGSGT:2`（缺 `GTEQ` 的严格兄弟）、2 条 `PREEQUIPTWOWEAPON:2,TYPE=Nekode`
-  （`PREEQUIP*` 家族的缺项）。后两者仍可建模，故循环继续；这两个 tag 处理完后需要重新
-  评估停止条件。这些 pack 在验收 cohort 之外，门禁不覆盖它们。
+`PRELEGS` 全家族补齐后又清掉 1 条（5 → **4**）。剩余 4 条**全部是** `BONUS`，即
+  「gate 不可读但效果保留」的可见过近似，不是被丢弃的效果；逐条读出后为：2 条
+  `PRECLASS:1,TYPE=Base`（reference 自身抛异常，**坏数据**）、2 条
+  `PREEQUIPTWOWEAPON:2,TYPE=Nekode`（`PREEQUIP*` 家族的缺项，**可建模**）。后者处理完后
+  需要重新评估停止条件。这些 pack 在验收 cohort 之外，门禁不覆盖它们。
 - **已知缺口（独立一轮，已量化）**：按身份选取的实体（RACE/TEMPLATE/EQUIPMOD/…）
   其 `requirements` 只在**授予路径**上被检查，`initial_entities` 不看它们。RSRD 中
   同时带 requirements 与 effects 的此类实体：EQUIPMOD 402、TEMPLATE 155、ABILITY 141、

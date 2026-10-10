@@ -211,11 +211,18 @@ pub enum Predicate {
     ReachAtMost {
         feet: i32,
     },
-    /// Creature has at least this many legs (PCGen `PRELEGSGTEQ`).
+    /// Creature has at least this many legs (PCGen `PRELEGSGTEQ`, and the bare
+    /// `PRELEGS`, whose operator the parser defaults to `gteq`).
     LegsAtLeast {
         count: u32,
     },
     /// Creature has at most this many legs (PCGen `PRELEGSLTEQ`).
+    ///
+    /// The family's other four spellings are built from this and [`LegsAtLeast`],
+    /// because they are the same comparison in the other directions: `PRELEGSGT`
+    /// is `Not(LegsAtMost)`, `PRELEGSLT` is `Not(LegsAtLeast)`, `PRELEGSEQ` is
+    /// both, and `PRELEGSNEQ` is neither.  That is exact for a count of legs, and
+    /// it keeps the IR free of four variants that would say nothing new.
     LegsAtMost {
         count: u32,
     },

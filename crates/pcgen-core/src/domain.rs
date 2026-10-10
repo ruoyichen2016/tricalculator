@@ -108,6 +108,10 @@ pub struct CreatureTraits {
     pub reach_feet: Option<i32>,
     #[serde(default)]
     pub reach_mult: Option<i32>,
+    /// PCGen `LEGS:` — how many legs the creature stands on.  A race and a
+    /// template may both state it, and `IntegerKey.LEGS` defaults to 2.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub legs: Option<u32>,
     #[serde(default)]
     pub face: Option<String>,
     #[serde(default)]

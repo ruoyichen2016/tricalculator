@@ -2155,3 +2155,45 @@ fn the_typed_spell_type_still_loads_from_an_old_pack() {
     assert_eq!(any.spell_type, None);
     assert_eq!(any.min_level, 3);
 }
+
+#[test]
+fn the_whole_prelegs_family_lowers() {
+    // `PreLegsParser` turns the kind's suffix into the operator, with an empty
+    // suffix meaning `gteq`.  The strict and equality forms are built from the two
+    // predicates the codebase already has, so nothing new is added to the IR.
+    let at_least = Predicate::LegsAtLeast { count: 4 };
+    let at_most = Predicate::LegsAtMost { count: 4 };
+    let cases = [
+        ("PRELEGS", at_least.clone()),
+        ("PRELEGSGTEQ", at_least.clone()),
+        ("PRELEGSLTEQ", at_most.clone()),
+        ("PRELEGSGT", Predicate::Not(Box::new(at_most.clone()))),
+        ("PRELEGSLT", Predicate::Not(Box::new(at_least.clone()))),
+        (
+            "PRELEGSEQ",
+            Predicate::All(vec![at_least.clone(), at_most.clone()]),
+        ),
+        (
+            "PRELEGSNEQ",
+            Predicate::Not(Box::new(Predicate::All(vec![at_least, at_most]))),
+        ),
+    ];
+    for (tag, expected) in cases {
+        let record = record("RACE", "Test Race", &[(tag, "4")]);
+        let (pack, report) =
+            lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[record]);
+        assert_eq!(
+            report.coverage.unsupported_tags, 0,
+            "{tag}: {:?}",
+            report.coverage.unsupported_pending_by_tag
+        );
+        assert_eq!(pack.entities[0].requirements[0], expected, "{tag}");
+    }
+
+    // `PreLegsTester` reads the operand with `Integer.parseInt`, so a formula is an
+    // error there rather than a number to evaluate.
+    let bad = record("RACE", "Bad", &[("PRELEGSGT", "2+2")]);
+    let (pack, report) = lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[bad]);
+    assert!(pack.entities[0].requirements.is_empty());
+    assert_eq!(report.coverage.unsupported_tags, 1);
+}

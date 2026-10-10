@@ -811,7 +811,8 @@ see §5aa, §5ab, §5ac and §5ad.  Several names on the original list have sinc
 (see §5ab), `PRESA` (see §5ac), `PREFACT` (see §5ad), `PREDR` (see §5ae), the
 `PREVAR*` boundary (see §5af), `PREREACH` (see §5ag), `PREITEM` (see §5ah),
 `PRECLASSLEVELMAX` (see §5ai), `PRESKILLTOT` (see §5aj), `PREUATT` (see §5ak),
-`PRESPELLCAST` (see §5al) and `PRESPELLTYPE` (see §5am);
+`PRESPELLCAST` (see §5al), `PRESPELLTYPE` (see §5am) and the `PRELEGS` family
+(see §5an);
 `PRELEVEL` now supports both `MIN=` and `MAX=`.  See the current `CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
@@ -1832,6 +1833,66 @@ not it declares a `SPELLSTAT`.
 carries `"power": "arcane"`, which reads back as the text `arcane` — the same
 comparison, case-insensitively — and `"power": null`, which meant `ANY`, still means
 `ANY`.  A test loads both shapes.
+
+### 5an. The `PRELEGS` family, and the constant behind it
+
+The queue entry was one tag — `PRELEGSGT:2` — but reading the family showed that the
+missing spelling was the least of it.  `EffectState.legs` was hard-coded:
+
+```rust
+/// Number of legs, when known; defaults to biped (2).
+pub legs: u32,
+...
+legs: 2,
+```
+
+and nothing anywhere parsed the `LEGS:` tag, which the data puts on race rows
+(`LEGS:2`, `LEGS:4`, `LEGS:0`, and up to `LEGS:120`).  So the 399 `PRELEGS*`
+occurrences in the third-party data were not predicates at all: 233
+`PRELEGSGTEQ:4` were always false and 162 `PRELEGSLTEQ:3` always true, for every
+creature, including the four-legged ones they were written about.
+
+`LegsFacet.getLegs` is short and completely specified:
+
+```java
+Race aRace = raceFacet.get(id);
+int legs = 0;
+if (aRace != null) legs = aRace.getSafe(IntegerKey.LEGS);   // default 2
+for (PCTemplate template : templateFacet.getSet(id))
+{
+    Integer l = template.get(IntegerKey.LEGS);
+    if (l != null) legs = l;                                 // last one wins
+}
+```
+
+so the race supplies the number — 2 when it states none, and **nothing** when there
+is no race at all — and each template that states one replaces it.  The template
+facet is an `AbstractSourcedListFacet`, so that "last one wins" runs over a real
+order: the race's own templates first, then the applied ones, which is the order the
+engine walks here.
+
+On top of the value, `PreLegsParser` turns the kind's suffix into the operator
+directly (`LEGSGTEQ` -> `GTEQ`, and the bare `LEGS` -> `gteq`), and `PreLegsTester`
+reads the operand with `Integer.parseInt`, so a formula is an exception there rather
+than a number.
+
+The six non-`gteq` spellings deliberately add **no IR variants**.  With `at_least`
+being `LegsAtLeast` and `at_most` being `LegsAtMost`, the other four operators are
+
+| spelling | predicate |
+| --- | --- |
+| `PRELEGSGT` | `Not(LegsAtMost)` |
+| `PRELEGSLT` | `Not(LegsAtLeast)` |
+| `PRELEGSEQ` | `All[LegsAtLeast, LegsAtMost]` |
+| `PRELEGSNEQ` | `Not(All[LegsAtLeast, LegsAtMost])` |
+
+which is exactly the same comparison written the other way round.  A count of legs
+is an integer, so the negations are exact rather than approximate, and the IR does
+not grow four variants that would each restate one of these.
+
+`LEGS` is also added to `consumed_legacy_tag`, beside `REACH`, which
+`parse_creature_traits` reads the same way — a tag that is parsed should not also be
+reported as pending.
 
 ## What followed from this
 
