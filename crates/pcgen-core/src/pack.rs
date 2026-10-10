@@ -29,6 +29,49 @@ pub struct CompiledPackHeader {
     /// Upstream PCGen data revision the pack was built from, when known.
     #[serde(default)]
     pub data_ref: Option<String>,
+    /// Every campaign in the pack's `.pcc` graph, for `PRECAMPAIGN`.
+    ///
+    /// PCGen answers that tag from the *loaded sources*, so a compiled pack has
+    /// to remember which campaigns it was built from.  The graph's root is the
+    /// "selected" source; the rest arrived through `PCC:` includes.
+    #[serde(default)]
+    pub campaigns: Vec<CampaignSource>,
+}
+
+/// One campaign in a pack's `.pcc` graph.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CampaignSource {
+    /// PCGen `CAMPAIGN:` — the display name.
+    #[serde(default)]
+    pub name: String,
+    /// PCGen `KEY:`, which is what `PRECAMPAIGN` matches by; `PObject.getKeyName`
+    /// falls back to the display name.
+    #[serde(default)]
+    pub key: Option<String>,
+    /// PCGen `BOOKTYPE:` values, for `BOOKTYPE=` / `INCLUDESBOOKTYPE=`.
+    #[serde(default)]
+    pub book_types: Vec<String>,
+    /// True for the campaign the pack was compiled from — PCGen's *selected*
+    /// source.  A plain `PRECAMPAIGN:x` and `BOOKTYPE=` count only these;
+    /// `INCLUDES=` and `INCLUDESBOOKTYPE=` also count the includes.
+    #[serde(default)]
+    pub is_root: bool,
+}
+
+impl CampaignSource {
+    /// The identifier `PRECAMPAIGN` matches: the key when there is one.
+    ///
+    /// PCGen's `Globals.getCampaignKeyedSilently` compares `getKeyName()`, which
+    /// is the `KEY:` when set and the display name otherwise.
+    pub fn identifier(&self) -> &str {
+        self.key.as_deref().unwrap_or(&self.name)
+    }
+
+    pub fn has_book_type(&self, book_type: &str) -> bool {
+        self.book_types
+            .iter()
+            .any(|candidate| candidate.eq_ignore_ascii_case(book_type.trim()))
+    }
 }
 
 /// Runtime-facing rule pack.

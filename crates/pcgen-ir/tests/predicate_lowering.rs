@@ -1094,3 +1094,73 @@ fn the_old_spell_school_level_predicate_still_deserializes() {
         }
     );
 }
+
+#[test]
+fn precampaign_lowers_to_the_four_selectors() {
+    let row = record(
+        "CLASS",
+        "Sacred Exorcist",
+        &[("PRECAMPAIGN", "1,INCLUDES=Epic Level Handbook")],
+    );
+    let (pack, report) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[row]);
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::Campaign {
+            specs: vec![pcgen_core::CampaignSpec::Includes(
+                "Epic Level Handbook".to_string()
+            )],
+            min_count: 1,
+        }
+    );
+
+    // `BOOKTYPE=` and `INCLUDESBOOKTYPE=` keep their whole argument, spaces and
+    // all — the reference parser cannot read `Core Rules` as a number, so the
+    // selector stays in the key.
+    let types = record(
+        "CLASS",
+        "Typed",
+        &[(
+            "PRECAMPAIGN",
+            "2,BOOKTYPE=Core Rules,INCLUDESBOOKTYPE=Supplement",
+        )],
+    );
+    let (pack, _) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[types]);
+    let Predicate::Campaign { specs, min_count } = &pack.entities[0].requirements[0] else {
+        panic!("expected Campaign");
+    };
+    assert_eq!(*min_count, 2);
+    assert_eq!(
+        specs,
+        &vec![
+            pcgen_core::CampaignSpec::BookType("Core Rules".to_string()),
+            pcgen_core::CampaignSpec::IncludesBookType("Supplement".to_string()),
+        ]
+    );
+
+    // A bare name is a `Key` selector, not a book type.
+    let named = record("CLASS", "Named", &[("PRECAMPAIGN", "1,Complete Divine")]);
+    let (pack, _) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[named]);
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::Campaign {
+            specs: vec![pcgen_core::CampaignSpec::Key("Complete Divine".to_string())],
+            min_count: 1,
+        }
+    );
+
+    let negated = record("CLASS", "NotEpic", &[("!PRECAMPAIGN", "1,INCLUDES=Epic")]);
+    let (pack, _) = lower_records(
+        Some("35e".to_string()),
+        vec!["pred".to_string()],
+        &[negated],
+    );
+    assert!(matches!(
+        &pack.entities[0].requirements[0],
+        Predicate::Not(inner) if matches!(**inner, Predicate::Campaign { .. })
+    ));
+}

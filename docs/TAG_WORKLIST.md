@@ -123,6 +123,9 @@ semantic_completion 100.0%
   `EffectState.spell_schools`，按法术 `SCHOOL:` 匹配并保留 count / 配对相加；旧
   `SpellSchoolLevel` 仍可反序列化但求值改用修正后的匹配。第三方 504 条受影响。
   见 `PCGEN_SYNTAX_INVENTORY.md` §5z。
+- **Post-M9**：`PRECAMPAIGN` → `Predicate::Campaign`；`CompiledPackHeader` 新增
+  `campaigns`（由 `.pcc` 图填充，根为「已选中」）。第三方资料 unsupported 341→332。
+  注意这 9 条在职业等级行上，而 CLASS_LEVEL 的 requirements 目前不被求值（§5aa）。
 - monster class `classlevel()` BAB 公式修复（`classlevel()` 空括号）
 
 累计：`legacy_tags` 4289 → 1284，`unsupported` 337 → 0，`semantic_completion` 46.8% → 100.0%。

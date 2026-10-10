@@ -153,23 +153,29 @@ rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
 - `PRESPELLSCHOOLSUB` (9 tags), lowered to `Predicate::SpellSchoolSub` against
   `EffectState.spell_subschools` — the same counting tester with the sub-school
   slot of `aggregateSpellList` filled in;
+- `PRECAMPAIGN` (9 tags), lowered to `Predicate::Campaign` against a new
+  `CompiledPackHeader.campaigns` list built from the `.pcc` graph. Worth knowing
+  before reading the number as a behaviour change: all nine sit on **class-level**
+  rows, and the engine does not yet evaluate a `CLASS_LEVEL` entity's
+  requirements, so the gate is now preserved rather than acted on. See
+  `PCGEN_SYNTAX_INVENTORY.md` §5aa;
 - and, not a reduction but a correction, `PRESPELLSCHOOL`: it was never in the
   unsupported queue because it lowered, but it matched the school name against the
   spell's *name* and dropped the reference's count. All **504** occurrences in
   these packs now evaluate against the spell's `SCHOOL:`. The total below is
   unchanged by it.
 
-**Current total, re-measured over the same 189 campaigns: 341 unsupported
-occurrences across 11 tag kinds**, against 350 / 12 after the
-`PRESPELLDESCRIPTOR` round, 373 / 13 after the `PRECHECK` round, 393 / 14 after
-the `PREALIGN` round, 401 / 15 after the `PRECSKILL` round, 750 / 17 after the
-`PREREGION` round, 1,171 / 18 after the `PREATT` round and 1,409 / 20 at
-transcription. `BONUS` is 280 of the 341 and is the visible over-approximation
-described above — the effect is kept and the unreadable gate is what is reported —
-so the remaining actionable queue is the 61 occurrences behind it: `PREMULT` (19),
-`PRECAMPAIGN` (9), `PRECHARACTERTYPE` (9), `PRESA` (7), `PREUATT` (4),
-`PREDR` (3), `PREREACHGTEQ` (3), `PRESKILLTOT` (3), `PRECLASSLEVELMAX` (2),
-`PREITEM` (2).
+**Current total, re-measured over the same 189 campaigns: 332 unsupported
+occurrences across 10 tag kinds**, against 341 / 11 after the `PRESPELLSCHOOL`
+round, 350 / 12 after the `PRESPELLDESCRIPTOR` round, 373 / 13 after the
+`PRECHECK` round, 393 / 14 after the `PREALIGN` round, 401 / 15 after the
+`PRECSKILL` round, 750 / 17 after the `PREREGION` round, 1,171 / 18 after the
+`PREATT` round and 1,409 / 20 at transcription. `BONUS` is 280 of the 332 and is
+the visible over-approximation described above — the effect is kept and the
+unreadable gate is what is reported — so the remaining actionable queue is the 52
+occurrences behind it: `PREMULT` (19), `PRECHARACTERTYPE` (9), `PRESA` (7),
+`PREUATT` (4), `PREDR` (3), `PREREACHGTEQ` (3), `PRESKILLTOT` (3),
+`PRECLASSLEVELMAX` (2), `PREITEM` (2).
 
 ## The 7 campaigns that could not be transcribed
 

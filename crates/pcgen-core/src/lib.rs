@@ -11,10 +11,10 @@ pub mod class_grant;
 
 pub use class_grant::{ClassGrant, GrantMode};
 pub use rules::{
-    collapse_damage_reduction, AbilityRef, AddedDomain, ClassSpec, DamageReduction, ExchangeLevel,
-    MovementSpec, NaturalAttack, ProhibitedSpell, ProhibitionTarget, RaceSpec, SaveSpec,
-    SkillRequirement, SkillSpec, SpellDescriptorSpec, SpellSchoolSpec, SpellSchoolSubSpec,
-    SpellTypeSpec, VisionSpec,
+    collapse_damage_reduction, AbilityRef, AddedDomain, CampaignSpec, ClassSpec, DamageReduction,
+    ExchangeLevel, MovementSpec, NaturalAttack, ProhibitedSpell, ProhibitionTarget, RaceSpec,
+    SaveSpec, SkillRequirement, SkillSpec, SpellDescriptorSpec, SpellSchoolSpec,
+    SpellSchoolSubSpec, SpellTypeSpec, VisionSpec,
 };
 pub mod domain;
 pub mod equipment;
@@ -23,7 +23,7 @@ pub mod fingerprint;
 pub mod formula_vocab;
 pub mod pack;
 
-pub use pack::{CompiledPackHeader, CompiledRulePack, ImportReport};
+pub use pack::{CampaignSource, CompiledPackHeader, CompiledRulePack, ImportReport};
 pub mod gestalt;
 pub mod identity;
 pub mod progression;

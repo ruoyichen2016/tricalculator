@@ -461,6 +461,19 @@ pub enum Predicate {
         specs: Vec<SpellSchoolSpec>,
         count: u32,
     },
+    /// `PRECAMPAIGN:x,y,y` — at least `x` of the listed data sets are loaded.
+    ///
+    /// PCGen's reference: "Sets prerequisites for LST objects based upon the data
+    /// sets loaded into PCGen. If the set is loaded it passes, if not it
+    /// doesn't."  The selectors are a plain data-set name (matched against the
+    /// campaign's `KEY:`), `BOOKTYPE=`, `INCLUDES=` and `INCLUDESBOOKTYPE=`.
+    ///
+    /// The counts *sum*, as they do for the spell tags: each selector contributes
+    /// the number of matching campaigns and the total is compared with `x`.
+    Campaign {
+        specs: Vec<CampaignSpec>,
+        min_count: u32,
+    },
     /// Subclass prerequisite (PCGen `PRESUBCLASS`).
     Subclass {
         names: Vec<String>,
@@ -859,6 +872,24 @@ pub struct SpellSchoolSubSpec {
     pub subschool: String,
     /// Only spells of at least this level count.
     pub min_level: u32,
+}
+
+/// One `PRECAMPAIGN` selector.
+///
+/// The four spellings mean different sets: a plain name and `BOOKTYPE=` look at
+/// the *selected* campaigns only, while `INCLUDES=` and `INCLUDESBOOKTYPE=` also
+/// look at everything those campaigns include.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "kind", content = "value")]
+pub enum CampaignSpec {
+    /// A data-set name, matched against the campaign's key.
+    Key(String),
+    /// `BOOKTYPE=Text`.
+    BookType(String),
+    /// `INCLUDES=Text`.
+    Includes(String),
+    /// `INCLUDESBOOKTYPE=Text`.
+    IncludesBookType(String),
 }
 
 /// One `PRESPELLSCHOOL` pair: a school of magic and the minimum spell level.

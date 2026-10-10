@@ -1,5 +1,25 @@
 ## Unreleased
 
+### 补齐谓词：`PRECAMPAIGN` 与 pack 的 campaign 图
+
+- 新增 `Predicate::Campaign { specs, min_count }` 与
+  `CampaignSpec { Key | BookType | Includes | IncludesBookType }`；
+  `CompiledPackHeader` 新增 `campaigns: Vec<CampaignSource>`（`serde(default)`，旧 pack 可读），
+  由 `pcgen-import` 在 `compile_pcc` 里从 `.pcc` 图填充：根 `.pcc` 是 PCGen 的「已选中
+  source」，其余来自 `PCC:` include。
+- 语义按 `PreCampaignTester`：统计**匹配的 campaign 数**再与 x 比较，多个 selector 的计数
+  **相加**；普通名字与 `BOOKTYPE=` 只看**已选中**的 campaign，`INCLUDES=` /
+  `INCLUDESBOOKTYPE=` 才看 include 闭包。名字按 **`KEY:`** 匹配
+  （`getCampaignKeyedSilently` 比的是 `getKeyName()`），没有 `KEY:` 才回落到显示名。
+- 第三方资料：unsupported 341 → **332**（`PRECAMPAIGN` 9 → 0）。
+- **诚实说明（已知缺口）**：这 9 条都在**职业等级行**上（Complete Divine 的 11 级行，与
+  `PREPCLEVEL:MIN=20` 同行），而引擎目前**不检查 CLASS_LEVEL 实体的 requirements**
+  （`initial_entities` 只按职业 + 等级选取）。所以本轮把 gate 正确地保留进了 IR 并清掉了
+  unsupported，但**行为不变**——这些行的效果仍然会应用。该缺口本身是独立且更大的一轮
+  （它同样影响同一批行上的 `PREPCLEVEL`），已记入
+  `docs/PCGEN_SYNTAX_INVENTORY.md` §5aa。
+- 新增 7 个回归测试；`cargo test --workspace`：**494 passed / 0 failed / 2 ignored**。
+
 ### 修复 `PRESPELLSCHOOL`：count、配对求和与真正的学派匹配
 
 - 新增 `Predicate::SpellSchool { specs, count }` 与 `SpellSchoolSpec { school, min_level }`，

@@ -803,12 +803,13 @@ The remaining kinds are genuinely unimplemented: `PRE` (21), `PRESA` (12),
 `PRESKILLTOT`, `PREHP`, `PRESIZENEQ`,
 `PREDEITYDOMAIN`, `PRESRLT`,
 `PRECLASSLEVELMAX`, `PRETEXT`. None appear in the
-acceptance cohort.  Several names on the original list have since been lowered:
+acceptance cohort.  `PRECAMPAIGN` was on this list and is now lowered — see
+§5aa.  Several names on the original list have since been lowered:
 `PRELEVELMAX`, `PREATT`, `PREHANDSGT`, multi-mode `PREMOVE`, `PREREGION`
 (see §5u), `PRECSKILL` (see §5v), `PREALIGN`'s value forms (see §5w),
 `PRECHECK` (see §5x), `PRESPELLDESCRIPTOR` (see §5y), `PRESPELLSCHOOLSUB` and
-`PRESPELLSCHOOL` (see §5z); `PRELEVEL` now supports both `MIN=` and `MAX=`.  See
-the current `CHANGELOG.md`.
+`PRESPELLSCHOOL` (see §5z), and `PRECAMPAIGN` (see §5aa); `PRELEVEL` now supports
+both `MIN=` and `MAX=`.  See the current `CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
 
@@ -1170,6 +1171,54 @@ its prerequisites. So the coverage gate still reports 100% semantic completion a
 the broad oracle still agrees with the Java sheets on every exposed field (25/25,
 or 23/23 where Java's sheet omits a value). All 504 third-party occurrences, which
 sit on feats and abilities, now evaluate properly.
+
+### 5aa. `PRECAMPAIGN`, and the class-level gap it exposed
+
+`PRECAMPAIGN:x,y,y` is documented as a PRE tag for LST objects — "Sets
+prerequisites for LST objects based upon the data sets loaded into PCGen. If the
+set is loaded it passes, if not it doesn't" — with four selector spellings:
+a plain data-set name, `BOOKTYPE=`, `INCLUDES=` and `INCLUDESBOOKTYPE=`.
+
+**It is a question about the pack, not the character.** `PreCampaignTester` reads
+`PersistenceManager.getChosenCampaignSourcefiles()` and counts matching campaigns:
+
+* a plain name and `BOOKTYPE=` count only the **selected** campaigns;
+* `INCLUDES=` and `INCLUDESBOOKTYPE=` also walk each selected campaign's include
+  closure;
+* the name is matched against the campaign's **`KEY:`**, because
+  `Globals.getCampaignKeyedSilently` compares `getKeyName()` — the display name
+  only matters when a campaign declares no key;
+* the selectors **sum**, and the total is compared with the count, exactly like the
+  spell tags in §5y and §5z.
+
+A compiled pack knows its own `.pcc` graph, and that graph is what a
+single-selection session would see, so `CompiledPackHeader.campaigns` records each
+campaign's name, key, `BOOKTYPE:` values and whether it is the root (the selected
+source) or arrived through a `PCC:` include. The predicate then evaluates against
+that list.
+
+**What it exposed.** All nine occurrences in the third-party data are on
+*class-level* rows — Complete Divine's 11th-level rows, alongside
+`PREPCLEVEL:MIN=20`. And `initial_entities` selects a `CLASS_LEVEL` entity purely
+by class and level:
+
+```rust
+EntityCategory::ClassLevel => entity.id.key.split_once('#').is_some_and(|(class_id, level)| {
+    class_level_is_active(&class_levels, class_id, level.parse::<u32>().unwrap_or(0))
+}),
+```
+
+No requirement is consulted. `grant_allowed` — the only consumer of an entity's
+`requirements` — runs on the *grant* path, so a class-level row's gates are inert.
+Lowering `PRECAMPAIGN` therefore preserves the gate and clears the unsupported
+report, but does not yet change behaviour; the same is true of `PREPCLEVEL` on the
+very same rows, and of every other gate on a class-level row.
+
+That enforcement gap is deliberately left for its own round. It is larger than it
+looks: class-level rows carry level-scaled `BONUS` rows whose gates were never
+meant to be ignored, and enforcing them will move cohort numbers, so it needs the
+full gate rather than a quiet fold-in. It is recorded here so the next reader does
+not mistake a lowered gate for an enforced one.
 
 ## What followed from this
 

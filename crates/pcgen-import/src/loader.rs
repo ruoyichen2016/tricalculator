@@ -93,7 +93,37 @@ pub fn compile_pcc(
     let records = apply_record_patches(&loaded.records);
     let (mut pack, report) = lower_records(game_mode, sources, &records);
     pack.header.data_ref = data_ref_from_env_or_marker(&loaded.graph, &pcc_path);
+    pack.header.campaigns = campaigns_from_graph(&loaded.graph);
     Ok((pack, report))
+}
+
+/// Describe the pack's `.pcc` graph for `PRECAMPAIGN`.
+///
+/// PCGen answers that tag from the *loaded sources*, so the graph the pack was
+/// compiled from is what a single-selection session would see: the root `.pcc` is
+/// the selected campaign and everything else came in through `PCC:` includes.
+fn campaigns_from_graph(graph: &PccGraph) -> Vec<pcgen_core::CampaignSource> {
+    // `PccGraph::load` already resolved the root, and every `PccFile` carries the
+    // resolved path it was read from, so the comparison is direct.
+    graph
+        .files
+        .iter()
+        .map(|file| {
+            let book_types = file
+                .tags
+                .iter()
+                .filter(|(tag, _)| tag.eq_ignore_ascii_case("BOOKTYPE"))
+                .map(|(_, value)| value.trim().to_string())
+                .filter(|value| !value.is_empty())
+                .collect();
+            pcgen_core::CampaignSource {
+                name: file.campaign.clone().unwrap_or_default(),
+                key: file.key.clone(),
+                book_types,
+                is_root: file.path == graph.root,
+            }
+        })
+        .collect()
 }
 
 /// Resolve the upstream data revision for provenance.
@@ -159,5 +189,33 @@ mod tests {
         assert_eq!(pack.equipment.len(), 1);
         assert_eq!(pack.progressions.len(), 2);
         assert_eq!(pack.progressions["Fighter"].bab(2), 2);
+    }
+
+    #[test]
+    fn the_header_records_the_pack_campaign_graph() {
+        // `PRECAMPAIGN` asks which data sets are loaded, so the header has to
+        // carry the `.pcc` graph.  The mini fixture is a single root campaign.
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/fixtures/campaign-mini/mini.pcc");
+        if !path.exists() {
+            return;
+        }
+        let (pack, _) = compile_pcc(&path).expect("mini campaign should compile");
+        assert_eq!(
+            pack.header.campaigns.len(),
+            1,
+            "{:?}",
+            pack.header.campaigns
+        );
+        let campaign = &pack.header.campaigns[0];
+        assert!(
+            campaign.is_root,
+            "the compiled `.pcc` is the selected source"
+        );
+        assert_eq!(campaign.name, "Mini Campaign");
+        assert_eq!(campaign.key.as_deref(), Some("mini-campaign"));
+        // `PRECAMPAIGN` matches `getKeyName()`, which prefers the key.
+        assert_eq!(campaign.identifier(), "mini-campaign");
+        assert!(campaign.book_types.is_empty());
     }
 }

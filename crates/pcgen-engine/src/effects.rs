@@ -94,6 +94,12 @@ pub struct EffectState {
     /// that belong to it, for `PRESPELLSCHOOL`.  Same shape and same reason as
     /// [`Self::spell_descriptors`].
     pub spell_schools: BTreeMap<String, Vec<u32>>,
+    /// The campaigns the pack was compiled from, for `PRECAMPAIGN`.
+    ///
+    /// `PRECAMPAIGN` asks about the *loaded sources*, not about the character, so
+    /// this is a constant for a given pack — but `predicate_holds` has no pack, so
+    /// it is carried here like the other precomputed facts.
+    pub campaigns: Vec<pcgen_core::CampaignSource>,
     /// Ability key (normalised) to its name, category and `TYPE:` tags, for
     /// `PREABILITY`.  Built once because `predicate_holds` has no pack.
     pub ability_traits: BTreeMap<String, AbilityTraits>,
@@ -452,6 +458,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         spell_descriptors,
         spell_subschools,
         spell_schools,
+        campaigns: pack.header.campaigns.clone(),
         ability_traits,
         class_traits,
         vision,
@@ -1450,6 +1457,29 @@ fn spell_trait_count(levels: Option<&Vec<u32>>, min_level: u32) -> u32 {
         .unwrap_or(0)
 }
 
+/// How many of the loaded campaigns match one `PRECAMPAIGN` selector?
+fn campaign_matches(
+    campaigns: &[pcgen_core::CampaignSource],
+    spec: &pcgen_core::CampaignSpec,
+) -> u32 {
+    let key_matches = |campaign: &pcgen_core::CampaignSource, key: &str| {
+        campaign.identifier().eq_ignore_ascii_case(key.trim())
+    };
+    campaigns
+        .iter()
+        .filter(|campaign| match spec {
+            pcgen_core::CampaignSpec::Key(key) => campaign.is_root && key_matches(campaign, key),
+            pcgen_core::CampaignSpec::BookType(book_type) => {
+                campaign.is_root && campaign.has_book_type(book_type)
+            }
+            pcgen_core::CampaignSpec::Includes(key) => key_matches(campaign, key),
+            pcgen_core::CampaignSpec::IncludesBookType(book_type) => {
+                campaign.has_book_type(book_type)
+            }
+        })
+        .count() as u32
+}
+
 /// Resolve a known spell's definition by key or by display name.
 fn find_spell<'a>(
     pack: &'a CompiledRulePack,
@@ -1806,6 +1836,17 @@ pub(crate) fn predicate_holds(
         }
         Predicate::HasSpellbook => state.has_spellbook,
         Predicate::HasSpellPower { power } => state.spell_powers.contains(power),
+        // `PreCampaignTester` counts matching *campaigns* and compares the count
+        // with the operand, summing across the listed selectors.  A plain name
+        // and `BOOKTYPE=` count only the selected (root) source; `INCLUDES=` and
+        // `INCLUDESBOOKTYPE=` also count what it includes.
+        Predicate::Campaign { specs, min_count } => {
+            let available: u32 = specs
+                .iter()
+                .map(|spec| campaign_matches(&state.campaigns, spec))
+                .sum();
+            available >= (*min_count).max(1)
+        }
         Predicate::TemplateCount { names, min_count } => {
             names
                 .iter()

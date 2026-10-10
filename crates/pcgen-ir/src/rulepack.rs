@@ -242,6 +242,9 @@ pub fn lower_records(
             sources,
             rules_fingerprint,
             data_ref: None,
+            // Filled in by the `.pcc` loader, which is the only place that knows
+            // the include graph; lowering sees records, not campaigns.
+            campaigns: Vec::new(),
         },
         entities,
         coverage: coverage.clone(),
@@ -1292,6 +1295,50 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
             } else {
                 Some(Predicate::KnownSpell { names })
             }
+        }
+        // PRECAMPAIGN:count,y,y — at least `count` of the listed data sets are
+        // loaded.
+        //
+        // The selectors are not `name=value` pairs in the usual sense: PCGen's
+        // list parser sees `BOOKTYPE=Core Rules`, fails to read `Core Rules` as a
+        // number, and keeps the whole `BOOKTYPE=Core Rules` as the key with the
+        // count as the operand.  So the prefix is the selector kind and the rest
+        // is its argument.
+        "PRECAMPAIGN" => {
+            let (count_str, rest) = body.split_once(',')?;
+            let min_count = count_str.trim().parse::<u32>().ok()?;
+            let specs: Vec<pcgen_core::CampaignSpec> = rest
+                .split(',')
+                .map(str::trim)
+                .filter(|part| !part.is_empty())
+                .map(|part| {
+                    // Longest prefix first: `INCLUDES=` is not a prefix of
+                    // `INCLUDESBOOKTYPE=`, but reading it first is clearer.
+                    for (prefix, build) in [
+                        (
+                            "INCLUDESBOOKTYPE=",
+                            pcgen_core::CampaignSpec::IncludesBookType
+                                as fn(String) -> pcgen_core::CampaignSpec,
+                        ),
+                        ("INCLUDES=", pcgen_core::CampaignSpec::Includes),
+                        ("BOOKTYPE=", pcgen_core::CampaignSpec::BookType),
+                    ] {
+                        if let Some(value) = part
+                            .get(..prefix.len())
+                            .filter(|head| head.eq_ignore_ascii_case(prefix))
+                            .map(|_| part[prefix.len()..].trim())
+                            .filter(|value| !value.is_empty())
+                        {
+                            return build(value.to_string());
+                        }
+                    }
+                    pcgen_core::CampaignSpec::Key(part.to_string())
+                })
+                .collect();
+            if specs.is_empty() {
+                return None;
+            }
+            Some(Predicate::Campaign { specs, min_count })
         }
         // PRESPELLSCHOOL:count,school=level — at least `count` known spells are
         // of the listed schools at or above the stated levels.
