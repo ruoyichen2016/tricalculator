@@ -806,9 +806,9 @@ The remaining kinds are genuinely unimplemented: `PRE` (21), `PRESA` (12),
 acceptance cohort.  Several names on the original list have since been lowered:
 `PRELEVELMAX`, `PREATT`, `PREHANDSGT`, multi-mode `PREMOVE`, `PREREGION`
 (see §5u), `PRECSKILL` (see §5v), `PREALIGN`'s value forms (see §5w),
-`PRECHECK` (see §5x), `PRESPELLDESCRIPTOR` (see §5y) and `PRESPELLSCHOOLSUB`
-(see §5z); `PRELEVEL` now supports both `MIN=` and `MAX=`.  See the current
-`CHANGELOG.md`.
+`PRECHECK` (see §5x), `PRESPELLDESCRIPTOR` (see §5y), `PRESPELLSCHOOLSUB` and
+`PRESPELLSCHOOL` (see §5z); `PRELEVEL` now supports both `MIN=` and `MAX=`.  See
+the current `CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
 
@@ -1107,7 +1107,7 @@ The reference also lists a deprecated spelling, `PRESPELLDESCRIPTOR:y,x,z`. It i
 not supported, and not merely skipped: the current parser rejects it as well,
 because `Integer.parseInt(elements[0])` throws on a descriptor name.
 
-### 5z. `PRESPELLSCHOOLSUB` — and the `PRESPELLSCHOOL` divergence next to it
+### 5z. `PRESPELLSCHOOLSUB` and `PRESPELLSCHOOL`, and the bug next door
 
 `PRESPELLSCHOOLSUB:x,y=z` needed no new reasoning: `PreSpellSchoolSubTester` is
 `PreSpellDescriptorTester` with a different slot of `aggregateSpellList` filled
@@ -1125,9 +1125,9 @@ that matches no constructed object, only the real slot's `containsInList` can ma
 the condition true. So the pairs sum exactly as they do for descriptors, and the
 level window is again `[requiredLevel, 20]`.
 
-**The divergence next to it.** `PRESPELLSCHOOL` *is* implemented, so it never
-appears in the unsupported report — but what it does is match the school name as a
-substring of the spell's **name**:
+**The divergence next to it, now fixed.** `PRESPELLSCHOOL` *is* implemented, so
+it never appears in the unsupported report — but what it did was match the school
+name as a substring of the spell's **name**:
 
 ```rust
 spell.name.to_ascii_lowercase().contains(&school.to_ascii_lowercase())
@@ -1150,11 +1150,26 @@ occurrences, and the acceptance cohort itself uses
 The entry also short-circuits on `|| *level == 0`, so an entry whose level is 0 is
 vacuously true regardless of the school.
 
-Fixing it means indexing `SpellDefinition.school` the way
-`EffectState.spell_subschools` indexes the sub-school — a small change to the model
-but a large one to behaviour, because it touches the cohort. It is therefore left
-to its own round rather than folded into an unsupported-tag reduction, and recorded
-here so the reason is not lost.
+It also dropped the reference's count and joined the entries with `all()`, so
+`PRESPELLSCHOOL:5,Abjuration=5,...` meant "all eight schools" rather than "five
+spells among them", and it took the value from the first `=` rather than the last.
+
+The fix is the same shape as the sub-school one: `EffectState.spell_schools`
+indexes `SpellDefinition.school`, and `PRESPELLSCHOOL` lowers to
+`Predicate::SpellSchool { specs, count }`, which sums the per-school counts and
+compares with the count. `Predicate::SpellSchoolLevel` is kept so packs written
+before this change still load — but it is evaluated with the *corrected* matching,
+not the substring test. It never stored a count, so its entries stay "all of them";
+preserving the old test would have meant preserving a bug.
+
+**The cohort was unaffected, and that was checked rather than hoped.** The three
+`PRESPELLSCHOOL` occurrences in the acceptance data sit on class prerequisite rows
+(Archmage, Loremaster). A class entity's requirements are consulted only when the
+entity is *granted*; a character that already has levels in a class never re-tests
+its prerequisites. So the coverage gate still reports 100% semantic completion and
+the broad oracle still agrees with the Java sheets on every exposed field (25/25,
+or 23/23 where Java's sheet omits a value). All 504 third-party occurrences, which
+sit on feats and abilities, now evaluate properly.
 
 ## What followed from this
 

@@ -1293,23 +1293,39 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 Some(Predicate::KnownSpell { names })
             }
         }
+        // PRESPELLSCHOOL:count,school=level — at least `count` known spells are
+        // of the listed schools at or above the stated levels.
+        //
+        // Three things were wrong here.  The count was skipped and the entries
+        // were joined with `all()`, so "at least x" became "every one of them";
+        // the school was matched against the spell's *name* (see §5z), not its
+        // `SCHOOL:`; and the value was taken from the first `=` rather than the
+        // last.  `PreSpellSchoolParser` is the same list parser as
+        // `PRESPELLSCHOOLSUB`, so this now lowers to the same shape.
         "PRESPELLSCHOOL" => {
-            let mut entries = Vec::new();
-            for part in parts
-                .iter()
-                .skip(1)
-                .map(|part| part.trim())
-                .filter(|part| !part.is_empty() && part.parse::<u32>().is_err())
-            {
-                let (school, level) = part.split_once('=')?;
-                let level = level.trim().parse::<u32>().ok()?;
-                entries.push((school.trim().to_string(), level));
+            let (count_str, rest) = body.split_once(',')?;
+            let count = count_str.trim().parse::<u32>().ok()?;
+            let specs: Vec<pcgen_core::SpellSchoolSpec> = rest
+                .split(',')
+                .filter_map(|pair| {
+                    let (school, level) = pair.rsplit_once('=')?;
+                    let school = school.trim();
+                    if school.is_empty() {
+                        return None;
+                    }
+                    Some(pcgen_core::SpellSchoolSpec {
+                        school: school.to_string(),
+                        min_level: level.trim().parse::<u32>().ok()?,
+                    })
+                })
+                .collect();
+            if specs.is_empty() {
+                return None;
             }
-            if entries.is_empty() {
-                None
-            } else {
-                Some(Predicate::SpellSchoolLevel { entries })
-            }
+            Some(Predicate::SpellSchool {
+                specs,
+                count: count.max(1),
+            })
         }
         "PRESUBCLASS" | "PRELANG" => {
             let values: Vec<String> = parts

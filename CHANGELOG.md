@@ -1,5 +1,26 @@
 ## Unreleased
 
+### 修复 `PRESPELLSCHOOL`：count、配对求和与真正的学派匹配
+
+- 新增 `Predicate::SpellSchool { specs, count }` 与 `SpellSchoolSpec { school, min_level }`，
+  与 `PRESPELLSCHOOLSUB` / `PRESPELLDESCRIPTOR` 同构：`PreSpellSchoolTester` 就是把
+  `aggregateSpellList` 的 **school** 槽填上，同样返回匹配数量、由 list wrapper 相加。
+- 旧实现有**三处**错误：
+  1. **count 被整个丢掉**，条目还用 `all()` 连接——「至少 x 个」变成「每一个都要满足」；
+  2. 学派名拿去**子串匹配法术名**：RSRD 里只有极少数法术*名字*含学派词（`Divination`、
+     `Shadow Conjuration`、`Shadow Evocation`、`Break Enchantment`），对比 `SCHOOL:`
+     计数 135 Transmutation / 114 Conjuration / 96 Evocation / 86 Abjuration——所以
+     `PRESPELLSCHOOL:1,Abjuration=1` 无论角色会多少防护系法术都不可能成立；
+  3. 取值用第一个 `=` 而不是最后一个（§5t）。
+- `Predicate::SpellSchoolLevel` 保留可反序列化（旧 pack 必须能读），但求值改用**修正后**的
+  学派匹配——它从未存过 count，所以仍是「全部满足」。保留旧的子串匹配等于保留 bug。
+- 影响面：第三方 **504** 条 `PRESPELLSCHOOL` 的语义被修正。验收 cohort 的 3 条都在
+  **职业前置**上（Archmage / Loremaster），而职业实体的 requirements 只在「被授予」时检查，
+  不会作用于已有等级的 PCG 角色——`coverage_gate` 通过，broad oracle **字段级一致率仍为
+  100%**（10 个字段全部 25/25 或 23/23）。
+- unsupported 总数不变（**341**）：该 tag 本来就能 lower，本轮修的是语义而非队列。
+  新增 6 个回归测试；`cargo test --workspace`：**487 passed / 0 failed / 2 ignored**。
+
 ### 补齐谓词：`PRESPELLSCHOOLSUB`
 
 - 新增 `Predicate::SpellSchoolSub { specs, count }` 与

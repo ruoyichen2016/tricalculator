@@ -118,7 +118,10 @@ semantic_completion 100.0%
   不同）。第三方资料 unsupported 373→350。
 - **Post-M9**：`PRESPELLSCHOOLSUB` → `Predicate::SpellSchoolSub`（与
   `PRESPELLDESCRIPTOR` 同构，新增 `EffectState.spell_subschools`）。第三方资料
-  unsupported 350→341。**已知分歧**：`PRESPELLSCHOOL` 仍以 school 名子串匹配法术名，
+  unsupported 350→341。
+- **Post-M9**：`PRESPELLSCHOOL` 语义修复（非 unsupported 项）：新增
+  `EffectState.spell_schools`，按法术 `SCHOOL:` 匹配并保留 count / 配对相加；旧
+  `SpellSchoolLevel` 仍可反序列化但求值改用修正后的匹配。第三方 504 条受影响。
   见 `PCGEN_SYNTAX_INVENTORY.md` §5z。
 - monster class `classlevel()` BAB 公式修复（`classlevel()` 空括号）
 

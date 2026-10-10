@@ -152,7 +152,12 @@ rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
   a new `EffectState.spell_descriptors`. `PREMULT` went 28 to 19 with it;
 - `PRESPELLSCHOOLSUB` (9 tags), lowered to `Predicate::SpellSchoolSub` against
   `EffectState.spell_subschools` — the same counting tester with the sub-school
-  slot of `aggregateSpellList` filled in.
+  slot of `aggregateSpellList` filled in;
+- and, not a reduction but a correction, `PRESPELLSCHOOL`: it was never in the
+  unsupported queue because it lowered, but it matched the school name against the
+  spell's *name* and dropped the reference's count. All **504** occurrences in
+  these packs now evaluate against the spell's `SCHOOL:`. The total below is
+  unchanged by it.
 
 **Current total, re-measured over the same 189 campaigns: 341 unsupported
 occurrences across 11 tag kinds**, against 350 / 12 after the

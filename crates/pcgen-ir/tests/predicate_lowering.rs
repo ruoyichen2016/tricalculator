@@ -1023,3 +1023,74 @@ fn prespellschoolsub_lowers_to_subschool_pairs() {
         Predicate::Not(inner) if matches!(**inner, Predicate::SpellSchoolSub { .. })
     ));
 }
+
+#[test]
+fn prespellschool_lowers_with_the_count_and_the_pairs() {
+    let archmage = record(
+        "CLASS",
+        "Archmage",
+        &[(
+            "PRESPELLSCHOOL",
+            "5,Abjuration=5,Conjuration=5,Divination=5,Enchantment=5,Evocation=5,Illusion=5,Necromancy=5,Transmutation=5",
+        )],
+    );
+    let (pack, report) = lower_records(
+        Some("35e".to_string()),
+        vec!["pred".to_string()],
+        &[archmage],
+    );
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    let Predicate::SpellSchool { specs, count } = &pack.entities[0].requirements[0] else {
+        panic!(
+            "expected SpellSchool, got {:?}",
+            pack.entities[0].requirements[0]
+        );
+    };
+    // The count used to be skipped entirely, so "at least five" became "all
+    // eight".
+    assert_eq!(*count, 5);
+    assert_eq!(specs.len(), 8);
+    assert_eq!(specs[0].school, "Abjuration");
+    assert_eq!(specs[0].min_level, 5);
+    assert_eq!(specs[7].school, "Transmutation");
+
+    let loremaster = record(
+        "CLASS",
+        "Loremaster",
+        &[("PRESPELLSCHOOL", "7,Divination=0")],
+    );
+    let (pack, _) = lower_records(
+        Some("35e".to_string()),
+        vec!["pred".to_string()],
+        &[loremaster],
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::SpellSchool {
+            specs: vec![pcgen_core::SpellSchoolSpec {
+                school: "Divination".to_string(),
+                min_level: 0,
+            }],
+            count: 7,
+        }
+    );
+}
+
+#[test]
+fn the_old_spell_school_level_predicate_still_deserializes() {
+    // `PRESPELLSCHOOL` used to lower to this shape.  Packs written then must keep
+    // loading, so the variant stays even though nothing emits it now.
+    let predicate: Predicate =
+        serde_json::from_str(r#"{"spell_school_level":{"entries":[["Divination",3]]}}"#)
+            .expect("old pack");
+    assert_eq!(
+        predicate,
+        Predicate::SpellSchoolLevel {
+            entries: vec![("Divination".to_string(), 3)],
+        }
+    );
+}

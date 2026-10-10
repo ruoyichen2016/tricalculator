@@ -438,8 +438,28 @@ pub enum Predicate {
         names: Vec<String>,
     },
     /// Spell-school level prerequisite (PCGen `PRESPELLSCHOOL`).
+    ///
+    /// Superseded by [`Self::SpellSchool`], which keeps the reference's count and
+    /// matches the spell's `SCHOOL:`.  This shape never stored the count, so its
+    /// entries are still evaluated as "all of them"; the matching is the
+    /// corrected one, because the old test compared the school name against the
+    /// spell's *name*.
     SpellSchoolLevel {
         entries: Vec<(String, u32)>,
+    },
+    /// `PRESPELLSCHOOL:x,y=z,y=z` — the character knows at least `count` spells
+    /// of the listed schools at or above the stated spell levels.
+    ///
+    /// PCGen's reference: "Establishes a requirement for (x) number of spells
+    /// from magic school (y) of at least level (z). You may include as many
+    /// 'School=Level' pairs as you require as a comma-delimited list."
+    ///
+    /// [`Self::SpellSchoolSub`] in every respect but which spell property is
+    /// matched: `PreSpellSchoolTester` is the same counting tester over
+    /// `aggregateSpellList` with the school slot filled in, so the pairs sum.
+    SpellSchool {
+        specs: Vec<SpellSchoolSpec>,
+        count: u32,
     },
     /// Subclass prerequisite (PCGen `PRESUBCLASS`).
     Subclass {
@@ -837,6 +857,15 @@ pub struct SpellDescriptorSpec {
 pub struct SpellSchoolSubSpec {
     /// A sub-school, e.g. `Summoning`.
     pub subschool: String,
+    /// Only spells of at least this level count.
+    pub min_level: u32,
+}
+
+/// One `PRESPELLSCHOOL` pair: a school of magic and the minimum spell level.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct SpellSchoolSpec {
+    /// A school, e.g. `Divination`.
+    pub school: String,
     /// Only spells of at least this level count.
     pub min_level: u32,
 }

@@ -90,6 +90,10 @@ pub struct EffectState {
     /// carry it, for `PRESPELLSCHOOLSUB`.  Same shape and same reason as
     /// [`Self::spell_descriptors`].
     pub spell_subschools: BTreeMap<String, Vec<u32>>,
+    /// School of magic (lowercased) to the levels of the draft's known spells
+    /// that belong to it, for `PRESPELLSCHOOL`.  Same shape and same reason as
+    /// [`Self::spell_descriptors`].
+    pub spell_schools: BTreeMap<String, Vec<u32>>,
     /// Ability key (normalised) to its name, category and `TYPE:` tags, for
     /// `PREABILITY`.  Built once because `predicate_holds` has no pack.
     pub ability_traits: BTreeMap<String, AbilityTraits>,
@@ -245,6 +249,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
     // each draft spell has to be joined to its `DESCRIPTOR:` list here.
     let mut spell_descriptors: BTreeMap<String, Vec<u32>> = BTreeMap::new();
     let mut spell_subschools: BTreeMap<String, Vec<u32>> = BTreeMap::new();
+    let mut spell_schools: BTreeMap<String, Vec<u32>> = BTreeMap::new();
     for spell in &draft.spells {
         let Some(definition) = find_spell(pack, &spell.name) else {
             continue;
@@ -258,6 +263,12 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         if let Some(subschool) = definition.subschool.as_deref() {
             spell_subschools
                 .entry(subschool.to_ascii_lowercase())
+                .or_default()
+                .push(spell.level);
+        }
+        if !definition.school.trim().is_empty() {
+            spell_schools
+                .entry(definition.school.to_ascii_lowercase())
                 .or_default()
                 .push(spell.level);
         }
@@ -440,6 +451,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         class_skills,
         spell_descriptors,
         spell_subschools,
+        spell_schools,
         ability_traits,
         class_traits,
         vision,
@@ -1933,17 +1945,31 @@ pub(crate) fn predicate_holds(
                 .iter()
                 .any(|language| language == &normalized(name))
         }),
+        // `PreSpellSchoolTester` fills the school slot of `aggregateSpellList`,
+        // so this is the sub-school tester one field over: the pairs sum and the
+        // count is a total.
+        Predicate::SpellSchool { specs, count } => {
+            let available: u32 = specs
+                .iter()
+                .map(|spec| {
+                    spell_trait_count(
+                        state.spell_schools.get(&spec.school.to_ascii_lowercase()),
+                        spec.min_level,
+                    )
+                })
+                .sum();
+            available >= (*count).max(1)
+        }
+        // The pre-`SpellSchool` shape, still read from old packs.  It never
+        // stored the count, so its entries stay "all of them" — but the matching
+        // is the corrected one, against the spell's `SCHOOL:`.  The old test
+        // compared the school name with the spell's *name*, which no spell but a
+        // handful happens to contain; preserving that would be preserving a bug.
         Predicate::SpellSchoolLevel { entries } => entries.iter().all(|(school, level)| {
-            draft.spells.iter().any(|spell| {
-                spell
-                    .class_id
-                    .as_deref()
-                    .is_some_and(|_| spell.level >= *level)
-                    && spell
-                        .name
-                        .to_ascii_lowercase()
-                        .contains(&school.to_ascii_lowercase())
-            }) || *level == 0
+            spell_trait_count(
+                state.spell_schools.get(&school.to_ascii_lowercase()),
+                *level,
+            ) > 0
         }),
         Predicate::CastingTypeIs { prepared } => state.class_casting.values().any(|mode| {
             if *prepared {
