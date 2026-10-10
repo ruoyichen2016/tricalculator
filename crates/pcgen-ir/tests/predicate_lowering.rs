@@ -1940,3 +1940,33 @@ fn preskilltot_lowers_to_a_total_over_the_listed_skills() {
     assert!(pack.entities[0].requirements.is_empty());
     assert_eq!(report.coverage.unsupported_tags, 1);
 }
+
+#[test]
+fn preuatt_lowers_to_a_per_class_bab_maximum() {
+    // The third-party form, on the Drunken Master class.
+    let class = record("CLASS", "Drunken Master", &[("PREUATT", "4")]);
+    let (pack, report) = lower_records(
+        Some("35e".to_string()),
+        vec!["pred".to_string()],
+        &[class],
+    );
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::HighestClassBab { min: 4 }
+    );
+
+    // The operand is read with `Integer.parseInt`, so a formula is malformed.
+    let formula = record("CLASS", "Gated", &[("PREUATT", "CL/2")]);
+    let (pack, report) = lower_records(
+        Some("35e".to_string()),
+        vec!["pred".to_string()],
+        &[formula],
+    );
+    assert!(pack.entities[0].requirements.is_empty());
+    assert_eq!(report.coverage.unsupported_tags, 1);
+}

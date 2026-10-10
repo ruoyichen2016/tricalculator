@@ -54,6 +54,49 @@ pub fn derive_prereq_bab(
     bab
 }
 
+/// The largest base attack bonus any single class contributes, for `PREUATT`.
+///
+/// The name is misleading in both directions.  The reference describes `PREUATT`
+/// as an "unarmed attack bonus", and the tester's class is called
+/// `PreUnarmedAttackTester`, but what it computes is the **maximum per-class**
+/// base attack bonus rather than the character's total:
+///
+/// ```java
+/// int att = 0;
+/// for (PCClass aClass : display.getClassSet())
+///     att = Math.max(att, aClass.baseAttackBonus(character));
+/// ```
+///
+/// so a Fighter 4 / Wizard 4 has 4 here, not the 6 their levels add up to.
+/// `effective_class_levels` also covers advancement lanes, so a gestalt draft
+/// takes the maximum over its lanes — an analogue PCGen has no counterpart for.
+pub fn max_class_bab(pack: &CompiledRulePack, draft: &CharacterDraft) -> i32 {
+    let total_level = draft.total_level();
+    let mut best = 0;
+    for entry in effective_class_levels(pack, draft) {
+        let Some(class) = find_class(pack, &entry.class_id) else {
+            continue;
+        };
+        let progression = find_progression(pack, &entry.class_id);
+        let bab = class
+            .base_attack_formula
+            .as_deref()
+            .map(|formula| {
+                evaluate_class_formula(
+                    formula,
+                    &entry.class_id,
+                    entry.level,
+                    total_level,
+                    &BTreeMap::new(),
+                )
+            })
+            .or_else(|| progression.map(|progress| progress.bab(entry.level)))
+            .unwrap_or(0);
+        best = best.max(bab);
+    }
+    best
+}
+
 /// Stable base save totals used by `PRECHECKBASE` during predicate
 /// evaluation: class progression base saves only (no ability modifiers, no
 /// conditional bonuses), matching PCGen's "base save" semantics.

@@ -24,9 +24,9 @@
   `PRESPELLSCHOOLSUB` 9 → 0；`PRESPELLDESCRIPTOR` 14 → 0，连带 `PREMULT` 28 → 19；`PRECHECK`
   17 → 0，连带 `PREMULT` 31 → 28；`PREALIGN` 8 → 0；`PRECSKILL`/`!PRECSKILL`
   30 → 0 并连带 319 条以它为 gate 的 `BONUS`，`BONUS` 599 → 280；`PREREGION`
-  65 → 0 并连带 `PREMULT` 387 → 31）。此后 `PRESKILLTOT` 3 → 0（32 → 29，待批次验证）。
+  65 → 0 并连带 `PREMULT` 387 → 31）。此后 `PRESKILLTOT` 3 → 0、`PREUATT` 4 → 0（32 → 25，待批次验证）。
   剩余里 `BONUS` 23 是「gate 不可读但效果保留」的可见过近似，不是被丢弃的效果；真正待办
-  只剩 `PREUATT` 4 与 `PREMULT` 2。这些 pack 在验收 cohort 之外，门禁不覆盖它们。
+  只剩 `PREMULT` 2。这些 pack 在验收 cohort 之外，门禁不覆盖它们。
 - **已知缺口（独立一轮，已量化）**：按身份选取的实体（RACE/TEMPLATE/EQUIPMOD/…）
   其 `requirements` 只在**授予路径**上被检查，`initial_entities` 不看它们。RSRD 中
   同时带 requirements 与 effects 的此类实体：EQUIPMOD 402、TEMPLATE 155、ABILITY 141、

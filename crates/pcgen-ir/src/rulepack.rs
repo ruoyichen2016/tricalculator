@@ -1781,6 +1781,17 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
         }
         // PRESKILL:x,y=z,y=z — at least x of the listed skills have z ranks.
         // Only the last pair was read, and `TYPE.` was not understood.
+        // PREUATT:x — the largest base attack bonus any single class contributes.
+        //
+        // The reference calls it an "unarmed attack bonus" and the tester is named
+        // `PreUnarmedAttackTester`, but the body is `Math.max` over each class's own
+        // `baseAttackBonus`, so it is a per-class maximum rather than the character's
+        // total.  The operand is read with `Integer.parseInt`, so a non-numeric one
+        // is malformed.
+        "PREUATT" => {
+            let min = body.trim().parse::<i32>().ok()?;
+            Some(Predicate::HighestClassBab { min })
+        }
         // PRESKILLTOT:Spot,Listen,Search=30 — the character's total ranks across
         // the listed skills.
         //

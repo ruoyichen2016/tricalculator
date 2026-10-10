@@ -68,6 +68,24 @@ pub enum Predicate {
         specs: Vec<SkillRequirement>,
         min_count: u32,
     },
+    /// `PREUATT:x` — the largest base attack bonus any single class contributes.
+    ///
+    /// PCGen's reference calls this an "unarmed attack bonus", but
+    /// `PreUnarmedAttackTester` takes the **maximum per-class** base attack bonus
+    /// rather than the character's total:
+    ///
+    /// ```java
+    /// int att = 0;
+    /// for (PCClass aClass : display.getClassSet())
+    ///     att = Math.max(att, aClass.baseAttackBonus(character));
+    /// ```
+    ///
+    /// so a Fighter 4 / Wizard 4 has 4, not the 6 its levels add up to.  The
+    /// variant is named for what it computes rather than for the tag's misleading
+    /// description.
+    HighestClassBab {
+        min: i32,
+    },
     /// `PRESKILLTOT:x,x=y` — the character's total ranks across the listed skills.
     ///
     /// PCGen's reference: "A comma-delimited list of skills whose total non-bonus

@@ -7,6 +7,26 @@
 > 0 failed / 2 ignored**（PF35e、cohort matrix、deep-field 均通过；archive differential 为
 > 预期的 `SKIP`）。第三方 unsupported 由 **42 → 32**。
 
+### 补齐谓词：`PREUATT`
+
+- 新增 `Predicate::HighestClassBab { min }`；`EffectState` 新增 `highest_class_bab`，
+  由 `bab.rs` 新增的 `max_class_bab` 计算（复用 `effective_class_levels` 与该模块已有的
+  私有 `find_class` / `find_progression`，BAB 逻辑仍集中在一处）。
+- **命名刻意偏离 tag 的字面**：reference 把 `PREUATT` 描述成「unarmed attack bonus」、
+  tester 也叫 `PreUnarmedAttackTester`，但它的实现是**各职业 BAB 的最大值**，不是角色的
+  总 BAB：
+  ```java
+  int att = 0;
+  for (PCClass aClass : display.getClassSet())
+      att = Math.max(att, aClass.baseAttackBonus(character));
+  ```
+  所以 Fighter 4 / Wizard 4 在这里是 **4**，而 `PRETOTALAB` 是 **6**。变体名 `HighestClassBab`
+  按它**实际计算的东西**命名，文档里写明 tag 描述在两个方向上都误导。
+- 操作数用 `Integer.parseInt` 读取，非整数（如 `PREUATT:CL/2`）保持 unsupported。
+- `effective_class_levels` 同时覆盖 advancement lane，所以 gestalt 角色取其各 lane 的最大值
+  （PCGen 无对应概念，已在文档注明是类比）。
+- 第三方资料：unsupported **29 → 25**（`PREUATT` 4 → 0）。测试与门禁按批次约定一起验证。
+
 ### 补齐谓词：`PRESKILLTOT`
 
 - 新增 `Predicate::SkillTotal { specs: Vec<SkillSpec>, total: i32 }`（复用 `PRECSKILL`

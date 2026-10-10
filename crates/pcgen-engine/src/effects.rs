@@ -110,6 +110,12 @@ pub struct EffectState {
     /// `None` means the character has no reach of its own, which PCGen reads as
     /// the key's default of 5 feet rather than as zero.
     pub reach_feet: Option<i32>,
+    /// The largest base attack bonus any single class contributes, for `PREUATT`.
+    ///
+    /// Distinct from `total_bab`, which sums the classes: a Fighter 4 / Wizard 4
+    /// has 6 there and 4 here, which is what `PreUnarmedAttackTester` asks for
+    /// despite its name.
+    pub highest_class_bab: i32,
     /// The character's own damage reduction by type (lower-cased), for `PREDR`.
     ///
     /// This is PCGen's *non-bonus* half: `BONUS:DR|<type>` arrives as an ordinary
@@ -536,6 +542,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         character_class_levels: class_levels,
         ability_modifiers,
         total_bab: prereq_bab,
+        highest_class_bab: crate::bab::max_class_bab(pack, draft),
         base_saves,
         total_saves,
         spell_powers,
@@ -1902,6 +1909,9 @@ pub(crate) fn predicate_holds(
             min.is_none_or(|min| value >= min) && max.is_none_or(|max| value <= max)
         }
         Predicate::TotalBab { min } => state.total_bab >= *min as i32,
+        // `PreUnarmedAttackTester` compares the largest per-class base attack
+        // bonus, not the summed one — see `HighestClassBab`.
+        Predicate::HighestClassBab { min } => state.highest_class_bab >= *min,
         Predicate::BaseSave { save, min } => save_kind(save)
             .is_some_and(|kind| state.base_saves.get(&kind).copied().unwrap_or(0) >= *min),
         // `PreCheckTester` counts how many of the listed saves clear their

@@ -158,6 +158,10 @@ rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
   lowered to one shape that the engine read as strict. **2,519** pairs in these
   packs have a symbolic operand and were compared one step too strictly. Nothing
   moves in the table below, because `PREVAR*` already lowered;
+- `PREUATT` (4 tags), lowered to `Predicate::HighestClassBab`. The tag is described
+  as an unarmed attack bonus and its tester is called `PreUnarmedAttackTester`, but
+  it takes the maximum per-class base attack bonus, so a Fighter 4 / Wizard 4 is 4
+  here and 6 for `PRETOTALAB`;
 - `PRESKILLTOT` (3 tags), lowered to `Predicate::SkillTotal`. The third-party form is
   `PRESKILLTOT:=1` — an entry whose skill name is empty — which the reference accepts
   and which matches no skill, so the gate is faithfully always false;

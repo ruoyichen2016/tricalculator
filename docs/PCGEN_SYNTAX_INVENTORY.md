@@ -810,7 +810,7 @@ see §5aa, §5ab, §5ac and §5ad.  Several names on the original list have sinc
 `PRESPELLSCHOOL` (see §5z), `PRECAMPAIGN` (see §5aa), `PRECHARACTERTYPE`
 (see §5ab), `PRESA` (see §5ac), `PREFACT` (see §5ad), `PREDR` (see §5ae), the
 `PREVAR*` boundary (see §5af), `PREREACH` (see §5ag), `PREITEM` (see §5ah),
-`PRECLASSLEVELMAX` (see §5ai) and `PRESKILLTOT` (see §5aj);
+`PRECLASSLEVELMAX` (see §5ai), `PRESKILLTOT` (see §5aj) and `PREUATT` (see §5ak);
 `PRELEVEL` now supports both `MIN=` and `MAX=`.  See the current `CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
@@ -1684,6 +1684,44 @@ one.
 skill's id and its name for each of its type tags, so a skill whose key and name
 agree appears twice. A count of matching skills is unaffected; a sum would double
 them, so `skill_total_ranks` de-duplicates by lower-cased name before adding.
+
+### 5ak. `PREUATT`, which is not an unarmed attack bonus
+
+The documentation calls `PREUATT` "the minimum unarmed attack bonus", the parser
+handles the kind `UATT`, and the tester is `PreUnarmedAttackTester`. All three say
+the same thing, and all three are wrong about what the code does:
+
+```java
+int att = 0;
+for (PCClass aClass : display.getClassSet())
+{
+    att = Math.max(att, aClass.baseAttackBonus(character));
+}
+final int requiredValue = Integer.parseInt(prereq.getOperand());
+final int runningTotal = prereq.getOperator().compare(att, requiredValue);
+```
+
+There is no unarmed-attack statistic anywhere in it. It is the **maximum base
+attack bonus any single class contributes** — not the character's total, which is
+what `PRETOTALAB` gives, and not an unarmed-specific value.
+
+The difference is not academic for a multiclass character. A Fighter 4 / Wizard 4
+has a good progression worth 4 from the fighter levels and a poor one worth 2 from
+the wizard levels; their total is 6, which is what `PRETOTALAB` reports, while
+`PREUATT` sees 4. A test pins both numbers on the same character, because the
+distinction is invisible with a single class and that is the case the tag's
+description invites you to assume.
+
+The variant is therefore called `HighestClassBab` rather than something containing
+`Unarmed`: a reader looking for the tag will find it through the lowering arm and
+the doc comment, and a reader looking at the enum will not be misled by a name that
+the reference itself gets wrong. The computation lives in `bab.rs` beside
+`derive_prereq_bab`, so the two base-attack-bonus notions stay side by side.
+
+One extension: `effective_class_levels` also covers advancement lanes, so a gestalt
+draft takes the maximum over its lanes. PCGen has no gestalt, so there is no
+reference behaviour to match — it is the closest analogue, and it is recorded here
+rather than left to be inferred.
 
 ## What followed from this
 
