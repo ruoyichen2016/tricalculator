@@ -12,8 +12,8 @@ pub mod class_grant;
 pub use class_grant::{ClassGrant, GrantMode};
 pub use rules::{
     collapse_damage_reduction, AbilityRef, AddedDomain, CampaignSpec, ClassSpec, DamageReduction,
-    ExchangeLevel, FactSpec, MovementSpec, NaturalAttack, ProhibitedSpell, ProhibitionTarget,
-    RaceSpec, SaveSpec, SkillRequirement, SkillSpec, SpellDescriptorSpec, SpellSchoolSpec,
+    DamageReductionSpec, ExchangeLevel, FactSpec, MovementSpec, NaturalAttack, ProhibitedSpell,
+    ProhibitionTarget, RaceSpec, SaveSpec, SkillRequirement, SkillSpec, SpellDescriptorSpec, SpellSchoolSpec,
     SpellSchoolSubSpec, SpellTypeSpec, VisionSpec,
 };
 pub mod domain;

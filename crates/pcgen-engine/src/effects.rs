@@ -94,6 +94,12 @@ pub struct EffectState {
     /// that belong to it, for `PRESPELLSCHOOL`.  Same shape and same reason as
     /// [`Self::spell_descriptors`].
     pub spell_schools: BTreeMap<String, Vec<u32>>,
+    /// The character's own damage reduction by type (lower-cased), for `PREDR`.
+    ///
+    /// This is PCGen's *non-bonus* half: `BONUS:DR|<type>` arrives as an ordinary
+    /// modifier on the target `DR.<type>` and is added at evaluation time, which
+    /// is what `DamageReductionFacet.getDR` does.
+    pub damage_reduction: BTreeMap<String, i32>,
     /// The character's objects per `OutputDB` location, by their `FACT` maps, for
     /// `PREFACT`.
     ///
@@ -598,6 +604,28 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         }
     }
     state.location_facts = location_facts;
+
+    // `PREDR` reads the same kind of pre-loop snapshot: the character's own DR,
+    // with each entry's own gate evaluated.
+    let mut damage_reduction: BTreeMap<String, i32> = BTreeMap::new();
+    for index in &initial {
+        let Some(entity) = pack.entities.get(*index) else {
+            continue;
+        };
+        for entry in &entity.traits.damage_reduction {
+            if !predicate_holds(entry.condition.as_ref(), draft, &state) {
+                continue;
+            }
+            let Some((amount, kind)) = split_damage_reduction(&entry.value) else {
+                continue;
+            };
+            // Several `DR:` rows can name the same type; PCGen keeps one value per
+            // type and the import already collapses them the same way.
+            let slot = damage_reduction.entry(kind).or_insert(amount);
+            *slot = (*slot).max(amount);
+        }
+    }
+    state.damage_reduction = damage_reduction;
 
     for index in initial {
         queued.insert(index);
@@ -1515,6 +1543,36 @@ fn spell_trait_count(levels: Option<&Vec<u32>>, min_level: u32) -> u32 {
         .unwrap_or(0)
 }
 
+/// Split a `DR:` value such as `5/Magic` into its amount and its type.
+///
+/// The type is lower-cased because `PREDR` and `BONUS:DR` name it in whatever
+/// case the data uses.  A formula amount (`DR:5+HD/Magic`) does not parse as an
+/// integer and is skipped, which leaves that type at 0 — the fail-closed
+/// direction.
+fn split_damage_reduction(value: &str) -> Option<(i32, String)> {
+    let (amount, kind) = value.split_once('/')?;
+    let amount = amount.trim().parse::<i32>().ok()?;
+    let kind = kind.trim().to_ascii_lowercase();
+    if kind.is_empty() {
+        return None;
+    }
+    Some((amount, kind))
+}
+
+/// `DamageReductionFacet.getDR`: the object's own reduction plus `BONUS:DR`.
+fn damage_reduction_value(state: &EffectState, kind: &str) -> i32 {
+    let key = kind.trim().to_ascii_lowercase();
+    let base = state.damage_reduction.get(&key).copied().unwrap_or(0);
+    let target = format!("DR.{}", kind.trim());
+    let bonus: i32 = state
+        .external_modifiers
+        .iter()
+        .filter(|(name, _)| name.eq_ignore_ascii_case(&target))
+        .map(|(_, value)| *value)
+        .sum();
+    base + bonus
+}
+
 /// Which `OutputDB` location an entity's facts are visible in, if any.
 ///
 /// `PreFactParser` validates the location against `OutputDB`, whose names are the
@@ -1743,6 +1801,17 @@ pub(crate) fn predicate_holds(
             met >= (*min_count).max(1)
         }
         Predicate::Gender { prefix } => draft.gender.starts_with(prefix.as_str()),
+        // `PreDamageReductionTester` compares the character's reduction for one
+        // type with the pair's value; its sub-prerequisites are not
+        // `countMultiples`, so each contributes 0 or 1 and the wrapper counts how
+        // many of the listed reductions hold.
+        Predicate::DamageReduction { specs, min_count } => {
+            let matched = specs
+                .iter()
+                .filter(|spec| damage_reduction_value(&state, &spec.kind) >= spec.min)
+                .count() as u32;
+            matched >= (*min_count).max(1)
+        }
         // `PreFactTester` walks the objects in one `OutputDB` location and counts
         // those whose fact equals the target value; the list wrapper sums the
         // counts.  Values are compared case-insensitively: 215 of the 217 fact

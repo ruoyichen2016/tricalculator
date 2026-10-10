@@ -12,6 +12,9 @@
   `.pcc`/`.lst` 规范化成 pack 目录，使运行期不再解释 PCGen 文本。
 - 测试：`cargo test --workspace` **517 passed / 2 ignored**（`scripts/check.sh`
   额外再跑一次 `pcgen-web`，合计 **556 passed / 2 ignored**）。
+- **批量验证进行中（第 13 轮起）**：按用户要求减少编译次数，第 13 轮及之后的若干轮只做
+  实现 + 文档 + commit，编译 / clippy / 测试 / 门禁 / 第三方 sweep 在批次收尾时统一执行；
+  收尾轮会订正这里的测试数量与下面的 unsupported 轨迹。
 - 第三方资料（189 个 top-level campaign，固定 checkout，`import-report
   --histogram` 汇总）：unsupported **1,409 → 42**（本轮 `PREFACT` 清掉 `BONUS`
   268 → 23 与 `PREMULT` 19 → 2；`PRESA` 7 → 0；

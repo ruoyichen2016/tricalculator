@@ -1466,3 +1466,88 @@ fn prefact_stays_unsupported_where_the_reference_rejects_it() {
     assert!(pack.entities[0].requirements.is_empty());
     assert_eq!(report.coverage.unsupported_tags, 1);
 }
+
+#[test]
+fn predr_lowers_to_type_value_pairs() {
+    // The third-party form, on a prestige class header.
+    let class = record(
+        "CLASS",
+        "Sacred Warder of Bahamut",
+        &[("PREDR", "1,Magic=5")],
+    );
+    let (pack, report) = lower_records(
+        Some("35e".to_string()),
+        vec!["pred".to_string()],
+        &[class],
+    );
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::DamageReduction {
+            specs: vec![pcgen_core::DamageReductionSpec {
+                kind: "Magic".to_string(),
+                min: 5,
+            }],
+            min_count: 1,
+        }
+    );
+
+    // The reference's own example: `-` is the untyped reduction, and `.` works as
+    // well as `=` because the parser tokenises on both.
+    let either = record(
+        "FEAT",
+        "Damage Reduction",
+        &[("PREDR", "1,-=10,+1.10,+5=10,Silver=10")],
+    );
+    let (pack, _) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[either]);
+    let Predicate::DamageReduction { specs, min_count } = &pack.entities[0].requirements[0] else {
+        panic!("expected DamageReduction");
+    };
+    assert_eq!(*min_count, 1);
+    assert_eq!(
+        specs,
+        &vec![
+            pcgen_core::DamageReductionSpec {
+                kind: "-".to_string(),
+                min: 10,
+            },
+            pcgen_core::DamageReductionSpec {
+                kind: "+1".to_string(),
+                min: 10,
+            },
+            pcgen_core::DamageReductionSpec {
+                kind: "+5".to_string(),
+                min: 10,
+            },
+            pcgen_core::DamageReductionSpec {
+                kind: "Silver".to_string(),
+                min: 10,
+            },
+        ]
+    );
+
+    // A pair with no value defaults to 0, as the reference's tokeniser does.
+    let bare = record("FEAT", "Any DR", &[("PREDR", "1,Magic")]);
+    let (pack, _) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[bare]);
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::DamageReduction {
+            specs: vec![pcgen_core::DamageReductionSpec {
+                kind: "Magic".to_string(),
+                min: 0,
+            }],
+            min_count: 1,
+        }
+    );
+
+    // A `|PRE` suffix makes the value unparseable, which is what the reference's
+    // `Integer.parseInt` also sees, so the tag stays unsupported.
+    let gated = record("FEAT", "Gated DR", &[("PREDR", "1,Magic=5|PRELEVEL:MIN=5")]);
+    let (pack, report) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[gated]);
+    assert!(pack.entities[0].requirements.is_empty());
+    assert_eq!(report.coverage.unsupported_tags, 1);
+}

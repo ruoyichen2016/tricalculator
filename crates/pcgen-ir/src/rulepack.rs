@@ -1403,6 +1403,52 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 Some(Predicate::KnownSpell { names })
             }
         }
+        // PREDR:count,Type=Value,Type=Value — at least `count` of the listed
+        // damage reductions hold.
+        //
+        // `PreDamageReductionParser` tokenises each pair on `=` *or* `.`, so
+        // `Good=10` and `Good.10` are the same, and a pair with no value defaults
+        // to 0.  A value that is not an integer — including one with a `|PRE`
+        // suffix, which the reference's `Integer.parseInt` also rejects — leaves
+        // the whole tag unsupported rather than being guessed at.
+        "PREDR" => {
+            let (count_str, rest) = body.split_once(',')?;
+            let min_count = count_str.trim().parse::<u32>().ok()?;
+            let specs: Vec<pcgen_core::DamageReductionSpec> = rest
+                .split(',')
+                .map(str::trim)
+                .filter(|part| !part.is_empty())
+                .map(|part| {
+                    let (kind, value) = match (part.find('='), part.find('.')) {
+                        (Some(eq), Some(dot)) if dot < eq => (&part[..dot], &part[dot + 1..]),
+                        (Some(eq), _) => (&part[..eq], &part[eq + 1..]),
+                        (None, Some(dot)) => (&part[..dot], &part[dot + 1..]),
+                        (None, None) => (part, ""),
+                    };
+                    let kind = kind.trim();
+                    if kind.is_empty() {
+                        return None;
+                    }
+                    let value = value.trim();
+                    let min = if value.is_empty() {
+                        0
+                    } else {
+                        value.parse::<i32>().ok()?
+                    };
+                    Some(pcgen_core::DamageReductionSpec {
+                        kind: kind.to_string(),
+                        min,
+                    })
+                })
+                .collect::<Option<Vec<_>>>()?;
+            if specs.is_empty() {
+                return None;
+            }
+            Some(Predicate::DamageReduction {
+                specs,
+                min_count: min_count.max(1),
+            })
+        }
         // PREFACT:count,location,Fact=Value[,Fact=Value...] — at least `count`
         // objects in `location` have the named fact set to the given value.
         //

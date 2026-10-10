@@ -153,6 +153,9 @@ rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
 - `PRESPELLSCHOOLSUB` (9 tags), lowered to `Predicate::SpellSchoolSub` against
   `EffectState.spell_subschools` — the same counting tester with the sub-school
   slot of `aggregateSpellList` filled in;
+- `PREDR` (3 tags), lowered to `Predicate::DamageReduction`. Pending the batch
+  verification described at the top of `CHANGELOG.md`, so the total below does not
+  yet include it;
 - `PREFACT` (never counted on its own, but the gate behind **245** `BONUS` tags and
   **18** `PREMULT` tags), lowered to `Predicate::Fact` against a new `FACT` model.
   `BONUS` fell from 268 to 23 and `PREMULT` from 19 to 2 — the single largest

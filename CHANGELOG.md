@@ -1,6 +1,27 @@
 ## Unreleased
 
-### 补齐谓词：`PREFACT` 与 FACT 模型（本轮最大项：unsupported 304 → 42）
+> **批量验证中**：从第 13 轮起按用户要求「减少编译次数」，连续若干轮只做实现与文档，
+> 编译 / clippy / `cargo test` / 门禁 / 第三方 sweep 在批次结束时统一执行一次。
+> 因此下面这一节的**测试数量与 unsupported 数字是待验证的预期值**，验证后会在批次收尾
+> 轮统一订正。
+
+### 补齐谓词：`PREDR`（待批量验证）
+
+- 新增 `Predicate::DamageReduction { specs, min_count }` 与 `DamageReductionSpec { kind, min }`；
+  `EffectState` 新增 `damage_reduction`（按类型小写索引的**非加值** DR）。
+- 语义按 `PreDamageReductionParser` / `PreDamageReductionTester`：每对 `Type=Value` 用
+  `=` **或** `.` 分隔、缺值默认 0；子前置**没有** `countMultiples`，所以每对只贡献 0/1，
+  wrapper 统计「满足的对数」与 x 比较（不是把 DR 数值相加）。`display.getDR(key)` =
+  该类型自身 DR + `BONUS:DR|<type>`，后者在本引擎里落成 target `DR.<type>` 的
+  `external_modifiers`，因此求值时相加。
+- 一个容易误判的细节：值缺省为 0 时，`compare(0, 0)` 在 `PrerequisiteOperator.compare`
+  里因为「左侧为 0 就返回 1」而**判定通过**，所以 `PREDR:1,Evil` 对没有任何 Evil DR 的
+  角色也是成立的——测试里显式固定了这个行为。
+- 含 `|PRE` 后缀的值无法解析成整数（reference 的 `Integer.parseInt` 同样会失败），
+  整条 tag 保持 unsupported。
+- 预期第三方 unsupported：42 → 39（`PREDR` 3 → 0）。
+
+### 补齐谓词：`PREFACT` 与 FACT 模型（unsupported 304 → 42）
 
 - 新增 `Predicate::Fact { location, specs, min_count }` 与 `FactSpec { name, value }`；
   `CompiledEntity` 新增 `facts`（由 `FACT:Name|Value` 填充，`serde(default)`）；

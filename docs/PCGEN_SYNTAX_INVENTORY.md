@@ -808,8 +808,8 @@ see §5aa, §5ab, §5ac and §5ad.  Several names on the original list have sinc
 (see §5u), `PRECSKILL` (see §5v), `PREALIGN`'s value forms (see §5w),
 `PRECHECK` (see §5x), `PRESPELLDESCRIPTOR` (see §5y), `PRESPELLSCHOOLSUB` and
 `PRESPELLSCHOOL` (see §5z), `PRECAMPAIGN` (see §5aa), `PRECHARACTERTYPE`
-(see §5ab), `PRESA` (see §5ac) and `PREFACT` (see §5ad); `PRELEVEL` now supports
-both `MIN=` and `MAX=`.  See the current `CHANGELOG.md`.
+(see §5ab), `PRESA` (see §5ac), `PREFACT` (see §5ad) and `PREDR` (see §5ae);
+`PRELEVEL` now supports both `MIN=` and `MAX=`.  See the current `CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
 
@@ -1362,6 +1362,54 @@ of the data, not a regression — before, those conditions were `Unsupported`, w
 also did not pass — and the difference is that the engine now knows the answer
 instead of not knowing it. It is worth stating because the count drops by 262
 while only 41 of those conditions became genuinely character-dependent.
+
+### 5ae. `PREDR`, where the count is a count and the value has a floor of zero
+
+`PREDR:x,y=z` asks about the character's damage reduction, and the reference is
+more surprising than the documentation:
+
+```java
+// PreDamageReductionParser
+final StringTokenizer inputDRTokenizer = new StringTokenizer(inputTokenizer.nextToken(), "=.");
+final String drType = inputDRTokenizer.nextToken(); // either Good.10 or Good=10
+...
+Prerequisite subprereq = new Prerequisite();
+subprereq.setKind("dr");
+subprereq.setKey(drType);
+subprereq.setOperand(Integer.toString(drValue));
+prereq.addPrerequisite(subprereq);
+```
+
+Three details decide the model. The pair separator is `=` **or** `.`. A pair with
+no value gets `0`. And — unlike the spell and check tags, whose sub-prerequisites
+set `countMultiples` — **`PREDR`'s sub-prerequisites do not**, so each contributes
+0 or 1 through `countedTotal` and the wrapper really does count how many of the
+listed reductions hold. That is what the documentation says ("the number of the DR
+conditions that must be met") and, for once, what the code does.
+
+**The value has a floor of zero.** `PrerequisiteOperator.compare` returns 1 rather
+than the left side when the left side is 0:
+
+```java
+if (passes) {
+    if (leftHandOp < 0.0d || CoreUtility.doublesEqual(leftHandOp, 0)) return 1;
+    return leftHandOp;
+}
+```
+
+So a pair with no value — `PREDR:1,Evil`, operand 0 — passes for a character with
+*no* Evil reduction at all, because `getDR` returns 0 and `0 >= 0`. The tests pin
+that down, because it looks like a bug in the implementation and is not one.
+
+**`getDR` is two halves.** `DamageReductionFacet.getDR` is the object's own
+reduction for the type plus `bonusCheckingFacet.getBonus(id, "DR", key)`. In this
+codebase `BONUS:DR|Magic|5` lowers to an ordinary modifier on the target
+`DR.Magic`, which the engine accumulates in `external_modifiers`, so evaluation
+adds that on top of the imported `DR:` rows instead of needing a second pass.
+
+A value with a `|PRE` suffix cannot be read as an integer — the reference's
+`Integer.parseInt` fails on it too — so the whole tag stays unsupported rather than
+being silently truncated.
 
 ## What followed from this
 

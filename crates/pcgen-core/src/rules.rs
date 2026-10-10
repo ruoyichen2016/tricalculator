@@ -461,6 +461,22 @@ pub enum Predicate {
         specs: Vec<SpellSchoolSpec>,
         count: u32,
     },
+    /// `PREDR:x,y=z,y=z` — at least `x` of the listed damage reductions hold.
+    ///
+    /// PCGen's reference: "the number of the DR conditions that must be met",
+    /// with `PREDR:1,+1=10` and
+    /// `PREDR:1,-=10,+1=10,+2=10,+3=10,+4=10,+5=10,Silver=10` as its examples.
+    ///
+    /// `PreDamageReductionParser` splits each pair on `=` *or* `.` and defaults a
+    /// missing value to 0; each sub-prerequisite then returns 0 or 1 — the parser
+    /// never sets `countMultiples` — so the wrapper counts how many of the listed
+    /// reductions hold rather than summing their values.  `PreDamageReductionTester`
+    /// reads `display.getDR(key)`, which is the object's own reduction for that
+    /// type plus any `BONUS:DR|<type>` on top.
+    DamageReduction {
+        specs: Vec<DamageReductionSpec>,
+        min_count: u32,
+    },
     /// `PREFACT:x,location,Fact=Value,...` — the character has at least `x`
     /// objects in `location` whose fact has the given value.
     ///
@@ -923,6 +939,15 @@ pub struct SpellSchoolSubSpec {
     pub subschool: String,
     /// Only spells of at least this level count.
     pub min_level: u32,
+}
+
+/// One `PREDR` pair: a damage-reduction type and the value it must reach.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct DamageReductionSpec {
+    /// The type half of `DR:<value>/<type>`, e.g. `Magic`, `Silver`, `+1`, `-`.
+    pub kind: String,
+    /// The reduction must be at least this.
+    pub min: i32,
 }
 
 /// One `PREFACT` pair: a fact name and the value it must have.
