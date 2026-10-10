@@ -328,6 +328,21 @@ pub enum Predicate {
         specs: Vec<SpellDescriptorSpec>,
         count: u32,
     },
+    /// `PRESPELLSCHOOLSUB:x,y=z,y=z` — the character knows at least `count`
+    /// spells of the listed sub-schools at or above the stated spell levels.
+    ///
+    /// PCGen's reference: "Establishes a requirement for (x) number of spells
+    /// from magic sub-school (y) of at least level (z)", with
+    /// `PRESPELLSCHOOLSUB:3,Creation=2` as its example.
+    ///
+    /// [`Self::SpellDescriptor`] in every respect but which spell property is
+    /// matched: `PreSpellSchoolSubTester` is the same counting tester over
+    /// `aggregateSpellList` with the sub-school slot filled in, so the pairs sum
+    /// here too.
+    SpellSchoolSub {
+        specs: Vec<SpellSchoolSubSpec>,
+        count: u32,
+    },
     /// The character has a class of this power type
     /// (PCGen `PRESPELLCAST:TYPE=Arcane`).
     HasSpellPower {
@@ -813,6 +828,15 @@ pub struct SaveSpec {
 pub struct SpellDescriptorSpec {
     /// A spell descriptor, e.g. `Mind-Affecting`.
     pub descriptor: String,
+    /// Only spells of at least this level count.
+    pub min_level: u32,
+}
+
+/// One `PRESPELLSCHOOLSUB` pair: a sub-school and the minimum spell level.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct SpellSchoolSubSpec {
+    /// A sub-school, e.g. `Summoning`.
+    pub subschool: String,
     /// Only spells of at least this level count.
     pub min_level: u32,
 }

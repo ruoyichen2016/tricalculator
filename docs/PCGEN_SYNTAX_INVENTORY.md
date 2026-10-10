@@ -801,13 +801,14 @@ a bonus it should have.
 
 The remaining kinds are genuinely unimplemented: `PRE` (21), `PRESA` (12),
 `PRESKILLTOT`, `PREHP`, `PRESIZENEQ`,
-`PREDEITYDOMAIN`, `PRESRLT`, `PRESPELLSCHOOLSUB`,
+`PREDEITYDOMAIN`, `PRESRLT`,
 `PRECLASSLEVELMAX`, `PRETEXT`. None appear in the
 acceptance cohort.  Several names on the original list have since been lowered:
 `PRELEVELMAX`, `PREATT`, `PREHANDSGT`, multi-mode `PREMOVE`, `PREREGION`
 (see §5u), `PRECSKILL` (see §5v), `PREALIGN`'s value forms (see §5w),
-`PRECHECK` (see §5x) and `PRESPELLDESCRIPTOR` (see §5y); `PRELEVEL` now supports
-both `MIN=` and `MAX=`.  See the current `CHANGELOG.md`.
+`PRECHECK` (see §5x), `PRESPELLDESCRIPTOR` (see §5y) and `PRESPELLSCHOOLSUB`
+(see §5z); `PRELEVEL` now supports both `MIN=` and `MAX=`.  See the current
+`CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
 
@@ -1105,6 +1106,55 @@ draft's known spells that carry it. It has to be precomputed because
 The reference also lists a deprecated spelling, `PRESPELLDESCRIPTOR:y,x,z`. It is
 not supported, and not merely skipped: the current parser rejects it as well,
 because `Integer.parseInt(elements[0])` throws on a descriptor name.
+
+### 5z. `PRESPELLSCHOOLSUB` — and the `PRESPELLSCHOOL` divergence next to it
+
+`PRESPELLSCHOOLSUB:x,y=z` needed no new reasoning: `PreSpellSchoolSubTester` is
+`PreSpellDescriptorTester` with a different slot of `aggregateSpellList` filled
+in.
+
+```java
+// descriptor tester
+character.aggregateSpellList("No-Match", "A", descriptor, requiredLevel, 20);
+// sub-school tester
+character.aggregateSpellList("No-Match", subSchool, "No-Match", requiredLevel, 20);
+```
+
+The `"No-Match"` placeholders are what isolate the slot under test — with a name
+that matches no constructed object, only the real slot's `containsInList` can make
+the condition true. So the pairs sum exactly as they do for descriptors, and the
+level window is again `[requiredLevel, 20]`.
+
+**The divergence next to it.** `PRESPELLSCHOOL` *is* implemented, so it never
+appears in the unsupported report — but what it does is match the school name as a
+substring of the spell's **name**:
+
+```rust
+spell.name.to_ascii_lowercase().contains(&school.to_ascii_lowercase())
+```
+
+That is not the reference's test. `PreSpellSchoolTester` fills the *school* slot of
+`aggregateSpellList`, i.e. it asks whether the spell carries that `SPELL_SCHOOL`.
+The substring test can only fire when a spell's **name** happens to contain the
+school word, and in the RSRD that is a handful of accidents — `Divination` (the
+spell), `Shadow Conjuration`, `Shadow Evocation`, `Break Enchantment` — against
+`SCHOOL:` counts of 135 Transmutation, 114 Conjuration, 96 Evocation, 86
+Abjuration and so on. `PRESPELLSCHOOL:1,Abjuration=1` can therefore never be
+satisfied no matter how many abjurations the character knows.
+
+It is not an edge case either: the third-party data has **504** `PRESPELLSCHOOL`
+occurrences, and the acceptance cohort itself uses
+`PRESPELLSCHOOL:7,Divination=0`, `PRESPELLSCHOOL:1,Divination=3` and
+`PRESPELLSCHOOL:5,Abjuration=5,...`.
+
+The entry also short-circuits on `|| *level == 0`, so an entry whose level is 0 is
+vacuously true regardless of the school.
+
+Fixing it means indexing `SpellDefinition.school` the way
+`EffectState.spell_subschools` indexes the sub-school — a small change to the model
+but a large one to behaviour, because it touches the cohort. It is therefore left
+to its own round rather than folded into an unsupported-tag reduction, and recorded
+here so the reason is not lost.
 
 ## What followed from this
 

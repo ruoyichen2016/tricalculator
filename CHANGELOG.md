@@ -1,5 +1,27 @@
 ## Unreleased
 
+### 补齐谓词：`PRESPELLSCHOOLSUB`
+
+- 新增 `Predicate::SpellSchoolSub { specs, count }` 与
+  `SpellSchoolSubSpec { subschool, min_level }`。
+- 语义与 `PRESPELLDESCRIPTOR` 完全同构：`PreSpellSchoolSubTester` 就是把
+  `aggregateSpellList` 的 **sub-school** 槽填上（descriptor 版填 descriptor 槽），
+  同样返回**匹配数量**、由 list wrapper 相加后与 x 比较。两组计数逻辑共用一个
+  `spell_trait_count` 辅助函数，等级窗口仍是 reference 的 `[z, 20]`。
+- 引擎新增 `EffectState.spell_subschools`（subschool → 已知法术等级列表），与
+  `spell_descriptors` 在同一趟里由 `pack.spells` 的 `SUBSCHOOL:` 建出。
+- **顺带记录一个已知分歧**（本轮不改）：`PRESPELLSCHOOL` 现有实现是拿 school 名
+  去**子串匹配法术名**（`SpellSchoolLevel`），而 reference 是查法术的 `SCHOOL:`。
+  RSRD 里只有极少数法术**名字**里含学派词（`Divination`、`Shadow Conjuration`、
+  `Shadow Evocation`、`Break Enchantment`），对比 `SCHOOL:` 计数 135 Transmutation /
+  114 Conjuration / 96 Evocation / 86 Abjuration —— 所以
+  `PRESPELLSCHOOL:1,Abjuration=1` 永远不可能成立。第三方数据有 504 条，验收 cohort
+  也有 `PRESPELLSCHOOL:7,Divination=0` 等。修它需要按 `SpellDefinition.school` 建
+  索引，会改变 cohort 语义，属于独立一轮，见 `docs/PCGEN_SYNTAX_INVENTORY.md` §5z。
+- 第三方资料：unsupported 350 → **341**（`PRESPELLSCHOOLSUB` 9 → 0）；验收 cohort
+  不含该 tag。新增 5 个回归测试；
+  `cargo test --workspace`：**481 passed / 0 failed / 2 ignored**。
+
 ### 补齐谓词：`PRESPELLDESCRIPTOR`
 
 - 新增 `Predicate::SpellDescriptor { specs, count }` 与

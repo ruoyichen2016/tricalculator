@@ -1810,6 +1810,36 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 count: count.max(1),
             })
         }
+        // PRESPELLSCHOOLSUB:count,subschool=level — the same list shape and the
+        // same summing count as `PRESPELLDESCRIPTOR`; only the spell property
+        // being matched differs (`PreSpellSchoolSubTester` fills the sub-school
+        // slot of `aggregateSpellList` where the descriptor tester fills the
+        // descriptor slot).
+        "PRESPELLSCHOOLSUB" => {
+            let (count_str, rest) = body.split_once(',')?;
+            let count = count_str.trim().parse::<u32>().ok()?;
+            let specs: Vec<pcgen_core::SpellSchoolSubSpec> = rest
+                .split(',')
+                .filter_map(|pair| {
+                    let (subschool, level) = pair.rsplit_once('=')?;
+                    let subschool = subschool.trim();
+                    if subschool.is_empty() {
+                        return None;
+                    }
+                    Some(pcgen_core::SpellSchoolSubSpec {
+                        subschool: subschool.to_string(),
+                        min_level: level.trim().parse::<u32>().ok()?,
+                    })
+                })
+                .collect();
+            if specs.is_empty() {
+                return None;
+            }
+            Some(Predicate::SpellSchoolSub {
+                specs,
+                count: count.max(1),
+            })
+        }
         // PRESPELLTYPE:count,type=level — can cast `count` spells of `type`
         // at spell level `level` or higher.
         "PRESPELLTYPE" => {

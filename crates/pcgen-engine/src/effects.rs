@@ -86,6 +86,10 @@ pub struct EffectState {
     /// `predicate_holds` has no pack, so each known spell's descriptors are
     /// resolved here once, from `pack.spells`.
     pub spell_descriptors: BTreeMap<String, Vec<u32>>,
+    /// Sub-school (lowercased) to the levels of the draft's known spells that
+    /// carry it, for `PRESPELLSCHOOLSUB`.  Same shape and same reason as
+    /// [`Self::spell_descriptors`].
+    pub spell_subschools: BTreeMap<String, Vec<u32>>,
     /// Ability key (normalised) to its name, category and `TYPE:` tags, for
     /// `PREABILITY`.  Built once because `predicate_holds` has no pack.
     pub ability_traits: BTreeMap<String, AbilityTraits>,
@@ -240,6 +244,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
     // `PRESPELLDESCRIPTOR` counts the character's known spells per descriptor, so
     // each draft spell has to be joined to its `DESCRIPTOR:` list here.
     let mut spell_descriptors: BTreeMap<String, Vec<u32>> = BTreeMap::new();
+    let mut spell_subschools: BTreeMap<String, Vec<u32>> = BTreeMap::new();
     for spell in &draft.spells {
         let Some(definition) = find_spell(pack, &spell.name) else {
             continue;
@@ -247,6 +252,12 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         for descriptor in &definition.descriptors {
             spell_descriptors
                 .entry(descriptor.to_ascii_lowercase())
+                .or_default()
+                .push(spell.level);
+        }
+        if let Some(subschool) = definition.subschool.as_deref() {
+            spell_subschools
+                .entry(subschool.to_ascii_lowercase())
                 .or_default()
                 .push(spell.level);
         }
@@ -428,6 +439,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         skill_types,
         class_skills,
         spell_descriptors,
+        spell_subschools,
         ability_traits,
         class_traits,
         vision,
@@ -1410,6 +1422,22 @@ fn skill_requirement_holds(
     })
 }
 
+/// How many known spells carry one trait at or above `min_level`?
+///
+/// The window is the reference's own `aggregateSpellList(..., minLevel, 20)`, so
+/// a spell known above 20th level would not count; that is kept rather than
+/// simplified to an open-ended `>=`.
+fn spell_trait_count(levels: Option<&Vec<u32>>, min_level: u32) -> u32 {
+    levels
+        .map(|levels| {
+            levels
+                .iter()
+                .filter(|level| **level >= min_level && **level <= 20)
+                .count() as u32
+        })
+        .unwrap_or(0)
+}
+
 /// Resolve a known spell's definition by key or by display name.
 fn find_spell<'a>(
     pack: &'a CompiledRulePack,
@@ -1737,16 +1765,29 @@ pub(crate) fn predicate_holds(
             let available: u32 = specs
                 .iter()
                 .map(|spec| {
-                    state
-                        .spell_descriptors
-                        .get(&spec.descriptor.to_ascii_lowercase())
-                        .map(|levels| {
-                            levels
-                                .iter()
-                                .filter(|level| **level >= spec.min_level && **level <= 20)
-                                .count() as u32
-                        })
-                        .unwrap_or(0)
+                    spell_trait_count(
+                        state
+                            .spell_descriptors
+                            .get(&spec.descriptor.to_ascii_lowercase()),
+                        spec.min_level,
+                    )
+                })
+                .sum();
+            available >= (*count).max(1)
+        }
+        // `PreSpellSchoolSubTester` is the descriptor tester with the
+        // sub-school slot of `aggregateSpellList` filled in, so the pairs sum
+        // here as well.
+        Predicate::SpellSchoolSub { specs, count } => {
+            let available: u32 = specs
+                .iter()
+                .map(|spec| {
+                    spell_trait_count(
+                        state
+                            .spell_subschools
+                            .get(&spec.subschool.to_ascii_lowercase()),
+                        spec.min_level,
+                    )
                 })
                 .sum();
             available >= (*count).max(1)

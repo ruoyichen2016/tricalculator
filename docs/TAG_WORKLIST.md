@@ -116,6 +116,10 @@ semantic_completion 100.0%
 - **Post-M9**：`PRESPELLDESCRIPTOR` → `Predicate::SpellDescriptor`（新增
   `EffectState.spell_descriptors`；多组 `y=z` 是**相加**，与 `PRESPELLTYPE` 的「任选其一」
   不同）。第三方资料 unsupported 373→350。
+- **Post-M9**：`PRESPELLSCHOOLSUB` → `Predicate::SpellSchoolSub`（与
+  `PRESPELLDESCRIPTOR` 同构，新增 `EffectState.spell_subschools`）。第三方资料
+  unsupported 350→341。**已知分歧**：`PRESPELLSCHOOL` 仍以 school 名子串匹配法术名，
+  见 `PCGEN_SYNTAX_INVENTORY.md` §5z。
 - monster class `classlevel()` BAB 公式修复（`classlevel()` 空括号）
 
 累计：`legacy_tags` 4289 → 1284，`unsupported` 337 → 0，`semantic_completion` 46.8% → 100.0%。

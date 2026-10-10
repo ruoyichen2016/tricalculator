@@ -961,3 +961,65 @@ fn prespelldescriptor_lowers_to_descriptor_pairs() {
         Predicate::Not(inner) if matches!(**inner, Predicate::SpellDescriptor { .. })
     ));
 }
+
+#[test]
+fn prespellschoolsub_lowers_to_subschool_pairs() {
+    let feat = record(
+        "FEAT",
+        "Augment Summoning",
+        &[("PRESPELLSCHOOLSUB", "1,Summoning=3")],
+    );
+    let (pack, report) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[feat]);
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::SpellSchoolSub {
+            specs: vec![pcgen_core::SpellSchoolSubSpec {
+                subschool: "Summoning".to_string(),
+                min_level: 3,
+            }],
+            count: 1,
+        }
+    );
+
+    // The reference's example, and the count it carries.
+    let creation = record(
+        "FEAT",
+        "Creation Adept",
+        &[("PRESPELLSCHOOLSUB", "3,Creation=2")],
+    );
+    let (pack, _) = lower_records(
+        Some("35e".to_string()),
+        vec!["pred".to_string()],
+        &[creation],
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::SpellSchoolSub {
+            specs: vec![pcgen_core::SpellSchoolSubSpec {
+                subschool: "Creation".to_string(),
+                min_level: 2,
+            }],
+            count: 3,
+        }
+    );
+
+    let negated = record(
+        "FEAT",
+        "No Illusions",
+        &[("!PRESPELLSCHOOLSUB", "1,Illusion=0")],
+    );
+    let (pack, _) = lower_records(
+        Some("35e".to_string()),
+        vec!["pred".to_string()],
+        &[negated],
+    );
+    assert!(matches!(
+        &pack.entities[0].requirements[0],
+        Predicate::Not(inner) if matches!(**inner, Predicate::SpellSchoolSub { .. })
+    ));
+}

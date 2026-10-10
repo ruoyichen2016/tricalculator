@@ -149,18 +149,22 @@ rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
   predicate cannot be read is itself unsupported. The same pass fixed
   `PRECHECKBASE`, which had been dropping the reference's count — see §5x;
 - `PRESPELLDESCRIPTOR` (14 tags), lowered to `Predicate::SpellDescriptor` against
-  a new `EffectState.spell_descriptors`. `PREMULT` went 28 to 19 with it.
+  a new `EffectState.spell_descriptors`. `PREMULT` went 28 to 19 with it;
+- `PRESPELLSCHOOLSUB` (9 tags), lowered to `Predicate::SpellSchoolSub` against
+  `EffectState.spell_subschools` — the same counting tester with the sub-school
+  slot of `aggregateSpellList` filled in.
 
-**Current total, re-measured over the same 189 campaigns: 350 unsupported
-occurrences across 12 tag kinds**, against 373 / 13 after the `PRECHECK` round,
-393 / 14 after the `PREALIGN` round, 401 / 15 after the `PRECSKILL` round,
-750 / 17 after the `PREREGION` round, 1,171 / 18 after the `PREATT` round and
-1,409 / 20 at transcription. `BONUS` is 280 of the 350 and is the visible
-over-approximation described above — the effect is kept and the unreadable gate
-is what is reported — so the remaining actionable queue is the 70 occurrences
-behind it: `PREMULT` (19), `PRECAMPAIGN` (9), `PRESPELLSCHOOLSUB` (9),
-`PRECHARACTERTYPE` (9), `PRESA` (7), `PREUATT` (4), `PREDR` (3),
-`PREREACHGTEQ` (3), `PRESKILLTOT` (3), `PRECLASSLEVELMAX` (2), `PREITEM` (2).
+**Current total, re-measured over the same 189 campaigns: 341 unsupported
+occurrences across 11 tag kinds**, against 350 / 12 after the
+`PRESPELLDESCRIPTOR` round, 373 / 13 after the `PRECHECK` round, 393 / 14 after
+the `PREALIGN` round, 401 / 15 after the `PRECSKILL` round, 750 / 17 after the
+`PREREGION` round, 1,171 / 18 after the `PREATT` round and 1,409 / 20 at
+transcription. `BONUS` is 280 of the 341 and is the visible over-approximation
+described above — the effect is kept and the unreadable gate is what is reported —
+so the remaining actionable queue is the 61 occurrences behind it: `PREMULT` (19),
+`PRECAMPAIGN` (9), `PRECHARACTERTYPE` (9), `PRESA` (7), `PREUATT` (4),
+`PREDR` (3), `PREREACHGTEQ` (3), `PRESKILLTOT` (3), `PRECLASSLEVELMAX` (2),
+`PREITEM` (2).
 
 ## The 7 campaigns that could not be transcribed
 
