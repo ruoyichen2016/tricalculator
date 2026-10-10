@@ -808,7 +808,8 @@ see §5aa, §5ab, §5ac and §5ad.  Several names on the original list have sinc
 (see §5u), `PRECSKILL` (see §5v), `PREALIGN`'s value forms (see §5w),
 `PRECHECK` (see §5x), `PRESPELLDESCRIPTOR` (see §5y), `PRESPELLSCHOOLSUB` and
 `PRESPELLSCHOOL` (see §5z), `PRECAMPAIGN` (see §5aa), `PRECHARACTERTYPE`
-(see §5ab), `PRESA` (see §5ac), `PREFACT` (see §5ad) and `PREDR` (see §5ae);
+(see §5ab), `PRESA` (see §5ac), `PREFACT` (see §5ad), `PREDR` (see §5ae) and the
+`PREVAR*` boundary (see §5af);
 `PRELEVEL` now supports both `MIN=` and `MAX=`.  See the current `CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
@@ -1410,6 +1411,56 @@ adds that on top of the imported `DR:` rows instead of needing a second pass.
 A value with a `|PRE` suffix cannot be read as an integer — the reference's
 `Integer.parseInt` fails on it too — so the whole tag stays unsupported rather than
 being silently truncated.
+
+### 5af. `PREVAR*`, where four kinds collapsed into one and lost their boundary
+
+`PreVariableParser` takes its operator straight from the kind's suffix:
+
+```java
+// Get the comparator type SIZEGTEQ, BSIZE, SIZENEQ etc.
+String compType = kind.substring(5);
+prereq.setOperator(compType);
+```
+
+so `PREVARGTEQ` is `>=`, `PREVARGT` is `>`, `PREVARLTEQ` is `<=` and `PREVARLT` is
+`<`. The numeric form of the lowering always kept that: it produces
+`Predicate::Variable { min, max }` and shifts the strict kinds by one, which is
+exact because `EffectState::variables` is an integer map (`x > 5` is `x >= 6`;
+PCGen's own variables are floats, where it would not be).
+
+The **symbolic** form did not. All four kinds lowered to the same shape:
+
+```rust
+Predicate::VariableCompare {
+    left, right,
+    greater: matches!(tag, "PREVARGT" | "PREVARGTEQ"),
+}
+```
+
+and the engine evaluated `greater` as `>` and everything else as `<`. `GTEQ` and
+`LTEQ` were therefore compared one step too strictly. It is a quiet kind of wrong:
+the predicate still lowers, nothing is reported, and the effect simply appears one
+point later than it should.
+
+**How much of the data is affected** was measured rather than guessed. Of the
+34,742 `PREVAR*` pairs in the third-party packs, 2,519 have a symbolic operand —
+the only path that lost the boundary: `PREVARGTEQ` 181 of 31,385, `PREVARLTEQ` 132
+of 3,352, `PREVARGT` 31 of 350, and `PREVARLT` 2,175 of 2,782. The RSRD has no
+`PREVAR*` at all, so the acceptance cohort cannot be affected.
+
+**A second defect sat next to it.** `PreVariableTester` reads both sides through
+`getVariableValue`, which evaluates its argument, so the left operand of a symbolic
+comparison is often a plain number: `PREVARGTEQ:3,EmpowerHealingLVL` is
+"3 >= EmpowerHealingLVL". `variable_value` looked the text up as a variable name
+and fell back to 0, which turned those comparisons upside down. It now falls back
+to parsing an integer. A genuine formula operand such as
+`ceil((CL=Horizon Walker)/10)` still resolves to 0 — a gap this round does not
+close, recorded here so the next reader does not mistake the literal fallback for
+full expression evaluation.
+
+Old packs keep loading: `strict` is `serde(default)`, so a pack written before the
+boundary was kept reads as the inclusive form — which is what `GTEQ` and `LTEQ`
+mean, and 34,737 of the 34,742 pairs use those two kinds.
 
 ## What followed from this
 

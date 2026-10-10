@@ -409,10 +409,23 @@ pub enum Predicate {
     },
     /// Compare two variable/ability expressions (PCGen `PREVARGT/LT` with
     /// symbolic operands such as `%CHOICE,STR`).
+    ///
+    /// `greater` picks the direction and `strict` the boundary, so the four
+    /// operator kinds `PreVariableParser` accepts map one-to-one:
+    /// `PREVARGT` is `greater` + `strict`, `PREVARGTEQ` is `greater` alone,
+    /// `PREVARLT` is neither, and `PREVARLTEQ` is `strict` alone.
+    ///
+    /// The boundary used to be lost: `PREVARGT` and `PREVARGTEQ` both lowered to
+    /// `greater: true`, which the engine evaluated as `>`.  Old packs keep
+    /// loading because `strict` defaults to `false`, the inclusive reading — the
+    /// one `PREVARGTEQ`/`PREVARLTEQ` mean, and 34,737 of the 34,742 pairs in the
+    /// third-party data use those two kinds.
     VariableCompare {
         left: String,
         right: String,
         greater: bool,
+        #[serde(default)]
+        strict: bool,
     },
     /// Symbolic equality/inequality comparison (PCGen `PREVAREQ/NEQ` with
     /// `var(...)` or `skillinfo(...)` operands).

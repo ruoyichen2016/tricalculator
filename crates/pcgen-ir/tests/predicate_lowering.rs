@@ -1551,3 +1551,83 @@ fn predr_lowers_to_type_value_pairs() {
     assert!(pack.entities[0].requirements.is_empty());
     assert_eq!(report.coverage.unsupported_tags, 1);
 }
+
+#[test]
+fn prevar_keeps_the_boundary_the_kind_names() {
+    // Numeric operands: the strict kinds shift by one, which is exact for the
+    // integer variables the engine models.
+    let cases = [
+        ("PREVARGTEQ", "X,5", Predicate::Variable {
+            name: "X".to_string(),
+            min: Some(5),
+            max: None,
+        }),
+        ("PREVARGT", "X,5", Predicate::Variable {
+            name: "X".to_string(),
+            min: Some(6),
+            max: None,
+        }),
+        ("PREVARLTEQ", "X,5", Predicate::Variable {
+            name: "X".to_string(),
+            min: None,
+            max: Some(5),
+        }),
+        ("PREVARLT", "X,5", Predicate::Variable {
+            name: "X".to_string(),
+            min: None,
+            max: Some(4),
+        }),
+    ];
+    for (tag, value, expected) in cases {
+        let record = record("FEAT", "Var Gate", &[(tag, value)]);
+        let (pack, report) =
+            lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[record]);
+        assert_eq!(report.coverage.unsupported_tags, 0, "{tag}");
+        assert_eq!(pack.entities[0].requirements[0], expected, "{tag}");
+    }
+}
+
+#[test]
+fn prevar_symbolic_operands_keep_their_operator() {
+    // The symbolic path used to collapse `GT` with `GTEQ` and `LT` with `LTEQ`,
+    // and the engine read both as strict.
+    let cases = [
+        ("PREVARGTEQ", true, false),
+        ("PREVARGT", true, true),
+        ("PREVARLTEQ", false, false),
+        ("PREVARLT", false, true),
+    ];
+    for (tag, greater, strict) in cases {
+        let record = record("FEAT", "Var Gate", &[(tag, "X,Y")]);
+        let (pack, _) =
+            lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[record]);
+        assert_eq!(
+            pack.entities[0].requirements[0],
+            Predicate::VariableCompare {
+                left: "X".to_string(),
+                right: "Y".to_string(),
+                greater,
+                strict,
+            },
+            "{tag}"
+        );
+    }
+}
+
+#[test]
+fn the_old_variable_compare_shape_still_loads() {
+    // Packs written before the boundary was kept have no `strict` field; they
+    // must keep loading, and the inclusive reading is the one `GTEQ`/`LTEQ` mean.
+    let predicate: Predicate =
+        serde_json::from_str(r#"{"variable_compare":{"left":"X","right":"Y","greater":true}}"#)
+            .expect("old pack");
+    assert_eq!(
+        predicate,
+        Predicate::VariableCompare {
+            left: "X".to_string(),
+            right: "Y".to_string(),
+            greater: true,
+            strict: false,
+        }
+    );
+}

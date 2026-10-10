@@ -153,6 +153,11 @@ rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
 - `PRESPELLSCHOOLSUB` (9 tags), lowered to `Predicate::SpellSchoolSub` against
   `EffectState.spell_subschools` — the same counting tester with the sub-school
   slot of `aggregateSpellList` filled in;
+- not a reduction but a correction, `PREVARGT`/`PREVARGTEQ` and `PREVARLT`/`PREVARLTEQ`:
+  the four kinds differ only in their boundary, and the symbolic form of all four
+  lowered to one shape that the engine read as strict. **2,519** pairs in these
+  packs have a symbolic operand and were compared one step too strictly. Nothing
+  moves in the table below, because `PREVAR*` already lowered;
 - `PREDR` (3 tags), lowered to `Predicate::DamageReduction`. Pending the batch
   verification described at the top of `CHANGELOG.md`, so the total below does not
   yet include it;

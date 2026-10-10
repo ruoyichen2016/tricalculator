@@ -5,6 +5,23 @@
 > 因此下面这一节的**测试数量与 unsupported 数字是待验证的预期值**，验证后会在批次收尾
 > 轮统一订正。
 
+### 修复 `PREVAR*` 的边界与字面量操作数（待批量验证，非 unsupported 项）
+
+- `Predicate::VariableCompare` 新增 `strict`（`#[serde(default)]`），把
+  `PREVARGT`/`PREVARGTEQ`、`PREVARLT`/`PREVARLTEQ` 的**边界**区分开：旧实现把两者都
+  折成 `greater: bool`，引擎一律按**严格**比较求值——`PREVARGTEQ` 被当成 `>`，
+  `PREVARLTEQ` 被当成 `<`。
+- 影响面：第三方资料里 GT/GTEQ 与 LT/LTEQ 的**符号操作数**形式共 **2519** 对
+  （`PREVARGTEQ` 31385 对中 181 对、`PREVARLTEQ` 3352 中 132、`PREVARGT` 350 中 31、
+  `PREVARLT` 2782 中 2175）；数值操作数走 `Predicate::Variable` 的 ±1 路径，本来就正确。
+- `variable_value` 增加**字面量回退**：PCGen 的 `getVariableValue` 会求值它的参数，所以
+  `PREVARGTEQ:3,EmpowerHealingLVL` 左侧是数字 3；此前按「不存在的变量」读成 0，比较被
+  静默反向。公式（如 `ceil((CL=Horizon Walker)/10)`）仍解析为 0，已记录为已知缺口。
+- 旧 pack 兼容：`strict` 缺省为 `false`（含边界读法，也正是 GTEQ/LTEQ 的含义，占该族
+  34742 对中的 34737 对）。
+- 验收 cohort（RSRD）不含任何 `PREVAR*`，因此本轮可证不影响 cohort；测试数量与门禁在
+  批次收尾轮统一确认。
+
 ### 补齐谓词：`PREDR`（待批量验证）
 
 - 新增 `Predicate::DamageReduction { specs, min_count }` 与 `DamageReductionSpec { kind, min }`；

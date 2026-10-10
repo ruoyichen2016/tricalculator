@@ -1381,6 +1381,13 @@ fn variable_value(state: &EffectState, name: &str) -> i32 {
                 .get(&trimmed.to_ascii_uppercase())
                 .copied()
         })
+        // PCGen's `getVariableValue` evaluates its argument, so a symbolic
+        // operand is often a plain number: `PREVARGTEQ:3,EmpowerHealingLVL` is
+        // "3 >= EmpowerHealingLVL".  Without this the literal read as 0 and the
+        // comparison silently inverted.  A formula (`ceil((CL=Horizon
+        // Walker)/10)`) still resolves to 0; see `PCGEN_SYNTAX_INVENTORY.md`
+        // §5af.
+        .or_else(|| trimmed.parse::<i32>().ok())
         .unwrap_or(0)
 }
 
@@ -2120,13 +2127,15 @@ pub(crate) fn predicate_holds(
             left,
             right,
             greater,
+            strict,
         } => {
             let left = variable_value(state, left);
             let right = variable_value(state, right);
-            if *greater {
-                left > right
-            } else {
-                left < right
+            match (*greater, *strict) {
+                (true, true) => left > right,
+                (true, false) => left >= right,
+                (false, true) => left < right,
+                (false, false) => left <= right,
             }
         }
         Predicate::VariableEquals {

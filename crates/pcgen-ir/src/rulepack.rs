@@ -1263,6 +1263,9 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                             left: name,
                             right: value,
                             greater: matches!(tag_upper.as_str(), "PREVARGT" | "PREVARGTEQ"),
+                            // The `GT`/`GTEQ` and `LT`/`LTEQ` pairs differ only in
+                            // the boundary, and this path used to lose it.
+                            strict: matches!(tag_upper.as_str(), "PREVARGT" | "PREVARLT"),
                         })
                     }
                     "PREVAREQ" | "PREVARNEQ" => Some(Predicate::VariableEquals {
@@ -1276,8 +1279,11 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
             let (min, max) = match tag_upper.as_str() {
                 "PREVARGTEQ" => (Some(value), None),
                 "PREVARLTEQ" => (None, Some(value)),
-                // Strict forms are approximated as >= / <= (off-by-one is
-                // acceptable until the predicate gains exclusive bounds).
+                // The strict forms become the inclusive bound one step in,
+                // which is exact for the integer variables this engine models
+                // (`x > 5` is `x >= 6`).  PCGen's own variables are floats, where
+                // the two are not the same, so this shift is only sound because
+                // `EffectState::variables` is an integer map.
                 "PREVARGT" => (Some(value + 1), None),
                 "PREVARLT" => (None, Some(value - 1)),
                 _ => (Some(value), Some(value)),
