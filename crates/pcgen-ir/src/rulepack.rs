@@ -1295,26 +1295,6 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 Some(predicate)
             }
         }
-        "PREITEM" => {
-            let values: Vec<String> = parts
-                .iter()
-                .filter_map(|part| {
-                    part.trim()
-                        .strip_prefix("TYPE=")
-                        .or_else(|| part.trim().strip_prefix("type="))
-                })
-                .map(|value| value.trim().to_ascii_lowercase().replace(' ', "_"))
-                .filter(|value| !value.is_empty())
-                .collect();
-            if values.is_empty() {
-                None
-            } else {
-                Some(Predicate::Equipped {
-                    slot: "any".to_string(),
-                    values,
-                })
-            }
-        }
         "PREEQUIP" | "PREEQUIPPRIMARY" | "PREEQUIPSECONDARY" | "PREEQUIPBOTH" => {
             let slot = match tag_upper.as_str() {
                 "PREEQUIPPRIMARY" => "primary",
@@ -2198,6 +2178,52 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 let power = SpellPowerType::from_pcgen(part.split_once('=')?.1)?;
                 Some(Predicate::HasSpellPower { power })
             }
+        }
+        // PREITEM:count,name,TYPE=type — the character possesses at least `count`
+        // of the listed items.
+        //
+        // `PreItemParser` is a list parser, so the leading number is the count and
+        // each remaining entry is one item test.  An entry is a `TYPE=` (or
+        // `TYPE.`) prefix followed by a dot-separated type list, or a name that
+        // may contain a `%` wildcard.
+        "PREITEM" => {
+            let (count_str, rest) = body.split_once(',')?;
+            let min_count = count_str.trim().parse::<u32>().ok()?;
+            let specs: Vec<pcgen_core::ItemSpec> = rest
+                .split(',')
+                .map(str::trim)
+                .filter(|part| !part.is_empty())
+                .map(|part| {
+                    let types = part
+                        .get(..5)
+                        .filter(|head| {
+                            head.eq_ignore_ascii_case("TYPE=") || head.eq_ignore_ascii_case("TYPE.")
+                        })
+                        .map(|_| part[5..].trim());
+                    match types {
+                        Some(types) => {
+                            let types: Vec<String> = types
+                                .split('.')
+                                .map(str::trim)
+                                .filter(|kind| !kind.is_empty())
+                                .map(str::to_string)
+                                .collect();
+                            if types.is_empty() {
+                                return None;
+                            }
+                            Some(pcgen_core::ItemSpec::Types(types))
+                        }
+                        None => Some(pcgen_core::ItemSpec::Name(part.to_string())),
+                    }
+                })
+                .collect::<Option<Vec<_>>>()?;
+            if specs.is_empty() {
+                return None;
+            }
+            Some(Predicate::Item {
+                specs,
+                min_count: min_count.max(1),
+            })
         }
         // PREREACH and its six operator kinds.  `PreReachParser` reads the
         // comparison out of the tag name (`kind.substring(5)`, empty meaning

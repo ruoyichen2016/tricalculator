@@ -809,7 +809,7 @@ see §5aa, §5ab, §5ac and §5ad.  Several names on the original list have sinc
 `PRECHECK` (see §5x), `PRESPELLDESCRIPTOR` (see §5y), `PRESPELLSCHOOLSUB` and
 `PRESPELLSCHOOL` (see §5z), `PRECAMPAIGN` (see §5aa), `PRECHARACTERTYPE`
 (see §5ab), `PRESA` (see §5ac), `PREFACT` (see §5ad), `PREDR` (see §5ae), the
-`PREVAR*` boundary (see §5af) and `PREREACH` (see §5ag);
+`PREVAR*` boundary (see §5af), `PREREACH` (see §5ag) and `PREITEM` (see §5ah);
 `PRELEVEL` now supports both `MIN=` and `MAX=`.  See the current `CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
@@ -1514,6 +1514,58 @@ Reading every active entity's reach (which is what the snapshot's merged
 
 The operand must be an integer: `Integer.parseInt` is what the tester calls, so
 `PREREACHGTEQ:CL+5` stays unsupported rather than being evaluated as a formula.
+
+### 5ah. `PREITEM`, which was asking about the wrong verb
+
+`PREITEM:x,y,y` reads as "the number of items a character must **possess**", and the
+test says the same:
+
+```java
+if (display.hasEquipment())
+    for (Equipment eq : display.getEquipmentSet())
+```
+
+— the possessed set, not the equipped one. The lowering that existed before this
+round produced `Predicate::Equipped`, which answers a different question, and it
+understood only `TYPE=` entries, so a name entry such as
+`PREITEM:1,Dukar Hand Coral` was reported unsupported while
+`PREITEM:1,TYPE=Natural` quietly tested the wrong thing. Both halves are fixed
+here: `Predicate::Item` carries name and type entries, and evaluation walks
+`draft.equipment`.
+
+**The two entry kinds count differently**, and the difference is in the source:
+
+```java
+if (aString.indexOf('%') >= 0) {
+    final int percentPos = aString.indexOf('%');
+    final String substring = aString.substring(0, percentPos).toUpperCase();
+    if (eqName.startsWith(substring)) { ++runningTotal; break; }
+}
+else if (eqName.equalsIgnoreCase(aString)) { ++runningTotal; break; }
+```
+
+The `break` means a *name* entry contributes at most one no matter how many items
+match it — and the wildcard is a prefix test, with everything from the first `%` on
+ignored, so `%` alone matches the first item of any name. The `TYPE` branch has no
+`break`, so it contributes every matching item, and it requires *all* the
+dot-separated types:
+
+```java
+String stripped = aString.substring(Constants.SUBSTRING_LENGTH_FIVE);
+typeList = CoreUtility.split(stripped, '.');
+...
+for (String s : typeList) if (!eq.isType(s)) { bMatches = false; break; }
+```
+
+The wrapper then sums the entries, which is why `PREITEM:2,TYPE=Armor,TYPE=Armor` is
+satisfied by a single suit of armour.
+
+**Types come from the catalogue, through the same lookup the rest of the engine
+uses.** A possessed name is resolved to an `EquipmentDefinition` by display name,
+then by a customised item's `BASEITEM`, then as written — the order
+`Engine::resolve_equipment` already applies — so `+2 scale mail` still counts as
+armour for `TYPE=Armor`. Without that step a customised item would have no types at
+all, which is the sort of gap that looks like a data problem and is not one.
 
 ## What followed from this
 

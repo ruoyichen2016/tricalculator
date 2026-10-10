@@ -135,6 +135,9 @@ semantic_completion 100.0%
 - **Post-M9**：`PREFACT` → `Predicate::Fact`，新增 `FACT` 模型（`CompiledEntity.facts`
   + `EffectState.location_facts`，只 lower `abilities`/`race` 两个可枚举 location）。
   第三方资料 unsupported **304→42**（`BONUS` 268→23、`PREMULT` 19→2），是本循环最大一次下降。
+- **Post-M9（待批量验证）**：`PREITEM` → `Predicate::Item`（名字含 `%` 通配 / `TYPE=` 点分
+  类型列表，按**持有**而非已装备计数）；同时修掉旧实现把它 lower 成 `Predicate::Equipped`
+  且只认 `TYPE=` 的错误。新增 `EffectState.item_types`。
 - **Post-M9（待批量验证）**：`PREREACH`/`PREREACHGTEQ` 等 7 个 kind →
   `Predicate::ReachAtLeast` / `ReachAtMost`（按 size 家族的组合写法），新增
   `EffectState.reach_feet`（种族 REACH，默认 5；模板覆盖；`BONUS:COMBAT|REACH` 相加）。

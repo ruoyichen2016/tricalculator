@@ -5,6 +5,21 @@
 > 因此下面这一节的**测试数量与 unsupported 数字是待验证的预期值**，验证后会在批次收尾
 > 轮统一订正。
 
+### 补齐谓词：`PREITEM`（待批量验证）
+
+- 新增 `Predicate::Item { specs, min_count }` 与 `ItemSpec { Name | Types }`；
+  `EffectState` 新增 `item_types`（持有物名 → `TYPE:` 标签，按 `Engine::resolve_equipment`
+  同样的顺序解析：显示名 → 定制装备的 `BASEITEM` → 原样名字）。
+- 语义按 `PreItemTester`：遍历**持有**的装备（`display.getEquipmentSet()`，不是已装备），
+  每条目要么按名字匹配（含 `%` 通配时取 `%` 之前的**前缀**，且**首个命中即 break**，
+  故最多计 1），要么按 `TYPE=`（或 `TYPE.`）后的点分类型列表匹配（要求**全部**类型命中，
+  且**没有** break，故计入每一个匹配物品）；list wrapper 把各条目计数**相加**再与 x 比较。
+- **同时修掉一个旧错误**：`PREITEM` 原先被 lower 成 `Predicate::Equipped`（「已装备」）
+  且只处理 `TYPE=` 条目——名字条目直接 unsupported，类型条目问的是错的问题。现在按
+  reference 的「持有」语义实现。
+- 第三方资料：unsupported 预期 36 → 34（`PREITEM` 2 → 0，均为名字条目）。
+- 测试数量与门禁在批次收尾轮统一确认。
+
 ### 补齐谓词：`PREREACH` 及其六个比较 kind（待批量验证）
 
 - 新增 `Predicate::ReachAtLeast { feet }` / `ReachAtMost { feet }`；严格、相等、不等

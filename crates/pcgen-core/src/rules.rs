@@ -148,6 +148,20 @@ pub enum Predicate {
     SizeAtMost {
         size: String,
     },
+    /// `PREITEM:x,y,y` — the character possesses at least `x` of the listed items.
+    ///
+    /// PCGen's reference: "The number of items a character must possess", where a
+    /// `y` is an item name (with `%` as a wildcard) or `TYPE=` followed by a
+    /// dot-separated type list.
+    ///
+    /// `PreItemTester` counts, per listed item, how many of the character's
+    /// possessed items match, and the list wrapper sums those counts.  A *name*
+    /// entry stops at its first match, so it contributes at most one; a `TYPE`
+    /// entry has no such `break` and contributes every matching item.
+    Item {
+        specs: Vec<ItemSpec>,
+        min_count: u32,
+    },
     /// Creature reach is at least this many feet (PCGen `PREREACH` and
     /// `PREREACHGTEQ`).
     ///
@@ -967,6 +981,17 @@ pub struct SpellSchoolSubSpec {
     pub subschool: String,
     /// Only spells of at least this level count.
     pub min_level: u32,
+}
+
+/// One `PREITEM` entry: a name, or a set of types the item must carry.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "kind", content = "value")]
+pub enum ItemSpec {
+    /// An item name; a `%` makes everything from it on a wildcard, so the name
+    /// only has to start with what precedes it.
+    Name(String),
+    /// `TYPE=a.b` — the item must carry *all* of the listed types.
+    Types(Vec<String>),
 }
 
 /// One `PREDR` pair: a damage-reduction type and the value it must reach.

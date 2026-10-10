@@ -1700,3 +1700,68 @@ fn prereach_kinds_compose_from_the_two_directions() {
     assert!(pack.entities[0].requirements.is_empty());
     assert_eq!(report.coverage.unsupported_tags, 1);
 }
+
+#[test]
+fn preitem_lowers_to_name_and_type_entries() {
+    // The third-party form: a substitution class needs an item the character
+    // possesses by name.
+    let class = record(
+        "SUBSTITUTIONCLASS",
+        "Dukar",
+        &[("PREITEM", "1,Dukar Hand Coral")],
+    );
+    let (pack, report) = lower_records(
+        Some("35e".to_string()),
+        vec!["pred".to_string()],
+        &[class],
+    );
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::Item {
+            specs: vec![pcgen_core::ItemSpec::Name("Dukar Hand Coral".to_string())],
+            min_count: 1,
+        }
+    );
+
+    // A `TYPE=` entry becomes a type list, split on the dots the reference splits
+    // on, and the count is kept.
+    let typed = record("FEAT", "Improved Natural Attack", &[("PREITEM", "1,TYPE=Natural")]);
+    let (pack, _) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[typed]);
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::Item {
+            specs: vec![pcgen_core::ItemSpec::Types(vec!["Natural".to_string()])],
+            min_count: 1,
+        }
+    );
+
+    let both = record(
+        "FEAT",
+        "Armoured",
+        &[("PREITEM", "2,TYPE=Armor.Heavy,Sword (Long),Sword (Short)")],
+    );
+    let (pack, _) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[both]);
+    let Predicate::Item { specs, min_count } = &pack.entities[0].requirements[0] else {
+        panic!("expected Item");
+    };
+    assert_eq!(*min_count, 2);
+    assert_eq!(
+        specs,
+        &vec![
+            pcgen_core::ItemSpec::Types(vec!["Armor".to_string(), "Heavy".to_string()]),
+            pcgen_core::ItemSpec::Name("Sword (Long)".to_string()),
+            pcgen_core::ItemSpec::Name("Sword (Short)".to_string()),
+        ]
+    );
+
+    // A `TYPE=` with nothing after it is malformed rather than an empty test.
+    let empty = record("FEAT", "Empty Type", &[("PREITEM", "1,TYPE=")]);
+    let (pack, report) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[empty]);
+    assert!(pack.entities[0].requirements.is_empty());
+    assert_eq!(report.coverage.unsupported_tags, 1);
+}

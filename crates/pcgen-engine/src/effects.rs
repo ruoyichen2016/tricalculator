@@ -94,6 +94,12 @@ pub struct EffectState {
     /// that belong to it, for `PRESPELLSCHOOL`.  Same shape and same reason as
     /// [`Self::spell_descriptors`].
     pub spell_schools: BTreeMap<String, Vec<u32>>,
+    /// Possessed item name (normalised) to its `TYPE:` tags, for `PREITEM`.
+    ///
+    /// The types are resolved the way the rest of the engine resolves an equipment
+    /// name — the display name first, then a customised item's base item, then the
+    /// name as written — so a `+2 scale mail` still counts as armour.
+    pub item_types: BTreeMap<String, Vec<String>>,
     /// The character's reach in feet, for `PREREACH`.
     ///
     /// `ReachFacet.getReach` reads the *race's* `REACH` — whose key default is 5 —
@@ -424,6 +430,32 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
             }
         }
     }
+    // `PREITEM` matches possessed items by name and by type.  The name test reads
+    // the draft's own list; the type test needs the definition, resolved the way
+    // `Engine::resolve_equipment` does.
+    let mut item_types: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for item in &draft.equipment {
+        let customised = draft
+            .equipment_base_items
+            .get(&item.to_ascii_lowercase())
+            .cloned();
+        let display = draft
+            .equipment_display_names
+            .get(&item.to_ascii_lowercase())
+            .cloned();
+        let lookup = normalized(
+            display
+                .as_deref()
+                .or(customised.as_deref())
+                .unwrap_or(item.as_str())
+                .trim(),
+        );
+        for (id, definition) in &pack.equipment {
+            if normalized(id) == lookup || normalized(&definition.name) == lookup {
+                item_types.insert(normalized(item), definition.type_tags.clone());
+            }
+        }
+    }
     let mut weapon_proficiencies: BTreeSet<String> = draft
         .abilities
         .iter()
@@ -515,6 +547,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         hands,
         movement,
         equipment_values,
+        item_types,
         equipped_primary,
         equipped_secondary,
         equipped_both,
@@ -1578,6 +1611,17 @@ fn spell_trait_count(levels: Option<&Vec<u32>>, min_level: u32) -> u32 {
         .unwrap_or(0)
 }
 
+/// `PreItemTester`'s name test: an exact match, or a prefix match when the pattern
+/// carries a `%` wildcard — everything from the first `%` on is ignored, so
+/// `Sword%` finds any sword and `%` finds the first item of any name.
+fn item_name_matches(item: &str, pattern: &str) -> bool {
+    let name = normalized(item);
+    match pattern.find('%') {
+        Some(index) => name.starts_with(&normalized(&pattern[..index])),
+        None => name == normalized(pattern),
+    }
+}
+
 /// `ReachFacet.getReach`: the base reach plus `BONUS:COMBAT|REACH`.
 fn reach_value(state: &EffectState) -> i32 {
     let bonus: i32 = state
@@ -1849,6 +1893,36 @@ pub(crate) fn predicate_holds(
             met >= (*min_count).max(1)
         }
         Predicate::Gender { prefix } => draft.gender.starts_with(prefix.as_str()),
+        // `PreItemTester` counts, per listed entry, how many of the character's
+        // possessed items match, and the list wrapper sums those counts.  A name
+        // entry breaks at its first match, so it contributes at most one; a `TYPE`
+        // entry has no such break and contributes every matching item.
+        Predicate::Item { specs, min_count } => {
+            let available: u32 = specs
+                .iter()
+                .map(|spec| match spec {
+                    pcgen_core::ItemSpec::Name(pattern) => u32::from(
+                        draft
+                            .equipment
+                            .iter()
+                            .any(|item| item_name_matches(item, pattern)),
+                    ),
+                    pcgen_core::ItemSpec::Types(types) => draft
+                        .equipment
+                        .iter()
+                        .filter(|item| {
+                            let found = state.item_types.get(&normalized(item));
+                            types.iter().all(|kind| {
+                                found.is_some_and(|tags| {
+                                    tags.iter().any(|tag| tag.eq_ignore_ascii_case(kind.trim()))
+                                })
+                            })
+                        })
+                        .count() as u32,
+                })
+                .sum();
+            available >= (*min_count).max(1)
+        }
         Predicate::ReachAtLeast { feet } => reach_value(&state) >= *feet,
         Predicate::ReachAtMost { feet } => reach_value(&state) <= *feet,
         // `PreDamageReductionTester` compares the character's reduction for one
