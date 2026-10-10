@@ -801,9 +801,11 @@ a bonus it should have.
 
 The remaining kinds are genuinely unimplemented: `PRE` (21), `PRESA` (12),
 `PREREGION`, `PRECHECK`, `PRESKILLTOT`, `PREHP`, `PRESIZENEQ`, `PREHANDSGT`,
-`PRELEVELMAX`, `PREDEITYDOMAIN`, `PRESRLT`, `PRECSKILL`, `PRESPELLSCHOOLSUB`,
+`PREDEITYDOMAIN`, `PRESRLT`, `PRECSKILL`, `PRESPELLSCHOOLSUB`,
 `PRESPELLDESCRIPTOR`, `PRECLASSLEVELMAX`, `PRETEXT`. None appear in the
-acceptance cohort.
+acceptance cohort.  (`PRELEVELMAX` was listed here when this section was written;
+it has since been lowered, and `PRELEVEL` now supports both `MIN=` and `MAX=`.
+See the current `CHANGELOG.md`.)
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
 

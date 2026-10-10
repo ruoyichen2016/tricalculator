@@ -10,8 +10,8 @@
 - 工作区：10 crate（core / formula / ir / import / engine / builder / output /
   cli / web / **transpile**）。`pcgen-transpile` 是构建期转写器，把
   `.pcc`/`.lst` 规范化成 pack 目录，使运行期不再解释 PCGen 文本。
-- 测试：`cargo test --workspace` **444 passed / 2 ignored**（`scripts/check.sh`
-  额外再跑一次 `pcgen-web`，合计 **483 passed / 2 ignored**）。
+- 测试：`cargo test --workspace` **446 passed / 2 ignored**（`scripts/check.sh`
+  额外再跑一次 `pcgen-web`，合计 **485 passed / 2 ignored**）。
 - 数据格式规范化（`docs/DATA_FORMAT.md`）：阶段 1 完成（职业域转写为
   `class` / `class_level` / `variant` 记录，每级一条并显式声明归属）；
   阶段 2 步骤 1 完成——消除「同一事实三种表示」：`ClassGrant` 成为

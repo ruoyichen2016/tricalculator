@@ -80,7 +80,10 @@ pub enum Predicate {
         allowed: Vec<String>,
     },
     CharacterLevel {
-        min: u32,
+        #[serde(default)]
+        min: Option<u32>,
+        #[serde(default)]
+        max: Option<u32>,
     },
     /// Total character class levels, excluding Monster (Racial) HD
     /// (PCGen `PREPCLEVEL:MIN=x,MAX=y`).

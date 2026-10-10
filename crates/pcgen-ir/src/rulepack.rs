@@ -1538,12 +1538,50 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 Some(Predicate::Alignment { allowed })
             }
         }
+        // PRELEVEL:MIN=n,MAX=m — total character level bounds.  The old
+        // implementation read the first number and always treated it as a
+        // minimum, so `PRELEVEL:MAX=10` became "at least 10th level" and
+        // excluded exactly the characters it was meant to allow.
         "PRELEVEL" => {
-            let min = body
-                .split(|ch: char| !ch.is_ascii_digit())
-                .find(|part| !part.is_empty())
-                .and_then(|part| part.parse::<u32>().ok())?;
-            Some(Predicate::CharacterLevel { min })
+            let body = body.strip_prefix("Q:").unwrap_or(body).trim();
+            // Historical data and this workspace's own fixtures use the bare
+            // form `PRELEVEL:3`; PCGen treats that as a minimum.
+            if let Ok(min) = body.parse::<u32>() {
+                return Some(Predicate::CharacterLevel {
+                    min: Some(min),
+                    max: None,
+                });
+            }
+            let mut min: Option<u32> = None;
+            let mut max: Option<u32> = None;
+            for part in body
+                .split(',')
+                .map(str::trim)
+                .filter(|part| !part.is_empty())
+            {
+                let (key, value) = part.split_once('=')?;
+                let value = value.trim().parse::<u32>().ok()?;
+                match key.trim().to_ascii_uppercase().as_str() {
+                    "MIN" => min = Some(value),
+                    "MAX" => max = Some(value),
+                    _ => return None,
+                }
+            }
+            if min.is_none() && max.is_none() {
+                None
+            } else {
+                Some(Predicate::CharacterLevel { min, max })
+            }
+        }
+        // PRELEVELMAX:x — maximum *class* level, excluding racial/monster HD.
+        // The separate predicate already models that distinction.
+        "PRELEVELMAX" => {
+            let body = body.strip_prefix("Q:").unwrap_or(body).trim();
+            let max = body.parse::<u32>().ok()?;
+            Some(Predicate::CharacterClassLevel {
+                min: None,
+                max: Some(max),
+            })
         }
         "PREMULT" => parse_premult(body),
         "PRETOTALAB" => {

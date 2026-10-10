@@ -467,6 +467,51 @@ fn pretemplate_tolerates_trailing_bracket_in_data() {
 }
 
 #[test]
+fn prelevel_bounds_and_prelevelmax_lower() {
+    let record = record(
+        "FEAT",
+        "Level Bands",
+        &[("PRELEVEL", "MIN=5,MAX=10"), ("PRELEVELMAX", "7")],
+    );
+    let (pack, report) = lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[record]);
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::CharacterLevel {
+            min: Some(5),
+            max: Some(10),
+        }
+    );
+    assert_eq!(
+        pack.entities[0].requirements[1],
+        Predicate::CharacterClassLevel {
+            min: None,
+            max: Some(7),
+        }
+    );
+}
+
+#[test]
+fn prelevelmax_uses_character_class_levels_not_monster_hd() {
+    // `PRELEVELMAX` is documented as a maximum on character (non-monster)
+    // levels, which is exactly `CharacterClassLevel`.
+    let record = record("FEAT", "Class Cap", &[("PRELEVELMAX", "3")]);
+    let (pack, report) = lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[record]);
+    assert_eq!(report.coverage.unsupported_tags, 0);
+    assert!(matches!(
+        pack.entities[0].requirements[0],
+        Predicate::CharacterClassLevel {
+            min: None,
+            max: Some(3)
+        }
+    ));
+}
+
+#[test]
 fn precheckbase_lowers_to_base_save() {
     let records = vec![record(
         "FEAT",

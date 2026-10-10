@@ -1,5 +1,19 @@
 ## Unreleased
 
+### 修复：`PRELEVEL` 上下界与 `PRELEVELMAX`
+
+`PRELEVEL` 此前只取第一个数字并一律当作最小等级，导致 `PRELEVEL:MAX=10`
+被误读为“至少 10 级”，正好排除了它本应允许的角色。现在支持
+`MIN=n,MAX=m` 两种边界，并保留历史裸值 `PRELEVEL:3` 作为最小等级。
+
+同时实现 `PRELEVELMAX:x`：它限制的是角色职业等级、排除种族/怪物 HD，因此
+lower 为已有的 `CharacterClassLevel { max }` 谓词。`CharacterLevel` 增加可选
+`max` 字段，并加 `serde(default)` 保证旧 pack 文件可继续读取。
+
+新增回归测试 `prelevel_bounds_and_prelevelmax_lower` 与
+`prelevelmax_uses_character_class_levels_not_monster_hd`。
+当前测试：`cargo test --workspace` **446 passed / 0 failed / 2 ignored**。
+
 ### 修复：不可读的 `BONUS` / `TEMPBONUS` gate 不再丢弃整个效果
 
 `lower_bonus_effect` 此前对任何一个无法解析的谓词执行 `?`，导致整条

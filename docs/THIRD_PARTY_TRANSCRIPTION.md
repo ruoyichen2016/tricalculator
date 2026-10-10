@@ -106,6 +106,11 @@ smaller lie than silently dropping a bonus.
 The 1,409 unsupported count above therefore still measures uninterpreted tags,
 but no longer measures silently lost `BONUS` / `TEMPBONUS` effects.
 
+After that run, `PRELEVELMAX` (190 tags) was also lowered, and `PRELEVEL` now
+honours both `MIN=` and `MAX=`.  The table above is the original transcription
+snapshot and has not been re-counted; the underlying source run would need to be
+repeated to freeze a new unsupported total.
+
 ## The 7 campaigns that could not be transcribed
 
 Every one is a **missing source file** in the checkout, not a parser failure:

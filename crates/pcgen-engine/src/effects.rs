@@ -1425,7 +1425,10 @@ pub(crate) fn predicate_holds(
                     .any(|alignment| alignment.eq_ignore_ascii_case(deity))
             })
         }
-        Predicate::CharacterLevel { min } => draft.total_level() >= *min,
+        Predicate::CharacterLevel { min, max } => {
+            let level = draft.total_level();
+            min.is_none_or(|min| level >= min) && max.is_none_or(|max| level <= max)
+        }
         Predicate::CharacterClassLevel { min, max } => {
             let value = state.character_class_levels;
             min.is_none_or(|min| value >= min) && max.is_none_or(|max| value <= max)
