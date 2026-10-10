@@ -96,6 +96,40 @@ fn pretext_is_a_vacuous_gate_and_does_not_discard_the_bonus() {
 }
 
 #[test]
+fn unreadable_bonus_gate_keeps_the_effect_and_is_reported() {
+    // An unknown gate must not make `lower_bonus_effect` return `None`: the
+    // bonus is retained with an explicit `Unsupported` condition, and the raw
+    // text is still counted as unsupported work rather than disappearing.
+    let record = record(
+        "RACE",
+        "Alchemy Dabbler",
+        &[(
+            "BONUS",
+            "VAR|AlchemyFeat|1|PRESKILLTOT:Alchemy=7|TYPE=NoStack",
+        )],
+    );
+    let (pack, report) = lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[record]);
+    assert_eq!(report.coverage.unsupported_tags, 1);
+    assert_eq!(pack.entities[0].effects.len(), 1, "the bonus must survive");
+    let condition = pack.entities[0].effects[0]
+        .condition
+        .clone()
+        .expect("the unreadable gate must be preserved");
+    assert!(
+        matches!(condition, Predicate::Unsupported { ref raw } if raw == "PRESKILLTOT:Alchemy=7"),
+        "expected an Unsupported condition, got {condition:?}"
+    );
+    assert!(
+        pack.entities[0]
+            .unsupported_tags
+            .iter()
+            .any(|tag| tag.contains("PRESKILLTOT:Alchemy=7")),
+        "raw gate must remain reportable: {:?}",
+        pack.entities[0].unsupported_tags
+    );
+}
+
+#[test]
 fn legs_predicate_lowers() {
     let record = record(
         "RACE",

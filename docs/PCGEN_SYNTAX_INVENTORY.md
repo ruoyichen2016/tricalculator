@@ -786,7 +786,7 @@ unsupported" into an exact string and an exact cause.
 | `PRESKILL` | `1,TYPE=Perform=8` | `split_once('=')` splits at the first `=`, leaving ranks `Perform=8`; and only `TYPE.` is stripped, not `TYPE=`, though `strip_type_prefix` already handles both |
 | `PRECLASS` | `1,SPELLCASTER.Divine=9th` | `level.parse::<u32>().ok()?` inside `filter_map` drops the whole spec on free text (`9th`, `9th+`, `level 7`, `1st+ level.`) |
 | `PRECLASS` | `1,%` | `=level` is treated as mandatory; the reference makes the level optional, defaulting to 1 |
-| `BONUS` | `VAR\|AlchemyFeat\|1\|PRESKILLTOT:Alchemy=7\|TYPE=NoStack` | the gate `PRESKILLTOT` is unimplemented, and `lower_bonus_effect` discards the entire bonus for one unreadable predicate |
+| `BONUS` | `VAR\|AlchemyFeat\|1\|PRESKILLTOT:Alchemy=7\|TYPE=NoStack` | the gate `PRESKILLTOT` is unimplemented; `lower_bonus_effect` now retains the bonus with a `Predicate::Unsupported` condition and still reports the raw gate |
 | `PREITEM` | `1,Manual (Climb)` | only the `TYPE=` form is implemented; all 28 Darwin's World values are names |
 | `TEMPBONUS` | `PC\|SKILL\|Diplomacy\|4,PC\|SAVE\|Will\|-1\|PRETEXT:...` | `PRETEXT` is unimplemented, and it poisons the whole bonus |
 | `TEMPVALUE` | `MIN=1\|MAX=MaxSpellChanneling\|TITLE=...` | `MAX=` may name a *variable*, not a literal |

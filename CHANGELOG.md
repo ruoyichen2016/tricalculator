@@ -1,5 +1,21 @@
 ## Unreleased
 
+### 修复：不可读的 `BONUS` / `TEMPBONUS` gate 不再丢弃整个效果
+
+`lower_bonus_effect` 此前对任何一个无法解析的谓词执行 `?`，导致整条
+`BONUS` 被判定为 unsupported 并**丢弃**。第三方资料里这类 gate 很多，角色会
+静默少掉本应生效的加值。
+
+现在新增 `Predicate::Unsupported { raw }`：
+
+- lowering 保留整条 effect，并把无法解析的原始 gate 文本放入 condition；
+- 调用方把该原文继续计入 `unsupported_tags`，因此“未解释”仍然可见、可统计；
+- 引擎将 `Unsupported` 视为成立，这是有意的可见过近似，优于静默丢效果。
+
+覆盖 `BONUS` / `TEMPBONUS` 两条路径；无验收 cohort 回归。新增回归测试
+`crates/pcgen-ir/tests/predicate_lowering.rs::unreadable_bonus_gate_keeps_the_effect_and_is_reported`。
+当前测试：`cargo test --workspace` **444 passed / 0 failed / 2 ignored**。
+
 ### 重构：运行期不再解析 PCGen 文本；引擎不再依赖 pcgen-ir
 
 `write_pack` 现在写出**整个** pack（职业域用规范化记录，其余域按域写成

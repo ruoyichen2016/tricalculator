@@ -15,6 +15,16 @@ use std::collections::{BTreeMap, BTreeSet};
 #[serde(rename_all = "snake_case")]
 pub enum Predicate {
     Always,
+    /// A PCGen gate the lowering pass could not interpret.
+    ///
+    /// Keeping the effect with an explicit `Unsupported` condition is less
+    /// destructive than dropping the effect: the raw predicate text survives
+    /// in the IR and appears in `CompiledEntity::unsupported_tags`.  The
+    /// engine treats the condition as satisfied, so an unknown gate is visible
+    /// as a possibly over-applied bonus rather than a silently missing one.
+    Unsupported {
+        raw: String,
+    },
     /// An explicit temporary state is active (PCGen `TEMPBONUS` source).
     ActiveState {
         states: Vec<String>,

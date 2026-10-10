@@ -116,12 +116,22 @@ pub fn lower_records(
             let upper = tag.name.to_ascii_uppercase();
             if upper == "BONUS" {
                 match lower_bonus(tag, phase, &provenance, current_class.as_deref()) {
-                    Some(effect) => effects.push(effect),
+                    Some(effect) => {
+                        if condition_has_unsupported_predicate(effect.condition.as_ref()) {
+                            unsupported_tags.push(format!("BONUS:{}", tag.value));
+                        }
+                        effects.push(effect);
+                    }
                     None => unsupported_tags.push(format!("BONUS:{}", tag.value)),
                 }
             } else if upper == "TEMPBONUS" {
                 match lower_temp_bonus(record, tag, phase, &provenance, current_class.as_deref()) {
-                    Some(effect) => effects.push(effect),
+                    Some(effect) => {
+                        if condition_has_unsupported_predicate(effect.condition.as_ref()) {
+                            unsupported_tags.push(format!("TEMPBONUS:{}", tag.value));
+                        }
+                        effects.push(effect);
+                    }
                     None => unsupported_tags.push(format!("TEMPBONUS:{}", tag.value)),
                 }
             } else if upper == "TEMPVALUE" {
@@ -447,8 +457,15 @@ pub fn lower_bonus_effect(
                 "nonstack".to_string()
             });
         } else if crate::tags::is_predicate_tag(part) {
-            // PRERULE gates the whole bonus; parse_predicate handles it.
-            conditions.push(parse_predicate(part, "")?);
+            // Keep an unreadable gate as a first-class condition instead of
+            // dropping the whole bonus.  The engine treats `Unsupported` as
+            // satisfied and the raw text is reported through
+            // `CompiledEntity::unsupported_tags` by the caller.
+            conditions.push(
+                parse_predicate(part, "").unwrap_or_else(|| Predicate::Unsupported {
+                    raw: part.to_string(),
+                }),
+            );
         }
     }
     let condition = match conditions.len() {
@@ -515,6 +532,23 @@ pub fn lower_bonus_effect(
         })
     } else {
         None
+    }
+}
+
+/// Does this condition carry an unreadable predicate that must stay in the
+/// pack's unsupported report even though the effect itself is retained?
+fn condition_has_unsupported_predicate(condition: Option<&Predicate>) -> bool {
+    condition.is_some_and(predicate_has_unsupported)
+}
+
+fn predicate_has_unsupported(predicate: &Predicate) -> bool {
+    match predicate {
+        Predicate::Unsupported { .. } => true,
+        Predicate::All(items) | Predicate::Any(items) | Predicate::AtLeast { items, .. } => {
+            items.iter().any(predicate_has_unsupported)
+        }
+        Predicate::Not(item) => predicate_has_unsupported(item),
+        _ => false,
     }
 }
 

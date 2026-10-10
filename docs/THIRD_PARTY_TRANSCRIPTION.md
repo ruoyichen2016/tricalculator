@@ -79,7 +79,7 @@ cannot be substantiated by a class the pack declares, dropped instead of written
 
 | Tag | Count | Note |
 |---|---|---|
-| `BONUS` | 599 | an unreadable gate discards the whole bonus |
+| `BONUS` | 599 | gate unreadable; effect is retained and the raw gate is flagged |
 | `PREMULT` | 387 | grouping operator |
 | `PRELEVELMAX` | 190 | |
 | `PREREGION` | 65 | |
@@ -96,11 +96,15 @@ cannot be substantiated by a class the pack declares, dropped instead of written
 | `PREDR`, `PREREACHGTEQ`, `PRESKILLTOT` | 3 each | |
 | `PRECLASSLEVELMAX`, `PREITEM` | 2 each | |
 
-`BONUS` is the one worth attention first: like `PRETEXT` before it, an
-unreadable predicate makes `lower_bonus_effect` discard the entire bonus, so a
-character silently loses a bonus it should have. Making an unreadable gate fail
-*visibly* — keep the effect, flag the condition — would be a smaller lie than
-dropping it.
+`BONUS` was the one worth attention first, and it is now handled: an unreadable
+gate no longer makes `lower_bonus_effect` discard the entire bonus. The effect is
+retained with a `Predicate::Unsupported { raw }` condition, the engine treats that
+condition as satisfied, and the raw gate still appears in the unsupported report.
+This is an intentional visible over-approximation for third-party packs; it is a
+smaller lie than silently dropping a bonus.
+
+The 1,409 unsupported count above therefore still measures uninterpreted tags,
+but no longer measures silently lost `BONUS` / `TEMPBONUS` effects.
 
 ## The 7 campaigns that could not be transcribed
 

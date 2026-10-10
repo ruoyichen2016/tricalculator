@@ -1382,6 +1382,10 @@ pub(crate) fn predicate_holds(
     };
     match predicate {
         Predicate::Always => true,
+        // An unreadable gate is kept in the IR for reporting.  Applying the
+        // effect is an intentional over-approximation: the alternative was to
+        // discard the whole effect when lowering, which made the loss silent.
+        Predicate::Unsupported { .. } => true,
         Predicate::ActiveState { states } => states.iter().any(|state| {
             draft
                 .active_states
