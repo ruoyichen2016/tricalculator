@@ -1248,6 +1248,11 @@ pub fn pcg_from_draft(draft: &CharacterDraft) -> PcgDraft {
         campaign: draft.campaign.clone(),
         alignment: draft.alignment.clone(),
         gender: draft.gender.clone(),
+        character_type: if draft.character_type.trim().is_empty() {
+            pcgen_engine::default_character_type()
+        } else {
+            draft.character_type.clone()
+        },
         stats: draft.stats.clone(),
         class_levels: draft
             .class_levels
@@ -2191,6 +2196,7 @@ pub fn draft_from_pcg(draft: PcgDraft) -> CharacterDraft {
         campaign: draft.campaign,
         alignment: draft.alignment,
         gender: draft.gender,
+        character_type: draft.character_type,
         stats: draft.stats,
         class_levels: draft
             .class_levels

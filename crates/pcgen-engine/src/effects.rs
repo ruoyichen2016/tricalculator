@@ -1671,6 +1671,19 @@ pub(crate) fn predicate_holds(
             met >= (*min_count).max(1)
         }
         Predicate::Gender { prefix } => draft.gender.starts_with(prefix.as_str()),
+        // `PreCharactertypeTester` compares the character's type with each listed
+        // key; the list wrapper sums the matches, and a character has exactly one
+        // type.
+        Predicate::CharacterType { types, min_count } => {
+            let matched = types
+                .iter()
+                .filter(|kind| {
+                    kind.trim()
+                        .eq_ignore_ascii_case(draft.character_type.trim())
+                })
+                .count() as u32;
+            matched >= (*min_count).max(1)
+        }
         // `PreRegionTester` upper-cases both sides and asks `startsWith`.  The
         // region is a prefix rather than an equality because the publishers
         // write `PREREGION:Varisia` for a region named `Varisia (Magnimar)`.

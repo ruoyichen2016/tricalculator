@@ -461,6 +461,17 @@ pub enum Predicate {
         specs: Vec<SpellSchoolSpec>,
         count: u32,
     },
+    /// `PRECHARACTERTYPE:x,y,y` — the character's type is one of the listed ones.
+    ///
+    /// PCGen's reference: "Sets requisites for character type", with
+    /// `PRECHARACTERTYPE:1,PC` and `PRECHARACTERTYPE:1,NPC,Monster` as its
+    /// examples.  `PreCharactertypeTester` compares the character's type with each
+    /// listed one, and the list wrapper sums the matches — a character has exactly
+    /// one type, so only a duplicated list can count twice.
+    CharacterType {
+        types: Vec<String>,
+        min_count: u32,
+    },
     /// `PRECAMPAIGN:x,y,y` — at least `x` of the listed data sets are loaded.
     ///
     /// PCGen's reference: "Sets prerequisites for LST objects based upon the data

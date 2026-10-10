@@ -1296,6 +1296,29 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 Some(Predicate::KnownSpell { names })
             }
         }
+        // PRECHARACTERTYPE:count,type,type — the character's type is one of them.
+        //
+        // `PreCharactertypeParser` is a list parser, so the leading number is the
+        // count; `PreCharactertypeTester` compares the character type with each
+        // listed key and the wrapper sums the matches.
+        "PRECHARACTERTYPE" => {
+            let min_count = parts
+                .iter()
+                .find(|part| !part.trim().is_empty())
+                .and_then(|part| part.trim().parse::<u32>().ok())
+                .unwrap_or(1);
+            let types: Vec<String> = parts
+                .iter()
+                .skip_while(|part| part.trim().parse::<u32>().is_ok() || part.trim().is_empty())
+                .map(|part| part.trim())
+                .filter(|part| !part.is_empty())
+                .map(str::to_string)
+                .collect();
+            if types.is_empty() {
+                return None;
+            }
+            Some(Predicate::CharacterType { types, min_count })
+        }
         // PRECAMPAIGN:count,y,y — at least `count` of the listed data sets are
         // loaded.
         //

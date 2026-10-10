@@ -7,6 +7,14 @@
 
 use serde::{Deserialize, Serialize};
 
+/// The character type PCGen assumes when a character declares none.
+///
+/// `GameMode.getDefaultCharacterType` returns the first entry of the game mode's
+/// `CHARACTERTYPE:` list, which `system/gameModes/{3e,35e}/miscinfo.lst` gives as
+/// `PC|NPC`.  That game-mode file sits outside a pack's `.pcc` graph, so the
+/// 3e/3.5e default is used rather than imported.
+pub const DEFAULT_CHARACTER_TYPE: &str = "PC";
+
 /// Category of a compiled entity (the PCGen "record type").
 ///
 /// The variants cover the categories the runtime engine currently reasons

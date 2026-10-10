@@ -44,6 +44,10 @@ pub struct CharacterDraft {
     /// was dropped on import, so `PREGENDER` could never be evaluated.
     #[serde(default)]
     pub gender: String,
+    /// PCGen `CHARACTERTYPE:` — `PC`, `NPC` or `Monster`, for
+    /// `PRECHARACTERTYPE`.  18 of the 42 vendored `.pcg` files declare one.
+    #[serde(default = "default_character_type")]
+    pub character_type: String,
     pub stats: BTreeMap<String, i32>,
     #[serde(default)]
     pub class_levels: Vec<DraftClassLevel>,
@@ -121,6 +125,14 @@ impl DraftCompanion {
     }
 }
 
+/// The character type PCGen assumes when a character does not declare one.
+///
+/// See [`pcgen_core::vocab::DEFAULT_CHARACTER_TYPE`] for why it is a constant here
+/// rather than read from the game mode.
+pub fn default_character_type() -> String {
+    pcgen_core::vocab::DEFAULT_CHARACTER_TYPE.to_string()
+}
+
 impl Default for CharacterDraft {
     fn default() -> Self {
         Self {
@@ -130,6 +142,7 @@ impl Default for CharacterDraft {
             campaign: "3e".to_string(),
             alignment: "N".to_string(),
             gender: String::new(),
+            character_type: default_character_type(),
             stats: BTreeMap::new(),
             class_levels: Vec::new(),
             advancement: Vec::new(),

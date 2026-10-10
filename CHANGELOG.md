@@ -1,5 +1,23 @@
 ## Unreleased
 
+### 补齐谓词：`PRECHARACTERTYPE` 与 draft 的 character type
+
+- 新增 `Predicate::CharacterType { types, min_count }`；`CharacterDraft` 新增
+  `character_type`（`serde(default = "default_character_type"`，默认 `PC`），
+  `.pcg` 的 `CHARACTERTYPE:` 现在会被读入（42 个验收 `.pcg` 里有 18 个声明了它：
+  17 个 `PC`、1 个 `Monster`）。
+- 语义按 `PreCharactertypeTester`：与每个列出的类型做大小写不敏感比较，list wrapper
+  把匹配数**相加**再与 x 比较；角色只有一个类型，所以只有重复列表才可能计数为 2。
+- 默认值来自 PCGen 的 `GameMode.getDefaultCharacterType`（游戏模式 `CHARACTERTYPE:`
+  列表的第一项，3e/3.5e 的 `system/gameModes/*/miscinfo.lst` 写作 `PC|NPC`）。该
+  游戏模式文件在 pack 的 `.pcc` 图之外，所以用常量
+  `pcgen_core::vocab::DEFAULT_CHARACTER_TYPE` 记录，而不是假装导入。
+- 解析器对「文件没写」保持**空**，默认值在 draft 边界（`draft_from_pcg`）施加，
+  这样 write/read round-trip 不会凭空产生数据；写入端在有值时保留该行。
+- 第三方资料：unsupported 332 → **311**（`PRECHARACTERTYPE` 9 → 0，并连带 12 条以它
+  为 gate 的 `BONUS`，`BONUS` 280 → 268）；验收 cohort 不含该 tag。新增 6 个回归测试；
+  `cargo test --workspace`：**500 passed / 0 failed / 2 ignored**。
+
 ### 补齐谓词：`PRECAMPAIGN` 与 pack 的 campaign 图
 
 - 新增 `Predicate::Campaign { specs, min_count }` 与

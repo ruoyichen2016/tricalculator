@@ -32,6 +32,10 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
         campaign: "3e".to_string(),
         alignment: "N".to_string(),
         gender: String::new(),
+        // Left empty when the `.pcg` says nothing: the engine applies PCGen's
+        // game-mode default at the draft boundary, so a file that is silent stays
+        // silent through a write/read round trip.
+        character_type: String::new(),
         stats: BTreeMap::new(),
         class_levels: Vec::new(),
         skills: BTreeMap::new(),
@@ -65,6 +69,7 @@ pub fn parse_pcg_draft_str(input: &str) -> Result<PcgDraft, PcgDraftError> {
             "RACE" => draft.race_id = value.to_string(),
             "ALIGN" => draft.alignment = value.to_string(),
             "GENDER" => draft.gender = value.to_string(),
+            "CHARACTERTYPE" => draft.character_type = value.to_string(),
             "GAMEMODE" | "CAMPAIGN" => draft.campaign = value.to_string(),
             "STAT" => {
                 let parts = split_pipe(value);
@@ -230,6 +235,9 @@ pub fn write_pcg_draft_string(draft: &PcgDraft) -> Result<String, PcgDraftError>
     writeln!(out, "RACE:{}", draft.race_id).ok();
     writeln!(out, "ALIGN:{}", draft.alignment).ok();
     writeln!(out, "GAMEMODE:{}", draft.campaign).ok();
+    if !draft.character_type.is_empty() {
+        writeln!(out, "CHARACTERTYPE:{}", draft.character_type).ok();
+    }
     for (stat, score) in &draft.stats {
         writeln!(out, "STAT:{stat}|SCORE:{score}").ok();
     }
@@ -701,6 +709,31 @@ GESTALTJSON:[{\"character_level\":1,\"lanes\":[{\"lane_id\":\"a\",\"class_id\":\
         assert_eq!(draft.advancement.len(), 1);
         let text = write_pcg_draft_string(&draft).unwrap();
         assert_eq!(parse_pcg_draft_str(&text).unwrap(), draft);
+    }
+
+    #[test]
+    fn character_type_is_read_and_defaults_to_pc() {
+        // `PRECHARACTERTYPE` needs it, and 18 of the vendored `.pcg` files
+        // declare one.
+        let monster = parse_pcg_draft_str(
+            "CHARACTERNAME:Klug\nRACE:Ogre\nCHARACTERTYPE:Monster\nCLASS:Wizard\n",
+        )
+        .expect("monster draft");
+        assert_eq!(monster.character_type, "Monster");
+
+        // A silent file stays silent; the engine's default applies at the draft
+        // boundary, not in the parser.
+        let plain =
+            parse_pcg_draft_str("CHARACTERNAME:Ann\nRACE:Human\nCLASS:Fighter\n").expect("draft");
+        assert!(plain.character_type.is_empty());
+
+        // And what is read is written back.
+        let text = write_pcg_draft_string(&monster).expect("write");
+        assert!(text.contains("CHARACTERTYPE:Monster"));
+        assert_eq!(
+            parse_pcg_draft_str(&text).expect("reparse").character_type,
+            "Monster"
+        );
     }
 
     #[test]

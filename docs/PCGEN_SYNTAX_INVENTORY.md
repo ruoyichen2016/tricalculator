@@ -803,13 +803,14 @@ The remaining kinds are genuinely unimplemented: `PRE` (21), `PRESA` (12),
 `PRESKILLTOT`, `PREHP`, `PRESIZENEQ`,
 `PREDEITYDOMAIN`, `PRESRLT`,
 `PRECLASSLEVELMAX`, `PRETEXT`. None appear in the
-acceptance cohort.  `PRECAMPAIGN` was on this list and is now lowered — see
-§5aa.  Several names on the original list have since been lowered:
+acceptance cohort.  `PRECAMPAIGN` and `PRECHARACTERTYPE` were on this list and are
+now lowered — see §5aa and §5ab.  Several names on the original list have since been lowered:
 `PRELEVELMAX`, `PREATT`, `PREHANDSGT`, multi-mode `PREMOVE`, `PREREGION`
 (see §5u), `PRECSKILL` (see §5v), `PREALIGN`'s value forms (see §5w),
 `PRECHECK` (see §5x), `PRESPELLDESCRIPTOR` (see §5y), `PRESPELLSCHOOLSUB` and
-`PRESPELLSCHOOL` (see §5z), and `PRECAMPAIGN` (see §5aa); `PRELEVEL` now supports
-both `MIN=` and `MAX=`.  See the current `CHANGELOG.md`.
+`PRESPELLSCHOOL` (see §5z), `PRECAMPAIGN` (see §5aa) and `PRECHARACTERTYPE`
+(see §5ab); `PRELEVEL` now supports both `MIN=` and `MAX=`.  See the current
+`CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
 
@@ -1214,11 +1215,56 @@ Lowering `PRECAMPAIGN` therefore preserves the gate and clears the unsupported
 report, but does not yet change behaviour; the same is true of `PREPCLEVEL` on the
 very same rows, and of every other gate on a class-level row.
 
-That enforcement gap is deliberately left for its own round. It is larger than it
-looks: class-level rows carry level-scaled `BONUS` rows whose gates were never
-meant to be ignored, and enforcing them will move cohort numbers, so it needs the
-full gate rather than a quiet fold-in. It is recorded here so the next reader does
-not mistake a lowered gate for an enforced one.
+That enforcement gap is deliberately left for its own round, and it was measured
+rather than guessed before deciding. Two findings matter:
+
+* **The class-level slice is provably a no-op.** Across the 189 third-party packs,
+  594 `CLASS_LEVEL` entities carry requirements and **not one of them carries an
+  effect**; the 12 in the RSRD cohort are the same (empty level-11 rows gated on
+  `PREPCLEVEL:MIN=20`). Enforcing them would change nothing, so it is not worth a
+  round on its own.
+* **The real gap is identity-selected entities of every other kind.** An entity
+  reached by *identity* — a race, a template, an equipment modifier, an explicitly
+  chosen ability — never has its own `requirements` tested; only the grant path
+  calls `grant_allowed`. In the RSRD cohort the entities that carry both
+  requirements and effects are `EQUIPMOD` 402, `TEMPLATE` 155, `ABILITY` 141,
+  `EQUIPMENT` 13, `DOMAIN` 6 and `RACE` 4; across the third-party packs the same
+  count is in the thousands.
+
+That second item is the one worth doing, and it is a behavioural change large
+enough to move cohort numbers, so it needs the full gate and a deliberate decision
+rather than a quiet fold-in. It is recorded here so the next reader does not
+mistake a lowered gate for an enforced one.
+
+### 5ab. `PRECHARACTERTYPE`, and a default that is not in the pack
+
+`PRECHARACTERTYPE:x,y,y` is the simplest kind of gate — "Sets requisites for
+character type" — but it needs a fact the character had never carried.
+
+**The value comes from the game mode, not the pack.** `PreCharactertypeTester`
+reads the `CHARACTERTYPE` channel, and `PlayerCharacter` initialises it from
+`GameMode.getDefaultCharacterType()`, which returns the first entry of the game
+mode's `CHARACTERTYPE:` list.  In 3e and 3.5e that list is declared in
+`system/gameModes/{3e,35e}/miscinfo.lst` as `PC|NPC`, so the default is `PC`.  A
+game-mode file is outside a pack's `.pcc` graph, so the constant lives in
+`pcgen_core::vocab::DEFAULT_CHARACTER_TYPE` with that provenance recorded, rather
+than being guessed at the call site.
+
+**The `.pcg` reader was dropping the value.** 18 of the 42 vendored `.pcg` files
+declare `CHARACTERTYPE:` — 17 `PC` and one `Monster` — and the tag was not in the
+reader's match, so every imported character silently became whatever the default
+was.  It is read now, and written back when set.
+
+**A silent file stays silent.** The parser leaves the field empty when the `.pcg`
+does not mention it, and the default is applied at the draft boundary
+(`draft_from_pcg`).  Filling it in during parsing would have made a write/read
+round trip of a `.pcg` that says nothing produce a `CHARACTERTYPE:PC` line, which
+is the parser inventing data.
+
+`PreCharactertypeTester` compares the character's type with each listed key and
+the list wrapper sums the matches, so `PRECHARACTERTYPE:1,NPC,Monster` is "either"
+and a character — who has exactly one type — can only ever match one of them; a
+count above one is satisfiable only by a list that names the same type twice.
 
 ## What followed from this
 

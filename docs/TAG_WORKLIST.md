@@ -126,6 +126,9 @@ semantic_completion 100.0%
 - **Post-M9**：`PRECAMPAIGN` → `Predicate::Campaign`；`CompiledPackHeader` 新增
   `campaigns`（由 `.pcc` 图填充，根为「已选中」）。第三方资料 unsupported 341→332。
   注意这 9 条在职业等级行上，而 CLASS_LEVEL 的 requirements 目前不被求值（§5aa）。
+- **Post-M9**：`PRECHARACTERTYPE` → `Predicate::CharacterType`；`CharacterDraft`
+  新增 `character_type`（默认 `PC`，`.pcg` 的 `CHARACTERTYPE:` 会被读入）。第三方资料
+  unsupported 332→311（连带 `BONUS` 280→268）。
 - monster class `classlevel()` BAB 公式修复（`classlevel()` 空括号）
 
 累计：`legacy_tags` 4289 → 1284，`unsupported` 337 → 0，`semantic_completion` 46.8% → 100.0%。

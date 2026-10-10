@@ -47,6 +47,10 @@ pub struct PcgDraft {
     /// PCGen `GENDER:`.
     #[serde(default)]
     pub gender: String,
+    /// PCGen `CHARACTERTYPE:` (`PC`, `NPC`, `Monster`).  Empty means the file did
+    /// not say, and the engine's default applies.
+    #[serde(default)]
+    pub character_type: String,
     pub stats: BTreeMap<String, i32>,
     #[serde(default)]
     pub class_levels: Vec<PcgClassLevel>,

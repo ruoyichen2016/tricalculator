@@ -330,6 +330,7 @@ fn demo_draft() -> CharacterDraft {
         campaign: "3e".to_string(),
         alignment: "N".to_string(),
         gender: String::new(),
+        character_type: pcgen_engine::default_character_type(),
         stats: BTreeMap::from([
             ("STR".to_string(), 14),
             ("DEX".to_string(), 12),
@@ -1487,6 +1488,11 @@ fn draft_from_pcg(draft: PcgDraft) -> CharacterDraft {
         campaign: draft.campaign,
         alignment: draft.alignment,
         gender: draft.gender,
+        character_type: if draft.character_type.trim().is_empty() {
+            pcgen_engine::default_character_type()
+        } else {
+            draft.character_type
+        },
         stats: draft.stats,
         class_levels: draft
             .class_levels

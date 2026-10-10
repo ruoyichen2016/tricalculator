@@ -1164,3 +1164,43 @@ fn precampaign_lowers_to_the_four_selectors() {
         Predicate::Not(inner) if matches!(**inner, Predicate::Campaign { .. })
     ));
 }
+
+#[test]
+fn precharactertype_lowers_to_a_type_list() {
+    let npc = record("ABILITY", "NPC Only", &[("PRECHARACTERTYPE", "1,NPC")]);
+    let (pack, report) = lower_records(Some("5e".to_string()), vec!["pred".to_string()], &[npc]);
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::CharacterType {
+            types: vec!["NPC".to_string()],
+            min_count: 1,
+        }
+    );
+
+    // The reference's own second example.
+    let either = record("ABILITY", "Not A PC", &[("PRECHARACTERTYPE", "1,PC,NPC")]);
+    let (pack, _) = lower_records(Some("5e".to_string()), vec!["pred".to_string()], &[either]);
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::CharacterType {
+            types: vec!["PC".to_string(), "NPC".to_string()],
+            min_count: 1,
+        }
+    );
+
+    let negated = record(
+        "ABILITY",
+        "Not A Monster",
+        &[("!PRECHARACTERTYPE", "1,Monster")],
+    );
+    let (pack, _) = lower_records(Some("5e".to_string()), vec!["pred".to_string()], &[negated]);
+    assert!(matches!(
+        &pack.entities[0].requirements[0],
+        Predicate::Not(inner) if matches!(**inner, Predicate::CharacterType { .. })
+    ));
+}

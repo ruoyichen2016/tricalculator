@@ -10,18 +10,22 @@
 - 工作区：10 crate（core / formula / ir / import / engine / builder / output /
   cli / web / **transpile**）。`pcgen-transpile` 是构建期转写器，把
   `.pcc`/`.lst` 规范化成 pack 目录，使运行期不再解释 PCGen 文本。
-- 测试：`cargo test --workspace` **494 passed / 2 ignored**（`scripts/check.sh`
-  额外再跑一次 `pcgen-web`，合计 **533 passed / 2 ignored**）。
+- 测试：`cargo test --workspace` **500 passed / 2 ignored**（`scripts/check.sh`
+  额外再跑一次 `pcgen-web`，合计 **539 passed / 2 ignored**）。
 - 第三方资料（189 个 top-level campaign，固定 checkout，`import-report
-  --histogram` 汇总）：unsupported **1,409 → 332**（本轮 `PRECAMPAIGN` 9 → 0；
+  --histogram` 汇总）：unsupported **1,409 → 311**（本轮 `PRECHARACTERTYPE` 9 → 0，
+  连带 `BONUS` 280 → 268；`PRECAMPAIGN` 9 → 0；
   `PRESPELLSCHOOLSUB` 9 → 0；`PRESPELLDESCRIPTOR` 14 → 0，连带 `PREMULT` 28 → 19；`PRECHECK`
   17 → 0，连带 `PREMULT` 31 → 28；`PREALIGN` 8 → 0；`PRECSKILL`/`!PRECSKILL`
   30 → 0 并连带 319 条以它为 gate 的 `BONUS`，`BONUS` 599 → 280；`PREREGION`
   65 → 0 并连带 `PREMULT` 387 → 31）。剩下的 `BONUS` 是「gate 不可读但效果保留」
   的可见过近似，不是被丢弃的效果。这些 pack 在验收 cohort 之外，门禁不覆盖它们。
-- **已知缺口（独立一轮）**：CLASS_LEVEL 实体的 `requirements` 从不被求值
-  （`initial_entities` 只按职业 + 等级选取），所以职业等级行上的 gate（`PREPCLEVEL`、
-  `PRECAMPAIGN` 等）目前不影响行为。见 `docs/PCGEN_SYNTAX_INVENTORY.md` §5aa。
+- **已知缺口（独立一轮，已量化）**：按身份选取的实体（RACE/TEMPLATE/EQUIPMOD/…）
+  其 `requirements` 只在**授予路径**上被检查，`initial_entities` 不看它们。RSRD 中
+  同时带 requirements 与 effects 的此类实体：EQUIPMOD 402、TEMPLATE 155、ABILITY 141、
+  EQUIPMENT 13、DOMAIN 6、RACE 4；189 个第三方 pack 合计上万。而 **CLASS_LEVEL 那一
+  片是可证的空操作**（594 条带 gate 的职业等级行**没有一条带 effects**），所以本轮
+  没有把它当作「修复」来做。见 `docs/PCGEN_SYNTAX_INVENTORY.md` §5aa。
 - `PRESPELLSCHOOL` 语义修复（非 unsupported 项）：新增
   `EffectState.spell_schools`，按 `SpellDefinition.school` 匹配，并保留 reference 的
   count 与「配对相加」。第三方 504 条语义被修正；cohort 的 3 条在职业前置上，字段级
