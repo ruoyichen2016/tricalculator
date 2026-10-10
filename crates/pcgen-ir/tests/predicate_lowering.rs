@@ -100,12 +100,19 @@ fn unreadable_bonus_gate_keeps_the_effect_and_is_reported() {
     // An unknown gate must not make `lower_bonus_effect` return `None`: the
     // bonus is retained with an explicit `Unsupported` condition, and the raw
     // text is still counted as unsupported work rather than disappearing.
+    //
+    // The gate is synthetic.  It used to be `PRESKILLTOT:Alchemy=7`, then
+    // `PRESPELLCAST:TYPE=Arcane=1`, and both were real examples of an unreadable
+    // gate until they were lowered — after which the third-party data has no
+    // unreadable `PRE*` tag left for the example to borrow.  What the test is
+    // about is the *mechanism*: an unknown gate must not make
+    // `lower_bonus_effect` return `None`.
     let record = record(
         "RACE",
         "Alchemy Dabbler",
         &[(
             "BONUS",
-            "VAR|AlchemyFeat|1|PRESKILLTOT:Alchemy=7|TYPE=NoStack",
+            "VAR|AlchemyFeat|1|PRESPELLWEIRD:TYPE=Arcane|TYPE=NoStack",
         )],
     );
     let (pack, report) = lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[record]);
@@ -116,14 +123,14 @@ fn unreadable_bonus_gate_keeps_the_effect_and_is_reported() {
         .clone()
         .expect("the unreadable gate must be preserved");
     assert!(
-        matches!(condition, Predicate::Unsupported { ref raw } if raw == "PRESKILLTOT:Alchemy=7"),
+        matches!(condition, Predicate::Unsupported { ref raw } if raw == "PRESPELLWEIRD:TYPE=Arcane"),
         "expected an Unsupported condition, got {condition:?}"
     );
     assert!(
         pack.entities[0]
             .unsupported_tags
             .iter()
-            .any(|tag| tag.contains("PRESKILLTOT:Alchemy=7")),
+            .any(|tag| tag.contains("PRESPELLWEIRD:TYPE=Arcane")),
         "raw gate must remain reportable: {:?}",
         pack.entities[0].unsupported_tags
     );
@@ -380,10 +387,8 @@ fn prespell_predicates_lower() {
         Predicate::CastingTypeIs { prepared: false }
     ));
     assert!(matches!(
-        requirements[3],
-        Predicate::HasSpellPower {
-            power: SpellPowerType::Divine
-        }
+        &requirements[3],
+        Predicate::HasSpellType { spell_type } if spell_type == "Divine"
     ));
 }
 
@@ -1898,7 +1903,11 @@ fn preskilltot_lowers_to_a_total_over_the_listed_skills() {
 
     // A `TYPE.` entry is a type selector, and a formula with no `=` leaves the
     // total at 0 — the parser only assigns it from a token that carries one.
-    let typed = record("FEAT", "Skill Focus", &[("PRESKILLTOT", "TYPE.Knowledge,Spot")]);
+    let typed = record(
+        "FEAT",
+        "Skill Focus",
+        &[("PRESKILLTOT", "TYPE.Knowledge,Spot")],
+    );
     let (pack, _) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[typed]);
     assert_eq!(
         pack.entities[0].requirements[0],
@@ -1945,11 +1954,7 @@ fn preskilltot_lowers_to_a_total_over_the_listed_skills() {
 fn preuatt_lowers_to_a_per_class_bab_maximum() {
     // The third-party form, on the Drunken Master class.
     let class = record("CLASS", "Drunken Master", &[("PREUATT", "4")]);
-    let (pack, report) = lower_records(
-        Some("35e".to_string()),
-        vec!["pred".to_string()],
-        &[class],
-    );
+    let (pack, report) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[class]);
     assert_eq!(
         report.coverage.unsupported_tags, 0,
         "{:?}",
@@ -1967,6 +1972,90 @@ fn preuatt_lowers_to_a_per_class_bab_maximum() {
         vec!["pred".to_string()],
         &[formula],
     );
+    assert!(pack.entities[0].requirements.is_empty());
+    assert_eq!(report.coverage.unsupported_tags, 1);
+}
+
+#[test]
+fn prespellcast_keeps_every_token_and_the_spell_type_is_text() {
+    // Two tokens make a group: the parser drops the wrapper only for one.
+    let both = record(
+        "FEAT",
+        "Either Caster",
+        &[("PRESPELLCAST", "TYPE=Arcane,TYPE=Divine")],
+    );
+    let (pack, report) = lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[both]);
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::AtLeast {
+            n: 1,
+            items: vec![
+                Predicate::HasSpellType {
+                    spell_type: "Arcane".to_string(),
+                },
+                Predicate::HasSpellType {
+                    spell_type: "Divine".to_string(),
+                },
+            ],
+        }
+    );
+
+    // The spell type is text, not a `SpellPowerType`: the third-party form
+    // `TYPE=Arcane=1` names a spell type literally called `Arcane=1`, which no
+    // class carries, so the requirement is false rather than unreadable.
+    let malformed = record("FEAT", "Typo", &[("PRESPELLCAST", "TYPE=Arcane=1")]);
+    let (pack, report) = lower_records(
+        Some("3e".to_string()),
+        vec!["pred".to_string()],
+        &[malformed],
+    );
+    assert_eq!(report.coverage.unsupported_tags, 0);
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::HasSpellType {
+            spell_type: "Arcane=1".to_string(),
+        }
+    );
+
+    // `TYPE.` is five characters too, so it reads the same way.
+    let dotted = record("FEAT", "Dotted", &[("PRESPELLCAST", "TYPE.Psionic")]);
+    let (pack, _) = lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[dotted]);
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::HasSpellType {
+            spell_type: "Psionic".to_string(),
+        }
+    );
+
+    // `MEMORIZE=` reads anything not starting with `N` as the prepared side, and a
+    // token of neither kind makes the reference throw.
+    let mixed = record(
+        "FEAT",
+        "Mixed",
+        &[("PRESPELLCAST", "MEMORIZE=Yes,TYPE=Arcane")],
+    );
+    let (pack, _) = lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[mixed]);
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::AtLeast {
+            n: 1,
+            items: vec![
+                Predicate::CastingTypeIs { prepared: true },
+                Predicate::HasSpellType {
+                    spell_type: "Arcane".to_string(),
+                },
+            ],
+        }
+    );
+
+    let unknown = record("FEAT", "Unknown", &[("PRESPELLCAST", "SOMETHING=Y")]);
+    let (pack, report) =
+        lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[unknown]);
     assert!(pack.entities[0].requirements.is_empty());
     assert_eq!(report.coverage.unsupported_tags, 1);
 }

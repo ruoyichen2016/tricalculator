@@ -116,6 +116,13 @@ pub struct EffectState {
     /// has 6 there and 4 here, which is what `PreUnarmedAttackTester` asks for
     /// despite its name.
     pub highest_class_bab: i32,
+    /// The `FACT:SpellType` strings of the character's own classes, for
+    /// `PRESPELLCAST:TYPE=`.
+    ///
+    /// A string set rather than the typed `spell_powers`, because
+    /// `PCClass.getSpellType` returns the fact verbatim and the tester compares it
+    /// as text.
+    pub spell_types: BTreeSet<String>,
     /// The character's own damage reduction by type (lower-cased), for `PREDR`.
     ///
     /// This is PCGen's *non-bonus* half: `BONUS:DR|<type>` arrives as an ordinary
@@ -338,6 +345,24 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         })
         .unwrap_or_default();
     let class_levels = character_class_levels(pack, draft);
+    // `PRESPELLCAST:TYPE=` asks about the character's own classes' `SpellType`
+    // facts, so it cannot be answered from `class_traits`, which holds every class
+    // in the pack.
+    let spell_types: BTreeSet<String> = crate::engine::effective_class_levels(pack, draft)
+        .iter()
+        .filter_map(|entry| {
+            pack.classes
+                .get(&entry.class_id)
+                .or_else(|| {
+                    pack.classes
+                        .iter()
+                        .find(|(key, _)| key.eq_ignore_ascii_case(&entry.class_id))
+                        .map(|(_, class)| class)
+                })
+                .map(|class| class.spell_type.clone())
+        })
+        .filter(|spell_type| !spell_type.is_empty())
+        .collect();
     let initial = initial_entities(pack, draft);
     let prereq_bab = crate::bab::derive_prereq_bab(pack, draft, &initial);
     let base_saves = crate::bab::derive_base_saves(pack, draft);
@@ -550,6 +575,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         slots_by_power_level,
         has_spellbook,
         class_casting,
+        spell_types,
         templates,
         hands,
         movement,
@@ -2215,7 +2241,13 @@ pub(crate) fn predicate_holds(
             available >= (*count).max(1)
         }
         Predicate::HasSpellbook => state.has_spellbook,
-        Predicate::HasSpellPower { power } => state.spell_powers.contains(power),
+        // `PreSpellCastTester` counts the classes whose `getSpellType` equals the
+        // value, case-insensitively, and compares the count with the default
+        // operand of 1 — so this is "some class has this spell type".
+        Predicate::HasSpellType { spell_type } => state
+            .spell_types
+            .iter()
+            .any(|known| known.eq_ignore_ascii_case(spell_type.trim())),
         // `PreCampaignTester` counts matching *campaigns* and compares the count
         // with the operand, summing across the listed selectors.  A plain name
         // and `BOOKTYPE=` count only the selected (root) source; `INCLUDES=` and

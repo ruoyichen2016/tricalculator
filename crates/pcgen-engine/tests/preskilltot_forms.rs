@@ -60,8 +60,11 @@ fn gated(gate: &str, skills: &[(&str, f64)]) -> bool {
             ],
         ),
     ];
-    let (pack, report) =
-        lower_records(Some("35e".to_string()), vec!["skilltot".to_string()], &records);
+    let (pack, report) = lower_records(
+        Some("35e".to_string()),
+        vec!["skilltot".to_string()],
+        &records,
+    );
     assert_eq!(
         report.coverage.unsupported_tags, 0,
         "{:?}",
@@ -94,10 +97,7 @@ fn the_ranks_of_the_listed_skills_are_summed() {
     assert!(gated("PRESKILLTOT:Spot=10", &[("Spot", 10.0)]));
     assert!(!gated("PRESKILLTOT:Spot=10", &[("Spot", 9.0)]));
     // Skills that are not listed do not count.
-    assert!(!gated(
-        "PRESKILLTOT:Spot=10",
-        &[("Search", 20.0)]
-    ));
+    assert!(!gated("PRESKILLTOT:Spot=10", &[("Search", 20.0)]));
 }
 
 #[test]

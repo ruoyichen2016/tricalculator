@@ -135,6 +135,9 @@ semantic_completion 100.0%
 - **Post-M9**：`PREFACT` → `Predicate::Fact`，新增 `FACT` 模型（`CompiledEntity.facts`
   + `EffectState.location_facts`，只 lower `abilities`/`race` 两个可枚举 location）。
   第三方资料 unsupported **304→42**（`BONUS` 268→23、`PREMULT` 19→2），是本循环最大一次下降。
+- **Post-M9**：`PRESPELLCAST` 语义修复：每个逗号 token 都读（多 token = 任一成立），
+  法术类型改为**文本**比较（`HasSpellType`，`ClassDefinition.spell_type` 取
+  `FACT:SpellType` 原文，未声明为 `None`）。第三方 unsupported 25→23，`PREMULT` 归零。
 - **Post-M9**：`PREUATT` → `Predicate::HighestClassBab`（reference 名为「非武装攻击加值」，
   实为**各职业 BAB 的最大值**；新增 `EffectState.highest_class_bab` /
   `bab::max_class_bab`）。第三方资料 unsupported 29→25。

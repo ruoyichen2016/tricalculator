@@ -386,6 +386,16 @@ pub struct ClassDefinition {
     /// Subclass choice expression (`CHOICE:` on a `SUBCLASS:` row).
     #[serde(default)]
     pub subclass_choice: Option<String>,
+    /// PCGen `FACT:SpellType|<text>` — the class's magic source as written.
+    ///
+    /// `PCClass.getSpellType` returns this string verbatim, or `None` when the
+    /// class declares none, and `PRESPELLCAST:TYPE=` compares against it as
+    /// *text*: the third-party data contains values such as `Arcane=1`, which
+    /// match no class and are therefore false rather than unreadable.  The typed
+    /// [`spell_power`](Self::spell_power) beside it is what the spell-slot side of
+    /// the engine needs.
+    #[serde(default)]
+    pub spell_type: String,
 }
 
 impl ClassDefinition {
@@ -423,6 +433,7 @@ impl ClassDefinition {
             serves_as: None,
             is_monster: false,
             gestalt_slot_cost: None,
+            spell_type: String::new(),
             hit_die: "d8".to_string(),
             max_level: 20,
             attack_progression: AttackProgression::None,

@@ -158,6 +158,11 @@ rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
   lowered to one shape that the engine read as strict. **2,519** pairs in these
   packs have a symbolic operand and were compared one step too strictly. Nothing
   moves in the table below, because `PREVAR*` already lowered;
+- not a reduction on its own but the end of the `PREMULT` queue, `PRESPELLCAST`: the
+  lowering read only the first token, so `TYPE=Arcane,TYPE=Divine` tested Arcane
+  alone, and it typed the spell type as a `SpellPowerType`, so `TYPE=Arcane=1` — a
+  spell type no class has — made the whole tag unreadable instead of false. Both are
+  fixed, and `PREMULT` falls from 2 to 0;
 - `PREUATT` (4 tags), lowered to `Predicate::HighestClassBab`. The tag is described
   as an unarmed attack bonus and its tester is called `PreUnarmedAttackTester`, but
   it takes the maximum per-class base attack bonus, so a Fighter 4 / Wizard 4 is 4
@@ -197,18 +202,31 @@ rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
   these packs now evaluate against the spell's `SCHOOL:`. The total below is
   unchanged by it.
 
-**Current total, re-measured over the same 189 campaigns: 32 unsupported
-occurrences across 4 tag kinds**, against 42 / 8 after the `PREFACT` round,
-304 / 8 after the `PRESA` round,
+**Current total, re-measured over the same 189 campaigns: 23 unsupported
+occurrences across 1 tag kind** — every one of them a `BONUS`.  Against 25 / 2
+before the `PRESPELLCAST` round, 32 / 4 before `PRESKILLTOT` and `PREUATT`,
+42 / 8 after the `PREFACT` round, 304 / 8 after the `PRESA` round,
 311 / 9 after the `PRECHARACTERTYPE` round, 332 / 10 after the `PRECAMPAIGN`
 round, 341 / 11 after the `PRESPELLSCHOOL` round, 350 / 12 after the
 `PRESPELLDESCRIPTOR` round, 373 / 13 after the `PRECHECK` round, 393 / 14 after
 the `PREALIGN` round, 401 / 15 after the `PRECSKILL` round, 750 / 17 after the
 `PREREGION` round, 1,171 / 18 after the `PREATT` round and 1,409 / 20 at
-transcription. `BONUS` is 23 of the 32 and is the visible over-approximation
-described above — the effect is kept and the unreadable gate is what is reported —
-so the remaining actionable queue is the 9 occurrences behind it: `PREUATT` (4),
-`PRESKILLTOT` (3) and `PREMULT` (2).
+transcription.
+
+What is left is the over-approximation described at the top of this file and
+nothing else: 23 `BONUS` rows whose *gate* cannot be read, with the effect kept and
+the raw gate reported.  Reading their gates shows they are not a single unknown
+tag, and two of the three groups are correctly modellable — so this is a stopping
+point for the *reported* queue, not for the work:
+
+* 18 rows, in two packs, are gated on `PRESPELLTYPE:1,Shadow Magic=N`.  `Shadow
+  Magic` is a real spell type in that data but not one of the three the typed
+  `SpellPowerType` understands, so the arm declines it — the same free-string
+  problem `PRESPELLCAST` had in the round that closed the `PREMULT` queue;
+* 1 row is gated on `PREEQUIPTWOWEAPON:2,TYPE=Nekode`, a tag this codebase has no
+  arm for at all;
+* 4 rows remain in the 4e, Final Fantasy and Underdark packs and have not been read
+  yet.
 
 ## The 7 campaigns that could not be transcribed
 

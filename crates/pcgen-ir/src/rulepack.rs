@@ -2262,21 +2262,54 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
             "NO" => Some(Predicate::Not(Box::new(Predicate::HasSpellbook))),
             _ => None,
         },
-        // PRESPELLCAST:MEMORIZE=Y|N — prepared vs spontaneous caster.
+        // PRESPELLCAST:MEMORIZE=Y|N,TYPE=<spell type> — one sub-requirement per
+        // comma token, in a group whose operand is the default 1, so two tokens
+        // mean "at least one of them holds".
+        //
+        // `PreSpellCastParser` splits on commas and builds either a
+        // `spellcast.memorize` or a `spellcast.type` sub-requirement; any other
+        // token makes it throw.  The type is compared as *text* against
+        // `PCClass.getSpellType`, which returns the class's `FACT:SpellType`
+        // verbatim (or `None`), so a value like `Arcane=1` names no class and is
+        // false rather than unreadable.
+        //
+        // The previous lowering read only the first token of either kind, so
+        // `PRESPELLCAST:TYPE=Arcane,TYPE=Divine` — nine occurrences in the
+        // third-party data — tested Arcane alone instead of "either".
         "PRESPELLCAST" => {
-            if let Some(part) = parts
+            let mut items = Vec::new();
+            for token in parts
                 .iter()
-                .find(|part| part.to_ascii_uppercase().starts_with("MEMORIZE="))
+                .map(|part| part.trim())
+                .filter(|part| !part.is_empty())
             {
-                let value = part.split_once('=')?.1.trim();
-                let prepared = value.eq_ignore_ascii_case("Y") || value.eq_ignore_ascii_case("YES");
-                Some(Predicate::CastingTypeIs { prepared })
-            } else {
-                let part = parts
-                    .iter()
-                    .find(|part| part.to_ascii_uppercase().starts_with("TYPE="))?;
-                let power = SpellPowerType::from_pcgen(part.split_once('=')?.1)?;
-                Some(Predicate::HasSpellPower { power })
+                let upper = token.to_ascii_uppercase();
+                if upper.starts_with("MEMORIZE") {
+                    // `MEMORIZE=Y` is a prepared caster; the reference reads
+                    // anything not starting with `N` as `Y`, so `MEMORIZE=Yes`
+                    // lands on the same side.
+                    let value = token.split_once('=')?.1.trim().to_ascii_uppercase();
+                    items.push(Predicate::CastingTypeIs {
+                        prepared: !value.starts_with('N'),
+                    });
+                } else if upper.starts_with("TYPE") {
+                    // `token.substring(5)`, so `TYPE=X` and `TYPE.X` both yield
+                    // `X`; a token shorter than five characters throws in the
+                    // reference and stays unsupported here.
+                    items.push(Predicate::HasSpellType {
+                        spell_type: token.get(5..)?.trim().to_string(),
+                    });
+                } else {
+                    return None;
+                }
+            }
+            match items.len() {
+                0 => None,
+                1 => items.pop(),
+                // The parser drops the wrapper only for a single sub-requirement;
+                // with more it keeps the group, whose operator is GTEQ and whose
+                // operand is the default 1.
+                _ => Some(Predicate::AtLeast { n: 1, items }),
             }
         }
         // PREITEM:count,name,TYPE=type — the character possesses at least `count`

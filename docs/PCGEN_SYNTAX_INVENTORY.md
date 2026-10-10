@@ -810,7 +810,8 @@ see §5aa, §5ab, §5ac and §5ad.  Several names on the original list have sinc
 `PRESPELLSCHOOL` (see §5z), `PRECAMPAIGN` (see §5aa), `PRECHARACTERTYPE`
 (see §5ab), `PRESA` (see §5ac), `PREFACT` (see §5ad), `PREDR` (see §5ae), the
 `PREVAR*` boundary (see §5af), `PREREACH` (see §5ag), `PREITEM` (see §5ah),
-`PRECLASSLEVELMAX` (see §5ai), `PRESKILLTOT` (see §5aj) and `PREUATT` (see §5ak);
+`PRECLASSLEVELMAX` (see §5ai), `PRESKILLTOT` (see §5aj), `PREUATT` (see §5ak) and
+`PRESPELLCAST` (see §5al);
 `PRELEVEL` now supports both `MIN=` and `MAX=`.  See the current `CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
@@ -1722,6 +1723,60 @@ One extension: `effective_class_levels` also covers advancement lanes, so a gest
 draft takes the maximum over its lanes. PCGen has no gestalt, so there is no
 reference behaviour to match — it is the closest analogue, and it is recorded here
 rather than left to be inferred.
+
+### 5al. `PRESPELLCAST`, where the spell type was typed and only one token was read
+
+This tag had two defects, and both came from treating a list of text tokens as if
+it were one typed value.
+
+**Only the first token was read.** `PreSpellCastParser` splits the formula on commas
+and builds one sub-requirement per token:
+
+```java
+if (token.startsWith("MEMORIZE")) { ... setKind("spellcast.memorize") ... }
+else if (token.startsWith("TYPE")) { ... setKind("spellcast.type"); subprereq.setKey(token.substring(5)); }
+else throw new PersistenceLayerException(...);
+```
+
+and the group keeps the parser's default operand of 1, so two tokens mean "at least
+one of them holds"; the wrapper is dropped only when there is a single
+sub-requirement. The old lowering searched for the first `MEMORIZE=` or the first
+`TYPE=` and ignored the rest, so `PRESPELLCAST:TYPE=Arcane,TYPE=Divine` — nine
+occurrences in the third-party data — asked about Arcane alone and failed for a
+cleric.
+
+**The spell type was typed, and it is text.**
+
+```java
+final String prereqSpellType = prereq.getKey();
+for (PCClass aClass : display.getClassSet())
+    if (prereqSpellType.equalsIgnoreCase(aClass.getSpellType())) runningTotal++;
+```
+
+and `getSpellType` is the class's `FACT:SpellType` verbatim, or `None` when the fact
+is unset:
+
+```java
+FactKey<String> fk = FactKey.valueOf("SpellType");
+String castInfo = getResolved(fk);
+return StringUtils.isEmpty(castInfo) ? Constants.NONE : castInfo;
+```
+
+So `PRESPELLCAST:TYPE=Arcane=1` — which the data contains twice — asks for a class
+whose spell type is literally `Arcane=1`. No class has one, so the answer is
+**false**. The old lowering ran the value through `SpellPowerType::from_pcgen`,
+which knows `arcane`, `divine` and `psionic` and nothing else, so the whole tag
+became unreadable — and took the `PREMULT` wrapping it down as well. That is why
+this one fix closed the last two entries in the `PREMULT` column.
+
+`HasSpellPower` is gone with it, replaced by `HasSpellType { spell_type: String }`,
+and the character's classes' strings are collected into `EffectState.spell_types`
+from `effective_class_levels` rather than from `class_traits` — the latter holds
+every class in the pack, and a prerequisite about *the character's* classes must not
+be answered by a pack's catalogue.
+
+The acceptance cohort contains no `PRESPELLCAST` at all, so the change is provably
+cohort-neutral, and the coverage gate confirmed it rather than assuming it.
 
 ## What followed from this
 

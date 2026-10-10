@@ -466,6 +466,14 @@ fn parse_class(record: &RawRecord) -> ClassDefinition {
         .find_map(|value| value.split_once('|').map(|(_, power)| power))
         .and_then(SpellPowerType::from_pcgen)
         .unwrap_or_default();
+    // `PCClass.getSpellType` reads `FACT:SpellType` verbatim and answers `None`
+    // when the class declares none.
+    class.spell_type = tags(record, "FACT")
+        .filter_map(|value| value.split_once('|'))
+        .find(|(name, _)| name.trim().eq_ignore_ascii_case("SpellType"))
+        .map(|(_, value)| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| "None".to_string());
     class.requires_spellbook =
         tag(record, "SPELLBOOK").is_some_and(|value| value.eq_ignore_ascii_case("YES"));
     class.type_tags = type_tags(record);

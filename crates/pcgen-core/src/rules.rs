@@ -407,10 +407,16 @@ pub enum Predicate {
         specs: Vec<SpellSchoolSubSpec>,
         count: u32,
     },
-    /// The character has a class of this power type
+    /// The character has a class whose `FACT:SpellType` is this text
     /// (PCGen `PRESPELLCAST:TYPE=Arcane`).
-    HasSpellPower {
-        power: SpellPowerType,
+    ///
+    /// `PreSpellCastTester` compares the value with `aClass.getSpellType()`
+    /// through `equalsIgnoreCase`, and `getSpellType` returns the class's
+    /// `FACT:SpellType` verbatim — so this is a string, not a
+    /// [`SpellPowerType`]: the data contains `TYPE=Arcane=1`, which names no class
+    /// and is false rather than unreadable.
+    HasSpellType {
+        spell_type: String,
     },
     /// The character has a class with the given casting mode
     /// (PCGen `PRESPELLCAST:MEMORIZE=Y|N`).

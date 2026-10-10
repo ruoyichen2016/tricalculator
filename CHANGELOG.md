@@ -7,6 +7,31 @@
 > 0 failed / 2 ignored**（PF35e、cohort matrix、deep-field 均通过；archive differential 为
 > 预期的 `SKIP`）。第三方 unsupported 由 **42 → 32**。
 
+### 修复 `PRESPELLCAST`：保留每个 token，并把法术类型当作文本（第 21 轮，已实测）
+
+- `Predicate::HasSpellPower { power: SpellPowerType }` 换成
+  `Predicate::HasSpellType { spell_type: String }`；`ClassDefinition` 新增
+  `spell_type`（`FACT:SpellType` 的**原文**，未声明时为 `None`，与 `PCClass.getSpellType`
+  一致，`serde(default)`）；`EffectState` 新增 `spell_types`（**角色自己的**职业的该字符串）。
+- 两处语义修复：
+  1. **每个逗号 token 都要读**。`PreSpellCastParser` 为每个 token 生成一个子前置（`MEMORIZE=`
+     或 `TYPE=`），外层是算子 GTEQ、操作数为默认 1 的分组，所以两个 token 是「任一成立」。
+     旧实现只取第一个 `TYPE=`，于是 `PRESPELLCAST:TYPE=Arcane,TYPE=Divine`（第三方 **9** 处）
+     被当成只测 Arcane。
+  2. **法术类型是文本，不是枚举**。`PreSpellCastTester` 用 `equalsIgnoreCase` 与
+     `aClass.getSpellType()` 比较，而后者返回 `FACT:SpellType` 的原文（未声明时 `None`）。
+     于是 `TYPE=Arcane=1`（第三方 2 处）指的是「法术类型字面等于 `Arcane=1`」——没有职业符合，
+     因此是**假**而不是「不可读」。旧实现把它整条 tag 判为 unsupported，连带其外层的
+     `PREMULT`/`BONUS` 也报 unsupported。
+- 同时兼容 `TYPE.X` 拼写（reference 用 `substring(5)`，`TYPE=X` 与 `TYPE.X` 等价），
+  短于 5 字符的 token 与未知 token 保持 unsupported（reference 会抛异常）。
+- 影响：第三方 unsupported **25 → 23**，且 **`PREMULT` 2 → 0**——剩下的 23 条全部是
+  `BONUS`（效果保留、gate 不可读的可见过近似）。验收 cohort（RSRD）**不含任何
+  `PRESPELLCAST`**，故本轮可证不影响 cohort；coverage gate 15/0/0、broad oracle 字段级 100%
+  实测确认。
+- 测试：`cargo test --workspace` **565 passed / 2 ignored**，`scripts/check.sh`
+  **604 passed / 2 ignored**。
+
 ### 补齐谓词：`PREUATT`
 
 - 新增 `Predicate::HighestClassBab { min }`；`EffectState` 新增 `highest_class_bab`，
