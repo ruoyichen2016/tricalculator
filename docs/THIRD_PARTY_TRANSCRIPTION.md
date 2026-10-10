@@ -137,16 +137,21 @@ Subsequent reductions not reflected above:
 The `BONUS` drop is a reporting change, not a lost effect, and it was checked
 rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
 `PRECSKILL` gate, `lowered_effects` is 117 before and after while
-`unsupported_tags` goes 99 to 0.
+`unsupported_tags` goes 99 to 0;
+- `PREALIGN` (8 tags), the numeric keys (`PREALIGN:0,1,3,4,6,7` in the Book of
+  Erotic Fantasy). They were being *dropped*, which left those prestige classes
+  with no alignment restriction; they are now kept as keys no alignment file
+  defines, so the requirement fails closed. `PREALIGN:Deity` — the one special
+  case in `PreAlignTester` — is also implemented now.
 
-**Current total, re-measured over the same 189 campaigns: 401 unsupported
-occurrences across 15 tag kinds**, against 750 / 17 after the `PREREGION` round,
-1,171 / 18 after the `PREATT` round and 1,409 / 20 at transcription. `BONUS` is
-280 of the 401 and is the visible over-approximation described above — the effect
-is kept and the unreadable gate is what is reported — so the remaining actionable
-queue is the 121 occurrences behind it: `PREMULT` (31),
-`PRECHECK` (17), `PRESPELLDESCRIPTOR` (14), `PRECAMPAIGN` (9),
-`PRESPELLSCHOOLSUB` (9), `PRECHARACTERTYPE` (9), `PREALIGN` (8), `PRESA` (7),
+**Current total, re-measured over the same 189 campaigns: 393 unsupported
+occurrences across 14 tag kinds**, against 401 / 15 after the `PRECSKILL` round,
+750 / 17 after the `PREREGION` round, 1,171 / 18 after the `PREATT` round and
+1,409 / 20 at transcription. `BONUS` is 280 of the 393 and is the visible
+over-approximation described above — the effect is kept and the unreadable gate
+is what is reported — so the remaining actionable queue is the 113 occurrences
+behind it: `PREMULT` (31), `PRECHECK` (17), `PRESPELLDESCRIPTOR` (14),
+`PRECAMPAIGN` (9), `PRESPELLSCHOOLSUB` (9), `PRECHARACTERTYPE` (9), `PRESA` (7),
 `PREUATT` (4), `PREDR` (3), `PREREACHGTEQ` (3), `PRESKILLTOT` (3),
 `PRECLASSLEVELMAX` (2), `PREITEM` (2).
 

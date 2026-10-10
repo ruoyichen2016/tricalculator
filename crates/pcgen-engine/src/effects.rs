@@ -1476,9 +1476,21 @@ pub(crate) fn predicate_holds(
                 .count() as u32;
             matches >= (*min_count).max(1)
         }
-        Predicate::Alignment { allowed } => allowed
-            .iter()
-            .any(|alignment| alignment.eq_ignore_ascii_case(&draft.alignment)),
+        // `PreAlignTester.alignMatches` first compares the character's alignment
+        // with the named one, and then has one special case: the key `Deity`
+        // matches when the character's alignment equals their *deity's*.  Both
+        // halves matter — every game mode also defines a real alignment whose
+        // key is `Deity` (`Deity's`), so the literal comparison comes first.
+        Predicate::Alignment { allowed } => allowed.iter().any(|alignment| {
+            if alignment.eq_ignore_ascii_case(&draft.alignment) {
+                return true;
+            }
+            alignment.eq_ignore_ascii_case("Deity")
+                && state
+                    .deity_alignment
+                    .as_deref()
+                    .is_some_and(|deity| deity.eq_ignore_ascii_case(&draft.alignment))
+        }),
         Predicate::DeityAlignment { allowed } => {
             state.deity_alignment.as_deref().is_some_and(|deity| {
                 allowed

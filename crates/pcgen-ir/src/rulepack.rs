@@ -1559,11 +1559,23 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 Some(Predicate::DeityAlignment { allowed })
             }
         }
+        // PREALIGN:LG,NG,CG — the character's alignment must be one of these.
+        //
+        // `PreAlignParser` does no validation at all: it sets the key to the raw
+        // text and `PreAlignTester` looks that key up among the game mode's
+        // alignments.  Numbers are therefore *not* a different syntax to be
+        // filtered out — the Book of Erotic Fantasy writes `PREALIGN:0,1,3,4,6,7`
+        // and no vendored alignment file defines a numeric key (the `SORTKEY`s
+        // are `1a`..`3c`, and nothing looks those up).  Such a requirement can
+        // never match, which is the correct outcome; discarding it, as filtering
+        // the numbers out did, left those prestige classes with no alignment
+        // restriction at all.
         "PREALIGN" => {
             let allowed = parts
                 .iter()
-                .filter(|part| !part.is_empty() && part.parse::<i32>().is_err())
-                .map(|part| (*part).to_string())
+                .map(|part| part.trim())
+                .filter(|part| !part.is_empty())
+                .map(str::to_string)
                 .collect::<Vec<_>>();
             if allowed.is_empty() {
                 None

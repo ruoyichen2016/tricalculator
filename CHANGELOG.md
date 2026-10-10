@@ -1,5 +1,22 @@
 ## Unreleased
 
+### 修复 `PREALIGN` 的两种取值形态
+
+- **数值 key 不再被丢弃**：`PreAlignParser` 不做任何校验，key 就是原文，而
+  `PreAlignTester` 按 key 在游戏模式的 alignment 里查找。第三方数据里的
+  `PREALIGN:0,1,3,4,6,7`（Book of Erotic Fantasy）在任何 alignment 文件里都没有
+  对应 key（那些数字是 `SORTKEY`，没有任何代码按 `SORTKEY` 查找），所以这个条件
+  永远不成立——这才是正确结果。此前把数字过滤掉等于**整条前置被丢掉**，那几个
+  prestige class 变成毫无阵营限制。现在保留为
+  `Alignment { allowed: ["0","1",...] }`，fail closed。
+- **`PREALIGN:Deity` 是特例**：`alignMatches` 先按字面比较（每个游戏模式确实定义了
+  `KEY:Deity` 的 `Deity's`，所以字面比较必须在前），再对 key `Deity` 额外比较
+  「角色阵营 == 其神祇阵营」。后半段此前未实现，Complete Divine 的 Arcane Disciple
+  因此永远无法满足。
+- 第三方资料：unsupported 401 → **393**（`PREALIGN` 8 → 0）；验收 cohort 不含这两种
+  形态。新增 5 个回归测试；
+  `cargo test --workspace`：**465 passed / 0 failed / 2 ignored**。
+
 ### 补齐谓词：`PRECSKILL` 与 class-skill 模型
 
 - 新增 `Predicate::ClassSkill { specs, min_count }` 与 `SkillSpec { name, is_type }`

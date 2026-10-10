@@ -790,3 +790,48 @@ fn a_bonus_gated_on_precskill_is_lowered_not_reported() {
         Some(Predicate::ClassSkill { .. })
     ));
 }
+
+#[test]
+fn prealign_keeps_numeric_keys_instead_of_dropping_the_requirement() {
+    // The Book of Erotic Fantasy writes `PREALIGN:0,1,3,4,6,7`. PCGen's
+    // `PreAlignParser` does no validation — the key is the raw text — and no
+    // vendored alignment file defines a numeric key, so the requirement can
+    // never match. That is the right outcome; filtering the numbers out, as the
+    // first cut did, left those prestige classes with no alignment restriction
+    // at all.
+    let class = record("CLASS", "Imagist", &[("PREALIGN", "0,1,3,4,6,7")]);
+    let (pack, report) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[class]);
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::Alignment {
+            allowed: vec![
+                "0".to_string(),
+                "1".to_string(),
+                "3".to_string(),
+                "4".to_string(),
+                "6".to_string(),
+                "7".to_string(),
+            ],
+        }
+    );
+
+    let named = record("CLASS", "Paladin", &[("PREALIGN", "LG,LN,LE")]);
+    let (pack, _) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[named]);
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::Alignment {
+            allowed: vec!["LG".to_string(), "LN".to_string(), "LE".to_string()],
+        }
+    );
+
+    // No key at all is still malformed, and stays visible as unsupported.
+    let empty = record("CLASS", "Broken", &[("PREALIGN", "")]);
+    let (pack, report) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[empty]);
+    assert_eq!(report.coverage.unsupported_tags, 1);
+    assert!(pack.entities[0].requirements.is_empty());
+}

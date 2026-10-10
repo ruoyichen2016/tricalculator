@@ -10,14 +10,14 @@
 - 工作区：10 crate（core / formula / ir / import / engine / builder / output /
   cli / web / **transpile**）。`pcgen-transpile` 是构建期转写器，把
   `.pcc`/`.lst` 规范化成 pack 目录，使运行期不再解释 PCGen 文本。
-- 测试：`cargo test --workspace` **460 passed / 2 ignored**（`scripts/check.sh`
-  额外再跑一次 `pcgen-web`，合计 **499 passed / 2 ignored**）。
+- 测试：`cargo test --workspace` **465 passed / 2 ignored**（`scripts/check.sh`
+  额外再跑一次 `pcgen-web`，合计 **504 passed / 2 ignored**）。
 - 第三方资料（189 个 top-level campaign，固定 checkout，`import-report
-  --histogram` 汇总）：unsupported **1,409 → 401**（本轮 `PRECSKILL` /
-  `!PRECSKILL` 30 → 0，连带 319 条以它为 gate 的 `BONUS`，`BONUS` 599 → 280；
-  上轮 `PREREGION` 65 → 0，连带 `PREMULT` 387 → 31）。剩下的 `BONUS` 是
-  「gate 不可读但效果保留」的可见过近似，不是被丢弃的效果。这些 pack 在验收
-  cohort 之外，门禁不覆盖它们。
+  --histogram` 汇总）：unsupported **1,409 → 393**（本轮 `PREALIGN` 8 → 0；
+  `PRECSKILL`/`!PRECSKILL` 30 → 0 并连带 319 条以它为 gate 的 `BONUS`，
+  `BONUS` 599 → 280；`PREREGION` 65 → 0 并连带 `PREMULT` 387 → 31）。
+  剩下的 `BONUS` 是「gate 不可读但效果保留」的可见过近似，不是被丢弃的效果。
+  这些 pack 在验收 cohort 之外，门禁不覆盖它们。
 - 全量门禁：`bash scripts/check.sh` 通过；`coverage_gate.py`
   **pass=15 / fail=0 / skip=0**，broad primary cohort **25/25**，
   PF35e extension gate 通过。archive differential 因旧 archive 二进制已清理而

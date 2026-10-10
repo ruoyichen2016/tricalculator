@@ -976,6 +976,56 @@ Lowered to `Predicate::ClassSkill { specs, min_count }` with a new `SkillSpec`
 selector. `SkillRequirement` was not reused: a `min_ranks` field that means
 nothing here is a trap for the next reader.
 
+### 5w. `PREALIGN`, and the two value forms it was quietly mishandling
+
+`PREALIGN` has been implemented since the early PRE work, but two of its value
+forms were wrong in opposite directions.
+
+**Numbers were filtered out, which deleted the requirement.** The arm kept only
+parts that were non-empty and not parseable as an integer, so
+`PREALIGN:0,1,3,4,6,7` produced no predicate at all and the tag was reported
+unsupported. That is not a parse failure to be fixed by guessing what `0` means —
+`PreAlignParser` performs *no* validation:
+
+```java
+String[] alignments = formula.split(",");
+if (alignments.length == 1) { prereq.setKey(formula); }
+```
+
+and `PreAlignTester` then looks the key up as a `PCAlignment`:
+
+```java
+PCAlignment desiredAlign = ...silentlyGetConstructedCDOMObject(PCAlignment.class, desiredAlignIdentifier);
+```
+
+No vendored alignment file defines a numeric key — the keys are `LG`..`CE`,
+`None` and `Deity`, and the numbers in those files are `SORTKEY`s, which nothing
+looks up. So the requirement can never match, and *that* is the faithful outcome.
+Dropping it was worse than failing closed: the Book of Erotic Fantasy's Imagist,
+Dominator, Disciple of Aaluran and Knot Binder of Kaladis became freely
+selectable, with no alignment restriction at all. The numbers are now kept as
+ordinary keys, which fail closed.
+
+**`Deity` was taken literally, which made it unsatisfiable.** `alignMatches` has
+one special case:
+
+```java
+PCAlignment al = getPCAlignment(desiredAlignment);
+if (al.equals(charAlignment)) { return true; }
+else if (desiredAlignment.equalsIgnoreCase("Deity")) {
+    Deity deity = ...DEITYINPUT...;
+    CDOMSingleRef<PCAlignment> deityAlign = deity.get(ObjectKey.ALIGNMENT);
+    return (deityAlign != null) && charAlignment.equals(deityAlign.get());
+}
+```
+
+Note the order: the literal comparison comes first, and it is not dead code —
+every game mode defines an alignment named `Deity's` with `KEY:Deity`. Only when
+that fails does `Deity` mean "the same alignment as the character's god". The
+second half was missing, so Complete Divine's *Arcane Disciple*
+(`PREALIGN:Deity`) could never be satisfied. `EffectState.deity_alignment` — the
+value `PREDEITYALIGN` already needed — answers it, so no new state was required.
+
 ## What followed from this
 
 Both actions are done:

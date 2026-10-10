@@ -107,6 +107,9 @@ semantic_completion 100.0%
   substitution level 换入的 class skill）。第三方资料 unsupported 750→401
   （含 319 条以 `PRECSKILL` 为 gate 的 `BONUS`）。未建模：模板/种族/专长上的
   全局 `CSKILL:`/`CCSKILL:` 与 `SERVESAS`。
+- **Post-M9**：`PREALIGN` 的两种取值形态——数值 key 不再被丢弃（保留为 fail-closed
+  的 `Alignment`，而不是整条前置消失），`PREALIGN:Deity` 实现 `alignMatches` 的
+  「角色阵营 == 神祇阵营」特例。第三方资料 unsupported 401→393。
 - monster class `classlevel()` BAB 公式修复（`classlevel()` 空括号）
 
 累计：`legacy_tags` 4289 → 1284，`unsupported` 337 → 0，`semantic_completion` 46.8% → 100.0%。
