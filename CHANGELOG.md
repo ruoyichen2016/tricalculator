@@ -1,5 +1,28 @@
 ## Unreleased
 
+### 补齐谓词：`PREFACT` 与 FACT 模型（本轮最大项：unsupported 304 → 42）
+
+- 新增 `Predicate::Fact { location, specs, min_count }` 与 `FactSpec { name, value }`；
+  `CompiledEntity` 新增 `facts`（由 `FACT:Name|Value` 填充，`serde(default)`）；
+  `EffectState` 新增 `location_facts`。
+- 语义按 `PreFactTester`：在一个 `OutputDB` location（facet 支撑的可枚举对象集）中，
+  统计「名为 F 的 fact 值等于 V」的对象数，与 count 比较；list wrapper 把各 spec 的计数
+  **相加**。`PreFactParser` 用 `CaseInsensitiveMap` 校验 location（所以 `ABILITIES` 与
+  `Abilities` 相同），并且**遇到 `|` 直接抛异常**——那种形式是坏数据，我们同样保持
+  unsupported，而不是猜一个值。
+- **只 lower 运行时可枚举的 location**（`abilities`、`race`，即 `GrantedAbilityFacet` 与
+  `RaceFacet`，也正是第三方数据用到的两个）；其他 location 保持 unsupported，避免把一条
+  前置静默变成「永远为假」。
+- 值比较**忽略大小写**：数据里被 `PREFACT` 测试的 217 个 fact 名中有 **215 个**声明为
+  `DATAFORMAT:BOOLEAN`，PCGen 的类型化解析下 `true` 与 `True` 是同一个值；事实名的
+  大小写在 `FACT:` 与 `PREFACT` 之间实测**完全一致**（0 处不同），所以按原名查表。
+- 实测口径（写进文档，避免把数字当成行为变化）：`BONUS` 条件里的 `PREFACT` 共 **237** 条
+  形式正确、**8** 条含 `|`（PCGen 自身会拒绝）；237 条中有 **41** 条测试的 fact 在数据里
+  真的存在，**196** 条引用的 fact 从未被任何 `FACT:` 设置——这些前置被**忠实地判为假**
+  （以前是「未知」，同样不放行），差别在于现在是「已知为假」。
+- 第三方资料：unsupported **304 → 42**（`BONUS` 268 → 23，`PREMULT` 19 → 2）。
+  新增 8 个回归测试；`cargo test --workspace`：**517 passed / 0 failed / 2 ignored**。
+
 ### 补齐谓词：`PRESA`，以及此前被静默丢弃的 `SA:`/`SAB:`
 
 - 新增 `Predicate::SpecialAbility { prefixes, min_count }` 与

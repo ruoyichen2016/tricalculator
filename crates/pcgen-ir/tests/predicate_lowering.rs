@@ -1340,3 +1340,129 @@ fn presa_lowers_to_prefixes_and_a_count() {
         }
     );
 }
+
+#[test]
+fn fact_tags_are_captured_on_the_entity() {
+    let ability = record(
+        "ABILITY",
+        "Tiefling Trait",
+        &[
+            ("FACT", "Tiefling_Trait_AbilityScoreIncrease|true"),
+            ("FACT", "Tiefling_Trait_InfernalLegacy|true"),
+            ("FACT", "Empty|"),
+        ],
+    );
+    let (pack, report) =
+        lower_records(Some("5e".to_string()), vec!["pred".to_string()], &[ability]);
+    assert_eq!(report.coverage.unsupported_tags, 0);
+    assert_eq!(
+        pack.entities[0]
+            .facts
+            .get("Tiefling_Trait_AbilityScoreIncrease"),
+        Some(&"true".to_string())
+    );
+    assert_eq!(pack.entities[0].facts.len(), 3);
+    // `FACT:Name|` is a fact with an empty value, which is what the data means.
+    assert_eq!(pack.entities[0].facts.get("Empty"), Some(&String::new()));
+}
+
+#[test]
+fn prefact_lowers_for_the_locations_the_runtime_models() {
+    let ability = record(
+        "ABILITY",
+        "Baalzebul",
+        &[(
+            "PREMULT",
+            "1,[!PREFACT:1,ABILITIES,Tiefling_Trait_AbilityScoreIncrease=true],[PREABILITY:1,CATEGORY=Internal,Tiefling Subrace ~ Baalzebul]",
+        )],
+    );
+    let (pack, report) =
+        lower_records(Some("5e".to_string()), vec!["pred".to_string()], &[ability]);
+    assert_eq!(
+        report.coverage.unsupported_tags, 0,
+        "{:?}",
+        report.coverage.unsupported_pending_by_tag
+    );
+    let Predicate::AtLeast { items, .. } = &pack.entities[0].requirements[0] else {
+        panic!(
+            "expected AtLeast, got {:?}",
+            pack.entities[0].requirements[0]
+        );
+    };
+    let Predicate::Not(inner) = &items[0] else {
+        panic!("expected Not, got {:?}", items[0]);
+    };
+    assert_eq!(
+        **inner,
+        Predicate::Fact {
+            // The location is normalised; `OutputDB` looks it up case-insensitively.
+            location: "abilities".to_string(),
+            specs: vec![pcgen_core::FactSpec {
+                name: "Tiefling_Trait_AbilityScoreIncrease".to_string(),
+                value: "true".to_string(),
+            }],
+            min_count: 1,
+        }
+    );
+
+    // The list form sums its specs, as every other list prerequisite does.
+    let multi = record(
+        "ABILITY",
+        "Fierna",
+        &[(
+            "PREFACT",
+            "1,ABILITIES,Tiefling_Trait_AbilityScoreIncrease=true,Tiefling_Trait_InfernalLegacy=true",
+        )],
+    );
+    let (pack, _) = lower_records(Some("5e".to_string()), vec!["pred".to_string()], &[multi]);
+    assert_eq!(
+        pack.entities[0].requirements[0],
+        Predicate::Fact {
+            location: "abilities".to_string(),
+            specs: vec![
+                pcgen_core::FactSpec {
+                    name: "Tiefling_Trait_AbilityScoreIncrease".to_string(),
+                    value: "true".to_string(),
+                },
+                pcgen_core::FactSpec {
+                    name: "Tiefling_Trait_InfernalLegacy".to_string(),
+                    value: "true".to_string(),
+                },
+            ],
+            min_count: 1,
+        }
+    );
+}
+
+#[test]
+fn prefact_stays_unsupported_where_the_reference_rejects_it() {
+    // `PreFactParser` throws when the formula contains `|`, so the tag is
+    // malformed data rather than something to guess at.
+    let malformed = record(
+        "CLASS",
+        "Sacred Warder",
+        &[("PREFACT", "1,RACE,HasFirstLevelFeat=True|PRECLASS:1,ANY=1")],
+    );
+    let (pack, report) = lower_records(
+        Some("35e".to_string()),
+        vec!["pred".to_string()],
+        &[malformed],
+    );
+    assert!(pack.entities[0].requirements.is_empty());
+    assert_eq!(report.coverage.unsupported_tags, 1);
+    assert_eq!(
+        report.coverage.unsupported_pending_by_tag.get("PREFACT"),
+        Some(&1)
+    );
+
+    // A location the runtime cannot enumerate is left unsupported rather than
+    // lowered into a prerequisite that can only ever be false.
+    let other = record(
+        "ABILITY",
+        "Elsewhere",
+        &[("PREFACT", "1,CLASSES,SomeFact=true")],
+    );
+    let (pack, report) = lower_records(Some("35e".to_string()), vec!["pred".to_string()], &[other]);
+    assert!(pack.entities[0].requirements.is_empty());
+    assert_eq!(report.coverage.unsupported_tags, 1);
+}

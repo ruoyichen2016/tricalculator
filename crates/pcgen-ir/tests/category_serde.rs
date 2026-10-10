@@ -14,6 +14,7 @@ fn compiled_entity_category_serializes_as_pcgen_string() {
         source: "test.lst".to_string(),
         ability_category: None,
         temporary_value: None,
+        facts: Default::default(),
         traits: Default::default(),
         metadata: Default::default(),
     };
@@ -41,6 +42,7 @@ fn unknown_category_survives_round_trip() {
         source: "powers.lst".to_string(),
         ability_category: None,
         temporary_value: None,
+        facts: Default::default(),
         traits: Default::default(),
         metadata: Default::default(),
     };

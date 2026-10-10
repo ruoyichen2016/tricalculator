@@ -802,14 +802,14 @@ a bonus it should have.
 The remaining kinds are genuinely unimplemented: `PRE` (21), `PRESKILLTOT`,
 `PREHP`, `PRESIZENEQ`, `PREDEITYDOMAIN`, `PRESRLT`, `PRECLASSLEVELMAX`,
 `PRETEXT`. None appear in the acceptance cohort.  `PRECAMPAIGN`,
-`PRECHARACTERTYPE` and `PRESA` were on this list and are now lowered — see §5aa,
-§5ab and §5ac.  Several names on the original list have since been lowered:
+`PRECHARACTERTYPE`, `PRESA` and `PREFACT` were on this list and are now lowered —
+see §5aa, §5ab, §5ac and §5ad.  Several names on the original list have since been lowered:
 `PRELEVELMAX`, `PREATT`, `PREHANDSGT`, multi-mode `PREMOVE`, `PREREGION`
 (see §5u), `PRECSKILL` (see §5v), `PREALIGN`'s value forms (see §5w),
 `PRECHECK` (see §5x), `PRESPELLDESCRIPTOR` (see §5y), `PRESPELLSCHOOLSUB` and
 `PRESPELLSCHOOL` (see §5z), `PRECAMPAIGN` (see §5aa), `PRECHARACTERTYPE`
-(see §5ab) and `PRESA` (see §5ac); `PRELEVEL` now supports both `MIN=` and `MAX=`.
-See the current `CHANGELOG.md`.
+(see §5ab), `PRESA` (see §5ac) and `PREFACT` (see §5ad); `PRELEVEL` now supports
+both `MIN=` and `MAX=`.  See the current `CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
 
@@ -1309,6 +1309,59 @@ pack's entity ordering.
 
 The acceptance data has no `SA:`/`SAB:` at all, so this round is provably
 cohort-neutral — which is what the coverage gate confirmed rather than assumed.
+
+### 5ad. `PREFACT`, the gate behind most of the `BONUS` queue
+
+`PREFACT` never appeared in the unsupported histogram on its own. It was the gate
+*inside* other tags, and that is why the queue looked the way it did: of the 268
+`BONUS` occurrences still reported, **245** carried a `PREFACT` condition, and 18
+of the 19 `PREMULT` occurrences were blocked by one. Reading the queue by tag name
+hid the fact that a single unmodelled prerequisite was holding most of it.
+
+**What the tag asks.** `PreFactTester` walks the objects in an `OutputDB`
+location and counts those whose named fact has a given value:
+
+```java
+String location = prereq.getCategoryName();
+Iterable<Reducible> objModel =
+        (Iterable<Reducible>) OutputDB.getIterable(aPC.getCharID(), locationElements);
+String[] factinfo = prereq.getKey().split("=");
+FactKey<?> fk = FactKey.valueOf(factinfo[0]);
+Object targetVal = fk.getFormatManager().convertIndirect(factinfo[1]);
+for (Reducible r : objModel)
+    if (targetVal.equals(r.getCDOMObject().get(fk))) runningTotal++;
+```
+
+and the list wrapper sums the per-fact counts. `PreFactParser` validates the
+location against `OutputDB`, whose registry is a `CaseInsensitiveMap` — so
+`ABILITIES` and `Abilities` are the same location — and throws when the formula
+contains `|`.
+
+**Three decisions worth recording.**
+
+* *Only enumerable locations are lowered.* The location is a facet-backed
+  iterable (`abilities` is `GrantedAbilityFacet`, `race` is `RaceFacet`). Those two
+  are what the third-party data uses and what the runtime can fill, so any other
+  location stays unsupported. Lowering an unknown location would have turned a
+  prerequisite into a silent "no" while removing it from the report — the metric
+  would improve and the semantics would get worse.
+* *A value containing `|` stays unsupported.* `PREFACT:1,RACE,HasFirstLevelFeat=True|PRECLASS:1,ANY=1`
+  appears eight times; the reference parser throws on it, so it is malformed data,
+  not a form to guess at.
+* *Values compare case-insensitively.* Of the 217 fact names the data tests, 215
+  are declared `DATAFORMAT:BOOLEAN`, where `convertIndirect` makes `true` and
+  `True` the same value — and the data really does mix them
+  (`PREFACT:1,Abilities,GriaSurvivialist=True` against `FACT:...|true`). Fact
+  *names* need no such care: measured across the packs, no `PREFACT` name differs
+  in case from its `FACT` tag.
+
+**What the change does and does not do.** Of the 237 well-formed occurrences, 41
+test a fact that some `FACT:` tag actually sets; the other 196 reference facts the
+data never sets, so their gates evaluate to **false**. That is a faithful reading
+of the data, not a regression — before, those conditions were `Unsupported`, which
+also did not pass — and the difference is that the engine now knows the answer
+instead of not knowing it. It is worth stating because the count drops by 262
+while only 41 of those conditions became genuinely character-dependent.
 
 ## What followed from this
 

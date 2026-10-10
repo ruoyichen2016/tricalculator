@@ -206,6 +206,7 @@ pub fn lower_records(
             source: record.source.path.display().to_string(),
             ability_category,
             temporary_value,
+            facts: parse_facts(record),
             traits,
             metadata,
         });
@@ -980,6 +981,27 @@ pub(crate) fn parse_damage_reduction(value: &str) -> pcgen_core::DamageReduction
     }
 }
 
+/// The record's PCGen `FACT:Name|Value` pairs, for `PREFACT`.
+///
+/// A fact with no value (`FACT:Name|`) is kept as an empty string, which is what
+/// the data means by it.  Later tags win, matching PCGen's `set` on the object.
+fn parse_facts(record: &RawRecord) -> std::collections::BTreeMap<String, String> {
+    let mut facts = std::collections::BTreeMap::new();
+    for tag in &record.tags {
+        if !tag.name.eq_ignore_ascii_case("FACT") {
+            continue;
+        }
+        let Some((name, value)) = tag.value.split_once('|') else {
+            continue;
+        };
+        let name = name.trim();
+        if !name.is_empty() {
+            facts.insert(name.to_string(), value.trim().to_string());
+        }
+    }
+    facts
+}
+
 /// Lower an `SA:`/`SAB:` tag into a granted special ability.
 ///
 /// The tag's shape is `<key name>|<display text>|<PRE...>`, where the tokens after
@@ -1380,6 +1402,48 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
             } else {
                 Some(Predicate::KnownSpell { names })
             }
+        }
+        // PREFACT:count,location,Fact=Value[,Fact=Value...] — at least `count`
+        // objects in `location` have the named fact set to the given value.
+        //
+        // Only the locations the runtime models are lowered: `PreFactParser`
+        // checks the location against `OutputDB`, whose names are facet-backed
+        // iterables, and claiming a location we cannot enumerate would turn a
+        // prerequisite into a silent "no".  Anything else stays unsupported so it
+        // is visible.  A value containing `|` is malformed — the parser throws on
+        // it — and is likewise left unsupported rather than truncated.
+        "PREFACT" | "PREFACTSET" => {
+            let (count_str, rest) = body.split_once(',')?;
+            let min_count = count_str.trim().parse::<u32>().ok()?;
+            let (location, specs_str) = rest.split_once(',')?;
+            let location = location.trim().to_ascii_lowercase();
+            if location != "abilities" && location != "race" {
+                return None;
+            }
+            let specs: Vec<pcgen_core::FactSpec> = specs_str
+                .split(',')
+                .map(str::trim)
+                .filter(|part| !part.is_empty())
+                .map(|part| {
+                    let (name, value) = part.split_once('=')?;
+                    let name = name.trim();
+                    if name.is_empty() || value.contains('|') {
+                        return None;
+                    }
+                    Some(pcgen_core::FactSpec {
+                        name: name.to_string(),
+                        value: value.trim().to_string(),
+                    })
+                })
+                .collect::<Option<Vec<_>>>()?;
+            if specs.is_empty() {
+                return None;
+            }
+            Some(Predicate::Fact {
+                location,
+                specs,
+                min_count: min_count.max(1),
+            })
         }
         // PRESA:count,name,name — the character has special abilities whose names
         // start with these texts.  `PreSpecialAbilityTester` counts, per listed

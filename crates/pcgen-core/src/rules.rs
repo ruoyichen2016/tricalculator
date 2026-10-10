@@ -461,6 +461,20 @@ pub enum Predicate {
         specs: Vec<SpellSchoolSpec>,
         count: u32,
     },
+    /// `PREFACT:x,location,Fact=Value,...` — the character has at least `x`
+    /// objects in `location` whose fact has the given value.
+    ///
+    /// PCGen's `PreFactTester` reads an `OutputDB` location (a facet-backed
+    /// iterable, e.g. `Abilities` or `RACE`), takes each object's fact, and counts
+    /// the ones equal to the target value; the list wrapper sums those counts.
+    /// `PreFactParser` rejects a value containing `|`, so a tag that carries one is
+    /// malformed and stays unsupported.
+    Fact {
+        /// The `OutputDB` location, lower-cased (`abilities`, `race`).
+        location: String,
+        specs: Vec<FactSpec>,
+        min_count: u32,
+    },
     /// `PRESA:x,y,y` — the character has special abilities whose names start with
     /// the listed texts.
     ///
@@ -911,6 +925,13 @@ pub struct SpellSchoolSubSpec {
     pub min_level: u32,
 }
 
+/// One `PREFACT` pair: a fact name and the value it must have.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct FactSpec {
+    pub name: String,
+    pub value: String,
+}
+
 /// One `PRECAMPAIGN` selector.
 ///
 /// The four spellings mean different sets: a plain name and `BOOKTYPE=` look at
@@ -1200,6 +1221,13 @@ pub struct CompiledEntity {
     /// UI range metadata for `TEMPVALUE` on this record.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub temporary_value: Option<TemporaryValue>,
+    /// PCGen `FACT:Name|Value` pairs, for `PREFACT`.
+    ///
+    /// Facts are how an object carries a queryable property that is not a
+    /// variable; `PREFACT` counts the character's objects in a location whose
+    /// fact has a given value.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub facts: BTreeMap<String, String>,
     /// Creature traits captured from this record (reach, natural attacks,
     /// DR/SR/CR, vision, unarmed damage, ...).
     #[serde(default)]

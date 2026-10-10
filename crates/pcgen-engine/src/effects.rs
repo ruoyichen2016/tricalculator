@@ -94,6 +94,12 @@ pub struct EffectState {
     /// that belong to it, for `PRESPELLSCHOOL`.  Same shape and same reason as
     /// [`Self::spell_descriptors`].
     pub spell_schools: BTreeMap<String, Vec<u32>>,
+    /// The character's objects per `OutputDB` location, by their `FACT` maps, for
+    /// `PREFACT`.
+    ///
+    /// Only `abilities` and `race` are modelled — the two locations the data uses
+    /// and the two the lowering accepts; see `Predicate::Fact`.
+    pub location_facts: BTreeMap<String, Vec<BTreeMap<String, String>>>,
     /// The character's special abilities (`SA:`/`SAB:`), by key name, for
     /// `PRESA`.
     ///
@@ -572,6 +578,26 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         }
     }
     state.special_abilities.extend(abilities);
+
+    // The same reasoning applies to `PREFACT`: it counts objects in an
+    // `OutputDB` location, so the locations are filled before the loop rather
+    // than as entities are reached.
+    let mut location_facts: BTreeMap<String, Vec<BTreeMap<String, String>>> = BTreeMap::new();
+    for index in &initial {
+        let Some(entity) = pack.entities.get(*index) else {
+            continue;
+        };
+        if entity.facts.is_empty() {
+            continue;
+        }
+        if let Some(location) = fact_location(&entity.category) {
+            location_facts
+                .entry(location.to_string())
+                .or_default()
+                .push(entity.facts.clone());
+        }
+    }
+    state.location_facts = location_facts;
 
     for index in initial {
         queued.insert(index);
@@ -1489,6 +1515,20 @@ fn spell_trait_count(levels: Option<&Vec<u32>>, min_level: u32) -> u32 {
         .unwrap_or(0)
 }
 
+/// Which `OutputDB` location an entity's facts are visible in, if any.
+///
+/// `PreFactParser` validates the location against `OutputDB`, whose names are the
+/// facet-backed iterables: `abilities` is `GrantedAbilityFacet` and `race` is
+/// `RaceFacet`.  These are the two the third-party data uses and the two the
+/// lowering accepts, so an entity outside them contributes nowhere.
+fn fact_location(category: &pcgen_core::EntityCategory) -> Option<&'static str> {
+    match category {
+        pcgen_core::EntityCategory::Race => Some("race"),
+        category if category.is_ability_like() => Some("abilities"),
+        _ => None,
+    }
+}
+
 /// How many of the loaded campaigns match one `PRECAMPAIGN` selector?
 fn campaign_matches(
     campaigns: &[pcgen_core::CampaignSource],
@@ -1703,6 +1743,33 @@ pub(crate) fn predicate_holds(
             met >= (*min_count).max(1)
         }
         Predicate::Gender { prefix } => draft.gender.starts_with(prefix.as_str()),
+        // `PreFactTester` walks the objects in one `OutputDB` location and counts
+        // those whose fact equals the target value; the list wrapper sums the
+        // counts.  Values are compared case-insensitively: 215 of the 217 fact
+        // names the third-party data tests are declared `DATAFORMAT:BOOLEAN`,
+        // where PCGen's typed parse makes `true` and `True` the same value.
+        Predicate::Fact {
+            location,
+            specs,
+            min_count,
+        } => {
+            let objects = state.location_facts.get(location).map(Vec::as_slice);
+            let matched = specs
+                .iter()
+                .map(|spec| {
+                    objects
+                        .unwrap_or_default()
+                        .iter()
+                        .filter(|facts| {
+                            facts
+                                .get(&spec.name)
+                                .is_some_and(|value| value.eq_ignore_ascii_case(spec.value.trim()))
+                        })
+                        .count() as u32
+                })
+                .sum::<u32>();
+            matched >= (*min_count).max(1)
+        }
         // `PreSpecialAbilityTester` counts, for each listed text, the character's
         // abilities whose key name *starts with* it, and the list wrapper sums the
         // counts.  `startsWith` is load-bearing: an `SAB`'s key name is its first

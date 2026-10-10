@@ -301,6 +301,7 @@ mod tests {
             source: "test.lst".to_string(),
             ability_category: None,
             temporary_value: None,
+            facts: Default::default(),
             traits: Default::default(),
             metadata: Default::default(),
         }

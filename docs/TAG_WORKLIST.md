@@ -132,6 +132,9 @@ semantic_completion 100.0%
 - **Post-M9**：`PRESA` → `Predicate::SpecialAbility`；同时把此前**静默丢弃**的
   `SA:`/`SAB:` 建模为 `EffectAction::GrantSpecialAbility`（第三方 2378 条，按 key name
   前缀匹配，支持 PRE 限定与 `.CLEAR`）。第三方资料 unsupported 311→304。
+- **Post-M9**：`PREFACT` → `Predicate::Fact`，新增 `FACT` 模型（`CompiledEntity.facts`
+  + `EffectState.location_facts`，只 lower `abilities`/`race` 两个可枚举 location）。
+  第三方资料 unsupported **304→42**（`BONUS` 268→23、`PREMULT` 19→2），是本循环最大一次下降。
 - monster class `classlevel()` BAB 公式修复（`classlevel()` 空括号）
 
 累计：`legacy_tags` 4289 → 1284，`unsupported` 337 → 0，`semantic_completion` 46.8% → 100.0%。
