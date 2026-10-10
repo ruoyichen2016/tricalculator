@@ -9,6 +9,11 @@ use crate::rational::Rational;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
+/// `serde` default for `Predicate::Equipped`'s `min_count`.
+fn one() -> u32 {
+    1
+}
+
 /// A boolean predicate used by effects and prerequisites.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -460,7 +465,24 @@ pub enum Predicate {
     /// `any`, `primary`, `secondary`, `both`.
     Equipped {
         slot: String,
+        /// The pre-text shape: lower-cased raw keys, matched loosely.
+        ///
+        /// Still written by the `BONUS` qualifier path
+        /// (`equipped_condition`), which has always passed keys through as text;
+        /// packs written while *this* is all there was are read through it too.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
         values: Vec<String>,
+        /// The same keys read the way the reference reads them.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        specs: Vec<ItemSpec>,
+        /// How many of the listed keys must match.
+        ///
+        /// The list wrapper counts one per key — each key's own tester answers
+        /// `0` or `1` — so `PREEQUIP:2,Chain,Sword` wants both and
+        /// `PREEQUIP:1,Chain` wants either.  The default is 1 because that is
+        /// what the field meant before it existed.
+        #[serde(default = "one")]
+        min_count: u32,
     },
     /// Weapon proficiency query (PCGen `PREWEAPONPROF`).
     WeaponProf {
@@ -1038,7 +1060,13 @@ pub struct SpellSchoolSubSpec {
     pub min_level: u32,
 }
 
-/// One `PREITEM` entry: a name, or a set of types the item must carry.
+/// One item key of a `PREITEM` or `PREEQUIP*` requirement.
+///
+/// The reference reads these keys in four different ways, so they are kept apart
+/// rather than flattened into one list of strings: `PreEquippedTester` checks
+/// `WIELDCATEGORY=` against the item's effective wield category, `TYPE=`/`TYPE.`
+/// against its type list, `BASEITEM=` against its base item name and anything
+/// else against its name.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "kind", content = "value")]
 pub enum ItemSpec {
@@ -1047,6 +1075,11 @@ pub enum ItemSpec {
     Name(String),
     /// `TYPE=a.b` — the item must carry *all* of the listed types.
     Types(Vec<String>),
+    /// `BASEITEM=x` — the item's base item name, with the same `%` wildcard rule
+    /// as [`ItemSpec::Name`].
+    BaseItem(String),
+    /// `WIELDCATEGORY=x` — the item's effective wield category.
+    WieldCategory(String),
 }
 
 /// One `PREDR` pair: a damage-reduction type and the value it must reach.

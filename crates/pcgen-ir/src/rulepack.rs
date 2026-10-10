@@ -335,6 +335,11 @@ fn equipped_condition(qualifier: &str) -> Option<Predicate> {
             all.push(Predicate::Equipped {
                 slot: "any".to_string(),
                 values: vec![value],
+                // This qualifier path has always passed its keys through as text;
+                // reading them as the reference would is `parse_equip_key`'s job,
+                // and doing it here would change what these qualifiers mean.
+                specs: Vec::new(),
+                min_count: 1,
             });
         }
         any_groups.push(if all.len() == 1 {
@@ -1344,6 +1349,19 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 Some(predicate)
             }
         }
+        // PREEQUIP / PREEQUIPPRIMARY / PREEQUIPSECONDARY / PREEQUIPBOTH — is an
+        // item of the given name, type, base item or wield category equipped?
+        //
+        // `PreEquippedTester` reads the key in four different ways and the list
+        // wrapper turns several keys into "at least one of them", so the keys are
+        // kept typed here instead of being flattened into one list of strings.
+        // The leading number is the count for the wrapper and is not part of any
+        // key.
+        //
+        // A note on the operand: `passesPreEquipHandleTokens` answers a boolean
+        // for the `EQ`/`GTEQ` operators it always receives, so `PREEQUIPTWOWEAPON:2`
+        // does not mean "two of them" — the count only matters when the list
+        // parser had a numeric value to work with.
         "PREEQUIP" | "PREEQUIPPRIMARY" | "PREEQUIPSECONDARY" | "PREEQUIPBOTH" => {
             let slot = match tag_upper.as_str() {
                 "PREEQUIPPRIMARY" => "primary",
@@ -1351,19 +1369,28 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
                 "PREEQUIPBOTH" => "both",
                 _ => "any",
             };
-            let values: Vec<String> = parts
+            let specs: Vec<pcgen_core::ItemSpec> = parts
                 .iter()
                 .skip(1)
                 .map(|part| part.trim())
                 .filter(|part| !part.is_empty() && part.parse::<u32>().is_err())
-                .map(|part| part.to_ascii_lowercase())
+                .map(parse_equip_key)
                 .collect();
-            if values.is_empty() {
+            if specs.is_empty() {
                 None
             } else {
                 Some(Predicate::Equipped {
                     slot: slot.to_string(),
-                    values,
+                    values: Vec::new(),
+                    // The leading number is the wrapper's count, and the count is
+                    // of *keys* — each key's tester answers 0 or 1 — so a single
+                    // key with `2` can never be satisfied, exactly as in the
+                    // reference.
+                    min_count: parts
+                        .first()
+                        .and_then(|part| part.trim().parse::<u32>().ok())
+                        .unwrap_or(1),
+                    specs,
                 })
             }
         }
@@ -2543,6 +2570,40 @@ fn parse_predicate(raw: &str, _value: &str) -> Option<Predicate> {
         }
         _ => None,
     }
+}
+
+/// Read one `PREEQUIP*` key the way the reference reads it.
+///
+/// `PreEquippedTester` and `PreEquipTester` both branch on the key's prefix:
+/// `WIELDCATEGORY=` compares with the item's effective wield category, `TYPE=` /
+/// `TYPE.` with its type list (all listed types, dot-separated), `BASEITEM=` with
+/// its base item name and anything else with its name.  The last two take a `%`
+/// wildcard.  Keeping the forms apart is what makes a `TYPE=` key match an item's
+/// types instead of looking for an item literally named `TYPE=Chain`.
+fn parse_equip_key(part: &str) -> pcgen_core::ItemSpec {
+    let upper = part.to_ascii_uppercase();
+    if upper.starts_with("TYPE=") || upper.starts_with("TYPE.") {
+        let types = part
+            .get(5..)
+            .unwrap_or_default()
+            .split('.')
+            .map(str::trim)
+            .filter(|kind| !kind.is_empty())
+            .map(str::to_string)
+            .collect();
+        return pcgen_core::ItemSpec::Types(types);
+    }
+    if upper.starts_with("BASEITEM=") {
+        if let Some(rest) = part.get(9..) {
+            return pcgen_core::ItemSpec::BaseItem(rest.trim().to_string());
+        }
+    }
+    if upper.starts_with("WIELDCATEGORY=") || upper.starts_with("WIELDCATEGORY.") {
+        if let Some(rest) = part.get(14..) {
+            return pcgen_core::ItemSpec::WieldCategory(rest.trim().to_string());
+        }
+    }
+    pcgen_core::ItemSpec::Name(part.to_string())
 }
 
 fn known_tag(name: &str) -> bool {

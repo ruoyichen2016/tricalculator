@@ -811,8 +811,8 @@ see §5aa, §5ab, §5ac and §5ad.  Several names on the original list have sinc
 (see §5ab), `PRESA` (see §5ac), `PREFACT` (see §5ad), `PREDR` (see §5ae), the
 `PREVAR*` boundary (see §5af), `PREREACH` (see §5ag), `PREITEM` (see §5ah),
 `PRECLASSLEVELMAX` (see §5ai), `PRESKILLTOT` (see §5aj), `PREUATT` (see §5ak),
-`PRESPELLCAST` (see §5al), `PRESPELLTYPE` (see §5am) and the `PRELEGS` family
-(see §5an);
+`PRESPELLCAST` (see §5al), `PRESPELLTYPE` (see §5am), the `PRELEGS` family
+(see §5an) and the `PREEQUIP*` keys (see §5ao);
 `PRELEVEL` now supports both `MIN=` and `MAX=`.  See the current `CHANGELOG.md`.
 
 ### 5t. The reference parser, and three §5s diagnoses corrected
@@ -1893,6 +1893,55 @@ not grow four variants that would each restate one of these.
 `LEGS` is also added to `consumed_legacy_tag`, beside `REACH`, which
 `parse_creature_traits` reads the same way — a tag that is parsed should not also be
 reported as pending.
+
+### 5ao. The `PREEQUIP*` keys, which were never read as keys
+
+This one was not in the queue.  The queue had two `PREEQUIPTWOWEAPON` rows, and
+reading the family around them showed that every key of every member was being kept
+as raw lower-cased text:
+
+```rust
+let values: Vec<String> = parts.iter().skip(1)...map(|part| part.to_ascii_lowercase()).collect();
+...
+let matches = |item: &String, value: &str| item == value || item.contains(value);
+```
+
+So `PREEQUIP:1,TYPE=Weapon` asked whether any item's name contains `type=weapon`.
+Nothing is named that, so it was **silently false** — for 450 of the 575 `PREEQUIP*`
+occurrences in the third-party data, and 208 more in the Pathfinder set.  (The
+acceptance packs contain none, which is why no gate ever noticed.)
+
+Both testers behind the family branch on the key's prefix, and the branches are what
+`ItemSpec` now keeps:
+
+```java
+if (targetEquip.startsWith("WIELDCATEGORY=") || targetEquip.startsWith("WIELDCATEGORY."))
+    ... wCat.getKeyName().equalsIgnoreCase(targetEquip.substring(14)) ...
+else if (targetEquip.startsWith("TYPE=") || targetEquip.startsWith("TYPE."))
+    // StringTokenizer(targetEquip.substring(5), ".") and *every* token must match
+else { ... BASEITEM= reads getBaseItemName(), otherwise getName(), with a `%` wildcard ... }
+```
+
+`ItemSpec` gained `BaseItem(String)` and `WieldCategory(String)` beside `Name` and
+`Types`, and `Equipped` gained the `specs` list that holds them.  Two details are
+worth naming.  The wield comparison folds case, spaces, underscores and hyphens,
+because the data spells a category `TwoHanded` while the reference's key names and
+the `.lst` files disagree about separators; and the `%` wildcard lives in the pattern
+rather than being expanded, so `Longsword%` and `Longsword` differ in exactly the way
+the reference's `regionMatches` and `equalsIgnoreCase` do.
+
+The other thing the old lowering dropped was the **count**.  The list wrapper counts
+one per key — each key's tester answers `0` or `1`, never more — so
+`PREEQUIP:2,Chain,Sword` wants both keys to match while `PREEQUIP:2,Chain` can never
+be satisfied, and `PREEQUIP:0,...` always is.  `ItemSpec`'s list therefore carries a
+`min_count`, defaulting to 1 through `serde` so that packs written before it existed
+keep the meaning they had (any key matching).
+
+The `BONUS` qualifier path (`equipped_condition`) still builds the loose `values`
+form, deliberately: those qualifiers were written to be passed through as text, and
+typing them here would change what existing characters' bonuses mean.  The engine
+reads `specs` when it is non-empty and falls back to `values` otherwise, so both
+shapes work and only the tag path moved.
 
 ## What followed from this
 

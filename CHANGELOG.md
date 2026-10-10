@@ -7,6 +7,31 @@
 > 0 failed / 2 ignored**（PF35e、cohort matrix、deep-field 均通过；archive differential 为
 > 预期的 `SKIP`）。第三方 unsupported 由 **42 → 32**。
 
+### 修复 `PREEQUIP*` 的 key 匹配：`TYPE=` 等前缀不再被当成物品名（第 24 轮）
+
+- **发现（比目标更有价值）**：`Predicate::Equipped` 把 key 原样存成小写文本，于是
+  `PREEQUIP:1,TYPE=Weapon` 去找「名字里含 `type=weapon` 的物品」——**没有任何物品是这样**，
+  该谓词因此**静默恒假**。这类前缀形式在第三方资料里占绝大多数（575 处 `PREEQUIP*` 中
+  `TYPE=` 有 450 处；reference 数据里 pathfinder 另有 208 处、35e 184 处）。
+- 按 `PreEquippedTester` / `PreEquipTester` 的前缀分支建模：`ItemSpec` 新增
+  `BaseItem(String)` 与 `WieldCategory(String)`（原有 `Name` / `Types` 不变），
+  `Equipped` 新增 `specs: Vec<ItemSpec>`：
+  - `TYPE=a.b` / `TYPE.a.b` → `Types`，要求**全部**类型都匹配（`Equipment.isType` 的
+    dot 拆分语义）；
+  - `BASEITEM=x` → `BaseItem`，与物品的 base item 名比较，支持 `%` 通配；
+  - `WIELDCATEGORY=x` → `WieldCategory`，与物品的 wield 比较（大小写与 `-`/`_`/空格折叠，
+    因为数据与 reference 的类别名拼法不一致）；
+  - 其余 → `Name`，支持 `%` 通配，大小写不敏感。
+- **同时补上被忽略的计数**：开头数字是**key 的个数**（每个 key 的 tester 只回答 0/1），
+  因此 `PREEQUIP:2,Chain,Sword` 要求两个 key 都命中，而 `PREEQUIP:2,Chain` **恒假**——
+  与 reference 一致；`PREEQUIP:0,...` 恒真。`min_count` 用 `serde(default = 1)`，
+  旧 pack 仍是原来的「任一命中」语义。
+- `ItemSpec` 是新增变体、`Equipped.specs`/`min_count` 都是 `serde(default)`，旧 pack 可正常
+  反序列化；`BONUS` 的 qualifier 路径（`equipped_condition`）仍走旧的宽松 `values`，
+  行为不变（有注释说明为何不在那里改）。
+- 验收 cohort（DS/RSRD）**0 处 `PREEQUIP*`**，故谓词层面可证不影响 cohort；PF35e 门禁使用
+  pathfinder 数据（含 208 处），其变化将在批检时归因。测试与门禁按批次约定一起验证。
+
 ### 补齐 `PRELEGS` 全家族，并真正读取 `LEGS:`（第 23 轮）
 
 - 在这之前 `EffectState.legs` 是**硬编码的 2**（注释写着「defaults to biped」），

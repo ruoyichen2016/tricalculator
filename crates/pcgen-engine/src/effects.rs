@@ -123,6 +123,9 @@ pub struct EffectState {
     /// `PCClass.getSpellType` returns the fact verbatim and the tester compares it
     /// as text.
     pub spell_types: BTreeSet<String>,
+    /// Each item's wield category, keyed by the normalised item name, for
+    /// `PREEQUIP*`'s `WIELDCATEGORY=` keys.
+    pub item_wields: BTreeMap<String, String>,
     /// The character's own damage reduction by type (lower-cased), for `PREDR`.
     ///
     /// This is PCGen's *non-bonus* half: `BONUS:DR|<type>` arrives as an ordinary
@@ -499,6 +502,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
     // the draft's own list; the type test needs the definition, resolved the way
     // `Engine::resolve_equipment` does.
     let mut item_types: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut item_wields: BTreeMap<String, String> = BTreeMap::new();
     for item in &draft.equipment {
         let customised = draft
             .equipment_base_items
@@ -518,6 +522,9 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         for (id, definition) in &pack.equipment {
             if normalized(id) == lookup || normalized(&definition.name) == lookup {
                 item_types.insert(normalized(item), definition.type_tags.clone());
+                if let Some(wield) = &definition.wield {
+                    item_wields.insert(normalized(item), normalized(wield));
+                }
             }
         }
     }
@@ -615,6 +622,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         movement,
         equipment_values,
         item_types,
+        item_wields,
         equipped_primary,
         equipped_secondary,
         equipped_both,
@@ -1736,6 +1744,48 @@ fn item_name_matches(item: &str, pattern: &str) -> bool {
     }
 }
 
+/// Does one `PREEQUIP*` key match this item?
+///
+/// Both `PreEquippedTester` and `PreEquipTester` branch on the key's prefix, and
+/// the branches are what the typed [`pcgen_core::ItemSpec`] keeps: `TYPE=` against
+/// the item's types (all of them, dot-separated), `BASEITEM=` against its base
+/// item name, `WIELDCATEGORY=` against its wield category, and anything else
+/// against its name.  Names and base item names take a `%` wildcard.
+fn equip_spec_matches(
+    spec: &pcgen_core::ItemSpec,
+    item: &str,
+    state: &EffectState,
+    draft: &CharacterDraft,
+) -> bool {
+    let lookup = normalized(item);
+    match spec {
+        pcgen_core::ItemSpec::Name(pattern) => item_name_matches(item, pattern),
+        pcgen_core::ItemSpec::Types(types) => state.item_types.get(&lookup).is_some_and(|tags| {
+            types
+                .iter()
+                .all(|kind| tags.iter().any(|tag| tag.eq_ignore_ascii_case(kind.trim())))
+        }),
+        pcgen_core::ItemSpec::BaseItem(pattern) => draft
+            .equipment_base_items
+            .get(&item.to_ascii_lowercase())
+            .is_some_and(|base| item_name_matches(base, pattern)),
+        pcgen_core::ItemSpec::WieldCategory(wanted) => state
+            .item_wields
+            .get(&lookup)
+            .is_some_and(|wield| fold_key(wield) == fold_key(wanted)),
+    }
+}
+
+/// Fold a label for comparison: the data and the reference's category key names
+/// disagree on case, spaces, underscores and hyphens.
+fn fold_key(value: &str) -> String {
+    value
+        .chars()
+        .filter(|ch| !matches!(ch, ' ' | '_' | '-'))
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
 /// `ReachFacet.getReach`: the base reach plus `BONUS:COMBAT|REACH`.
 fn reach_value(state: &EffectState) -> i32 {
     let bonus: i32 = state
@@ -2342,21 +2392,59 @@ pub(crate) fn predicate_holds(
                 .count() as u32
                 >= *min_count
         }
-        Predicate::Equipped { slot, values } => {
-            let matches = |item: &String, value: &str| item == value || item.contains(value);
-            let in_scope = |set: &BTreeSet<String>| {
-                values
-                    .iter()
-                    .any(|value| set.iter().any(|item| matches(item, value)))
-            };
-            match slot.as_str() {
-                "primary" => in_scope(&state.equipped_primary) || in_scope(&state.equipped_both),
-                "secondary" => {
-                    in_scope(&state.equipped_secondary) || in_scope(&state.equipped_both)
-                }
-                "both" => in_scope(&state.equipped_both),
-                _ => in_scope(&state.equipment_values),
+        Predicate::Equipped {
+            slot,
+            values,
+            specs,
+            min_count,
+        } => {
+            if specs.is_empty() {
+                // The loose shape, kept for packs written before the keys were
+                // typed and for the `BONUS` qualifier path that still builds it.
+                let matches =
+                    |item: &String, value: &str| item == value || item.contains(value);
+                let in_scope = |set: &BTreeSet<String>| {
+                    values
+                        .iter()
+                        .any(|value| set.iter().any(|item| matches(item, value)))
+                };
+                return match slot.as_str() {
+                    "primary" => {
+                        in_scope(&state.equipped_primary) || in_scope(&state.equipped_both)
+                    }
+                    "secondary" => {
+                        in_scope(&state.equipped_secondary) || in_scope(&state.equipped_both)
+                    }
+                    "both" => in_scope(&state.equipped_both),
+                    _ => in_scope(&state.equipment_values),
+                };
             }
+            let in_slot = |item: &String| {
+                let key = normalized(item);
+                match slot.as_str() {
+                    "primary" => {
+                        state.equipped_primary.contains(&key) || state.equipped_both.contains(&key)
+                    }
+                    "secondary" => {
+                        state.equipped_secondary.contains(&key)
+                            || state.equipped_both.contains(&key)
+                    }
+                    "both" => state.equipped_both.contains(&key),
+                    _ => true,
+                }
+            };
+            // One count per key, as the reference's list wrapper counts one per
+            // sub-requirement: `PREEQUIP:2,Chain,Sword` needs both keys to match
+            // and `PREEQUIP:2,Chain` can never be satisfied.
+            let matched = specs
+                .iter()
+                .filter(|spec| {
+                    draft.equipment.iter().any(|item| {
+                        in_slot(item) && equip_spec_matches(spec, item, state, draft)
+                    })
+                })
+                .count() as u32;
+            matched >= *min_count
         }
         Predicate::WeaponProf { names } => names.iter().any(|name| {
             state

@@ -135,6 +135,9 @@ semantic_completion 100.0%
 - **Post-M9**：`PREFACT` → `Predicate::Fact`，新增 `FACT` 模型（`CompiledEntity.facts`
   + `EffectState.location_facts`，只 lower `abilities`/`race` 两个可枚举 location）。
   第三方资料 unsupported **304→42**（`BONUS` 268→23、`PREMULT` 19→2），是本循环最大一次下降。
+- **Post-M9**：`PREEQUIP*` 的 key 改为按 reference 前缀分支建模（`ItemSpec` 新增
+  `BaseItem`/`WieldCategory`；`Equipped.specs` + `min_count`，旧 `values` 保留）。
+  修掉 `TYPE=` 等前缀**静默恒假**的问题（第三方 450 处，pathfinder 208 处）。
 - **Post-M9**：`PRELEGS` 全家族（七种拼写）+ 真正读取 `LEGS:`（`CreatureTraits.legs`、
   `LegsFacet` 的「种族默认 2、模板按序覆盖、无种族为 0」）。严格/相等形式复用已有
   `LegsAtLeast`/`LegsAtMost` 组合。第三方 unsupported 5→4。

@@ -26,7 +26,9 @@
   30 → 0 并连带 319 条以它为 gate 的 `BONUS`，`BONUS` 599 → 280；`PREREGION`
   65 → 0 并连带 `PREMULT` 387 → 31）。此后 `PRESKILLTOT` 3 → 0、`PREUATT` 4 → 0（32 → 25），`PRESPELLCAST` 修好后
   `PREMULT` 2 → 0（25 → 23），`PRESPELLTYPE` 的文本化再清掉 18 条（23 → **5**）。
-`PRELEGS` 全家族补齐后又清掉 1 条（5 → **4**）。剩余 4 条**全部是** `BONUS`，即
+`PRELEGS` 全家族补齐后又清掉 1 条（5 → **4**）。
+  同一轮还顺带修掉了 `PREEQUIP*` 家族的一个**静默恒假**缺陷（`TYPE=` 等前缀被当成物品名；
+  第三方 450 处、pathfinder 208 处受影响，验收 cohort 0 处故谓词层面不受影响）。剩余 4 条**全部是** `BONUS`，即
   「gate 不可读但效果保留」的可见过近似，不是被丢弃的效果；逐条读出后为：2 条
   `PRECLASS:1,TYPE=Base`（reference 自身抛异常，**坏数据**）、2 条
   `PREEQUIPTWOWEAPON:2,TYPE=Nekode`（`PREEQUIP*` 家族的缺项，**可建模**）。后者处理完后

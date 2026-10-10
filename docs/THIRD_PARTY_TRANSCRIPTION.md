@@ -158,6 +158,12 @@ rather than assumed: on `homebrew_requests`, whose 99 `BONUS` rows all carry a
   lowered to one shape that the engine read as strict. **2,519** pairs in these
   packs have a symbolic operand and were compared one step too strictly. Nothing
   moves in the table below, because `PREVAR*` already lowered;
+- not a queue item at all, but found while reading the two `PREEQUIPTWOWEAPON` rows:
+  every `PREEQUIP*` key was kept as raw lower-cased text, so a `TYPE=` key looked for
+  an item *named* `type=weapon` and the requirement was silently false.  `TYPE=` is
+  450 of the 575 `PREEQUIP*` occurrences in this data (and 208 more in the Pathfinder
+  set).  The keys are typed now, and the leading count is read as the count of keys
+  that the reference's list wrapper actually counts;
 - `PRELEGS` (1 tag, and a much larger correction behind it): the family's other six
   spellings were not lowered, and `EffectState.legs` was hard-coded to 2 because the
   `LEGS:` tag was never read — so all 399 `PRELEGS*` occurrences in this data

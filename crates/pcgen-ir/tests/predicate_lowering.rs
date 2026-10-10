@@ -2197,3 +2197,119 @@ fn the_whole_prelegs_family_lowers() {
     assert!(pack.entities[0].requirements.is_empty());
     assert_eq!(report.coverage.unsupported_tags, 1);
 }
+
+#[test]
+fn preequip_keys_are_read_the_way_the_reference_reads_them() {
+    // `PreEquippedTester` branches on the key's prefix, so the forms are kept
+    // apart instead of being flattened into one list of strings.
+    fn lowered(value: &str) -> (String, u32, Vec<pcgen_core::ItemSpec>) {
+        let record = record("FEAT", "Equipped", &[("PREEQUIP", value)]);
+        let (pack, report) =
+            lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[record]);
+        assert_eq!(
+            report.coverage.unsupported_tags, 0,
+            "{value}: {:?}",
+            report.coverage.unsupported_pending_by_tag
+        );
+        match &pack.entities[0].requirements[0] {
+            Predicate::Equipped {
+                slot,
+                specs,
+                min_count,
+                ..
+            } => (slot.clone(), *min_count, specs.clone()),
+            other => panic!("{value}: expected an Equipped predicate, got {other:?}"),
+        }
+    }
+
+    assert_eq!(
+        lowered("1,TYPE=Weapon.Melee"),
+        (
+            "any".to_string(),
+            1,
+            vec![pcgen_core::ItemSpec::Types(vec![
+                "Weapon".to_string(),
+                "Melee".to_string(),
+            ])]
+        )
+    );
+    // The dotted spelling is five characters too.
+    assert_eq!(
+        lowered("1,TYPE.Weapon"),
+        (
+            "any".to_string(),
+            1,
+            vec![pcgen_core::ItemSpec::Types(vec!["Weapon".to_string()])]
+        )
+    );
+    assert_eq!(
+        lowered("1,BASEITEM=Chainmail"),
+        (
+            "any".to_string(),
+            1,
+            vec![pcgen_core::ItemSpec::BaseItem("Chainmail".to_string())]
+        )
+    );
+    assert_eq!(
+        lowered("1,WIELDCATEGORY=Light"),
+        (
+            "any".to_string(),
+            1,
+            vec![pcgen_core::ItemSpec::WieldCategory("Light".to_string())]
+        )
+    );
+    // Anything else is a name, and a `%` stays in it for the matching to read.
+    assert_eq!(
+        lowered("1,Longsword%"),
+        (
+            "any".to_string(),
+            1,
+            vec![pcgen_core::ItemSpec::Name("Longsword%".to_string())]
+        )
+    );
+    // The leading number is the wrapper's count of *keys*.
+    assert_eq!(
+        lowered("2,Chain,Sword"),
+        (
+            "any".to_string(),
+            2,
+            vec![
+                pcgen_core::ItemSpec::Name("Chain".to_string()),
+                pcgen_core::ItemSpec::Name("Sword".to_string()),
+            ]
+        )
+    );
+    // The hand variants keep their slot.
+    assert_eq!(lowered("1,Shortsword").0, "any");
+    let (_, _, specs) = lowered("1,Shortsword");
+    assert_eq!(
+        specs,
+        vec![pcgen_core::ItemSpec::Name("Shortsword".to_string())]
+    );
+}
+
+#[test]
+fn the_preequip_hand_variants_keep_their_slots() {
+    for (tag, slot) in [
+        ("PREEQUIPPRIMARY", "primary"),
+        ("PREEQUIPSECONDARY", "secondary"),
+        ("PREEQUIPBOTH", "both"),
+        ("PREEQUIP", "any"),
+    ] {
+        let record = record("FEAT", "Equipped", &[(tag, "1,Longsword")]);
+        let (pack, report) =
+            lower_records(Some("3e".to_string()), vec!["pred".to_string()], &[record]);
+        assert_eq!(report.coverage.unsupported_tags, 0, "{tag}");
+        match &pack.entities[0].requirements[0] {
+            Predicate::Equipped {
+                slot: found,
+                min_count,
+                ..
+            } => {
+                assert_eq!(found, slot, "{tag}");
+                assert_eq!(*min_count, 1, "{tag}");
+            }
+            other => panic!("{tag}: {other:?}"),
+        }
+    }
+}
