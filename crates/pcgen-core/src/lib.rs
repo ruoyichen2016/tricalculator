@@ -69,3 +69,26 @@ pub use tagclass::{
 };
 pub use variants::{feature_match_key, feature_name, line_owner, ReplaceTarget, VariantDefinition};
 pub use vocab::{ChoiceKind, EntityCategory};
+
+pub mod character;
+pub use character::{
+    default_character_type, CharacterDraft, ClassLevelSummary, DraftCompanion, DraftSpell,
+};
+
+pub mod magic;
+
+pub mod class_play;
+
+pub mod necromancy;
+
+pub mod tactics;
+
+pub mod combat;
+
+pub mod martial;
+
+pub mod incarnum;
+
+pub mod build;
+
+pub mod actions;

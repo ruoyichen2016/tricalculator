@@ -6,7 +6,8 @@
 //! with `|`, and reading the whole value as a single attack let the second
 //! attack's fields overwrite the first's.
 
-use pcgen_engine::{CharacterDraft, DraftClassLevel, Engine};
+use pcgen_engine::{CharacterDraft, Engine};
+use pcgen_import::PcgClassLevel as DraftClassLevel;
 use pcgen_ir::{lower_records, RawRecord, RawTag, SourceRef};
 
 fn record(category: &str, name: &str, tags: &[(&str, &str)]) -> RawRecord {
@@ -56,13 +57,23 @@ fn attacks(race: &str) -> Vec<String> {
         race_id: race.to_string(),
         ..CharacterDraft::default()
     };
-    draft.class_levels.push(DraftClassLevel {
-        class_id: "Fighter".to_string(),
-        level: 1,
-        hit_points_gained: 0,
-        hit_points_by_level: vec![],
-        experience_gained: 0,
-    });
+    draft.advancement.extend(
+        pcgen_import::advancement_from_class_levels(&[DraftClassLevel {
+            class_id: "Fighter".to_string(),
+            level: 1,
+            hit_points_gained: 0,
+            hit_points_by_level: vec![],
+            experience_gained: 0,
+        }])
+        .into_iter()
+        .map({
+            let offset = draft.total_level();
+            move |mut frame| {
+                frame.character_level += offset;
+                frame
+            }
+        }),
+    );
     engine.evaluate(&draft).natural_attacks
 }
 

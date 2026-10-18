@@ -1,6 +1,7 @@
 //! P5-6 / P5-7: real-character assertion baseline and numeric spell effects.
 
-use pcgen_engine::{CharacterDraft, DraftClassLevel, DraftSpell, Engine};
+use pcgen_engine::{CharacterDraft, DraftSpell, Engine};
+use pcgen_import::PcgClassLevel as DraftClassLevel;
 use pcgen_ir::{lower_records, RawRecord, RawTag, SourceRef};
 
 fn record(category: &str, name: &str, tags: &[(&str, &str)]) -> RawRecord {
@@ -44,13 +45,13 @@ fn numeric_spell_effects_are_reported_in_snapshot() {
     );
     let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
         race_id: "Human".to_string(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Wizard".to_string(),
             level: 1,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         spells: vec![DraftSpell {
             name: "Mage Armor".to_string(),
             level: 1,
@@ -94,13 +95,13 @@ fn numeric_save_spell_folds_into_saves() {
     );
     let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
         race_id: "Human".to_string(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Cleric".to_string(),
             level: 1,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         spells: vec![DraftSpell {
             name: "Bless".to_string(),
             level: 1,
@@ -144,13 +145,13 @@ fn prepared_domain_spell_numeric_effect_is_reported() {
     );
     let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
         race_id: "Human".to_string(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Cleric".to_string(),
             level: 1,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         deity: Some("Pelor".to_string()),
         domains: vec!["Sun".to_string()],
         spells: vec![DraftSpell {
@@ -203,13 +204,13 @@ fn domain_spell_catalog_alone_does_not_inflate_ac() {
     );
     let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
         race_id: "Human".to_string(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Cleric".to_string(),
             level: 1,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         deity: Some("Pelor".to_string()),
         domains: vec!["Sun".to_string()],
         ..CharacterDraft::default()
@@ -254,13 +255,13 @@ fn numeric_stat_and_skill_spells_fold_into_derived_values() {
     let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
         race_id: "Human".to_string(),
         stats: [("STR".to_string(), 10)].into_iter().collect(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Wizard".to_string(),
             level: 3,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         skills: [("Climb".to_string(), 0.0)].into_iter().collect(),
         spells: vec![
             DraftSpell {
@@ -331,13 +332,13 @@ fn curated_choice_and_pool_state_is_assertable() {
     );
     let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
         race_id: "Human".to_string(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Cleric".to_string(),
             level: 1,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         deity: Some("Pelor".to_string()),
         domains: vec!["Sun".to_string(), "Healing".to_string()],
         deity_domains: vec!["Sun".to_string(), "Healing".to_string()],
@@ -383,13 +384,13 @@ fn numeric_attack_spell_folds_into_attack_bonuses() {
     );
     let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
         race_id: "Human".to_string(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Cleric".to_string(),
             level: 1,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         spells: vec![DraftSpell {
             name: "Bless".to_string(),
             level: 1,

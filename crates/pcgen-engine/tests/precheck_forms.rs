@@ -17,7 +17,8 @@
 //! `PRECHECKBASE:2,Fortitude=5,Reflex=3` became "Fortitude >= 5" — stricter than
 //! the reference's "either".
 
-use pcgen_engine::{apply_effects, CharacterDraft, DraftClassLevel};
+use pcgen_engine::{apply_effects, CharacterDraft};
+use pcgen_import::PcgClassLevel as DraftClassLevel;
 use pcgen_ir::{lower_records, RawRecord, RawTag, SourceRef};
 
 fn record(category: &str, name: &str, tags: &[(&str, &str)]) -> RawRecord {
@@ -82,13 +83,13 @@ fn gated(check: &str, wis: i32, con: i32) -> bool {
     let draft = CharacterDraft {
         race_id: "Test Race".to_string(),
         stats,
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Cleric".to_string(),
             level: 3,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         ..CharacterDraft::default()
     };
     apply_effects(&pack, &draft).variables.contains_key("Gated")

@@ -13,7 +13,6 @@ use pcgen_core::domain::{
 };
 use pcgen_core::{EffectPhase, Provenance, VariantDefinition};
 use std::collections::BTreeMap;
-use std::collections::HashMap;
 
 /// Build typed definitions from lossless records.
 pub fn build_typed_definitions(records: &[RawRecord]) -> TypedDefinitions {
@@ -238,6 +237,13 @@ fn merge_class(classes: &mut BTreeMap<String, ClassDefinition>, class: ClassDefi
             {
                 existing.casting_type = class.casting_type;
             }
+            if class.spell_power != pcgen_core::SpellPowerType::Unknown {
+                existing.spell_power = class.spell_power;
+            }
+            if !class.spell_type.is_empty() {
+                existing.spell_type = class.spell_type;
+            }
+            existing.requires_spellbook |= class.requires_spellbook;
             existing.templates.extend(class.templates);
             existing.level_bonuses.extend(class.level_bonuses);
             existing.level_abilities.extend(class.level_abilities);
@@ -462,10 +468,6 @@ fn parse_class(record: &RawRecord) -> ClassDefinition {
         class.casting_type = CastingType::Prepared;
     }
     // FACT:SpellType|Arcane/Divine/Psionic declares the class's magic source.
-    class.spell_power = tags(record, "FACT")
-        .find_map(|value| value.split_once('|').map(|(_, power)| power))
-        .and_then(SpellPowerType::from_pcgen)
-        .unwrap_or_default();
     // `FACT:SpellType` verbatim, and *empty* when the class declares none.
     //
     // The two consumers disagree about that case and both are right: `getSpellType`
@@ -477,6 +479,7 @@ fn parse_class(record: &RawRecord) -> ClassDefinition {
         .find(|(name, _)| name.trim().eq_ignore_ascii_case("SpellType"))
         .map(|(_, value)| value.trim().to_string())
         .unwrap_or_default();
+    class.spell_power = SpellPowerType::from_pcgen(&class.spell_type).unwrap_or_default();
     class.requires_spellbook =
         tag(record, "SPELLBOOK").is_some_and(|value| value.eq_ignore_ascii_case("YES"));
     class.type_tags = type_tags(record);
@@ -580,19 +583,19 @@ fn parse_class_level_row(class: &mut ClassDefinition, record: &RawRecord) {
             }
             "ABILITY" => {
                 // Structured, through the same parse the grant effects use.
-                if let Some(shape) = crate::rulepack::parse_grant_shape(&tag.value) {
-                    class
-                        .level_abilities
-                        .entry(level)
-                        .or_default()
-                        .push(pcgen_core::ClassGrant {
-                            pool: shape.pool.map(str::to_string),
-                            feature: shape.feature.to_string(),
-                            mode: shape.mode,
-                            unless_replaced: shape.anchors,
-                            unless_category: shape.anchor_category,
-                            guards: shape.guards.iter().map(|g| (*g).to_string()).collect(),
-                        });
+                for value in crate::rulepack::expand_ability_grants(&tag.value) {
+                    if let Some(shape) = crate::rulepack::parse_grant_shape(&value) {
+                        class.level_abilities.entry(level).or_default().push(
+                            pcgen_core::ClassGrant {
+                                pool: shape.pool.map(str::to_string),
+                                feature: shape.feature.to_string(),
+                                mode: shape.mode,
+                                unless_replaced: shape.anchors,
+                                unless_category: shape.anchor_category,
+                                guards: shape.guards.iter().map(|g| (*g).to_string()).collect(),
+                            },
+                        );
+                    }
                 }
             }
             "TEMPLATE" => {
@@ -822,7 +825,7 @@ fn parse_companion_bonus(value: &str) -> Option<CompanionBonus> {
 /// normalised by a regex inside the engine, at evaluation time.  Doing it here
 /// keeps the engine from reading PCGen syntax at all.
 fn normalize_formula_text(value: &str) -> String {
-    pcgen_core::formula_vocab::normalize_pcgen_formula(value, None)
+    crate::formula::normalize_pcgen_formula(value, None)
 }
 
 const KIT_ENTRY_TARGETS: &[&str] = &[
@@ -964,6 +967,70 @@ fn parse_skill(record: &RawRecord) -> SkillDefinition {
 
 fn parse_spell(record: &RawRecord) -> SpellDefinition {
     let mut spell = SpellDefinition::new(record.key.clone(), record.name.clone());
+    spell.profile.somatic = tag(record, "COMPS").and_then(|s| {
+        let parts = s
+            .split(',')
+            .map(|c| c.trim().to_ascii_uppercase())
+            .collect::<Vec<_>>();
+        parts
+            .iter()
+            .all(|c| {
+                matches!(
+                    c.as_str(),
+                    "V" | "S" | "M" | "F" | "DF" | "XP" | "F/DF" | "M/DF" | "NONE"
+                )
+            })
+            .then(|| parts.iter().any(|c| c == "S"))
+    });
+    use pcgen_core::magic::SpellCastingTime;
+    spell.profile.casting_time =
+        tag(record, "CASTTIME").and_then(|s| match s.trim().to_ascii_lowercase().as_str() {
+            "1 standard action" => Some(SpellCastingTime::Standard),
+            "1 swift action" => Some(SpellCastingTime::Swift),
+            "1 immediate action" => Some(SpellCastingTime::Immediate),
+            "1 full-round action" | "1 round" => Some(SpellCastingTime::FullRound),
+            s if s.contains("minute") || s.contains("hour") || s.contains("day") => {
+                Some(SpellCastingTime::Longer)
+            }
+            _ => None,
+        });
+    use pcgen_core::magic::SpellRange;
+    spell.profile.range = match tag(record, "RANGE")
+        .unwrap_or("")
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "personal" => SpellRange::Personal,
+        "touch" => SpellRange::Touch,
+        "close" => SpellRange::Close,
+        "medium" => SpellRange::Medium,
+        "long" => SpellRange::Long,
+        _ => SpellRange::Unknown,
+    };
+    spell.profile.duration = tag(record, "DURATION").map(str::to_string);
+    if let Some(duration) = &spell.profile.duration {
+        let d = duration.to_ascii_lowercase();
+        if d == "instantaneous" {
+            spell.profile.instantaneous = Some(true);
+        } else if !d.contains("instantaneous") {
+            spell.profile.instantaneous = Some(false);
+        }
+        if d.contains("discharg") {
+            spell.profile.discharged = Some(true);
+        }
+    }
+    if let Some(target) = tag(record, "TARGETAREA") {
+        let t = target.to_ascii_lowercase();
+        if t.contains("creature") && !t.contains("object") {
+            spell.profile.targets_creatures = Some(true);
+        }
+        if t.contains("willing") {
+            spell.profile.harmless_or_willing = Some(true);
+        }
+    }
+    if tag(record, "SAVEINFO").is_some_and(|s| s.to_ascii_lowercase().contains("harmless")) {
+        spell.profile.harmless_or_willing = Some(true);
+    }
     spell.school = tag(record, "SCHOOL")
         .or_else(|| tag(record, "SCHOOLS"))
         .unwrap_or("")
@@ -1232,12 +1299,13 @@ fn parse_ability_category(record: &RawRecord) -> pcgen_core::AbilityCategoryDefi
         );
     }
     pcgen_core::AbilityCategoryDefinition {
+        choice_restrictions: Default::default(),
         id: entity_key(record),
         name: record.name.clone(),
         category: tag(record, "CATEGORY").map(str::to_string),
         type_tags: type_tags(record),
         ability_list,
-        pool: tag(record, "POOL").map(str::to_string),
+        pool: tag(record, "POOL").map(|value| crate::formula::normalize_pcgen_formula(value, None)),
     }
 }
 
@@ -1549,54 +1617,9 @@ fn split_tag_list(record: &RawRecord, name: &str) -> Vec<String> {
 }
 
 fn build_class_progression(class: &ClassDefinition) -> ClassProgression {
-    let mut progression = ClassProgression::from_class(class);
-    let max_level = class.max_level.max(1);
-    if let Some(formula) = &class.base_attack_formula {
-        progression.base_attack_bonus = (1..=max_level)
-            .map(|level| evaluate_class_formula(formula, level, &class.id))
-            .collect();
-    }
-    if let Some(formula) = &class.fortitude_formula {
-        progression.fortitude = (1..=max_level)
-            .map(|level| evaluate_class_formula(formula, level, &class.id))
-            .collect();
-    }
-    if let Some(formula) = &class.reflex_formula {
-        progression.reflex = (1..=max_level)
-            .map(|level| evaluate_class_formula(formula, level, &class.id))
-            .collect();
-    }
-    if let Some(formula) = &class.will_formula {
-        progression.will = (1..=max_level)
-            .map(|level| evaluate_class_formula(formula, level, &class.id))
-            .collect();
-    }
-    progression
-}
-
-/// Evaluate a class progression formula at one class level.
-///
-/// The PCGen dialect is translated first (see
-/// [`pcgen_core::formula_vocab`]), so this is plain arithmetic over the
-/// runtime vocabulary.  The class level stands in for both `ClassLevel_*` and
-/// `CharacterLevel`, which is what the previous PCGen-token version did: at
-/// this point the class level is the only level in scope.
-fn evaluate_class_formula(formula: &str, level: u32, class_id: &str) -> i32 {
-    let normalized = pcgen_core::formula_vocab::normalize_pcgen_formula(formula, Some(class_id));
-    let mut variables: HashMap<String, i64> = HashMap::new();
-    variables.insert(
-        pcgen_core::formula_vocab::class_level_variable(class_id),
-        i64::from(level),
-    );
-    variables.insert(
-        pcgen_core::formula_vocab::CHARACTER_LEVEL.to_string(),
-        i64::from(level),
-    );
-    // `var(...)` references are not resolvable while the tables are built; the
-    // previous version substituted zero for them.
-    pcgen_formula::evaluate_f64(&normalized, &variables)
-        .map(|value| value as i32)
-        .unwrap_or(0)
+    // Formula-backed progressions are evaluated with character variables at
+    // runtime. Tables represent only the formula-free progression metadata.
+    ClassProgression::from_class(class)
 }
 
 fn apply_class_bonus(class: &mut ClassDefinition, bonus: &str, owner: &str) {
@@ -1606,13 +1629,13 @@ fn apply_class_bonus(class: &mut ClassDefinition, bonus: &str, owner: &str) {
     }
     if parts[0].eq_ignore_ascii_case("COMBAT") && parts[1].eq_ignore_ascii_case("BASEAB") {
         class.attack_progression = attack_progression_from_text(parts[2]);
-        class.base_attack_formula = Some(pcgen_core::formula_vocab::normalize_pcgen_formula(
+        class.base_attack_formula = Some(crate::formula::normalize_pcgen_formula(
             parts[2],
             Some(owner),
         ));
     } else if parts[0].eq_ignore_ascii_case("SAVE") {
         let progression = save_progression_from_text(parts[2]);
-        let formula = pcgen_core::formula_vocab::normalize_pcgen_formula(parts[2], Some(owner));
+        let formula = crate::formula::normalize_pcgen_formula(parts[2], Some(owner));
         for target in parts[1].split(',') {
             let target = target.trim().to_ascii_lowercase();
             if target.contains("fortitude") || target.eq_ignore_ascii_case("all") {

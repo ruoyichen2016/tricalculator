@@ -58,7 +58,8 @@ async fn index_serves_html() {
         .await
         .unwrap();
     let body = String::from_utf8(bytes.to_vec()).unwrap();
-    assert!(body.contains("PCGen-Rust Web"));
+    assert!(body.contains("Rules workbench"));
+    assert!(!body.contains("<script"));
 }
 
 #[tokio::test]
@@ -395,7 +396,7 @@ async fn structured_option_search_endpoints_respond() {
 }
 
 #[tokio::test]
-async fn builder_create_accepts_class_uuid() {
+async fn builder_create_accepts_class_and_race_uuids() {
     let config = character_config("uuid-class");
     let characters_root = config.characters_root.clone();
     let app = app(config);
@@ -418,12 +419,20 @@ async fn builder_create_accepts_class_uuid() {
     let class_uuid = class["uuid"].as_str().expect("class uuid").to_string();
     let class_name = class["name"].as_str().expect("class name").to_string();
 
+    let race_uuid = options["races"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|race| race["name"] == "Human")
+        .unwrap()["uuid"]
+        .clone();
+
     let body = serde_json::json!({
         "pcc": "campaign-mini/mini.pcc",
         "request": {
             "id": "",
             "name": "UUID Hero",
-            "race": "Human",
+            "race": race_uuid,
             "class": class_uuid,
             "level": 1,
             "alignment": "NG",
@@ -473,12 +482,13 @@ async fn builder_create_accepts_class_uuid() {
         .await
         .unwrap();
     let detail: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-    let saved_class = detail["envelope"]["character"]["class_levels"][0]["class_id"]
+    let saved_class = project_classes(&detail["envelope"]["character"])[0]["class_id"]
         .as_str()
-        .unwrap();
+        .unwrap()
+        .to_owned();
     assert!(
         saved_class.eq_ignore_ascii_case(&class_name)
-            || class_name.eq_ignore_ascii_case(saved_class)
+            || class_name.eq_ignore_ascii_case(&saved_class)
     );
 
     let _ = std::fs::remove_dir_all(characters_root);
@@ -602,12 +612,9 @@ async fn builder_create_advancement_multiclass() {
         .await
         .unwrap();
     let detail: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-    assert_eq!(
-        detail["envelope"]["character"]["class_levels"]
-            .as_array()
-            .map(|v| v.len()),
-        Some(0)
-    );
+    assert!(detail["envelope"]["character"]
+        .get("class_levels")
+        .is_none());
     assert_eq!(
         detail["envelope"]["character"]["advancement"]
             .as_array()
@@ -808,7 +815,7 @@ async fn level_up_character_applies_class_and_reports_errors() {
         .unwrap();
     let detail: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(
-        detail["envelope"]["character"]["class_levels"][0]["level"],
+        project_classes(&detail["envelope"]["character"])[0]["level"],
         3
     );
     assert!(detail["snapshot"].is_object());
@@ -829,7 +836,7 @@ async fn level_up_character_applies_class_and_reports_errors() {
         .unwrap();
     let detail: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(
-        detail["envelope"]["character"]["class_levels"][0]["level"],
+        project_classes(&detail["envelope"]["character"])[0]["level"],
         3
     );
 
@@ -912,7 +919,7 @@ async fn level_up_preview_does_not_persist_and_lanes_advance() {
         .unwrap();
     let detail: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(detail["preview"], true);
-    assert_eq!(detail["character"]["class_levels"][0]["level"], 3);
+    assert_eq!(project_classes(&detail["character"])[0]["level"], 3);
 
     let response = app
         .clone()
@@ -929,7 +936,7 @@ async fn level_up_preview_does_not_persist_and_lanes_advance() {
         .unwrap();
     let detail: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(
-        detail["envelope"]["character"]["class_levels"][0]["level"],
+        project_classes(&detail["envelope"]["character"])[0]["level"],
         2
     );
 
@@ -953,9 +960,8 @@ async fn level_up_preview_does_not_persist_and_lanes_advance() {
         .await
         .unwrap();
     let detail: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-    let classes = detail["envelope"]["character"]["class_levels"]
-        .as_array()
-        .unwrap();
+    let projected = project_classes(&detail["envelope"]["character"]);
+    let classes = projected.as_array().unwrap();
     assert!(classes.iter().any(|entry| entry["class_id"] == "Wizard"));
 
     let _ = std::fs::remove_dir_all(characters_root);
@@ -1017,7 +1023,7 @@ async fn undo_restores_previous_character_version() {
         .unwrap();
     let detail: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(
-        detail["envelope"]["character"]["class_levels"][0]["level"],
+        project_classes(&detail["envelope"]["character"])[0]["level"],
         2
     );
 
@@ -1124,7 +1130,7 @@ async fn redo_reapplies_and_history_reports_depths() {
         .unwrap();
     let detail: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(
-        detail["envelope"]["character"]["class_levels"][0]["level"],
+        project_classes(&detail["envelope"]["character"])[0]["level"],
         3
     );
     assert_eq!(detail["redo_depth"], 0);
@@ -1209,7 +1215,7 @@ async fn history_lists_revisions_and_restore_jumps_to_one() {
         .unwrap();
     let detail: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(
-        detail["envelope"]["character"]["class_levels"][0]["level"],
+        project_classes(&detail["envelope"]["character"])[0]["level"],
         2
     );
 
@@ -1554,4 +1560,13 @@ async fn characters_endpoint_supports_search_filters() {
     }
 
     let _ = std::fs::remove_dir_all(characters_root);
+}
+
+fn project_classes(character: &serde_json::Value) -> serde_json::Value {
+    let draft: pcgen_core::CharacterDraft = serde_json::from_value(character.clone()).unwrap();
+    serde_json::json!(draft
+        .class_levels()
+        .iter()
+        .map(|entry| serde_json::json!({"class_id": entry.class_id, "level": entry.level}))
+        .collect::<Vec<_>>())
 }

@@ -1,5 +1,6 @@
 use pcgen_core::{AdvancementFrame, AdvancementLane};
-use pcgen_engine::{CharacterDraft, DraftClassLevel, Engine};
+use pcgen_engine::{CharacterDraft, Engine};
+use pcgen_import::PcgClassLevel as DraftClassLevel;
 use pcgen_ir::{lower_records, RawRecord, RawTag, SourceRef};
 
 fn record(category: &str, name: &str, key: &str, tags: &[(&str, &str)]) -> RawRecord {
@@ -30,12 +31,18 @@ fn effects_execute_variables_grants_and_choices() {
             "Test Race",
             &[
                 ("DEFINE", "Power|1"),
+                ("DEFINE", "Derived|0"),
                 ("BONUS", "VAR|Derived|Power*2"),
                 ("CHOOSE", "SKILL|Climb"),
                 ("ABILITY", "Feat|AUTOMATIC|Child"),
             ],
         ),
-        record("ABILITY", "Child", "Child", &[("BONUS", "VAR|Granted|5")]),
+        record(
+            "ABILITY",
+            "Child",
+            "Child",
+            &[("DEFINE", "Granted|0"), ("BONUS", "VAR|Granted|5")],
+        ),
     ];
     let (pack, report) = lower_records(
         Some("3e".to_string()),
@@ -114,7 +121,12 @@ fn grants_substitute_choices_and_check_embedded_prerequisites() {
                 ("ABILITY", "Feat|AUTOMATIC|Blocked"),
             ],
         ),
-        record("ABILITY", "Climb", "Climb", &[("BONUS", "VAR|Chosen|1")]),
+        record(
+            "ABILITY",
+            "Climb",
+            "Climb",
+            &[("DEFINE", "Chosen|0"), ("BONUS", "VAR|Chosen|1")],
+        ),
         record("ABILITY", "Blocked", "Blocked", &[("PRESTAT", "1,STR=20")]),
     ];
     let (pack, _) = lower_records(
@@ -153,7 +165,7 @@ fn substitution_level_bonus_effects_execute() {
             "CLASS",
             "SUBSTITUTIONLEVEL:1",
             "SUBSTITUTIONLEVEL:1",
-            &[("BONUS", "VAR|SubVar|1")],
+            &[("DEFINE", "SubVar|0"), ("BONUS", "VAR|SubVar|1")],
         ),
     ];
     let (pack, _) = lower_records(Some("3e".to_string()), vec!["sub".to_string()], &records);
@@ -161,7 +173,7 @@ fn substitution_level_bonus_effects_execute() {
         .variants
         .get("Test Sub ~ level 1")
         .expect("substitution variant should exist");
-    assert_eq!(variant.effects.len(), 1);
+    assert_eq!(variant.effects.len(), 2);
     let draft = CharacterDraft {
         race_id: "Human".to_string(),
         advancement: vec![AdvancementFrame::new(
@@ -184,7 +196,10 @@ fn prepclevel_excludes_monster_hd() {
             "RACE",
             "Test Race",
             "Test Race",
-            &[("BONUS", "VAR|ClassGate|5|PREPCLEVEL:MAX=1")],
+            &[
+                ("DEFINE", "ClassGate|0"),
+                ("BONUS", "VAR|ClassGate|5|PREPCLEVEL:MAX=1"),
+            ],
         ),
     ];
     let (pack, report) = lower_records(
@@ -196,7 +211,7 @@ fn prepclevel_excludes_monster_hd() {
 
     let draft = CharacterDraft {
         race_id: "Test Race".to_string(),
-        class_levels: vec![
+        advancement: pcgen_import::advancement_from_class_levels(&vec![
             DraftClassLevel {
                 class_id: "Giant".to_string(),
                 level: 3,
@@ -211,7 +226,7 @@ fn prepclevel_excludes_monster_hd() {
                 hit_points_by_level: Vec::new(),
                 experience_gained: 0,
             },
-        ],
+        ]),
         ..CharacterDraft::default()
     };
     let snapshot = Engine::new(pack.clone()).evaluate(&draft);
@@ -219,7 +234,15 @@ fn prepclevel_excludes_monster_hd() {
     assert_eq!(snapshot.variables.get("ClassGate"), Some(&5));
 
     let mut higher = draft.clone();
-    higher.class_levels[1].level = 2;
+    higher
+        .advancement
+        .push(pcgen_core::AdvancementFrame::single(
+            higher.total_level() + 1,
+            "Wizard",
+            2,
+            0,
+            0,
+        ));
     let snapshot = Engine::new(pack).evaluate(&higher);
     assert_eq!(snapshot.variables.get("ClassGate").copied().unwrap_or(0), 0);
 }
@@ -247,13 +270,13 @@ fn pretotalab_pack(class_name: &str, class_tags: &[(&str, &str)]) -> pcgen_ir::C
 fn pretotalab_draft(class_name: &str, level: u32) -> CharacterDraft {
     CharacterDraft {
         race_id: "Test Race".to_string(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: class_name.to_string(),
             level,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         ..CharacterDraft::default()
     }
 }
@@ -327,13 +350,13 @@ fn class_without_explicit_baseab_has_zero_bab() {
     let (pack, _) = lower_records(Some("3e".to_string()), vec!["no-bab".to_string()], &records);
     let draft = CharacterDraft {
         race_id: "Test Race".to_string(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "No Bab".to_string(),
             level: 5,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         ..CharacterDraft::default()
     };
     let snapshot = Engine::new(pack).evaluate(&draft);
@@ -367,13 +390,13 @@ fn normalized_class_entity_activates_level_bonuses_once() {
     let draft = CharacterDraft {
         race_id: "Test Race".to_string(),
         stats: std::collections::BTreeMap::from([("DEX".to_string(), 10)]),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Charlie Class".to_string(),
             level: 1,
             hit_points_gained: 10,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         ..CharacterDraft::default()
     };
     let snapshot = Engine::new(pack).evaluate(&draft);
@@ -408,13 +431,13 @@ fn typed_progression_prevents_raw_baseab_and_save_double_counting() {
     );
     let draft = CharacterDraft {
         race_id: "Test Race".to_string(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Fighter".to_string(),
             level: 4,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         ..CharacterDraft::default()
     };
     let snapshot = Engine::new(pack).evaluate(&draft);
@@ -794,6 +817,7 @@ fn precheckbase_gates_grants_by_class_base_save() {
             "Test Race",
             "Test Race",
             &[
+                ("DEFINE", "WillGated|0"),
                 ("BONUS", "VAR|WillGated|1|PRECHECKBASE:1,Will=2"),
                 ("BONUS", "VAR|FortGated|1|PRECHECKBASE:1,Fortitude=2"),
             ],
@@ -812,17 +836,199 @@ fn precheckbase_gates_grants_by_class_base_save() {
 
     let draft = CharacterDraft {
         race_id: "Test Race".to_string(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Cleric".to_string(),
             level: 3,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         ..CharacterDraft::default()
     };
     let snapshot = Engine::new(pack).evaluate(&draft);
     // Will base save at level 3 is 3 (>= 2); Fortitude base save is 1 (< 2).
     assert_eq!(snapshot.variables.get("WillGated").copied(), Some(1));
     assert!(!snapshot.variables.contains_key("FortGated"));
+}
+
+#[test]
+fn deep_grant_chain_and_unknown_negation_are_explicit() {
+    let mut records = vec![record(
+        "RACE",
+        "Test Race",
+        "Test Race",
+        &[
+            ("ABILITY", "Feat|AUTOMATIC|Step0"),
+            ("BONUS", "VAR|Uncertain|99"),
+        ],
+    )];
+    for index in 0..24 {
+        records.push(record(
+            "ABILITY",
+            &format!("Step{index}"),
+            &format!("Step{index}"),
+            &[("ABILITY", &format!("Feat|AUTOMATIC|Step{}", index + 1))],
+        ));
+    }
+    records.push(record(
+        "ABILITY",
+        "Step24",
+        "Step24",
+        &[("DEFINE", "ReachedEnd|0"), ("BONUS", "VAR|ReachedEnd|1")],
+    ));
+    let (mut pack, _) = lower_records(None, Vec::new(), &records);
+    for entity in &mut pack.entities {
+        for effect in &mut entity.effects {
+            if matches!(&effect.action, pcgen_core::EffectAction::ModifyVariable { names, .. } if names.contains(&"Uncertain".to_string()))
+            {
+                effect.condition = Some(pcgen_core::Predicate::Not(Box::new(
+                    pcgen_core::Predicate::Unsupported {
+                        raw: "unknown-rule".into(),
+                    },
+                )));
+            }
+        }
+    }
+    let state = pcgen_engine::apply_effects(
+        &pack,
+        &CharacterDraft {
+            race_id: "Test Race".into(),
+            ..Default::default()
+        },
+    );
+    assert_eq!(state.variables.get("ReachedEnd"), Some(&1));
+    assert!(!state.variables.contains_key("Uncertain"));
+    assert!(state
+        .diagnostics
+        .iter()
+        .any(|message| message.contains("unknown-rule")));
+}
+
+#[test]
+fn unified_variables_use_final_dependencies_and_raw_stacking() {
+    let records = vec![record(
+        "RACE",
+        "Graph",
+        "Graph",
+        &[
+            ("DEFINE", "A|B*2"),
+            ("DEFINE", "B|1"),
+            ("DEFINE", "B|3"),
+            ("DEFINE", "C|0"),
+            ("BONUS", "VAR|C|A+1"),
+            ("BONUS", "VAR|B|2|TYPE=Enhancement"),
+            ("BONUS", "VAR|B|4|TYPE=Enhancement"),
+            ("BONUS", "VAR|B|1"),
+            ("BONUS", "VAR|Undefined|Missing+100"),
+            ("BONUS", "COMBAT|AC|C"),
+        ],
+    )];
+    for records in [
+        records.clone(),
+        records
+            .into_iter()
+            .map(|mut record| {
+                record.tags.reverse();
+                record
+            })
+            .collect(),
+    ] {
+        let (pack, _) = lower_records(None, Vec::new(), &records);
+        let state = pcgen_engine::apply_effects(
+            &pack,
+            &CharacterDraft {
+                race_id: "Graph".into(),
+                ..Default::default()
+            },
+        );
+        assert_eq!(state.variables["B"], 8);
+        assert_eq!(state.variables["A"], 16);
+        assert_eq!(state.variables["C"], 17);
+        assert_eq!(state.variables["Undefined"], 0);
+        assert!(state
+            .typed_bonuses
+            .iter()
+            .any(|bonus| bonus.target == "COMBAT.AC" && bonus.value == 17));
+        assert!(state.diagnostics.is_empty(), "{:?}", state.diagnostics);
+    }
+}
+
+#[test]
+fn unified_variables_isolate_cycles_and_follow_only_live_branches() {
+    let (pack, _) = lower_records(
+        None,
+        Vec::new(),
+        &[record(
+            "RACE",
+            "Graph",
+            "Graph",
+            &[
+                ("DEFINE", "A|B+1"),
+                ("DEFINE", "B|0"),
+                ("BONUS", "VAR|B|A+1"),
+                ("DEFINE", "Dependent|A+10"),
+                ("DEFINE", "Independent|7"),
+                ("DEFINE", "Lazy|if(1,Independent,Lazy+Missing)"),
+                ("DEFINE", "Invalid|Missing+1"),
+                ("BONUS", "COMBAT|AC|99|!PREVARGTEQ:A,1"),
+            ],
+        )],
+    );
+    let state = pcgen_engine::apply_effects(
+        &pack,
+        &CharacterDraft {
+            race_id: "Graph".into(),
+            ..Default::default()
+        },
+    );
+    assert!(!state.typed_bonuses.iter().any(|bonus| bonus.value == 99));
+    assert_eq!(state.variables["Independent"], 7);
+    assert_eq!(state.variables["Lazy"], 7);
+    for name in ["A", "B", "Dependent", "Invalid"] {
+        assert!(!state.variables.contains_key(name));
+    }
+    assert!(state
+        .diagnostics
+        .iter()
+        .any(|message| message.contains("A -> B -> A")));
+    assert!(state
+        .diagnostics
+        .iter()
+        .any(|message| message.contains("Missing")));
+}
+
+#[test]
+fn unified_variables_reconsider_conditions_and_retract_old_grants() {
+    let (pack, _) = lower_records(
+        None,
+        Vec::new(),
+        &[
+            record(
+                "RACE",
+                "Graph",
+                "Graph",
+                &[
+                    ("DEFINE", "Power|0"),
+                    ("BONUS", "VAR|Power|3"),
+                    ("DEFINE", "Pool|0"),
+                    ("BONUS", "VAR|Pool|Power*2|PREVARGTEQ:Power,3"),
+                    ("ABILITY", "Feat|AUTOMATIC|Child|PREVARGTEQ:Pool,6"),
+                    ("ABILITY", "Feat|AUTOMATIC|Early|!PREVARGTEQ:Power,3"),
+                ],
+            ),
+            record("ABILITY", "Child", "Child", &[("DEFINE", "Final|Pool+1")]),
+            record("ABILITY", "Early", "Early", &[("DEFINE", "Retracted|99")]),
+        ],
+    );
+    let state = pcgen_engine::apply_effects(
+        &pack,
+        &CharacterDraft {
+            race_id: "Graph".into(),
+            ..Default::default()
+        },
+    );
+    assert_eq!(state.variables["Pool"], 6);
+    assert_eq!(state.variables["Final"], 7);
+    assert!(!state.variables.contains_key("Retracted"));
+    assert!(state.diagnostics.is_empty(), "{:?}", state.diagnostics);
 }

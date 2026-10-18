@@ -9,7 +9,9 @@ description = "Build-time transpiler: PCGen rule packs to the normalised on-disk
 pcgen-core = { path = "../pcgen-core" }
 pcgen-ir = { path = "../pcgen-ir" }
 pcgen-import = { path = "../pcgen-import" }
-pcgen-engine = { path = "../pcgen-engine" }
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
+
+[dev-dependencies]
+pcgen-engine = { path = "../pcgen-engine" }

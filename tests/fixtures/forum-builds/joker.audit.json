@@ -1,0 +1,629 @@
+{
+  "acquisition": {
+    "recorded_through": 0,
+    "decisions": [
+      {
+        "level": 0,
+        "subject": "Build history",
+        "status": "missing_evidence",
+        "explanation": "Some levels have incomplete acquisition records",
+        "source": null
+      },
+      {
+        "level": 5,
+        "subject": "Church Inquisitor",
+        "status": "failed",
+        "explanation": "Knowledge (Religion) requires 4 ranks before entry; the unmodified cap is 3.5. No class-skill override is recorded.",
+        "source": "Complete Divine — Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/complete_divine/cd_classes.lst)"
+      },
+      {
+        "level": 5,
+        "subject": "Church Inquisitor",
+        "status": "missing_evidence",
+        "explanation": "Meet 3 skill requirement(s): Knowledge (Arcana) 4 ranks; Knowledge (Religion) 4 ranks; Spellcraft 4 ranks",
+        "source": "Complete Divine — Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/complete_divine/cd_classes.lst)"
+      },
+      {
+        "level": 5,
+        "subject": "Church Inquisitor",
+        "status": "satisfied",
+        "explanation": "Alignment: LG or LN",
+        "source": "Complete Divine — Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/complete_divine/cd_classes.lst)"
+      },
+      {
+        "level": 5,
+        "subject": "Church Inquisitor",
+        "status": "satisfied",
+        "explanation": "Base Will save at least +3",
+        "source": "Complete Divine — Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/complete_divine/cd_classes.lst)"
+      },
+      {
+        "level": 5,
+        "subject": "Church Inquisitor",
+        "status": "missing_evidence",
+        "explanation": "Lawful good church membership; corruption uncovered; LG or LN; base Will +3; divine Zone of Truth",
+        "source": "Complete Divine — Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/complete_divine/cd_classes.lst)"
+      },
+      {
+        "level": 5,
+        "subject": "Church Inquisitor",
+        "status": "missing_evidence",
+        "explanation": "Can cast any of: Zone of Truth",
+        "source": "Complete Divine — Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/complete_divine/cd_classes.lst)"
+      },
+      {
+        "level": 6,
+        "subject": "Exalted Arcanist",
+        "status": "failed",
+        "explanation": "Knowledge (Arcana) requires 9 ranks before entry; the unmodified cap is 8. No class-skill override is recorded.",
+        "source": "Book Of Exalted Deeds — Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/book_of_exalted_deeds/be_classes.lst)"
+      },
+      {
+        "level": 6,
+        "subject": "Exalted Arcanist",
+        "status": "missing_evidence",
+        "explanation": "Meet 2 skill requirement(s): Knowledge (Arcana) 9 ranks; Knowledge (Religion) 4 ranks",
+        "source": "Book Of Exalted Deeds — Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/book_of_exalted_deeds/be_classes.lst)"
+      },
+      {
+        "level": 6,
+        "subject": "Exalted Arcanist",
+        "status": "missing_evidence",
+        "explanation": "Cast 1 qualifying spell(s): Arcane level 3 or higher",
+        "source": "Book Of Exalted Deeds — Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/book_of_exalted_deeds/be_classes.lst)"
+      },
+      {
+        "level": 6,
+        "subject": "Exalted Arcanist",
+        "status": "satisfied",
+        "explanation": "Alignment: LG or NG or CG",
+        "source": "Book Of Exalted Deeds — Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/book_of_exalted_deeds/be_classes.lst)"
+      },
+      {
+        "level": 6,
+        "subject": "Exalted Arcanist",
+        "status": "satisfied",
+        "explanation": "Base Will save at least +5",
+        "source": "Book Of Exalted Deeds — Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/book_of_exalted_deeds/be_classes.lst)"
+      },
+      {
+        "level": 6,
+        "subject": "Exalted Arcanist",
+        "status": "missing_evidence",
+        "explanation": "Have 2 FEAT selection(s) from Consecrate Spell, Purify Spell; excluded: none",
+        "source": "Book Of Exalted Deeds — Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/book_of_exalted_deeds/be_classes.lst)"
+      },
+      {
+        "level": 6,
+        "subject": "Exalted Arcanist",
+        "status": "not_implemented",
+        "explanation": "Spell Knowledge selections, sanctified/exalted spell list and noncasting class actions are descriptive; no automatic acquisition or combat resolution.",
+        "source": "Book Of Exalted Deeds — Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/book_of_exalted_deeds/be_classes.lst)"
+      },
+      {
+        "level": 6,
+        "subject": "Exalted Arcanist",
+        "status": "missing_evidence",
+        "explanation": "Good alignment; base Will +5; Consecrate Spell and Purify Spell; spontaneous arcane casting",
+        "source": "Book Of Exalted Deeds — Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/book_of_exalted_deeds/be_classes.lst)"
+      },
+      {
+        "level": 7,
+        "subject": "War Weaver",
+        "status": "missing_evidence",
+        "explanation": "Meet 2 skill requirement(s): Craft (Weaving) 6 ranks; Knowledge (Arcana) 6 ranks",
+        "source": "Heroes of Battle — pp.112-113: formation, recipient restrictions, per-recipient costs, dormant duration and ordered move-action release; Craft (Weaving) specialization uses SRD Craft (INT, usable untrained) Named membership checked at formation; target legality and geometry checked on cast/release; held objects are not tapestry targets. (https://manuals.plus/m/5bc5aa94531deba890e9cadd873b0844db3ff7ef5ac2d636e3bf0f4e33c4e1c9.pdf)"
+      },
+      {
+        "level": 7,
+        "subject": "War Weaver",
+        "status": "satisfied",
+        "explanation": "Have 1 FEAT selection(s) from Enlarge Spell; excluded: none",
+        "source": "Heroes of Battle — pp.112-113: formation, recipient restrictions, per-recipient costs, dormant duration and ordered move-action release; Craft (Weaving) specialization uses SRD Craft (INT, usable untrained) Named membership checked at formation; target legality and geometry checked on cast/release; held objects are not tapestry targets. (https://manuals.plus/m/5bc5aa94531deba890e9cadd873b0844db3ff7ef5ac2d636e3bf0f4e33c4e1c9.pdf)"
+      },
+      {
+        "level": 7,
+        "subject": "War Weaver",
+        "status": "missing_evidence",
+        "explanation": "Cast 1 qualifying spell(s): Arcane level 3 or higher",
+        "source": "Heroes of Battle — pp.112-113: formation, recipient restrictions, per-recipient costs, dormant duration and ordered move-action release; Craft (Weaving) specialization uses SRD Craft (INT, usable untrained) Named membership checked at formation; target legality and geometry checked on cast/release; held objects are not tapestry targets. (https://manuals.plus/m/5bc5aa94531deba890e9cadd873b0844db3ff7ef5ac2d636e3bf0f4e33c4e1c9.pdf)"
+      },
+      {
+        "level": 8,
+        "subject": "Casting advancement",
+        "status": "failed",
+        "explanation": "War Weaver level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "source": null
+      },
+      {
+        "level": 9,
+        "subject": "Casting advancement",
+        "status": "failed",
+        "explanation": "War Weaver level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "source": null
+      },
+      {
+        "level": 10,
+        "subject": "Casting advancement",
+        "status": "failed",
+        "explanation": "War Weaver level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "source": null
+      },
+      {
+        "level": 11,
+        "subject": "Casting advancement",
+        "status": "failed",
+        "explanation": "War Weaver level 5: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "source": null
+      },
+      {
+        "level": 12,
+        "subject": "Spellguard of Silverymoon",
+        "status": "missing_evidence",
+        "explanation": "Meet 2 skill requirement(s): Concentration 8 ranks; Spellcraft 5 ranks",
+        "source": "Players Guide To Faerun — Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/campaign_settings/forgotten_realms/players_guide_to_faerun/pg_classes.lst)"
+      },
+      {
+        "level": 12,
+        "subject": "Spellguard of Silverymoon",
+        "status": "missing_evidence",
+        "explanation": "Cast 1 qualifying spell(s): Arcane level 4 or higher",
+        "source": "Players Guide To Faerun — Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/campaign_settings/forgotten_realms/players_guide_to_faerun/pg_classes.lst)"
+      },
+      {
+        "level": 12,
+        "subject": "Spellguard of Silverymoon",
+        "status": "satisfied",
+        "explanation": "Alignment: LG or LN or NG or TN or CG or CN",
+        "source": "Players Guide To Faerun — Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/campaign_settings/forgotten_realms/players_guide_to_faerun/pg_classes.lst)"
+      },
+      {
+        "level": 12,
+        "subject": "Spellguard of Silverymoon",
+        "status": "missing_evidence",
+        "explanation": "Have 1 FEAT selection(s) from Combat Casting; excluded: none",
+        "source": "Players Guide To Faerun — Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/campaign_settings/forgotten_realms/players_guide_to_faerun/pg_classes.lst)"
+      },
+      {
+        "level": 12,
+        "subject": "Spellguard of Silverymoon",
+        "status": "missing_evidence",
+        "explanation": "Nonevil; Combat Casting and a metamagic feat; Silverymoon or Silver Marches; accepted into Spellguard",
+        "source": "Players Guide To Faerun — Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/campaign_settings/forgotten_realms/players_guide_to_faerun/pg_classes.lst)"
+      },
+      {
+        "level": 12,
+        "subject": "Casting advancement",
+        "status": "failed",
+        "explanation": "Spellguard of Silverymoon level 1: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "source": null
+      },
+      {
+        "level": 13,
+        "subject": "Casting advancement",
+        "status": "failed",
+        "explanation": "Spellguard of Silverymoon level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "source": null
+      },
+      {
+        "level": 14,
+        "subject": "Casting advancement",
+        "status": "failed",
+        "explanation": "Spellguard of Silverymoon level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "source": null
+      },
+      {
+        "level": 15,
+        "subject": "Casting advancement",
+        "status": "failed",
+        "explanation": "Spellguard of Silverymoon level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "source": null
+      },
+      {
+        "level": 16,
+        "subject": "Sacred Exorcist",
+        "status": "satisfied",
+        "explanation": "Alignment: LG or NG or CG",
+        "source": "Complete Divine — pp.54–58; Divine Metamagic p.80; Rainbow Servant uses the spellcasting prose, not the conflicting table; p.20 Extra Domains; pp.54-55 Grow Wings and detection; p.56 Exorcism; Extra Domains p.20 does not provide a noncleric effective-level conversion. Air uses SRD elemental turning; noncleric HD resolution requires an explicit table ruling. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/complete_divine/cd_classes.lst)"
+      },
+      {
+        "level": 16,
+        "subject": "Sacred Exorcist",
+        "status": "missing_evidence",
+        "explanation": "Meet 2 skill requirement(s): Knowledge (The Planes) 10 ranks; Knowledge (Religion) 7 ranks",
+        "source": "Complete Divine — pp.54–58; Divine Metamagic p.80; Rainbow Servant uses the spellcasting prose, not the conflicting table; p.20 Extra Domains; pp.54-55 Grow Wings and detection; p.56 Exorcism; Extra Domains p.20 does not provide a noncleric effective-level conversion. Air uses SRD elemental turning; noncleric HD resolution requires an explicit table ruling. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/complete_divine/cd_classes.lst)"
+      },
+      {
+        "level": 16,
+        "subject": "Sacred Exorcist",
+        "status": "missing_evidence",
+        "explanation": "sacred_exorcist_ordination",
+        "source": "Complete Divine — pp.54–58; Divine Metamagic p.80; Rainbow Servant uses the spellcasting prose, not the conflicting table; p.20 Extra Domains; pp.54-55 Grow Wings and detection; p.56 Exorcism; Extra Domains p.20 does not provide a noncleric effective-level conversion. Air uses SRD elemental turning; noncleric HD resolution requires an explicit table ruling. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/complete_divine/cd_classes.lst)"
+      },
+      {
+        "level": 16,
+        "subject": "Sacred Exorcist",
+        "status": "missing_evidence",
+        "explanation": "Spellguard of Silverymoon level 1: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []; Spellguard of Silverymoon level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []; Spellguard of Silverymoon level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []; Spellguard of Silverymoon level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []; War Weaver level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []; War Weaver level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []; War Weaver level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []; War Weaver level 5: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "source": "Complete Divine — pp.54–58; Divine Metamagic p.80; Rainbow Servant uses the spellcasting prose, not the conflicting table; p.20 Extra Domains; pp.54-55 Grow Wings and detection; p.56 Exorcism; Extra Domains p.20 does not provide a noncleric effective-level conversion. Air uses SRD elemental turning; noncleric HD resolution requires an explicit table ruling. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/complete_divine/cd_classes.lst)"
+      },
+      {
+        "level": 17,
+        "subject": "Incantatrix",
+        "status": "missing_evidence",
+        "explanation": "Have 1 FEAT selection(s) from Iron Will; excluded: none",
+        "source": "Player’s Guide to Faerûn — Players Guide to Faerun pp.61-62; complete ten-level class progression and metamagic features. (https://arkalseif.info/classes/players-guide-to-faerun--22/incantatrix/index.html)"
+      },
+      {
+        "level": 17,
+        "subject": "Incantatrix",
+        "status": "satisfied",
+        "explanation": "Have 1 FEAT selection(s) from Metamagic type; excluded: none",
+        "source": "Player’s Guide to Faerûn — Players Guide to Faerun pp.61-62; complete ten-level class progression and metamagic features. (https://arkalseif.info/classes/players-guide-to-faerun--22/incantatrix/index.html)"
+      },
+      {
+        "level": 17,
+        "subject": "Incantatrix",
+        "status": "missing_evidence",
+        "explanation": "Meet 3 skill requirement(s): Concentration 4 ranks; Knowledge (Arcana) 8 ranks; Spellcraft 8 ranks",
+        "source": "Player’s Guide to Faerûn — Players Guide to Faerun pp.61-62; complete ten-level class progression and metamagic features. (https://arkalseif.info/classes/players-guide-to-faerun--22/incantatrix/index.html)"
+      },
+      {
+        "level": 17,
+        "subject": "Incantatrix",
+        "status": "missing_evidence",
+        "explanation": "Cast 1 qualifying spell(s): Arcane level 3 or higher",
+        "source": "Player’s Guide to Faerûn — Players Guide to Faerun pp.61-62; complete ten-level class progression and metamagic features. (https://arkalseif.info/classes/players-guide-to-faerun--22/incantatrix/index.html)"
+      },
+      {
+        "level": 17,
+        "subject": "Casting advancement",
+        "status": "failed",
+        "explanation": "Incantatrix level 1: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "source": null
+      },
+      {
+        "level": 18,
+        "subject": "Casting advancement",
+        "status": "failed",
+        "explanation": "Incantatrix level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "source": null
+      },
+      {
+        "level": 19,
+        "subject": "Casting advancement",
+        "status": "failed",
+        "explanation": "Incantatrix level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "source": null
+      },
+      {
+        "level": 20,
+        "subject": "Casting advancement",
+        "status": "failed",
+        "explanation": "Incantatrix level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "source": null
+      },
+      {
+        "level": 1,
+        "subject": "Sanctum Spell",
+        "status": "missing_evidence",
+        "explanation": "Have 1 FEAT selection(s) from Metamagic type; excluded: none",
+        "source": "Complete Arcane — pp.10–13; feats pp.81–83; Warmage spell list pp.90–91; native spell definitions from named car_spells.lst records; p.13 Warmage Edge and Armored Mage; https://dnd.arkalseif.info/classes/warmage/index.html; Sudden feats pp.83-84: separate daily uses; class duplicate rewards at levels 7, 10, 15, 20.; spell list pp.90–91: all six final entries are level 9 (corrects the old LST 10–14 error); Mass Fire Shield spell entry. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/complete_arcane/car_classes.lst)"
+      },
+      {
+        "level": 1,
+        "subject": "Magical Training",
+        "status": "not_implemented",
+        "explanation": "No structured feat definition",
+        "source": null
+      },
+      {
+        "level": 1,
+        "subject": "Precocious Apprentice",
+        "status": "not_implemented",
+        "explanation": "No structured feat definition",
+        "source": null
+      },
+      {
+        "level": 1,
+        "subject": "Consecrate Spell",
+        "status": "not_implemented",
+        "explanation": "No structured feat definition",
+        "source": null
+      },
+      {
+        "level": 3,
+        "subject": "Purify Spell",
+        "status": "not_implemented",
+        "explanation": "No structured feat definition",
+        "source": null
+      },
+      {
+        "level": 6,
+        "subject": "Enlarge Spell",
+        "status": "satisfied",
+        "explanation": "Recorded acquisition prerequisites satisfied; feat-slot allocation is checked separately",
+        "source": "Revised SRD — named feat records; named spell descriptions and Good/Law domain granted powers; spell-like abilities default caster level equals HD Protection from Energy energy choice; Enlarge Person / Reduce Person lack harmless designation. (../raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst)"
+      },
+      {
+        "level": 9,
+        "subject": "Extend Spell",
+        "status": "satisfied",
+        "explanation": "Recorded acquisition prerequisites satisfied; feat-slot allocation is checked separately",
+        "source": "Revised SRD — named feat records; named spell descriptions and Good/Law domain granted powers; spell-like abilities default caster level equals HD Protection from Energy energy choice; Enlarge Person / Reduce Person lack harmless designation. (../raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst)"
+      },
+      {
+        "level": 12,
+        "subject": "Persistent Spell",
+        "status": "satisfied",
+        "explanation": "Have 1 FEAT selection(s) from Extend Spell; excluded: none",
+        "source": "Revised SRD — named feat records; named spell descriptions and Good/Law domain granted powers; spell-like abilities default caster level equals HD Protection from Energy energy choice; Enlarge Person / Reduce Person lack harmless designation. (../raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst)"
+      },
+      {
+        "level": 15,
+        "subject": "Divine Metamagic (Persistent Spell)",
+        "status": "failed",
+        "explanation": "Turn/rebuke undead must be acquired before selecting Divine Metamagic",
+        "source": "Complete Divine — pp.54–58; Divine Metamagic p.80; Rainbow Servant uses the spellcasting prose, not the conflicting table; p.20 Extra Domains; pp.54-55 Grow Wings and detection; p.56 Exorcism; Extra Domains p.20 does not provide a noncleric effective-level conversion. Air uses SRD elemental turning; noncleric HD resolution requires an explicit table ruling. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/complete_divine/cd_classes.lst)"
+      },
+      {
+        "level": 17,
+        "subject": "Repeat Spell",
+        "status": "satisfied",
+        "explanation": "Recorded acquisition prerequisites satisfied; feat-slot allocation is checked separately",
+        "source": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst"
+      },
+      {
+        "level": 18,
+        "subject": "Practiced Spellcaster (Favored Soul)",
+        "status": "not_implemented",
+        "explanation": "No structured feat definition",
+        "source": null
+      },
+      {
+        "level": 20,
+        "subject": "Unspecified bonus metamagic feat",
+        "status": "not_implemented",
+        "explanation": "No structured feat definition",
+        "source": null
+      },
+      {
+        "level": 0,
+        "subject": "Coverage",
+        "status": "not_implemented",
+        "explanation": "Chronology, rank caps, class entry and recorded feat prerequisites are audited. Full skill-point budgets, every feat source, known-spell quotas and retraining dependencies are not yet certified.",
+        "source": null
+      }
+    ]
+  },
+  "name": "The Joker",
+  "errors": [
+    "Level 5: Church Inquisitor: Knowledge (Religion) requires 4 ranks before entry; the unmodified cap is 3.5. No class-skill override is recorded.",
+    "Level 6: Exalted Arcanist: Knowledge (Arcana) requires 9 ranks before entry; the unmodified cap is 8. No class-skill override is recorded.",
+    "Level 8: Casting advancement: War Weaver level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+    "Level 9: Casting advancement: War Weaver level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+    "Level 10: Casting advancement: War Weaver level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+    "Level 11: Casting advancement: War Weaver level 5: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+    "Level 12: Casting advancement: Spellguard of Silverymoon level 1: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+    "Level 13: Casting advancement: Spellguard of Silverymoon level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+    "Level 14: Casting advancement: Spellguard of Silverymoon level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+    "Level 15: Casting advancement: Spellguard of Silverymoon level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+    "Level 17: Casting advancement: Incantatrix level 1: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+    "Level 18: Casting advancement: Incantatrix level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+    "Level 19: Casting advancement: Incantatrix level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+    "Level 20: Casting advancement: Incantatrix level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+    "Level 15: Divine Metamagic (Persistent Spell): Turn/rebuke undead must be acquired before selecting Divine Metamagic",
+    "Arcane-only prestige advancements cannot target Favored Soul. Magical Training and Spell Knowledge do not change the class's divine casting type.",
+    "Spellguard converts defensive personal ARCANE spells only. A Favored Soul spell remains divine, including with Deity's Favor."
+  ],
+  "milestones": [
+    {
+      "level": 1,
+      "favored_soul_casting_level": 1,
+      "rejected_advancements": []
+    },
+    {
+      "level": 2,
+      "favored_soul_casting_level": 2,
+      "rejected_advancements": []
+    },
+    {
+      "level": 3,
+      "favored_soul_casting_level": 3,
+      "rejected_advancements": []
+    },
+    {
+      "level": 4,
+      "favored_soul_casting_level": 4,
+      "rejected_advancements": []
+    },
+    {
+      "level": 5,
+      "favored_soul_casting_level": 5,
+      "rejected_advancements": []
+    },
+    {
+      "level": 6,
+      "favored_soul_casting_level": 5,
+      "rejected_advancements": []
+    },
+    {
+      "level": 7,
+      "favored_soul_casting_level": 5,
+      "rejected_advancements": []
+    },
+    {
+      "level": 8,
+      "favored_soul_casting_level": 5,
+      "rejected_advancements": [
+        "War Weaver level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []"
+      ]
+    },
+    {
+      "level": 9,
+      "favored_soul_casting_level": 5,
+      "rejected_advancements": [
+        "War Weaver level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []"
+      ]
+    },
+    {
+      "level": 10,
+      "favored_soul_casting_level": 5,
+      "rejected_advancements": [
+        "War Weaver level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []"
+      ]
+    },
+    {
+      "level": 11,
+      "favored_soul_casting_level": 5,
+      "rejected_advancements": [
+        "War Weaver level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 5: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []"
+      ]
+    },
+    {
+      "level": 12,
+      "favored_soul_casting_level": 5,
+      "rejected_advancements": [
+        "Spellguard of Silverymoon level 1: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 5: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []"
+      ]
+    },
+    {
+      "level": 13,
+      "favored_soul_casting_level": 5,
+      "rejected_advancements": [
+        "Spellguard of Silverymoon level 1: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 5: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []"
+      ]
+    },
+    {
+      "level": 14,
+      "favored_soul_casting_level": 5,
+      "rejected_advancements": [
+        "Spellguard of Silverymoon level 1: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 5: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []"
+      ]
+    },
+    {
+      "level": 15,
+      "favored_soul_casting_level": 5,
+      "rejected_advancements": [
+        "Spellguard of Silverymoon level 1: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 5: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []"
+      ]
+    },
+    {
+      "level": 16,
+      "favored_soul_casting_level": 6,
+      "rejected_advancements": [
+        "Spellguard of Silverymoon level 1: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 5: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []"
+      ]
+    },
+    {
+      "level": 17,
+      "favored_soul_casting_level": 6,
+      "rejected_advancements": [
+        "Incantatrix level 1: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 1: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 5: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []"
+      ]
+    },
+    {
+      "level": 18,
+      "favored_soul_casting_level": 6,
+      "rejected_advancements": [
+        "Incantatrix level 1: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Incantatrix level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 1: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 5: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []"
+      ]
+    },
+    {
+      "level": 19,
+      "favored_soul_casting_level": 6,
+      "rejected_advancements": [
+        "Incantatrix level 1: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Incantatrix level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Incantatrix level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 1: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 5: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []"
+      ]
+    },
+    {
+      "level": 20,
+      "favored_soul_casting_level": 6,
+      "rejected_advancements": [
+        "Incantatrix level 1: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Incantatrix level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Incantatrix level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Incantatrix level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 1: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "Spellguard of Silverymoon level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 2: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 3: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 4: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []",
+        "War Weaver level 5: casting advancement needs one eligible target; chosen [\"Favored Soul\"], eligible []"
+      ]
+    }
+  ],
+  "limits": [
+    "This is the supplied Joker sequence, not a general build validator. LG and ability scores are probe assumptions, not supplied character facts.",
+    "Rejected levels are retained for diagnostics. Remaining casting totals are arithmetic contributions, not certification of a legal progression.",
+    "Missing: skill allocations, deity/church/region/order evidence, two first-level feat sources, known spell choices, two Spellguard bonus feats and retraining history.",
+    "Precocious Apprentice's second-level-spell termination and Sanctum early-entry interpretation require separate adjudication. Neither resolves the rank cap or divine/arcane distinction.",
+    "Exalted Arcanist Spell Knowledge grants two arcane spells, no slots or base-class levels; spell selection and sanctified spell access remain descriptive.",
+    "Favored Soul 4 retains the one-ally Deity's Favor limit even with advanced casting. Repeated uses overlap; they do not stack.",
+    "Outside Sanctum can lower effective level 6 to 5 for tapestry, but still costs a sixth-level slot. It grants neither slots nor spell access. Practiced Spellcaster changes caster level only."
+  ]
+}

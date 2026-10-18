@@ -1,0 +1,873 @@
+{
+  "format": "gladius.module/1",
+  "sources": {
+    "phb_barbarian": {
+      "title": "Player\u2019s Handbook / Revised SRD: Barbarian",
+      "reference": "https://www.d20srd.org/srd/classes/barbarian.htm",
+      "locator": "Complete level 1-20 class table and class rules; runtime base definitions and grants remain imported from the Revised SRD."
+    },
+    "phb_bard": {
+      "title": "Player\u2019s Handbook / Revised SRD: Bard",
+      "reference": "https://www.d20srd.org/srd/classes/bard.htm",
+      "locator": "Complete level 1-20 class table and class rules; runtime base definitions and grants remain imported from the Revised SRD."
+    },
+    "phb_cleric": {
+      "title": "Player\u2019s Handbook / Revised SRD: Cleric",
+      "reference": "https://www.d20srd.org/srd/classes/cleric.htm",
+      "locator": "Complete level 1-20 class table and class rules; runtime base definitions and grants remain imported from the Revised SRD."
+    },
+    "phb_druid": {
+      "title": "Player\u2019s Handbook / Revised SRD: Druid",
+      "reference": "https://www.d20srd.org/srd/classes/druid.htm",
+      "locator": "Complete level 1-20 class table and class rules; runtime base definitions and grants remain imported from the Revised SRD."
+    },
+    "phb_fighter": {
+      "title": "Player\u2019s Handbook / Revised SRD: Fighter",
+      "reference": "https://www.d20srd.org/srd/classes/fighter.htm",
+      "locator": "Complete level 1-20 class table and class rules; runtime base definitions and grants remain imported from the Revised SRD."
+    },
+    "phb_monk": {
+      "title": "Player\u2019s Handbook / Revised SRD: Monk",
+      "reference": "https://www.d20srd.org/srd/classes/monk.htm",
+      "locator": "Complete level 1-20 class table and class rules; runtime base definitions and grants remain imported from the Revised SRD."
+    },
+    "phb_paladin": {
+      "title": "Player\u2019s Handbook / Revised SRD: Paladin",
+      "reference": "https://www.d20srd.org/srd/classes/paladin.htm",
+      "locator": "Complete level 1-20 class table and class rules; runtime base definitions and grants remain imported from the Revised SRD."
+    },
+    "phb_ranger": {
+      "title": "Player\u2019s Handbook / Revised SRD: Ranger",
+      "reference": "https://www.d20srd.org/srd/classes/ranger.htm",
+      "locator": "Complete level 1-20 class table and class rules; runtime base definitions and grants remain imported from the Revised SRD."
+    },
+    "phb_rogue": {
+      "title": "Player\u2019s Handbook / Revised SRD: Rogue",
+      "reference": "https://www.d20srd.org/srd/classes/rogue.htm",
+      "locator": "Complete level 1-20 class table and class rules; runtime base definitions and grants remain imported from the Revised SRD."
+    },
+    "phb_sorcerer": {
+      "title": "Player\u2019s Handbook / Revised SRD: Sorcerer",
+      "reference": "https://www.d20srd.org/srd/classes/sorcererWizard.htm",
+      "locator": "Complete level 1-20 class table and class rules; runtime base definitions and grants remain imported from the Revised SRD."
+    },
+    "phb_wizard": {
+      "title": "Player\u2019s Handbook / Revised SRD: Wizard",
+      "reference": "https://www.d20srd.org/srd/classes/sorcererWizard.htm",
+      "locator": "Complete level 1-20 class table and class rules; runtime base definitions and grants remain imported from the Revised SRD."
+    }
+  },
+  "class_profiles": {
+    "Barbarian": {
+      "source": "phb_barbarian",
+      "magic": {
+        "progression": [
+          {
+            "level": 1,
+            "name": "Fast movement, illiteracy, rage 1/day",
+            "summary": ""
+          },
+          {
+            "level": 2,
+            "name": "Uncanny dodge",
+            "summary": ""
+          },
+          {
+            "level": 3,
+            "name": "Trap sense +1",
+            "summary": ""
+          },
+          {
+            "level": 4,
+            "name": "Rage 2/day",
+            "summary": ""
+          },
+          {
+            "level": 5,
+            "name": "Improved uncanny dodge",
+            "summary": ""
+          },
+          {
+            "level": 6,
+            "name": "Trap sense +2",
+            "summary": ""
+          },
+          {
+            "level": 7,
+            "name": "Damage reduction 1/\u2014",
+            "summary": ""
+          },
+          {
+            "level": 8,
+            "name": "Rage 3/day",
+            "summary": ""
+          },
+          {
+            "level": 9,
+            "name": "Trap sense +3",
+            "summary": ""
+          },
+          {
+            "level": 10,
+            "name": "Damage reduction 2/\u2014",
+            "summary": ""
+          },
+          {
+            "level": 11,
+            "name": "Greater rage",
+            "summary": ""
+          },
+          {
+            "level": 12,
+            "name": "Rage 4/day, trap sense +4",
+            "summary": ""
+          },
+          {
+            "level": 13,
+            "name": "Damage reduction 3/\u2014",
+            "summary": ""
+          },
+          {
+            "level": 14,
+            "name": "Indomitable will",
+            "summary": ""
+          },
+          {
+            "level": 15,
+            "name": "Trap sense +5",
+            "summary": ""
+          },
+          {
+            "level": 16,
+            "name": "Damage reduction 4/\u2014, rage 5/day",
+            "summary": ""
+          },
+          {
+            "level": 17,
+            "name": "Tireless rage",
+            "summary": ""
+          },
+          {
+            "level": 18,
+            "name": "Trap sense +6",
+            "summary": ""
+          },
+          {
+            "level": 19,
+            "name": "Damage reduction 5/\u2014",
+            "summary": ""
+          },
+          {
+            "level": 20,
+            "name": "Mighty rage, rage 6/day",
+            "summary": ""
+          }
+        ],
+        "feature_values": [
+          {
+            "name": "Rage",
+            "at_level": 1,
+            "values": {
+              "ability_bonus": "if(CLASSLEVEL>=20,8,if(CLASSLEVEL>=11,6,4))",
+              "will_bonus": "if(CLASSLEVEL>=20,4,if(CLASSLEVEL>=11,3,2))",
+              "rounds": "3+CON+if(CLASSLEVEL>=20,4,if(CLASSLEVEL>=11,3,2))",
+              "tireless": "if(CLASSLEVEL>=17,1,0)"
+            },
+            "daily_uses": "1+floor(CLASSLEVEL/4)",
+            "resolution": {
+              "kind": "rage"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "phase": "class",
+          "condition": null,
+          "action": {
+            "action": "define_variable",
+            "name": "BarbarianRagePowerLVL",
+            "expression": "ClassLevel_barbarian"
+          },
+          "source": {
+            "source": "https://www.d20srd.org/srd/classes/barbarian.htm",
+            "line": null,
+            "rule_id": "phb.barbarian.rage_power",
+            "reason": "Greater Rage level 11 and Mighty Rage level 20; correct missing source transcription level binding"
+          }
+        }
+      ]
+    },
+    "Bard": {
+      "source": "phb_bard",
+      "magic": {
+        "progression": [
+          {
+            "level": 1,
+            "name": "Bardic music, bardic knowledge,countersong, fascinate,inspire courage +1",
+            "summary": ""
+          },
+          {
+            "level": 3,
+            "name": "Inspire competence",
+            "summary": ""
+          },
+          {
+            "level": 6,
+            "name": "Suggestion",
+            "summary": ""
+          },
+          {
+            "level": 8,
+            "name": "Inspire courage +2",
+            "summary": ""
+          },
+          {
+            "level": 9,
+            "name": "Inspire greatness",
+            "summary": ""
+          },
+          {
+            "level": 12,
+            "name": "Song of freedom",
+            "summary": ""
+          },
+          {
+            "level": 14,
+            "name": "Inspire courage +3",
+            "summary": ""
+          },
+          {
+            "level": 15,
+            "name": "Inspire heroics",
+            "summary": ""
+          },
+          {
+            "level": 18,
+            "name": "Mass suggestion",
+            "summary": ""
+          },
+          {
+            "level": 20,
+            "name": "Inspire courage +4",
+            "summary": ""
+          }
+        ]
+      }
+    },
+    "Cleric": {
+      "source": "phb_cleric",
+      "magic": {
+        "progression": [
+          {
+            "level": 1,
+            "name": "Turn or rebuke undead",
+            "summary": ""
+          }
+        ],
+        "prepared_entire_list": true
+      }
+    },
+    "Druid": {
+      "source": "phb_druid",
+      "magic": {
+        "progression": [
+          {
+            "level": 1,
+            "name": "Animal companion, nature sense, wild empathy",
+            "summary": ""
+          },
+          {
+            "level": 2,
+            "name": "Woodland stride",
+            "summary": ""
+          },
+          {
+            "level": 3,
+            "name": "Trackless step",
+            "summary": ""
+          },
+          {
+            "level": 4,
+            "name": "Resist nature\u2019s lure",
+            "summary": ""
+          },
+          {
+            "level": 5,
+            "name": "Wild shape (1/day)",
+            "summary": ""
+          },
+          {
+            "level": 6,
+            "name": "Wild shape (2/day)",
+            "summary": ""
+          },
+          {
+            "level": 7,
+            "name": "Wild shape (3/day)",
+            "summary": ""
+          },
+          {
+            "level": 8,
+            "name": "Wild shape (Large)",
+            "summary": ""
+          },
+          {
+            "level": 9,
+            "name": "Venom immunity",
+            "summary": ""
+          },
+          {
+            "level": 10,
+            "name": "Wild shape (4/day)",
+            "summary": ""
+          },
+          {
+            "level": 11,
+            "name": "Wild shape (Tiny)",
+            "summary": ""
+          },
+          {
+            "level": 12,
+            "name": "Wild shape (plant)",
+            "summary": ""
+          },
+          {
+            "level": 13,
+            "name": "A thousand faces",
+            "summary": ""
+          },
+          {
+            "level": 14,
+            "name": "Wild shape (5/day)",
+            "summary": ""
+          },
+          {
+            "level": 15,
+            "name": "Timeless body, wild shape (Huge)",
+            "summary": ""
+          },
+          {
+            "level": 16,
+            "name": "Wild shape (elemental 1/day)",
+            "summary": ""
+          },
+          {
+            "level": 18,
+            "name": "Wild shape (6/day, elemental 2/day)",
+            "summary": ""
+          },
+          {
+            "level": 20,
+            "name": "Wild shape (elemental 3/day, Huge elemental)",
+            "summary": ""
+          }
+        ],
+        "prepared_entire_list": true
+      }
+    },
+    "Fighter": {
+      "source": "phb_fighter",
+      "magic": {
+        "progression": [
+          {
+            "level": 1,
+            "name": "Bonus feat",
+            "summary": ""
+          },
+          {
+            "level": 2,
+            "name": "Bonus feat",
+            "summary": ""
+          },
+          {
+            "level": 4,
+            "name": "Bonus feat",
+            "summary": ""
+          },
+          {
+            "level": 6,
+            "name": "Bonus feat",
+            "summary": ""
+          },
+          {
+            "level": 8,
+            "name": "Bonus feat",
+            "summary": ""
+          },
+          {
+            "level": 10,
+            "name": "Bonus feat",
+            "summary": ""
+          },
+          {
+            "level": 12,
+            "name": "Bonus feat",
+            "summary": ""
+          },
+          {
+            "level": 14,
+            "name": "Bonus feat",
+            "summary": ""
+          },
+          {
+            "level": 16,
+            "name": "Bonus feat",
+            "summary": ""
+          },
+          {
+            "level": 18,
+            "name": "Bonus feat",
+            "summary": ""
+          },
+          {
+            "level": 20,
+            "name": "Bonus feat",
+            "summary": ""
+          }
+        ]
+      }
+    },
+    "Monk": {
+      "source": "phb_monk",
+      "magic": {
+        "progression": [
+          {
+            "level": 1,
+            "name": "Bonus feat, flurry of blows, unarmed strike",
+            "summary": ""
+          },
+          {
+            "level": 2,
+            "name": "Bonus feat, evasion",
+            "summary": ""
+          },
+          {
+            "level": 3,
+            "name": "Still mind",
+            "summary": ""
+          },
+          {
+            "level": 4,
+            "name": "Ki strike (magic), slow fall 20 ft.",
+            "summary": ""
+          },
+          {
+            "level": 5,
+            "name": "Purity of body",
+            "summary": ""
+          },
+          {
+            "level": 6,
+            "name": "Bonus feat, slow fall 30 ft.",
+            "summary": ""
+          },
+          {
+            "level": 7,
+            "name": "Wholeness of body",
+            "summary": ""
+          },
+          {
+            "level": 8,
+            "name": "Slow fall 40 ft.",
+            "summary": ""
+          },
+          {
+            "level": 9,
+            "name": "Improved evasion",
+            "summary": ""
+          },
+          {
+            "level": 10,
+            "name": "Ki strike (lawful), slow fall 50 ft.",
+            "summary": ""
+          },
+          {
+            "level": 11,
+            "name": "Diamond body, greater flurry",
+            "summary": ""
+          },
+          {
+            "level": 12,
+            "name": "Abundant step, slow fall 60 ft.",
+            "summary": ""
+          },
+          {
+            "level": 13,
+            "name": "Diamond soul",
+            "summary": ""
+          },
+          {
+            "level": 14,
+            "name": "Slow fall 70 ft.",
+            "summary": ""
+          },
+          {
+            "level": 15,
+            "name": "Quivering palm",
+            "summary": ""
+          },
+          {
+            "level": 16,
+            "name": "Ki strike (adamantine), slow fall 80 ft.",
+            "summary": ""
+          },
+          {
+            "level": 17,
+            "name": "Timeless body, tongue of the sun and moon",
+            "summary": ""
+          },
+          {
+            "level": 18,
+            "name": "Slow fall 90 ft.",
+            "summary": ""
+          },
+          {
+            "level": 19,
+            "name": "Empty body",
+            "summary": ""
+          },
+          {
+            "level": 20,
+            "name": "Perfect self, slow fall any distance",
+            "summary": ""
+          }
+        ],
+        "feature_values": [
+          {
+            "name": "Wholeness of Body",
+            "at_level": 7,
+            "values": {},
+            "daily_uses": "2*CLASSLEVEL",
+            "resolution": {
+              "kind": "vitality",
+              "energy": "healing",
+              "self_only": true,
+              "touch": false,
+              "radius_feet": null,
+              "dice_sides": null,
+              "save": "none",
+              "points": true,
+              "cap_half": false
+            }
+          }
+        ]
+      }
+    },
+    "Paladin": {
+      "source": "phb_paladin",
+      "magic": {
+        "progression": [
+          {
+            "level": 1,
+            "name": "Aura of good, detect evil, smite evil 1/day",
+            "summary": ""
+          },
+          {
+            "level": 2,
+            "name": "Divine grace, lay on hands",
+            "summary": ""
+          },
+          {
+            "level": 3,
+            "name": "Aura of courage, divine health",
+            "summary": ""
+          },
+          {
+            "level": 4,
+            "name": "Turn undead",
+            "summary": ""
+          },
+          {
+            "level": 5,
+            "name": "Smite evil 2/day, special mount",
+            "summary": ""
+          },
+          {
+            "level": 6,
+            "name": "Remove disease 1/week",
+            "summary": ""
+          },
+          {
+            "level": 9,
+            "name": "Remove disease 2/week",
+            "summary": ""
+          },
+          {
+            "level": 10,
+            "name": "Smite evil 3/day",
+            "summary": ""
+          },
+          {
+            "level": 12,
+            "name": "Remove disease 3/week",
+            "summary": ""
+          },
+          {
+            "level": 15,
+            "name": "Remove disease 4/week, smite evil 4/day",
+            "summary": ""
+          },
+          {
+            "level": 18,
+            "name": "Remove disease 5/week",
+            "summary": ""
+          },
+          {
+            "level": 20,
+            "name": "Smite evil 5/day",
+            "summary": ""
+          }
+        ],
+        "prepared_entire_list": true,
+        "first_spell_level": 1,
+        "caster_level_formula": "if(CASTINGLEVEL>=4,floor(CASTINGLEVEL/2),0)",
+        "feature_values": [
+          {
+            "name": "Lay on Hands",
+            "at_level": 2,
+            "values": {},
+            "daily_uses": "CLASSLEVEL*max(CHA,0)",
+            "resolution": {
+              "kind": "vitality",
+              "energy": "positive",
+              "self_only": false,
+              "touch": true,
+              "radius_feet": null,
+              "dice_sides": null,
+              "save": "none",
+              "points": true,
+              "cap_half": false
+            }
+          }
+        ]
+      }
+    },
+    "Ranger": {
+      "source": "phb_ranger",
+      "magic": {
+        "progression": [
+          {
+            "level": 1,
+            "name": "1st favored enemy, Track, wild empathy",
+            "summary": ""
+          },
+          {
+            "level": 2,
+            "name": "Combat style",
+            "summary": ""
+          },
+          {
+            "level": 3,
+            "name": "Endurance",
+            "summary": ""
+          },
+          {
+            "level": 4,
+            "name": "Animal companion",
+            "summary": ""
+          },
+          {
+            "level": 5,
+            "name": "2nd favored enemy",
+            "summary": ""
+          },
+          {
+            "level": 6,
+            "name": "Improved combat style",
+            "summary": ""
+          },
+          {
+            "level": 7,
+            "name": "Woodland stride",
+            "summary": ""
+          },
+          {
+            "level": 8,
+            "name": "Swift tracker",
+            "summary": ""
+          },
+          {
+            "level": 9,
+            "name": "Evasion",
+            "summary": ""
+          },
+          {
+            "level": 10,
+            "name": "3rd favored enemy",
+            "summary": ""
+          },
+          {
+            "level": 11,
+            "name": "Combat style mastery",
+            "summary": ""
+          },
+          {
+            "level": 13,
+            "name": "Camouflage",
+            "summary": ""
+          },
+          {
+            "level": 15,
+            "name": "4th favored enemy",
+            "summary": ""
+          },
+          {
+            "level": 17,
+            "name": "Hide in plain sight",
+            "summary": ""
+          },
+          {
+            "level": 20,
+            "name": "5th favored enemy",
+            "summary": ""
+          }
+        ],
+        "prepared_entire_list": true,
+        "first_spell_level": 1,
+        "caster_level_formula": "if(CASTINGLEVEL>=4,floor(CASTINGLEVEL/2),0)"
+      }
+    },
+    "Rogue": {
+      "source": "phb_rogue",
+      "magic": {
+        "progression": [
+          {
+            "level": 1,
+            "name": "Sneak attack +1d6, trapfinding",
+            "summary": ""
+          },
+          {
+            "level": 2,
+            "name": "Evasion",
+            "summary": ""
+          },
+          {
+            "level": 3,
+            "name": "Sneak attack +2d6, trap sense +1",
+            "summary": ""
+          },
+          {
+            "level": 4,
+            "name": "Uncanny dodge",
+            "summary": ""
+          },
+          {
+            "level": 5,
+            "name": "Sneak attack +3d6",
+            "summary": ""
+          },
+          {
+            "level": 6,
+            "name": "Trap sense +2",
+            "summary": ""
+          },
+          {
+            "level": 7,
+            "name": "Sneak attack +4d6",
+            "summary": ""
+          },
+          {
+            "level": 8,
+            "name": "Improved uncanny dodge",
+            "summary": ""
+          },
+          {
+            "level": 9,
+            "name": "Sneak attack +5d6, trap sense +3",
+            "summary": ""
+          },
+          {
+            "level": 10,
+            "name": "Special ability",
+            "summary": ""
+          },
+          {
+            "level": 11,
+            "name": "Sneak attack +6d6",
+            "summary": ""
+          },
+          {
+            "level": 12,
+            "name": "Trap sense +4",
+            "summary": ""
+          },
+          {
+            "level": 13,
+            "name": "Sneak attack +7d6, special ability",
+            "summary": ""
+          },
+          {
+            "level": 15,
+            "name": "Sneak attack +8d6, trap sense +5",
+            "summary": ""
+          },
+          {
+            "level": 16,
+            "name": "Special ability",
+            "summary": ""
+          },
+          {
+            "level": 17,
+            "name": "Sneak attack +9d6",
+            "summary": ""
+          },
+          {
+            "level": 18,
+            "name": "Trap sense +6",
+            "summary": ""
+          },
+          {
+            "level": 19,
+            "name": "Sneak attack +10d6, special ability",
+            "summary": ""
+          }
+        ]
+      }
+    },
+    "Sorcerer": {
+      "source": "phb_sorcerer",
+      "magic": {
+        "progression": [
+          {
+            "level": 1,
+            "name": "Summonfamiliar",
+            "summary": ""
+          }
+        ]
+      }
+    },
+    "Wizard": {
+      "source": "phb_wizard",
+      "magic": {
+        "progression": [
+          {
+            "level": 1,
+            "name": "Summon familiar, Scribe Scroll",
+            "summary": ""
+          },
+          {
+            "level": 5,
+            "name": "Bonus feat",
+            "summary": ""
+          },
+          {
+            "level": 10,
+            "name": "Bonus feat",
+            "summary": ""
+          },
+          {
+            "level": 15,
+            "name": "Bonus feat",
+            "summary": ""
+          },
+          {
+            "level": 20,
+            "name": "Bonus feat",
+            "summary": ""
+          }
+        ]
+      }
+    }
+  }
+}

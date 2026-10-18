@@ -1,235 +1,113 @@
-# PCGen-Rust 架构
+# Gladius architecture
 
-本文档综合 Tri20 草稿、旧 pcgen-rust 的工程实践，以及《Introduction to
-Algorithms》中“先形式化问题、再选择数据结构与算法”的原则，定义新的核心架构。
+Gladius is a rolling D&D 3.5 rules workbench. Local raw and accompanying rule prose are the semantic authority. Imported machine tags are evidence, not an oracle when they contradict the feature text. There is no native-save migration, backup branch, default full test suite or full rules gate.
 
-## 1. 核心原则
+The central question is: **what acquired rule allows this character to perform this operation at this time?** Numerical availability, chronological qualification and encounter execution are separate answers.
 
-1. **兼容层与运行时分离**
-   - PCGen `.pcc / .lst / .pcg` 语法只存在于 `pcgen-import`。
-   - 运行时只消费 `CompiledRulePack`。
-
-2. **输入与派生分离**
-   - `CharacterDraft` 只保存用户的持久输入和选择。
-   - `CharacterSnapshot` 是完全重算的派生结果，不写回存档。
-
-3. **规则统一为 IR**
-   - `Effect`、`Modifier`、`Predicate`、`Provenance` 是唯一规则原语。
-   - 不允许在引擎中散落 PCGen tag 分支。
-
-4. **来源与解释是核心数据**
-   - 每个派生值都可以携带 `Contribution` / `Explanation`。
-   - `.MOD / .COPY / .CLEAR / .FORGET` 以显式补丁操作记录。
-
-5. **精确算术**
-   - BAB、豁免、技能半级、速度、重量等使用 `Rational`。
-   - 只在显示或规则边界做 floor / ceil / round。
-
-6. **确定性优先**
-   - 哈希表只用于查找，不决定规则顺序。
-   - 依赖图使用稳定拓扑排序；循环使用 SCC 诊断为错误。
-
-7. **CLRS 作为参考，不是实现清单**
-   - 只自己实现标准库没有且领域需要的图算法：稳定拓扑排序、SCC。
-   - 排序、查找、堆使用 Rust 标准库。
-   - 没有生产调用点的算法不进入运行时 crate。
-
-8. **覆盖度可度量**
-   - 导入层输出 lowered / legacy / unsupported 统计。
-   - 未支持语义必须显式保留，不允许静默忽略。
-
-## 2. 分层
-
-**构建期**（一次性，`pcgen-transpile`）：
+## Boundaries
 
 ```text
-PCGen .pcc/.lst
-        │
-        ▼
-pcgen-import  →  pcgen-ir  →  pcgen-transpile  →  规范化 pack 目录
-  .pcc graph      lower         转写 + 持久化        manifest.json
-  .lst tokenize   Raw→IR                            *.jsonl（一记录一行）
+RAW files + source locations + conflict decisions
+                    ↓ import / native rules
+             CompiledRulePack
+                    │
+Class frames + acquisition history ──→ historical projections ──→ qualification audit
+                    │
+                    └──→ current projection ──→ CharacterSnapshot / spell catalog
+                                      │
+Current preparations + encounter state + operation request
+                                      ↓
+                           operation plan / preview
+                                      ↓
+                     revalidate + atomic state transition
+                                      ↓
+                      ordinary forms / reports / CLI
 ```
 
-**运行期**（每次启动）：
-
-```text
-规范化 pack 目录  →  pcgen-transpile::read_pack  →  pcgen-core::CompiledRulePack
-                        （只做反序列化，不解析 PCGen 文本）
-                                │
-                                ▼
-                         pcgen-engine  →  CharacterSnapshot  →  pcgen-output / pcgen-cli
-```
-
-依赖方向：
-
-```text
-pcgen-import  →  pcgen-ir  →  pcgen-core  ←  pcgen-engine
-```
-
-`pcgen-engine` 的生产依赖只有 `pcgen-core` / `pcgen-formula`——**不含
-`pcgen-ir`**。这是把 `CompiledPackHeader` / `CompiledRulePack` / `ImportReport`
-三个类型从 `pcgen-ir` 移到 `pcgen-core` 换来的：引擎依赖的是**数据的形状**，
-不是 PCGen 翻译器。`pcgen-ir` 仍 `pub use` 这三个类型，因为 lowering 会产出它们。
-
-`pcgen-ir` 在 `pcgen-engine` 里只作为 **dev-dependency** 存在（测试需要
-lowering 来搭 fixture）；架构守卫读的是 `cargo tree -e normal`，因此这条区分是
-真实生效的。
-
-### 2.1 公式词汇表：引擎不解释 PCGen 语法
-
-`scripts/check_architecture.sh` 的依赖检查是**语法性**的——它找 `.pcc` / `.lst`
-字符串。这挡不住**语义**泄漏：引擎曾经自己解释 `CL`、`TL`、`classlevel(...)`
-和 `VAR.` 目标前缀，而本项目最隐蔽的两个缺陷正藏在那里：
-
-- `BONUS:VAR|A,B|...` 的名字列表没被拆分，于是 `A,B` 成了一个变量名，
-  而 `A`、`B` 都停在 `DEFINE` 默认值；
-- `CL` 意为"**拥有该公式的那个职业**的等级"。引擎只能从来源记录去猜，
-  对任何多职业角色都猜错，把所有 `<职业>LVL` 变量清零。
-
-因此 PCGen 方言在**转写期**（`pcgen-ir` lowering）就被翻译成运行时词汇表，
-由 `pcgen_core::formula_vocab` 定义：
-
-| PCGen | 运行时 |
-|---|---|
-| `CL` | `ClassLevel_<拥有者>` |
-| `classlevel("X")` | `ClassLevel_<X>` |
-| `classlevel("APPLIEDAS=NONEPIC")` | `ClassLevel_<拥有者>` |
-| `var("CL=X")` / `var("BL=X")` | `ClassLevel_<X>` |
-| `TL` | `CharacterLevel` |
-| `var("X")` | `X` |
-| `BONUS:VAR\|A,B\|expr` | `ModifyVariable { names: [A, B] }` |
-
-转写期知道**拥有者是谁**，所以 `CL` 在那里就能确定——这正是多职业
-`CL` 归零问题的根因。类名用 `_<hex>` 编码（`Ex Paladin` → `ClassLevel_ex_20paladin`），
-无损，因此不同职业名不会撞到同一个变量。
-
-引擎侧只剩变量查表：`evaluate_class_formula` 不再做任何替换，
-`add_target` 不再有 `VAR.` 分支。守卫新增第 5 项检查（注释先剥离，
-大小写敏感——运行时词汇表 `ClassLevel_*` 与 PCGen 的 `classlevel` 共享前缀，
-只有小写拼写属于 PCGen）。
-
-## 3. Crate 职责
-
-| crate | 职责 | 禁止 |
+| Responsibility | Implementation | Boundary |
 |---|---|---|
-| `pcgen-core` | ID、Rational、规则 IR、advancement、Gestalt、图算法、`EntityCategory`/`ChoiceKind` 词汇、`tagclass` 覆盖度分类 | 读取 PCGen 文件 |
-| `pcgen-formula` | 公式解析与求值 | 读取 PCGen 文件；做角色数值计算 |
-| `pcgen-ir` | RawRecord、PatchOperation、typed definitions、`PcgDraft` 数据、`CompiledRulePack`、降低 pass、覆盖度 | 解析 `.pcc/.lst/.pcg`；做角色数值计算 |
-| `pcgen-import` | `.pcc` 图解析、`.lst` tokenize、`.pcg` 读写 | 做角色数值计算；被 engine 依赖 |
-| `pcgen-engine` | Draft、规则管线、派生快照、增量重算、解释链 | 依赖 `pcgen-import`；理解 PCGen tag |
-| `pcgen-builder` | 原生存档 envelope、角色仓库、建卡/升级应用服务 | 做规则数值计算；依赖 `pcgen-import` |
-| `pcgen-output` | Snapshot 渲染 | 规则计算 |
-| `pcgen-cli` | 命令行入口 | 规则实现 |
+| Source ingestion | `pcgen-import`, `pcgen-ir`, `native.rs` | Read files, lower vocabulary, retain source provenance. No runtime source-text interpretation. |
+| Native rules | `data/rules/*.rules.json`, `CompiledRulePack` | Tables, predicates, casting policies, features and explicit pending mechanics. No character state. |
+| Acquisition inputs | `core::advancement`, `core::build`, `CharacterDraft` | Ordered class frames and skill/feat/spell/choice/evidence events. No stored derived bonuses. |
+| Projection and qualification | `core::build`, `engine::build`, `engine::progression`, `engine::effects` | Reconstruct the relevant time and evaluate shared rule predicates. Never infer historical acquisitions from final totals. |
+| Operations | `engine::execution`, `magic`, `class_resources`, combat/effect resolvers | Read current resources, preview, revalidate, return a new state. No browser-owned resource balances. |
+| Storage and presentation | `pcgen-builder`, `pcgen-web`, CLI/output | Persist inputs and render engine results. No second UI rules engine. |
 
-## 4. 关键类型
+Existing crates are sufficient. Formula evaluation remains in `pcgen-formula`; the engine depends on domain types rather than importer/IR internals. `web::rules::RuleStore` caches rule engines. Native changes retain source-qualified identities and referenced raw locations.
 
-### 4.1 输入
+## One class history, explicit acquisition order
 
-```rust
-CharacterDraft {
-    id, name, race_id, campaign,
-    stats,
-    advancement: Vec<AdvancementFrame>,
-    choices,
-}
-```
+`CharacterDraft.advancement` is the only writable class-level history. Each `AdvancementFrame` is a character level and contains one or more lanes; `class_levels()` is a derived summary. Actual class level, advanced casting level, caster level and initiator level are different quantities.
 
-`AdvancementFrame` / `AdvancementLane` 支持：
+`build_history` records original scores/alignment, a declared `recorded_through` level, and ordered `BuildEvent` inputs:
 
-- 普通角色：每级 1 lane；
-- Gestalt：每级 N lane；
-- `advances`：双进阶职业；
-- `archetype` / `substitution_level`；
-- `deity` / `domains`。
+- skill rank increments;
+- feat acquisition and explicit feat retraining;
+- learned spells bound to a casting track;
+- class choices and prerequisite evidence;
+- level-up ability increases.
 
-### 4.2 规则 IR
+Class entry is checked against the end of the previous character level. Feats are checked after the current class level and only the acquisitions preceding that feat. Moving an event within a level can therefore change its qualification result. Retraining does not rewrite the earlier event; unresolved original-acquisition requirements and dependencies produce a ruling requirement.
 
-```rust
-Effect {
-    phase: EffectPhase,
-    condition: Option<Predicate>,
-    action: EffectAction,
-    source: Provenance,
-}
+`build_at(level, event_limit)` strips final skills, feats, choices, spells, current equipment and encounter state before reconstructing the requested point. Current preparations are excluded. `materialized()` produces the current projection and preserves current equipment, preparations and encounter resources. Projections carry no history, preventing recursive evaluation. Repository loads and rolling replacements refresh the projection; engine evaluation and casting also project explicitly at their boundaries. Legacy flat selection fields are only a current projection when a history is present, never evidence of earlier qualification.
 
-Action = Modify(Modifier) | Grant | GrantTag | SetVariable
+Missing history is **Missing Evidence**, not an invented acquisition schedule. PCG import creates no history. The Build form starts an explicit history only from user-entered original scores and existing class frames; it warns that final selections are replaced by recorded acquisitions. Structurally invalid events cannot be projected, while reconstructible but rule-invalid builds can be saved for correction.
 
-Modifier {
-    target,
-    operation,
-    value: Rational,
-    bonus_type,
-    stack_key,
-    condition,
-    source,
-}
-```
+The ordinary Build form edits single-lane class frames. Existing gestalt calculations remain in the engine; the new form refuses to silently flatten a multi-lane build. Skill-point budgets and gestalt progression remain centralized in `engine::progression`; the acquisition audit currently checks rank caps but does not certify complete skill spending.
 
-### 4.3 派生输出
+## Decisions and evidence
 
-```rust
-CharacterSnapshot {
-    draft_id, name, race_id,
-    total_level,
-    stats,
-    hit_points,
-    base_attack_bonus,
-    saves,
-    gestalt: Option<GestaltPlan>,
-    explanations,
-    diagnostics,
-}
-```
+`RuleDecision` carries a level, subject, status, explanation and source. The common statuses are:
 
-## 5. 计算流水线
-
-```text
-1. validate draft references
-2. activate race/class/template/feat/equipment/frames
-3. expand grants and choices
-4. advancement: HP/BAB/saves/skill points
-5. Gestalt merge policy
-6. prestige slot cost / archetype / substitution / faith interactions
-7. variable dependency graph
-8. modifiers and bonus stacking
-9. derived snapshot + explanations
-10. diagnostics + coverage report
-```
-
-阶段 A 的**前置派生**（不依赖 `Effect` 求值，避免循环）目前包括：
-
-- `BAB_prereq`：`TotalBab` 谓词所需的 total BAB（P4-PRE-2）；
-- `SpellcastingPrereq`：`PRESPELLTYPE` / `PRESPELLBOOK` / `PRESPELLCAST`
-  所需的 spell power、最高可施法等级、法术位与法术书状态（P4-PRE-3）；
-- 生物特征状态：`HANDS` / `MOVE` / `TEMPLATE` 派生的手数、移动模式与模板集合
-  （P4-PRE-4），供 `PREHANDS*` / `PREMOVE` / `PRETEMPLATE` 使用。
-
-谓词求值只读这些阶段 A 状态；最终 `CharacterSnapshot` 复用同一份派生结果，
-保证「谓词看到的」与「snapshot 输出的」一致。
-
-## 6. 增量重算
-
-- 帧级：`plan_gestalt_incremental` 复用未变化的 frame。
-- 依赖级：未来基于 Effect/Modifier 依赖图实现局部重算。
-- 缓存只在 session 内生效；规则包 fingerprint 变化时全部失效。
-
-## 7. 算法策略
-
-| 需求 | 方案 |
+| Status | Meaning |
 |---|---|
-| `.pcc` include order | 稳定拓扑排序 |
-| 循环包含 / 变量循环 | Tarjan SCC + 诊断 |
-| 定义查找 | `BTreeMap` / index |
-| 排序 | 标准库 `sort_by_key` |
-| 搜索 | `partition_point` / `binary_search_by` |
-| 堆 | `BinaryHeap` |
-| 动态规划 | 只有领域确认需要才引入 |
+| Satisfied | This particular check has supporting inputs. |
+| Failed | Recorded inputs violate the checked rule. |
+| Missing Evidence | Required history or external evidence is absent. |
+| Needs Ruling | Interpretation or a retraining dependency needs explicit adjudication. |
+| Not Implemented | The relevant automatic check or resolver is unavailable. |
 
-## 8. 非目标
+The audit never equates an available snapshot with a legal build. Incomplete source-specific feat allocation, complete skill budgets, known-spell quotas and full retraining dependencies remain explicit coverage limits. Requirement lookup distinguishes real feats from same-named class bonus abilities; display names alone are insufficient identity.
 
-- 完整 Java CDOM/Facet 事件系统。
-- 全部 PCGen 历史 tag 与第三方资料。
-- 旧 Swing/JavaFX GUI。
-- 把派生值写入角色存档。
-- 在运行时继续理解 PCGen 语法。
+The three extreme cases use `audit_sequence` for acquisition checks. Their adapters retain supplied input, claims and bounded encounter assumptions. They no longer maintain separate BAB feat gates, early-entry rank arithmetic, alignment gates or Divine Metamagic acquisition timing. Source-specific faith notes and supported encounter effect models remain separate from the generic acquisition engine.
+
+## Spell access, knowledge, preparation and execution
+
+A casting track owns its class power, ability, slot/known progression and advancement targets. Learning arcane spells cannot retype a divine class. `ListAccess` is scoped where necessary; adding Favored Soul cannot lend its Cleric list to another track.
+
+`ClassMagic.save_dc_ability` is shared by the snapshot and cast preview. Favored Soul uses CHA for casting/slots and WIS for DCs. Base spell level, effective spell level, required/paid slot and caster level remain distinct outputs.
+
+Learned spells are acquisitions. `CharacterDraft.preparations` is current-day input and cannot grant knowledge or satisfy historical prerequisites. `prepared_copies()` is the shared preparation lookup. The ordinary preparation form checks accessible known spells, casting ability, ordinary slot capacity and prior expenditure. Restricted specialist/domain slots and prepared metamagic variants are not silently assigned by this form.
+
+`plan_cast` funds the request from saved counters and calls the existing cast resolver. Its trace separates access, transformations, payment, action timing, targets and rulings. `execute_cast` rejects stale revisions and calls the existing immutable-input/new-state-output transition. Ordinary casting and quiescent storage revalidate before returning a changed state; failure does not persist partial costs. Domain turning, feat/class resources, spell slots and daily preparations retain separate ledgers.
+
+`core::actions::TurnBudget` is shared by the martial and incarnum replays. It spends standard/move/swift/full-round actions, permits a standard action to substitute for a move, and accepts explicit extra-action grants. Failed spending leaves the budget unchanged. Replay-local budgets are not presented as a complete live encounter scheduler. Spell plans expose typed costs when known; immediate/longer or unknown timing is explicitly unsupported by this budget. Live casting records resource use and effects, but does not automatically arbitrate all combatants' turn expenditure.
+
+Spellguard requires a verified defensive personal arcane spell profile; an extraordinary temporary-HP rider does not change spell type. `spell_features` remains independent of the Joker fixture. Target geometry, defenses, touch charges, afflictions and tactical effects remain in their existing specialized resolvers, called through shared runtime state rather than duplicated in the UI.
+
+## GUI
+
+All pages are English server-rendered HTML with ordinary GET/POST forms. No JavaScript, background polling, client-side rules or duplicate resource calculations.
+
+| Navigation | Route | Purpose |
+|---|---|---|
+| Character | `/` | Current values, acquisition status, blockers and links. |
+| Build | `/build` | Per-level class and ordered acquisition editing; original scores; qualified-at-acquisition evidence. |
+| Spellcasting | `/spellcasting` | Select a casting track and known spell, record preparations, preview or commit an operation. |
+| Encounter | `/class-play` | Existing target, resource, effect, damage, defense and tactical forms. |
+| Rules | `/classes` | Complete level tables, source evidence and implementation coverage. |
+| Cases | `/cases` | Original claims, shared acquisition audit and links to isolated experiments. |
+
+`/editor` creates/configures characters without an acquisition history. Once history is active, it directs editing to Build rather than overwriting derived final choices. `/workbench` retains advanced casting proofs and specialized previews; it is not the primary navigation. `/martial`, `/incarnum` and `/joker` remain isolated experiment forms reached from Cases. A successful experiment does not repair the original case or save character resources.
+
+New mutating forms use a shared mutation lock, current revision checks and rolling replacement without history backup files. Controls show acquired metamagic options; advanced exceptional proofs remain in the advanced workbench. Starting inputs and events are ordinary fields, not JSON editors. The shared page shell, stylesheet, escaping and semantic tables/details remain in `web::ui` and `web::forms`.
+
+## Implementation coverage
+
+`FeatureLevel.coverage` separates **data**, **qualification** and **execution**. A recorded twenty-level table is not a claim that every ability is executable. Unassessed features are visibly Not Assessed; known partial/unimplemented Joker features carry explicit notes. Native pending mechanics also appear in acquisition reports instead of being silently omitted.
+
+See `docs/SHADOW_POUNCE_AUDIT.md`, `docs/WARFORGED_UMBRAL_AUDIT.md` and `docs/JOKER_AUDIT.md` for source decisions and bounded feature execution. The fixture `.audit.json` files are generated reports, not rules or expected numerical oracles.
+
+## Validation and delivery
+
+Use the smallest relevant checks: `build_history`, the three existing case tests, and the selected Rainbow/War Weaver regression when shared casting changes. HTTP workflow checks cover history creation/reordering, invalid-input rollback, current-resource previews, successful casting, stale submissions and the rule/case pages. Build the Web executable, update `dist/bin/pcgen-web` by rolling replacement and run `cargo clean --profile dev`. Do not run the full gate by default.

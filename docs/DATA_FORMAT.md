@@ -1,6 +1,6 @@
 # 规范化数据格式设计（草案 v1）
 
-> 状态：**设计草案**，尚未实现。
+> 状态：**部分实现**。transpile 已提供规则包读写；当前实现和边界以 ARCHITECTURE.md 为准。动态公式现保留，文中早期表格替代公式的设想不再适用。
 > 目的：把 PCGen 数据中**靠约定隐含**的信息，转成**结构上显式**的运行时格式。
 > 相关：`docs/PF35E_EXTENSION.md`（变体机制）、`CHANGELOG.md`（本设计所依据的缺陷清单）。
 
@@ -512,3 +512,12 @@ equipment.jsonl  domains.jsonl  deities.jsonl  skills.jsonl  ...
   `resolve_added_domain`，是引擎里**唯一**的 PCGen 标签字面量。而
   `scripts/check_architecture.sh` 的第 5 项守卫只覆盖**公式**语法
   （`classlevel|APPLIEDAS|VAR.|CL|TL`），不覆盖标签语法，所以它一直没被拦住。
+
+
+## Acquisition history and current preparations
+
+`CharacterDraft.build_history` stores `initial_stats`, `initial_alignment`, `recorded_through` and ordered `events`. An event has a character `level` and a tagged `action` (`skill`, `feat`, `retrain_feat`, `spell`, `choice`, `evidence`, `ability_increase`). Skill ranks are increments. Class frames remain in `advancement`; class entry is checked before the corresponding frame's acquisitions.
+
+When history is present, flat skills/feats/known spells/choices are refreshed current projections and never historical evidence. Missing history stays missing. No old saves are migrated into invented events. Retraining remains an explicit event and unresolved dependencies remain visible.
+
+`preparations` contains current-day `DraftSpell` records, separate from historical knowledge. It does not grant known spells. `class_play` retains resource counters, effects and the revision used for stale-form rejection. Rule feature metadata optionally includes separate data/qualification/execution coverage; absent coverage is Not Assessed, not Implemented.

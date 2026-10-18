@@ -2,7 +2,8 @@
 //! bounded numeric tails.
 
 use pcgen_core::{AdvancementFrame, AdvancementLane};
-use pcgen_engine::{CharacterDraft, DraftClassLevel, Engine};
+use pcgen_engine::{CharacterDraft, Engine};
+use pcgen_import::PcgClassLevel as DraftClassLevel;
 use pcgen_ir::{lower_records, RawRecord, RawTag, SourceRef};
 
 fn record_key(category: &str, key: &str, name: &str, tags: &[(&str, &str)]) -> RawRecord {
@@ -247,7 +248,7 @@ fn arcane_prestige_class_stacks_caster_level() {
     let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
         race_id: "Human".to_string(),
         stats: [("INT".to_string(), 18)].into_iter().collect(),
-        class_levels: vec![
+        advancement: pcgen_import::advancement_from_class_levels(&vec![
             DraftClassLevel {
                 class_id: "Wizard".to_string(),
                 level: 5,
@@ -262,7 +263,7 @@ fn arcane_prestige_class_stacks_caster_level() {
                 hit_points_by_level: Vec::new(),
                 experience_gained: 0,
             },
-        ],
+        ]),
         ..CharacterDraft::default()
     });
     assert_eq!(snapshot.caster_levels.get("Wizard"), Some(&8));
@@ -286,13 +287,13 @@ fn monster_hd_uses_base_hit_die_average() {
     );
     let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
         race_id: "Human".to_string(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Animal".to_string(),
             level: 2,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         ..CharacterDraft::default()
     });
     // d8 average is 5 per level, CON 10 has no modifier.
@@ -398,13 +399,13 @@ fn class_choice_filters_resolve_dynamic_class_lists() {
     );
     let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
         race_id: "Chooser Race".to_string(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Fighter".to_string(),
             level: 1,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         ..CharacterDraft::default()
     });
     assert_eq!(
@@ -445,13 +446,13 @@ fn pcg_deity_domains_feed_divine_tracks() {
     );
     let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
         race_id: "Human".to_string(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Cleric".to_string(),
             level: 1,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         deity: Some("Pelor".to_string()),
         domains: vec!["Sun".to_string(), "Healing".to_string()],
         ..CharacterDraft::default()
@@ -613,13 +614,13 @@ fn selected_domain_is_validated_against_deity_domain_catalog() {
     // Deity is unknown, but the `.pcg` catalog says only Chaos/Luck are allowed.
     let allowed = Engine::new(pack.clone()).evaluate(&CharacterDraft {
         race_id: "Human".to_string(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Cleric".to_string(),
             level: 1,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         deity: Some("Haela Brightaxe".to_string()),
         domains: vec!["Chaos".to_string(), "Luck".to_string()],
         deity_domains: vec!["Chaos".to_string(), "Luck".to_string()],
@@ -630,13 +631,13 @@ fn selected_domain_is_validated_against_deity_domain_catalog() {
 
     let denied = Engine::new(pack).evaluate(&CharacterDraft {
         race_id: "Human".to_string(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Cleric".to_string(),
             level: 1,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         deity: Some("Haela Brightaxe".to_string()),
         domains: vec!["Luck".to_string()],
         deity_domains: vec!["Chaos".to_string()],
@@ -646,4 +647,148 @@ fn selected_domain_is_validated_against_deity_domain_catalog() {
         .diagnostics
         .iter()
         .any(|diagnostic| diagnostic.contains("is not granted by deity")));
+}
+
+#[test]
+fn advancement_only_class_variables_and_bonus_pools_are_evaluated() {
+    let records = vec![
+        record(
+            "RACE",
+            "Human",
+            &[
+                ("BONUS", "ABILITYPOOL|FEAT|1"),
+                ("DEFINE", "DC|0"),
+                ("BONUS", "VAR|DC|10+HD/2"),
+            ],
+        ),
+        record(
+            "CLASS",
+            "Fighter",
+            &[
+                ("DEFINE", "FighterLVL|0"),
+                ("BONUS", "VAR|FighterLVL|CL"),
+                ("BONUS", "ABILITYPOOL|Fighter Feat|1+FighterLVL/2"),
+            ],
+        ),
+        record("ABILITYCATEGORY", "Fighter Feat", &[("CATEGORY", "FEAT")]),
+        record("ABILITYCATEGORY", "Level Pool", &[("POOL", "TL+1")]),
+    ];
+    let (pack, _) = lower_records(None, Vec::new(), &records);
+    let draft = CharacterDraft {
+        race_id: "Human".into(),
+        advancement: vec![
+            AdvancementFrame::new(
+                1,
+                vec![AdvancementLane::new(
+                    pcgen_core::LaneId::primary(),
+                    "Fighter",
+                    1,
+                    6,
+                    0,
+                )],
+            ),
+            AdvancementFrame::new(
+                2,
+                vec![AdvancementLane::new(
+                    pcgen_core::LaneId::primary(),
+                    "Fighter",
+                    2,
+                    6,
+                    0,
+                )],
+            ),
+        ],
+        ..Default::default()
+    };
+    let state = pcgen_engine::apply_effects(&pack, &draft);
+    assert_eq!(state.variables.get("FighterLVL"), Some(&2));
+    assert_eq!(state.variables.get("DC"), Some(&11));
+    assert!(state.diagnostics.is_empty(), "{:?}", state.diagnostics);
+    let snapshot = Engine::new(pack).evaluate(&draft);
+    assert_eq!(snapshot.ability_pools["fighter_feat"], 2);
+    assert_eq!(snapshot.ability_pools["feat"], 2);
+    assert_eq!(snapshot.ability_pool_usage["feat"].remaining, 2);
+    assert_eq!(snapshot.ability_pools["level_pool"], 3);
+}
+
+#[test]
+fn type_grants_do_not_activate_an_ability_named_after_the_category() {
+    let records = vec![
+        record(
+            "RACE",
+            "Human",
+            &[("ABILITY", "Special Ability|AUTOMATIC|TYPE=FighterQualifies")],
+        ),
+        record(
+            "ABILITY",
+            "Qualified",
+            &[
+                ("CATEGORY", "Special Ability"),
+                ("TYPE", "FighterQualifies"),
+                ("BONUS", "ABILITYPOOL|Fighter Feat|1"),
+            ],
+        ),
+        record(
+            "ABILITY",
+            "Special Ability",
+            &[
+                ("CATEGORY", "Special Ability"),
+                ("BONUS", "ABILITYPOOL|Hierophant Ability|HierophantLVL"),
+            ],
+        ),
+    ];
+    let (pack, _) = lower_records(None, Vec::new(), &records);
+    let state = pcgen_engine::apply_effects(
+        &pack,
+        &CharacterDraft {
+            race_id: "Human".into(),
+            ..Default::default()
+        },
+    );
+    assert_eq!(
+        state.external_modifiers.get("ABILITYPOOL.Fighter Feat"),
+        Some(&1)
+    );
+    assert!(!state.active_abilities.contains("special_ability"));
+    assert!(state.diagnostics.is_empty(), "{:?}", state.diagnostics);
+}
+
+#[test]
+fn general_and_fighter_feat_selections_spend_separate_pools() {
+    let records = vec![
+        record(
+            "RACE",
+            "Human",
+            &[
+                ("BONUS", "ABILITYPOOL|FEAT|2"),
+                ("BONUS", "ABILITYPOOL|Fighter Feat|1"),
+            ],
+        ),
+        record(
+            "ABILITYCATEGORY",
+            "Fighter Feat",
+            &[("CATEGORY", "FEAT"), ("TYPE", "Fighter")],
+        ),
+        record(
+            "ABILITY",
+            "Power Attack",
+            &[("CATEGORY", "FEAT"), ("TYPE", "General.Fighter")],
+        ),
+        record(
+            "ABILITY",
+            "Cleave",
+            &[("CATEGORY", "FEAT"), ("TYPE", "General.Fighter")],
+        ),
+    ];
+    let (pack, _) = lower_records(None, Vec::new(), &records);
+    let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
+        race_id: "Human".into(),
+        abilities: vec![
+            ("FEAT".into(), "Power Attack".into()),
+            ("Fighter Feat".into(), "Cleave".into()),
+        ],
+        ..Default::default()
+    });
+    assert_eq!(snapshot.ability_pool_usage["feat"].spent, 1);
+    assert_eq!(snapshot.ability_pool_usage["fighter_feat"].spent, 1);
 }

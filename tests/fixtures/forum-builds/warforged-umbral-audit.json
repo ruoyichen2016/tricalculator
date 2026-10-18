@@ -1,0 +1,568 @@
+{
+  "acquisition": {
+    "recorded_through": 0,
+    "decisions": [
+      {
+        "level": 0,
+        "subject": "Build history",
+        "status": "missing_evidence",
+        "explanation": "Some levels have incomplete acquisition records",
+        "source": null
+      },
+      {
+        "level": 3,
+        "subject": "Sneak Attack Fighter",
+        "status": "not_implemented",
+        "explanation": "Level tables and investment eligibility are complete. Target-dependent class effects outside the bounded incarnum replay are descriptive, not automatic encounter effects.",
+        "source": "Unearthed Arcana: sneak attack fighter — Fighter: gain sneak attack as rogue, lose ALL fighter bonus feats. Not the Thug variant. (https://www.d20srd.org/srd/variant/classes/variantCharacterClasses.htm)"
+      },
+      {
+        "level": 4,
+        "subject": "Totemist",
+        "status": "not_implemented",
+        "explanation": "Level tables and investment eligibility are complete. Target-dependent class effects outside the bounded incarnum replay are descriptive, not automatic encounter effects.",
+        "source": "Magic of Incarnum — Local moi_abilities.lst; original book indexed tables pp.19,29,115,158 at https://www.rpg.korliane.org/DnD/Magic%20of%20Incarnum.pdf. PDF download failed; indexed text checked, no visual PDF verification. Correct Totemist soulmeld counts and missing Umbral chassis. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/magic_of_incarnum/moi_classes.lst)"
+      },
+      {
+        "level": 6,
+        "subject": "Umbral Disciple",
+        "status": "missing_evidence",
+        "explanation": "Meet 4 skill requirement(s): Concentration 4 ranks; Hide 8 ranks; Knowledge (Arcana) 2 ranks; Listen 8 ranks",
+        "source": "Magic of Incarnum — Local moi_abilities.lst; original book indexed tables pp.19,29,115,158 at https://www.rpg.korliane.org/DnD/Magic%20of%20Incarnum.pdf. PDF download failed; indexed text checked, no visual PDF verification. Correct Totemist soulmeld counts and missing Umbral chassis. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/magic_of_incarnum/moi_classes.lst)"
+      },
+      {
+        "level": 6,
+        "subject": "Umbral Disciple",
+        "status": "not_implemented",
+        "explanation": "Level tables and investment eligibility are complete. Target-dependent class effects outside the bounded incarnum replay are descriptive, not automatic encounter effects.",
+        "source": "Magic of Incarnum — Local moi_abilities.lst; original book indexed tables pp.19,29,115,158 at https://www.rpg.korliane.org/DnD/Magic%20of%20Incarnum.pdf. PDF download failed; indexed text checked, no visual PDF verification. Correct Totemist soulmeld counts and missing Umbral chassis. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/magic_of_incarnum/moi_classes.lst)"
+      },
+      {
+        "level": 16,
+        "subject": "Incandescent Champion",
+        "status": "satisfied",
+        "explanation": "Alignment: LG or NG or CG",
+        "source": "Magic of Incarnum — Local moi_abilities.lst; original book indexed tables pp.19,29,115,158 at https://www.rpg.korliane.org/DnD/Magic%20of%20Incarnum.pdf. PDF download failed; indexed text checked, no visual PDF verification. Correct Totemist soulmeld counts and missing Umbral chassis. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/magic_of_incarnum/moi_classes.lst)"
+      },
+      {
+        "level": 16,
+        "subject": "Incandescent Champion",
+        "status": "missing_evidence",
+        "explanation": "Meet 1 skill requirement(s): Concentration 4 ranks",
+        "source": "Magic of Incarnum — Local moi_abilities.lst; original book indexed tables pp.19,29,115,158 at https://www.rpg.korliane.org/DnD/Magic%20of%20Incarnum.pdf. PDF download failed; indexed text checked, no visual PDF verification. Correct Totemist soulmeld counts and missing Umbral chassis. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/magic_of_incarnum/moi_classes.lst)"
+      },
+      {
+        "level": 16,
+        "subject": "Incandescent Champion",
+        "status": "satisfied",
+        "explanation": "Requires BAB 6; actual BAB 11",
+        "source": "Magic of Incarnum — Local moi_abilities.lst; original book indexed tables pp.19,29,115,158 at https://www.rpg.korliane.org/DnD/Magic%20of%20Incarnum.pdf. PDF download failed; indexed text checked, no visual PDF verification. Correct Totemist soulmeld counts and missing Umbral chassis. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/magic_of_incarnum/moi_classes.lst)"
+      },
+      {
+        "level": 16,
+        "subject": "Incandescent Champion",
+        "status": "not_implemented",
+        "explanation": "Level tables and investment eligibility are complete. Target-dependent class effects outside the bounded incarnum replay are descriptive, not automatic encounter effects.",
+        "source": "Magic of Incarnum — Local moi_abilities.lst; original book indexed tables pp.19,29,115,158 at https://www.rpg.korliane.org/DnD/Magic%20of%20Incarnum.pdf. PDF download failed; indexed text checked, no visual PDF verification. Correct Totemist soulmeld counts and missing Umbral chassis. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/magic_of_incarnum/moi_classes.lst)"
+      },
+      {
+        "level": 17,
+        "subject": "Warblade",
+        "status": "not_implemented",
+        "explanation": "Level tables and investment eligibility are complete. Target-dependent class effects outside the bounded incarnum replay are descriptive, not automatic encounter effects.",
+        "source": "Tome of Battle: Warblade — Local tob_abilities.lst; original book indexed Table 1-3 p.22 at https://dtdnd.neocities.org/books/player/Tome%20of%20Battle.pdf. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/tome_of_battle/tob_classes.lst)"
+      },
+      {
+        "level": 1,
+        "subject": "Mithral Body",
+        "status": "not_implemented",
+        "explanation": "No structured feat definition",
+        "source": null
+      },
+      {
+        "level": 3,
+        "subject": "Jaws of Death",
+        "status": "not_implemented",
+        "explanation": "No structured feat definition",
+        "source": null
+      },
+      {
+        "level": 6,
+        "subject": "Bonus Essentia",
+        "status": "satisfied",
+        "explanation": "CON at least 13",
+        "source": "Magic of Incarnum — Local moi_abilities.lst; original book indexed tables pp.19,29,115,158 at https://www.rpg.korliane.org/DnD/Magic%20of%20Incarnum.pdf. PDF download failed; indexed text checked, no visual PDF verification. Correct Totemist soulmeld counts and missing Umbral chassis. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/magic_of_incarnum/moi_classes.lst)"
+      },
+      {
+        "level": 6,
+        "subject": "Bonus Essentia",
+        "status": "satisfied",
+        "explanation": "Additional source requirement; see the attached RAW reference",
+        "source": "Magic of Incarnum — Local moi_abilities.lst; original book indexed tables pp.19,29,115,158 at https://www.rpg.korliane.org/DnD/Magic%20of%20Incarnum.pdf. PDF download failed; indexed text checked, no visual PDF verification. Correct Totemist soulmeld counts and missing Umbral chassis. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/magic_of_incarnum/moi_classes.lst)"
+      },
+      {
+        "level": 6,
+        "subject": "Bonus Essentia",
+        "status": "not_implemented",
+        "explanation": "Essentia benefit is evaluated by incarnum_snapshot; it does not grant spell slots or advance meldshaper level.",
+        "source": "Magic of Incarnum — Local moi_abilities.lst; original book indexed tables pp.19,29,115,158 at https://www.rpg.korliane.org/DnD/Magic%20of%20Incarnum.pdf. PDF download failed; indexed text checked, no visual PDF verification. Correct Totemist soulmeld counts and missing Umbral chassis. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/magic_of_incarnum/moi_classes.lst)"
+      },
+      {
+        "level": 9,
+        "subject": "Craven",
+        "status": "not_implemented",
+        "explanation": "No structured feat definition",
+        "source": null
+      },
+      {
+        "level": 12,
+        "subject": "Staggering Strike",
+        "status": "not_implemented",
+        "explanation": "No structured feat definition",
+        "source": null
+      },
+      {
+        "level": 15,
+        "subject": "Second Slam",
+        "status": "not_implemented",
+        "explanation": "No structured feat definition",
+        "source": null
+      },
+      {
+        "level": 18,
+        "subject": "Bonus Essentia",
+        "status": "satisfied",
+        "explanation": "CON at least 13",
+        "source": "Magic of Incarnum — Local moi_abilities.lst; original book indexed tables pp.19,29,115,158 at https://www.rpg.korliane.org/DnD/Magic%20of%20Incarnum.pdf. PDF download failed; indexed text checked, no visual PDF verification. Correct Totemist soulmeld counts and missing Umbral chassis. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/magic_of_incarnum/moi_classes.lst)"
+      },
+      {
+        "level": 18,
+        "subject": "Bonus Essentia",
+        "status": "satisfied",
+        "explanation": "Additional source requirement; see the attached RAW reference",
+        "source": "Magic of Incarnum — Local moi_abilities.lst; original book indexed tables pp.19,29,115,158 at https://www.rpg.korliane.org/DnD/Magic%20of%20Incarnum.pdf. PDF download failed; indexed text checked, no visual PDF verification. Correct Totemist soulmeld counts and missing Umbral chassis. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/magic_of_incarnum/moi_classes.lst)"
+      },
+      {
+        "level": 18,
+        "subject": "Bonus Essentia",
+        "status": "not_implemented",
+        "explanation": "Essentia benefit is evaluated by incarnum_snapshot; it does not grant spell slots or advance meldshaper level.",
+        "source": "Magic of Incarnum — Local moi_abilities.lst; original book indexed tables pp.19,29,115,158 at https://www.rpg.korliane.org/DnD/Magic%20of%20Incarnum.pdf. PDF download failed; indexed text checked, no visual PDF verification. Correct Totemist soulmeld counts and missing Umbral chassis. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/magic_of_incarnum/moi_classes.lst)"
+      },
+      {
+        "level": 18,
+        "subject": "Bonus Essentia",
+        "status": "failed",
+        "explanation": "This feat cannot be selected more than once",
+        "source": "Magic of Incarnum — Local moi_abilities.lst; original book indexed tables pp.19,29,115,158 at https://www.rpg.korliane.org/DnD/Magic%20of%20Incarnum.pdf. PDF download failed; indexed text checked, no visual PDF verification. Correct Totemist soulmeld counts and missing Umbral chassis. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/magic_of_incarnum/moi_classes.lst)"
+      },
+      {
+        "level": 0,
+        "subject": "Coverage",
+        "status": "not_implemented",
+        "explanation": "Chronology, rank caps, class entry and recorded feat prerequisites are audited. Full skill-point budgets, every feat source, known-spell quotas and retraining dependencies are not yet certified.",
+        "source": null
+      }
+    ]
+  },
+  "name": "Warforged Umbral Disciple forum case",
+  "milestones": [
+    {
+      "level": 1,
+      "bab": 1,
+      "essentia": 0,
+      "capacity": 1,
+      "sneak_dice": 0,
+      "warblade_il": null,
+      "ordinary_attacks": 2
+    },
+    {
+      "level": 2,
+      "bab": 2,
+      "essentia": 0,
+      "capacity": 1,
+      "sneak_dice": 0,
+      "warblade_il": null,
+      "ordinary_attacks": 3
+    },
+    {
+      "level": 3,
+      "bab": 3,
+      "essentia": 0,
+      "capacity": 1,
+      "sneak_dice": 1,
+      "warblade_il": null,
+      "ordinary_attacks": 4
+    },
+    {
+      "level": 4,
+      "bab": 3,
+      "essentia": 1,
+      "capacity": 1,
+      "sneak_dice": 1,
+      "warblade_il": null,
+      "ordinary_attacks": 4
+    },
+    {
+      "level": 5,
+      "bab": 4,
+      "essentia": 2,
+      "capacity": 1,
+      "sneak_dice": 1,
+      "warblade_il": null,
+      "ordinary_attacks": 4
+    },
+    {
+      "level": 6,
+      "bab": 4,
+      "essentia": 5,
+      "capacity": 2,
+      "sneak_dice": 1,
+      "warblade_il": null,
+      "ordinary_attacks": 4
+    },
+    {
+      "level": 7,
+      "bab": 5,
+      "essentia": 5,
+      "capacity": 2,
+      "sneak_dice": 2,
+      "warblade_il": null,
+      "ordinary_attacks": 4
+    },
+    {
+      "level": 8,
+      "bab": 6,
+      "essentia": 6,
+      "capacity": 2,
+      "sneak_dice": 2,
+      "warblade_il": null,
+      "ordinary_attacks": 5
+    },
+    {
+      "level": 9,
+      "bab": 7,
+      "essentia": 6,
+      "capacity": 2,
+      "sneak_dice": 2,
+      "warblade_il": null,
+      "ordinary_attacks": 5
+    },
+    {
+      "level": 10,
+      "bab": 7,
+      "essentia": 7,
+      "capacity": 2,
+      "sneak_dice": 3,
+      "warblade_il": null,
+      "ordinary_attacks": 5
+    },
+    {
+      "level": 11,
+      "bab": 8,
+      "essentia": 7,
+      "capacity": 2,
+      "sneak_dice": 3,
+      "warblade_il": null,
+      "ordinary_attacks": 5
+    },
+    {
+      "level": 12,
+      "bab": 9,
+      "essentia": 8,
+      "capacity": 3,
+      "sneak_dice": 3,
+      "warblade_il": null,
+      "ordinary_attacks": 6
+    },
+    {
+      "level": 13,
+      "bab": 10,
+      "essentia": 9,
+      "capacity": 3,
+      "sneak_dice": 4,
+      "warblade_il": null,
+      "ordinary_attacks": 6
+    },
+    {
+      "level": 14,
+      "bab": 10,
+      "essentia": 10,
+      "capacity": 3,
+      "sneak_dice": 4,
+      "warblade_il": null,
+      "ordinary_attacks": 6
+    },
+    {
+      "level": 15,
+      "bab": 11,
+      "essentia": 11,
+      "capacity": 3,
+      "sneak_dice": 4,
+      "warblade_il": null,
+      "ordinary_attacks": 8
+    },
+    {
+      "level": 16,
+      "bab": 11,
+      "essentia": 12,
+      "capacity": 3,
+      "sneak_dice": 4,
+      "warblade_il": null,
+      "ordinary_attacks": 8
+    },
+    {
+      "level": 17,
+      "bab": 12,
+      "essentia": 12,
+      "capacity": 3,
+      "sneak_dice": 4,
+      "warblade_il": 9,
+      "ordinary_attacks": 8
+    },
+    {
+      "level": 18,
+      "bab": 13,
+      "essentia": 13,
+      "capacity": 4,
+      "sneak_dice": 4,
+      "warblade_il": 9,
+      "ordinary_attacks": 8
+    },
+    {
+      "level": 19,
+      "bab": 14,
+      "essentia": 14,
+      "capacity": 4,
+      "sneak_dice": 4,
+      "warblade_il": 10,
+      "ordinary_attacks": 8
+    },
+    {
+      "level": 20,
+      "bab": 15,
+      "essentia": 14,
+      "capacity": 4,
+      "sneak_dice": 4,
+      "warblade_il": 11,
+      "ordinary_attacks": 8
+    }
+  ],
+  "original_training": {
+    "tracks": {
+      "Warblade": {
+        "initiator_level": 11,
+        "known_capacity": 4,
+        "readied_capacity": 3,
+        "stance_capacity": 1,
+        "granted": 0,
+        "known": [
+          "White Raven Tactics"
+        ],
+        "stances": [
+          "Leading The Charge"
+        ]
+      }
+    },
+    "errors": [
+      "Level 17 / Sudden Leap: Requires 1 prior Tiger Claw maneuvers/stances",
+      "Level 17 / Dancing Mongoose: Requires 2 prior Tiger Claw maneuvers/stances",
+      "Level 17 / Pouncing Charge: Requires 2 prior Tiger Claw maneuvers/stances"
+    ]
+  },
+  "original_allocation": {
+    "pool": 14,
+    "capacity": 4,
+    "soulmeld_limit": 3,
+    "bind_limit": 1,
+    "meldshaper_level": 2,
+    "allocated": 14,
+    "unallocated": 0,
+    "investment_caps": {
+      "Blink Shirt": 5,
+      "Embrace of Shadow": 4,
+      "Fast Healing": 4,
+      "Incandescent Strike": 4,
+      "Kiss of the Shadows": 4,
+      "Sight of the Eyeless": 4,
+      "Soulchilling Strike": 4,
+      "Step of the Bodiless": 4,
+      "Totem Avatar": 4,
+      "Unbearable Countenance": 4,
+      "Wormtail Belt": 4
+    },
+    "errors": [
+      "Bonus Essentia is not repeatable; its benefit is counted once"
+    ],
+    "effects": {
+      "skill_enhancement": 0,
+      "miss_chance": 0,
+      "hide_in_plain_sight": false,
+      "blindsight_feet": 0,
+      "own_turn_reach_feet": 0,
+      "threatened_reach_feet": 0,
+      "soulchilling_strength": 0,
+      "soulchilling_dc": 0,
+      "melee_damage": 0,
+      "natural_damage_morale": 0,
+      "natural_armor_enhancement": 0,
+      "fast_healing": 0,
+      "healing_rounds_per_day": 0,
+      "blink_distance_feet": 0,
+      "blink_move_action": false
+    }
+  },
+  "build_errors": [
+    "Level 18: Bonus Essentia: This feat cannot be selected more than once",
+    "Bonus Essentia is not repeatable; its benefit is counted once",
+    "Level 17 / Sudden Leap: Requires 1 prior Tiger Claw maneuvers/stances",
+    "Level 17 / Dancing Mongoose: Requires 2 prior Tiger Claw maneuvers/stances",
+    "Level 17 / Pouncing Charge: Requires 2 prior Tiger Claw maneuvers/stances"
+  ],
+  "assumptions": [
+    "The post supplies no ability scores, alignment or skill-spending history. Probe CON 14 and NG are explicit assumptions, not recovered facts; prestige entry and feat prerequisites are not certified.",
+    "The repair removes the second Bonus Essentia and replaces Dancing Mongoose with Wolf Fang Strike, learned before Sudden Leap and Pouncing Charge. Level 18's replacement feat remains unchosen.",
+    "Two light manufactured weapons, medium Warforged, speed 30, active Ranger TWF style and Gloves from level 12; slam availability is explicitly selectable. No shield is used by this full-attack probe.",
+    "Kiss extends reach only on your own turn. Target distance is distance at the attack, not charge movement; flanking must use the adjacent-square rule.",
+    "Natural attacks, actual hit damage and saving throws need explicit adjudication/rolls. Attack rows are opportunities, not automatic hits or automatic sneak attacks.",
+    "Only the four named soulmelds and this action chain execute here. Other class features retain complete level descriptions but are not all encounter resolvers."
+  ],
+  "repaired_training": {
+    "tracks": {
+      "Warblade": {
+        "initiator_level": 11,
+        "known_capacity": 4,
+        "readied_capacity": 3,
+        "stance_capacity": 1,
+        "granted": 0,
+        "known": [
+          "Pouncing Charge",
+          "Sudden Leap",
+          "White Raven Tactics",
+          "Wolf Fang Strike"
+        ],
+        "stances": [
+          "Leading The Charge"
+        ]
+      }
+    },
+    "errors": []
+  },
+  "allocation_probe": {
+    "pool": 14,
+    "capacity": 4,
+    "soulmeld_limit": 3,
+    "bind_limit": 1,
+    "meldshaper_level": 2,
+    "allocated": 14,
+    "unallocated": 0,
+    "investment_caps": {
+      "Blink Shirt": 5,
+      "Embrace of Shadow": 4,
+      "Fast Healing": 4,
+      "Incandescent Strike": 4,
+      "Kiss of the Shadows": 4,
+      "Sight of the Eyeless": 4,
+      "Soulchilling Strike": 4,
+      "Step of the Bodiless": 4,
+      "Totem Avatar": 4,
+      "Unbearable Countenance": 4,
+      "Wormtail Belt": 4
+    },
+    "errors": [],
+    "effects": {
+      "skill_enhancement": 0,
+      "miss_chance": 20,
+      "hide_in_plain_sight": true,
+      "blindsight_feet": 20,
+      "own_turn_reach_feet": 20,
+      "threatened_reach_feet": 5,
+      "soulchilling_strength": 2,
+      "soulchilling_dc": 14,
+      "melee_damage": 2,
+      "natural_damage_morale": 0,
+      "natural_armor_enhancement": 2,
+      "fast_healing": 1,
+      "healing_rounds_per_day": 3,
+      "blink_distance_feet": 30,
+      "blink_move_action": true
+    }
+  },
+  "turn_probe": {
+    "errors": [],
+    "log": [
+      "Action 1: PouncingCharge { feet: 20, path_clear: true }"
+    ],
+    "attacks": [
+      {
+        "weapon": "Main hand",
+        "base_bonus": 15,
+        "sneak_dice": 4,
+        "craven_damage": 20,
+        "incarnum_damage": 2
+      },
+      {
+        "weapon": "Main hand",
+        "base_bonus": 10,
+        "sneak_dice": 4,
+        "craven_damage": 20,
+        "incarnum_damage": 2
+      },
+      {
+        "weapon": "Main hand",
+        "base_bonus": 5,
+        "sneak_dice": 4,
+        "craven_damage": 20,
+        "incarnum_damage": 2
+      },
+      {
+        "weapon": "Off hand",
+        "base_bonus": 15,
+        "sneak_dice": 4,
+        "craven_damage": 20,
+        "incarnum_damage": 2
+      },
+      {
+        "weapon": "Off hand",
+        "base_bonus": 10,
+        "sneak_dice": 4,
+        "craven_damage": 20,
+        "incarnum_damage": 2
+      },
+      {
+        "weapon": "Slam",
+        "base_bonus": 12,
+        "sneak_dice": 4,
+        "craven_damage": 20,
+        "incarnum_damage": 2
+      },
+      {
+        "weapon": "Second Slam",
+        "base_bonus": 12,
+        "sneak_dice": 4,
+        "craven_damage": 20,
+        "incarnum_damage": 2
+      },
+      {
+        "weapon": "Bite",
+        "base_bonus": 12,
+        "sneak_dice": 4,
+        "craven_damage": 20,
+        "incarnum_damage": 2
+      }
+    ],
+    "soulchilling_triggers_max": 1,
+    "healing_rounds_remaining": 3,
+    "healing_this_turn": 0,
+    "ally_initiative": null,
+    "final_allocation": {
+      "Blink Shirt": 2,
+      "Embrace of Shadow": 2,
+      "Fast Healing": 1,
+      "Incandescent Strike": 2,
+      "Kiss of the Shadows": 3,
+      "Sight of the Eyeless": 2,
+      "Soulchilling Strike": 2
+    }
+  }
+}

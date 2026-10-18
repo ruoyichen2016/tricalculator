@@ -186,6 +186,42 @@ impl Formula {
         Ok(self.eval(variables)?.as_i64())
     }
 
+    /// Numeric runtime values must not silently turn strings, infinity or
+    /// overflow into zero/saturated integers.
+    pub fn eval_i32<V: VariableResolver + ?Sized>(
+        &self,
+        variables: &V,
+    ) -> Result<i32, FormulaError> {
+        self.eval_numeric_i32(variables, false)
+    }
+
+    pub fn eval_floor_i32<V: VariableResolver + ?Sized>(
+        &self,
+        variables: &V,
+    ) -> Result<i32, FormulaError> {
+        self.eval_numeric_i32(variables, true)
+    }
+
+    fn eval_numeric_i32<V: VariableResolver + ?Sized>(
+        &self,
+        variables: &V,
+        floor: bool,
+    ) -> Result<i32, FormulaError> {
+        let value = self.eval(variables)?;
+        let number = value.as_f64();
+        if matches!(value, Value::String(_))
+            || !number.is_finite()
+            || number < i32::MIN as f64
+            || number > i32::MAX as f64
+        {
+            return Err(FormulaError::new(
+                "formula result is not a finite i32 number",
+                0,
+            ));
+        }
+        Ok(if floor { number.floor() } else { number } as i32)
+    }
+
     pub fn variables(&self) -> BTreeSet<String> {
         let mut result = BTreeSet::new();
         collect_variables(&self.expr, &mut result);
@@ -767,6 +803,18 @@ fn eval_call<V: VariableResolver + ?Sized>(
     variables: &V,
 ) -> Result<Value, FormulaError> {
     let lowered = name.to_ascii_lowercase();
+    // Only the chosen branch is a dependency of this evaluation.
+    if lowered == "if" {
+        if args.len() != 3 {
+            return Err(FormulaError::new("if expects three arguments", 0));
+        }
+        let branch = if eval_expr(&args[0], variables)?.is_truthy() {
+            1
+        } else {
+            2
+        };
+        return eval_expr(&args[branch], variables);
+    }
     let values: Result<Vec<_>, _> = args.iter().map(|arg| eval_expr(arg, variables)).collect();
     let values = values?;
     match lowered.as_str() {
@@ -819,16 +867,6 @@ fn eval_call<V: VariableResolver + ?Sized>(
         "sqrt" => Ok(Value::Float(
             values.first().map(Value::as_f64).unwrap_or(0.0).sqrt(),
         )),
-        "if" => {
-            if values.len() != 3 {
-                return Err(FormulaError::new("if expects three arguments", 0));
-            }
-            Ok(if values[0].is_truthy() {
-                values[1].clone()
-            } else {
-                values[2].clone()
-            })
-        }
         "clamp" => {
             if values.len() != 3 {
                 return Err(FormulaError::new("clamp expects three arguments", 0));
@@ -984,4 +1022,52 @@ mod tests {
         assert!(evaluate("MISSING + 1", &()).is_err());
         assert!(evaluate("1 / 0", &()).is_err());
     }
+}
+
+/// Evaluate a formula with an explicit class/character scope. No source dialect
+/// or engine dependency is required here; callers supply domain variable names.
+pub fn evaluate_scoped_i32(
+    expression: &str,
+    variables: &std::collections::BTreeMap<String, i32>,
+    bindings: &[(String, i32)],
+) -> Result<i32, FormulaError> {
+    evaluate_scoped_numeric_i32(expression, variables, bindings, false)
+}
+
+pub fn evaluate_scoped_floor_i32(
+    expression: &str,
+    variables: &std::collections::BTreeMap<String, i32>,
+    bindings: &[(String, i32)],
+) -> Result<i32, FormulaError> {
+    evaluate_scoped_numeric_i32(expression, variables, bindings, true)
+}
+
+fn evaluate_scoped_numeric_i32(
+    expression: &str,
+    variables: &std::collections::BTreeMap<String, i32>,
+    bindings: &[(String, i32)],
+    floor: bool,
+) -> Result<i32, FormulaError> {
+    struct Scope<'a> {
+        variables: &'a std::collections::BTreeMap<String, i32>,
+        bindings: &'a [(String, i32)],
+    }
+    impl VariableResolver for Scope<'_> {
+        fn resolve(&self, name: &str) -> Option<Value> {
+            self.bindings
+                .iter()
+                .rev()
+                .find(|(key, _)| key == name)
+                .map(|(_, value)| *value)
+                .or_else(|| self.variables.get(name).copied())
+                .map(Value::from)
+        }
+    }
+    Formula::parse(expression)?.eval_numeric_i32(
+        &Scope {
+            variables,
+            bindings,
+        },
+        floor,
+    )
 }

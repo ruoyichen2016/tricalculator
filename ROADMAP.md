@@ -5,6 +5,36 @@
 > 数字来自固定数据 `scripts/testdata.lock.json`
 > （ref `f91bd03f2dbe1145d5526b52aa3e48fcd0f2fc8d`）。
 
+## 滚动架构重构（2026-10-17）
+
+- 原生角色只持久化 advancement；职业汇总为只读派生结果，删除双写同步。
+- CharacterDraft 移至 core；Web/CLI 的 PCG 转换统一到 import；builder 移除 ir 生产依赖。
+- 源公式转换移至 ir；transpile 不再依赖 engine，写入和读回均保留动态公式。
+- 授予与变量求值移除固定 16 轮截断；未知条件传播，活动效果提供未解诊断。
+- 池计算单独成模块；并行职业的通用专长按角色等级计算。
+- Web 采用实际依赖缓存与阻塞线程加载，脚本/样式独立；技能预算以引擎预览为准。
+- 原生 schema 2、浏览器 schema 3；无旧格式迁移，无备份副本。
+- 验证仅采用编译检查、升级/池/深授予链定向场景与 WSL Web 操作；未跑全量规则门禁。
+- 变量依赖求值已统一：最高 DEFINE 与有类型的 BONUS:VAR 按实际依赖求完整值；条件轮次支持撤回效果和循环诊断。删除旧预计算、分阶段重试与占位符重复处理。
+- 职业/伙伴/STATMOD/SR 的公式错误统一进入角色诊断；移除导入期公式零值表，普通和 Gestalt 都在角色作用域求值。失败快照明确标记计算不完整。
+- 已统一快照有效性：未解决诊断令整份派生结果 unavailable；模型序列化置 null，Web 与导出显示不可用，升级差值不再伪造零。
+- 初始实体门禁收敛：`audit_build` 纳入初始身份实体（Race / Template）的 `requirements` 前置条件校验，避免身份实体前置失效被静默忽略。
+- 仍待收敛：按真实依赖细分有效性粒度、Web 实体 ID 与页面状态职责。详见 ARCHITECTURE.md。
+
+下方门禁记录是此前历史结果，不代表当前滚动版本执行过全量验证。
+
+## WSL Web 调试（2026-10-16）
+
+- 修复 Web 初始化时提前引用 `autosaveDraft`、默认 campaign 路径不存在、
+  切换 curated case 不刷新选项，以及种族 UUID / 变体请求不一致。
+- 升级延续建卡向导的 advancement 链；同步职业汇总时保留每级 HP，
+  防止旧等级 HP 丢失。回归验证包含一级到二级的实际 snapshot HP 增量。
+- 职业变量读取 advancement-only 输入；`HD` 在 lowering 中转写为 `HitDice`。
+- 类型授予使用 `GrantByType` IR，不把能力类别误当成目标能力；
+  `POOL` 按表达式求值，`BONUS:ABILITYPOOL` 合入资源池，通用 FEAT 池包含
+  等级额度和种族加值，战士专长池独立计数。
+- 滚动更新；本轮不引入旧存档迁移。
+
 ## 当前状态（最近验证：固定数据 + 全量门禁）
 
 - 工作区：10 crate（core / formula / ir / import / engine / builder / output /

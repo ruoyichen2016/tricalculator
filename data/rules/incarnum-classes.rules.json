@@ -1,0 +1,1192 @@
+{
+  "format": "gladius.module/1",
+  "sources": {
+    "moi_incarnum": {
+      "title": "Magic of Incarnum",
+      "reference": "data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/magic_of_incarnum/moi_classes.lst",
+      "locator": "Local moi_abilities.lst; original book indexed tables pp.19,29,115,158 at https://www.rpg.korliane.org/DnD/Magic%20of%20Incarnum.pdf. PDF download failed; indexed text checked, no visual PDF verification. Correct Totemist soulmeld counts and missing Umbral chassis."
+    },
+    "tob_warblade": {
+      "title": "Tome of Battle: Warblade",
+      "reference": "data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/tome_of_battle/tob_classes.lst",
+      "locator": "Local tob_abilities.lst; original book indexed Table 1-3 p.22 at https://dtdnd.neocities.org/books/player/Tome%20of%20Battle.pdf."
+    },
+    "ua_sa_fighter": {
+      "title": "Unearthed Arcana: sneak attack fighter",
+      "reference": "https://www.d20srd.org/srd/variant/classes/variantCharacterClasses.htm",
+      "locator": "Fighter: gain sneak attack as rogue, lose ALL fighter bonus feats. Not the Thug variant."
+    }
+  },
+  "rules": [
+    {
+      "id": "35e:moi_incarnum:class:totemist",
+      "source": "moi_incarnum",
+      "key": "Totemist",
+      "name": "Totemist",
+      "requirements": [],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 8,
+        "max_level": 20,
+        "prestige": false,
+        "attack": "three_quarter",
+        "fortitude": "good",
+        "reflex": "good",
+        "will": "poor",
+        "skill_points": 4,
+        "class_skills": [
+          "Concentration",
+          "TYPE.Craft",
+          "Handle Animal",
+          "Knowledge (Arcana)",
+          "Knowledge (Nature)",
+          "Knowledge (The Planes)",
+          "Listen",
+          "TYPE.Profession",
+          "Ride",
+          "Spellcraft",
+          "Spot",
+          "Survival",
+          "Swim"
+        ],
+        "magic": {
+          "progression": [
+            {
+              "level": 1,
+              "name": "Meldshaping",
+              "summary": "A totemist's primary ability is shaping incarnum soulmelds, which are drawn from the totemist soulmeld list (page 58). You know and can shape any soulmeld from this list. Unlike the aligned forces of an incarnate's melds, your soulmelds channel the bestial spirits of nature. The Difficulty Class for a saving throw against a totemist soulmeld is 10 + number of points of essentia invested in the soulmeld + your Constitution modifier. Your meldshaper level is equal to your totemist level. A totemist can shape only a certain number of soulmelds per day. Your base daily allotment is given on Table 2-4: The Totemist. The maximum number of soulmelds that you can have shaped simultaneously is equal to your Constitution score minus 10 or the number of soulmelds on the table, whichever is lower. At 1st level, you can shape two soulmelds at a time (assuming you have a Constitution score of at least 12). As you advance in level, you can shape an increasing number of soulmelds. At 1st level, you also gain access to your personal pool of essentia, which can be invested into your soulmelds to increase their power. Your essentia pool's size is shown on Table 2-4: The Totemist. Your character level, as noted on Table 2-1: Essentia Capacity, determines the maximum quantity of essentia that you can invest in any single soulmeld. As a swift action, you can reallocate your essentia investments in your soulmelds every round (see Essentia, page 50). A totemist does not study or prepare soulmelds in advance, but must have a good night's rest and must meditate for 1 hour to shape his soulmelds for the day (see Shaping Soulmelds, page 49)."
+            },
+            {
+              "level": 1,
+              "name": "Weapon and Armor Proficiency",
+              "summary": "You are proficient with all simple weapons, with light armor, and with shields (except tower shields)."
+            },
+            {
+              "level": 1,
+              "name": "Illiteracy",
+              "summary": "Like barbarians, totemists do not begin the game knowing how to read and write. You can spend 2 skill points to gain the ability to read and write all languages you are able to speak. If you gain a level in any other class (except barbarian), you automatically gain literacy. A barbarian who gains a totemist level remains illiterate. Any other character who gains a totemist level does not lose the literacy he or she already had."
+            },
+            {
+              "level": 1,
+              "name": "Wild Empathy",
+              "summary": "As the druid class ability; see page 35 of the Player's Handbook. You gain a +4 bonus on wild empathy checks made to influence the reactions of magical beasts of the same kind as the beast associated with the soulmeld bound to your totem chakra. Thus, if you have a basilisk mask bound to your totem chakra, you gain the bonus on checks made to influence basilisks."
+            },
+            {
+              "level": 2,
+              "name": "Chakra Binds",
+              "summary": "Beginning at 2nd level, you can bind your soulmelds to your chakras, granting you new powers based on the soulmeld and the chakra chosen. Binding a soulmeld to a chakra closes the body slot associated with that chakra (see Chakras, page 50), so that you cannot also benefit from a magic item worn on the body slot associated with that chakra. The number of chakra binds that you can have active at any one time depends on your level (see the Chakra Binds column on Table 2-4: The Totemist). At 2nd level, you can bind a soulmeld to your totem chakra (see below). Beginning at 5th level, you can bind soulmelds to your crown, feet, or hands chakras. At 9th level, you can bind soulmelds to your arms, brow, or shoulders chakras. At 14th level, you can bind soulmelds to your throat or waist chakras. At 17th level, you can bind a soulmeld to your heart chakra. You never gain the ability to bind a soulmeld to your soul chakra. For more information on chakra binds, see page 51."
+            },
+            {
+              "level": 2,
+              "name": "Totem Chakra Bind",
+              "summary": "At 2nd level, you gain access to a unique chakra: the totem chakra. This chakra is not associated with any location on the body, but rather represents your connection to the wild soul energy of nature, embodied in the magical beasts of the world. When you bind a soulmeld to your totem chakra, you take on characteristics of the creature represented by the meld-usually involving a limited physical transformation. Since the totem chakra doesn't match a body location, binding a soulmeld to this chakra doesn't restrict your use of magic items that take up a body location. Any soulmeld bound to your totem chakra has an essentia capacity 1 higher than the normal capacity for your soulmelds. For example, a 2nd-level totemist can invest up to 2 points of essentia in any soulmeld bound to his totem chakra bind (rather than the normal limit of 1 points of essentia). At 15th level, the capacity of any soulmeld bound to your totem chakra increases by an additional point (meaning that a 15th-level totemist could invest up to 5 points of essentia in that soulmeld). At 6th level, the effective meldshaper level of a soulmeld you have bound to your totem chakra is equal to your actual meldshaper level +1. The primary effect of this benefit is to make that soulmeld harder to unshape. At 11th level, you gain the ability to bind a single soulmeld to your totem chakra and to another chakra at the same time. You gain the special benefits of both chakra binds."
+            },
+            {
+              "level": 3,
+              "name": "Totem's Protection",
+              "summary": "At 3rd level, you gain a +4 bonus on saving throws against the supernatural abilities of magical beasts."
+            },
+            {
+              "level": 5,
+              "name": "Chakra binds",
+              "summary": "Crown, feet, hands."
+            },
+            {
+              "level": 6,
+              "name": "Totem chakra bind",
+              "summary": "Bound meldshaper level +1."
+            },
+            {
+              "level": 8,
+              "name": "Rebind Totem Soulmeld",
+              "summary": "As your link to your totem chakra strengthens, you learn to shift the ties that bind your soulmelds. Starting at 8th level, once per day you can unbind a soulmeld from your totem chakra and bind a different meld to that chakra, as long as the new meld is one you already have shaped. This requires a full-round action and provokes attacks of opportunity. You can use this ability one additional time for every four levels gained above 8th (2/day at 12th level, 3/day at 16th, and 4/day at 20th)."
+            },
+            {
+              "level": 9,
+              "name": "Chakra binds",
+              "summary": "Arms, brow, shoulders."
+            },
+            {
+              "level": 11,
+              "name": "Totem chakra bind",
+              "summary": "One soulmeld may bind to Totem and another chakra; consumes two binds."
+            },
+            {
+              "level": 12,
+              "name": "Rebind Totem Soulmeld",
+              "summary": "2/day."
+            },
+            {
+              "level": 14,
+              "name": "Chakra binds",
+              "summary": "Throat, waist."
+            },
+            {
+              "level": 15,
+              "name": "Totem chakra bind",
+              "summary": "Capacity bonus rises to +2."
+            },
+            {
+              "level": 16,
+              "name": "Rebind Totem Soulmeld",
+              "summary": "3/day."
+            },
+            {
+              "level": 17,
+              "name": "Chakra binds",
+              "summary": "Heart."
+            },
+            {
+              "level": 20,
+              "name": "Totem Embodiment",
+              "summary": "At 20th level, you gain the ability to temporarily link your body and soul to your totem chakra. This greatly enhances the power of essentia invested in soulmelds bound to that chakra. For the duration of this ability, your normal essentia capacity of any soulmeld bound to your totem chakra is doubled. Every point of essentia invested in a soulmeld bound to your totem chakra counts as 2 points of essentia. Activating this ability is a free action that does not provoke attacks of opportunity. It can be used once per day and lasts for a number of minutes equal to your Constitution bonus (minimum 1)."
+            },
+            {
+              "level": 20,
+              "name": "Rebind Totem Soulmeld",
+              "summary": "4/day."
+            }
+          ],
+          "incarnum": {
+            "levels": {
+              "1": {
+                "essentia": 1,
+                "soulmelds": 2,
+                "binds": 0,
+                "chakras": [],
+                "totem_capacity_bonus": 0
+              },
+              "2": {
+                "essentia": 2,
+                "soulmelds": 3,
+                "binds": 1,
+                "chakras": [
+                  "Totem"
+                ],
+                "totem_capacity_bonus": 1
+              },
+              "3": {
+                "essentia": 2,
+                "soulmelds": 3,
+                "binds": 1,
+                "chakras": [
+                  "Totem"
+                ],
+                "totem_capacity_bonus": 1
+              },
+              "4": {
+                "essentia": 3,
+                "soulmelds": 4,
+                "binds": 1,
+                "chakras": [
+                  "Totem"
+                ],
+                "totem_capacity_bonus": 1
+              },
+              "5": {
+                "essentia": 3,
+                "soulmelds": 4,
+                "binds": 1,
+                "chakras": [
+                  "Totem",
+                  "Crown",
+                  "Feet",
+                  "Hands"
+                ],
+                "totem_capacity_bonus": 1
+              },
+              "6": {
+                "essentia": 4,
+                "soulmelds": 4,
+                "binds": 2,
+                "chakras": [
+                  "Totem",
+                  "Crown",
+                  "Feet",
+                  "Hands"
+                ],
+                "totem_capacity_bonus": 1
+              },
+              "7": {
+                "essentia": 5,
+                "soulmelds": 5,
+                "binds": 2,
+                "chakras": [
+                  "Totem",
+                  "Crown",
+                  "Feet",
+                  "Hands"
+                ],
+                "totem_capacity_bonus": 1
+              },
+              "8": {
+                "essentia": 5,
+                "soulmelds": 5,
+                "binds": 2,
+                "chakras": [
+                  "Totem",
+                  "Crown",
+                  "Feet",
+                  "Hands"
+                ],
+                "totem_capacity_bonus": 1
+              },
+              "9": {
+                "essentia": 6,
+                "soulmelds": 5,
+                "binds": 2,
+                "chakras": [
+                  "Totem",
+                  "Crown",
+                  "Feet",
+                  "Hands",
+                  "Arms",
+                  "Brow",
+                  "Shoulders"
+                ],
+                "totem_capacity_bonus": 1
+              },
+              "10": {
+                "essentia": 7,
+                "soulmelds": 6,
+                "binds": 3,
+                "chakras": [
+                  "Totem",
+                  "Crown",
+                  "Feet",
+                  "Hands",
+                  "Arms",
+                  "Brow",
+                  "Shoulders"
+                ],
+                "totem_capacity_bonus": 1
+              },
+              "11": {
+                "essentia": 8,
+                "soulmelds": 6,
+                "binds": 3,
+                "chakras": [
+                  "Totem",
+                  "Crown",
+                  "Feet",
+                  "Hands",
+                  "Arms",
+                  "Brow",
+                  "Shoulders"
+                ],
+                "totem_capacity_bonus": 1
+              },
+              "12": {
+                "essentia": 9,
+                "soulmelds": 6,
+                "binds": 3,
+                "chakras": [
+                  "Totem",
+                  "Crown",
+                  "Feet",
+                  "Hands",
+                  "Arms",
+                  "Brow",
+                  "Shoulders"
+                ],
+                "totem_capacity_bonus": 1
+              },
+              "13": {
+                "essentia": 10,
+                "soulmelds": 7,
+                "binds": 3,
+                "chakras": [
+                  "Totem",
+                  "Crown",
+                  "Feet",
+                  "Hands",
+                  "Arms",
+                  "Brow",
+                  "Shoulders"
+                ],
+                "totem_capacity_bonus": 1
+              },
+              "14": {
+                "essentia": 11,
+                "soulmelds": 7,
+                "binds": 4,
+                "chakras": [
+                  "Totem",
+                  "Crown",
+                  "Feet",
+                  "Hands",
+                  "Arms",
+                  "Brow",
+                  "Shoulders",
+                  "Throat",
+                  "Waist"
+                ],
+                "totem_capacity_bonus": 1
+              },
+              "15": {
+                "essentia": 12,
+                "soulmelds": 7,
+                "binds": 4,
+                "chakras": [
+                  "Totem",
+                  "Crown",
+                  "Feet",
+                  "Hands",
+                  "Arms",
+                  "Brow",
+                  "Shoulders",
+                  "Throat",
+                  "Waist"
+                ],
+                "totem_capacity_bonus": 2
+              },
+              "16": {
+                "essentia": 13,
+                "soulmelds": 8,
+                "binds": 4,
+                "chakras": [
+                  "Totem",
+                  "Crown",
+                  "Feet",
+                  "Hands",
+                  "Arms",
+                  "Brow",
+                  "Shoulders",
+                  "Throat",
+                  "Waist"
+                ],
+                "totem_capacity_bonus": 2
+              },
+              "17": {
+                "essentia": 14,
+                "soulmelds": 8,
+                "binds": 4,
+                "chakras": [
+                  "Totem",
+                  "Crown",
+                  "Feet",
+                  "Hands",
+                  "Arms",
+                  "Brow",
+                  "Shoulders",
+                  "Throat",
+                  "Waist",
+                  "Heart"
+                ],
+                "totem_capacity_bonus": 2
+              },
+              "18": {
+                "essentia": 16,
+                "soulmelds": 8,
+                "binds": 5,
+                "chakras": [
+                  "Totem",
+                  "Crown",
+                  "Feet",
+                  "Hands",
+                  "Arms",
+                  "Brow",
+                  "Shoulders",
+                  "Throat",
+                  "Waist",
+                  "Heart"
+                ],
+                "totem_capacity_bonus": 2
+              },
+              "19": {
+                "essentia": 18,
+                "soulmelds": 9,
+                "binds": 5,
+                "chakras": [
+                  "Totem",
+                  "Crown",
+                  "Feet",
+                  "Hands",
+                  "Arms",
+                  "Brow",
+                  "Shoulders",
+                  "Throat",
+                  "Waist",
+                  "Heart"
+                ],
+                "totem_capacity_bonus": 2
+              },
+              "20": {
+                "essentia": 20,
+                "soulmelds": 9,
+                "binds": 5,
+                "chakras": [
+                  "Totem",
+                  "Crown",
+                  "Feet",
+                  "Hands",
+                  "Arms",
+                  "Brow",
+                  "Shoulders",
+                  "Throat",
+                  "Waist",
+                  "Heart"
+                ],
+                "totem_capacity_bonus": 2
+              }
+            },
+            "investments": {}
+          }
+        }
+      },
+      "pending": [
+        "Level tables and investment eligibility are complete. Target-dependent class effects outside the bounded incarnum replay are descriptive, not automatic encounter effects."
+      ]
+    },
+    {
+      "id": "35e:moi_incarnum:class:umbral_disciple",
+      "source": "moi_incarnum",
+      "key": "Umbral Disciple",
+      "name": "Umbral Disciple",
+      "requirements": [
+        {
+          "skill_ranks": {
+            "specs": [
+              {
+                "min_ranks": 4,
+                "name": "Concentration"
+              },
+              {
+                "min_ranks": 8,
+                "name": "Hide"
+              },
+              {
+                "min_ranks": 2,
+                "name": "Knowledge (Arcana)"
+              },
+              {
+                "min_ranks": 8,
+                "name": "Listen"
+              }
+            ],
+            "min_count": 4
+          }
+        }
+      ],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 6,
+        "max_level": 10,
+        "prestige": true,
+        "attack": "three_quarter",
+        "fortitude": "poor",
+        "reflex": "good",
+        "will": "good",
+        "skill_points": 6,
+        "class_skills": [
+          "Balance",
+          "Climb",
+          "Concentration",
+          "TYPE.Craft",
+          "Diplomacy",
+          "Hide",
+          "Jump",
+          "Knowledge (Arcana)",
+          "Listen",
+          "Move Silently",
+          "TYPE.Profession",
+          "Sense Motive",
+          "Spot",
+          "Tumble"
+        ],
+        "magic": {
+          "progression": [
+            {
+              "level": 1,
+              "name": "Weapon and Armor Proficiency",
+              "summary": "You gain no new proficiencies with weapons, armor, or shields."
+            },
+            {
+              "level": 1,
+              "name": "Essentia Pool",
+              "summary": "Your essentia pool increases in size as you progress in the umbral disciple prestige class, as given on Table 6-9: The Umbral Disciple. This essentia can be invested into your class features to increase their power, or in incarnum feats and soulmelds, as normal."
+            },
+            {
+              "level": 1,
+              "name": "Sept Knowledge",
+              "summary": "If you belong to a sept, you can draw upon its collected knowledge. You gain a +2 bonus on any Knowledge or Gather Information checks made within 24 hours of speaking to another member of the same sept, or a +5 bonus if you visit the sept's citadel or stronghold."
+            },
+            {
+              "level": 1,
+              "name": "Step of the Bodiless",
+              "summary": "You can rely on the souls that grant you power to lighten your step and bear you up as you move. Beginning at 1st level, you gain a +2 enhancement bonus on Balance, Climb, Jump, and Tumble checks for every point of essentia you invest in this class feature."
+            },
+            {
+              "level": 1,
+              "name": "Multiclass Note",
+              "summary": "Monks who take levels in umbral disciple can continue to advance as monks"
+            },
+            {
+              "level": 2,
+              "name": "Sneak Attack",
+              "summary": "Beginning at 2nd level, you deal extra damage when you are flanking an opponent or at any time when the target would be denied its Dexterity bonus. This extra damage applies to ranged attacks only if the target is within 30 feet. See the rogue class feature, page 50 of the Player's Handbook."
+            },
+            {
+              "level": 3,
+              "name": "Embrace of Shadow",
+              "summary": "Starting at 3rd level, you can weave incarnum into an obscuring shadow that clings to you, providing you with a limited amount of concealment. While you are thus cloaked in shadow, each attack made against you has a 10%% miss chance per point of essentia invested in this ability. This miss chance does not stack with miss chances provided by any other ability or effect. If the miss chance granted by this ability is 20%% or higher, you also gain the ability to hide in plain sight-that is, you can use the Hide skill even while being observed. See the ranger class feature, page 48 of the Player's Handbook. Embrace of shadow is usable at will."
+            },
+            {
+              "level": 5,
+              "name": "Sneak Attack",
+              "summary": "+2d6; stacks with other sneak attack sources."
+            },
+            {
+              "level": 7,
+              "name": "Sight of the Eyeless",
+              "summary": "At 7th level, you can tap into the piercing vision of pure, bodiless souls to perceive what would otherwise be hidden. Investing essentia in this ability grants you the blindsight ability (range 10 feet per point of essentia invested). Sight of the eyeless is usable at will."
+            },
+            {
+              "level": 8,
+              "name": "Sneak Attack",
+              "summary": "+3d6; stacks with other sneak attack sources."
+            },
+            {
+              "level": 9,
+              "name": "Soulchilling Strike",
+              "summary": "At 9th level, you can imbue your melee attacks with a soulchilling essence. For every point of essentia you invest in this ability, your attack deals 1 point of Strength damage to the target (Fortitude negates, DC 10 + invested essentia + your Con modifier) in addition to its normal damage. Only one attack per round conveys this soulchilling effect. If you are making a full attack, the effect is delivered by your first successful attack of the round, and the rest of your attacks are resolved normally. This effect applies to all types of melee attacks made while essentia is invested, regardless of whether natural or manufactured weapons are used."
+            },
+            {
+              "level": 10,
+              "name": "Kiss of the Shadows",
+              "summary": "At 10th level, you learn to wield the shadows themselves as your weapons. Tangible, incarnum-laced shadows of your weapons or fists follow your every strike, mirroring your attacks at range. Your reach increases by 5 feet for every point of essentia invested in this class feature, but only on your turn. While this ability is active, you are treated as if you were standing in the square adjacent to the target that is closest to your actual location for the purpose of flanking, attacking from higher ground, or similar situations. At the end of your turn, your reach (and thus the area you threaten) returns to normal."
+            }
+          ],
+          "incarnum": {
+            "levels": {
+              "1": {
+                "essentia": 1
+              },
+              "2": {
+                "essentia": 1
+              },
+              "3": {
+                "essentia": 2
+              },
+              "4": {
+                "essentia": 2
+              },
+              "5": {
+                "essentia": 3
+              },
+              "6": {
+                "essentia": 3
+              },
+              "7": {
+                "essentia": 4
+              },
+              "8": {
+                "essentia": 5
+              },
+              "9": {
+                "essentia": 6
+              },
+              "10": {
+                "essentia": 7
+              }
+            },
+            "investments": {
+              "Step of the Bodiless": 1,
+              "Embrace of Shadow": 3,
+              "Sight of the Eyeless": 7,
+              "Soulchilling Strike": 9,
+              "Kiss of the Shadows": 10
+            },
+            "entry_essentia": 1
+          },
+          "feature_values": [
+            {
+              "at_level": 2,
+              "name": "Sneak Attack",
+              "values": {
+                "dice": "floor((CLASSLEVEL+1)/3)"
+              }
+            }
+          ]
+        }
+      },
+      "pending": [
+        "Level tables and investment eligibility are complete. Target-dependent class effects outside the bounded incarnum replay are descriptive, not automatic encounter effects."
+      ]
+    },
+    {
+      "id": "35e:moi_incarnum:class:incandescent_champion",
+      "source": "moi_incarnum",
+      "key": "Incandescent Champion",
+      "name": "Incandescent Champion",
+      "requirements": [
+        {
+          "alignment": {
+            "allowed": [
+              "LG",
+              "NG",
+              "CG"
+            ]
+          }
+        },
+        {
+          "skill_ranks": {
+            "specs": [
+              {
+                "min_ranks": 4,
+                "name": "Concentration"
+              }
+            ],
+            "min_count": 1
+          }
+        },
+        {
+          "total_bab": {
+            "min": 6
+          }
+        }
+      ],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 10,
+        "max_level": 10,
+        "prestige": true,
+        "attack": "three_quarter",
+        "fortitude": "poor",
+        "reflex": "poor",
+        "will": "good",
+        "skill_points": 2,
+        "class_skills": [
+          "Concentration",
+          "TYPE.Craft",
+          "Heal",
+          "Intimidate",
+          "Knowledge (Arcana)",
+          "Knowledge (Religion)",
+          "Knowledge (The Planes)",
+          "TYPE.Profession",
+          "Ride"
+        ],
+        "magic": {
+          "progression": [
+            {
+              "level": 1,
+              "name": "Weapon and Armor Proficiency",
+              "summary": "You gain no new proficiencies with weapons, armor, or shields."
+            },
+            {
+              "level": 1,
+              "name": "Incandescent Strike",
+              "summary": "You can channel incarnum to increase the damage dealt by your melee attacks. For each such augmented attack, you gain a bonus on your damage roll equal to the number of points of essentia invested in this ability. Whenever you have essentia invested in incandescent strike, your hands glow with a bright light equivalent to that produced by a light spell."
+            },
+            {
+              "level": 2,
+              "name": "Fast Healing",
+              "summary": "When you reach 2nd level, the irrepressible force of your soul restores your vitality whenever you are wounded, granting you fast healing at a rate equal to the points of essentia you invest in this ability. This fast healing is usable for a number of rounds per day equal to your incandescent champion level. For example, a 5th-level incandescent champion who invests 2 points of essentia in this ability gains fast healing 2 for a maximum of 5 rounds per day. Activating this ability requires no action, but investing essentia in it requires a swift action, as normal. At 9th level, each ally who is adjacent to you when you activate the ability gains fast healing at the same rate and for the same duration as you do."
+            },
+            {
+              "level": 3,
+              "name": "Unbearable Countenance",
+              "summary": "When you attain 3rd level, inner power begins to shine forth from your face, giving you a radiant countenance that dismays your foes. With a glance, you can render a single foe within 30 feet shaken for 1 round (Will negates; save DC 10 + invested essentia + Cha modifier). Your glance becomes a mindaffecting fear effect, and using it requires a move action. Any foe that successfully saves against this effect is immune to your unbearable countenance for 1 hour thereafter. This ability is always active."
+            },
+            {
+              "level": 4,
+              "name": "Incarnum Overload",
+              "summary": "At 4th level, you can temporarily boost the maximum essentia capacity of any soulmeld, incarnum feat, or special ability that allows essentia investment. This effect lasts for 1 round, during which the essentia capacity of the chosen soulmeld, feat, or ability increases by an amount equal to your Charisma bonus (minimum +1). This ability is usable once per day as a free action. At 7th level, you can use this ability twice per day; at 10th level, you can use it three times per day."
+            },
+            {
+              "level": 5,
+              "name": "Incandescent Ray",
+              "summary": "Beginning at 5th level, you can channel incarnum into a ray of pure, brilliant soul energy at will. Using this ability is a standard action; you must make a successful ranged touch attack to hit your target. The incandescent ray has a range of 60 feet and deals 1d8 points of damage per point of essentia invested in this ability."
+            },
+            {
+              "level": 7,
+              "name": "Incarnum Overload",
+              "summary": "2/day."
+            },
+            {
+              "level": 8,
+              "name": "Incandescent Aura",
+              "summary": "Once you attain 8th level, incarnum has become so integral to your physical form that your body constantly exudes pure, brilliant soul energy. At the start of your turn, every creature adjacent to you that you designate as a foe takes 1d6 points of damage per point of essentia invested in this ability. A successful Will save halves this damage (DC 10 + invested essentia + Cha modifier). This ability is always active. If you have essentia invested in your incandescent aura ability, you shine with a bright light equivalent to that produced by a daylight spell (caster level equals incandescent champion level)."
+            },
+            {
+              "level": 9,
+              "name": "Fast Healing",
+              "summary": "Also affects adjacent allies on activation."
+            },
+            {
+              "level": 10,
+              "name": "Incandescent Transcendence",
+              "summary": "At 10th level, you forsake your mortal nature to fully embrace the power of your spirit. Your type changes to outsider, and you gain the native and good subtypes. Your natural weapons and any weapons you wield are treated as good-aligned for the purpose of overcoming damage reduction. Furthermore, once per day as a standard action, you can transform your physical body into pure, luminous energy for a number of rounds equal to your Charisma modifier (minimum 1). Upon assuming this form, you become incorporeal and gain a fly speed of 60 feet (perfect maneuverability). You cannot make attacks, cast spells, or activate special abilities while in your energy form, though you can invest essentia as usual and your incandescent aura functions normally. Once you activate this ability, you cannot choose to end the effect prematurely."
+            },
+            {
+              "level": 10,
+              "name": "Incarnum Overload",
+              "summary": "3/day."
+            }
+          ],
+          "incarnum": {
+            "levels": {
+              "1": {
+                "essentia": 1
+              },
+              "2": {
+                "essentia": 2
+              },
+              "3": {
+                "essentia": 3
+              },
+              "4": {
+                "essentia": 3
+              },
+              "5": {
+                "essentia": 4
+              },
+              "6": {
+                "essentia": 5
+              },
+              "7": {
+                "essentia": 6
+              },
+              "8": {
+                "essentia": 6
+              },
+              "9": {
+                "essentia": 7
+              },
+              "10": {
+                "essentia": 8
+              }
+            },
+            "investments": {
+              "Incandescent Strike": 1,
+              "Fast Healing": 2,
+              "Unbearable Countenance": 3,
+              "Incandescent Ray": 5,
+              "Incandescent Aura": 8
+            },
+            "entry_essentia": 1
+          },
+          "feature_values": [
+            {
+              "at_level": 2,
+              "name": "Fast Healing",
+              "values": {
+                "rounds_per_day": "CLASSLEVEL"
+              }
+            },
+            {
+              "at_level": 4,
+              "name": "Incarnum Overload",
+              "values": {
+                "uses": "1+floor((CLASSLEVEL-4)/3)"
+              }
+            }
+          ]
+        }
+      },
+      "pending": [
+        "Level tables and investment eligibility are complete. Target-dependent class effects outside the bounded incarnum replay are descriptive, not automatic encounter effects."
+      ]
+    },
+    {
+      "id": "35e:tob_warblade:class:warblade",
+      "source": "tob_warblade",
+      "key": "Warblade",
+      "name": "Warblade",
+      "requirements": [],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 12,
+        "max_level": 20,
+        "prestige": false,
+        "attack": "full",
+        "fortitude": "good",
+        "reflex": "poor",
+        "will": "poor",
+        "skill_points": 4,
+        "class_skills": [
+          "Balance",
+          "Climb",
+          "Concentration",
+          "TYPE.Craft",
+          "Diplomacy",
+          "Intimidate",
+          "Jump",
+          "Knowledge (History)",
+          "Knowledge (Local)",
+          "Martial Lore",
+          "Swim",
+          "Tumble"
+        ],
+        "magic": {
+          "progression": [
+            {
+              "level": 1,
+              "name": "Battle Clarity",
+              "summary": "You can enter a state of almost mystical awareness of the battlefield around you. As long as you are not flat-footed, you gain an insight bonus equal to your Intelligence bonus (maximum equals your warblade level) on your Reflex saves."
+            },
+            {
+              "level": 1,
+              "name": "Maneuvers",
+              "summary": "You begin your career with knowledge of three martial maneuvers. The disciplines available to you are Diamond Mind, Iron Heart, Stone Dragon, Tiger Claw, and White Raven. Once you know a maneuver, you must ready it before you can use it (see Maneuvers Readied, below). A maneuver usable by warblades is considered an extraordinary ability unless otherwise noted in its description. Your maneuvers are not affected by spell resistance, and you do not provoke attacks of opportunity when you initiate one. You learn additional maneuvers at higher levels, as shown on Table 1-3. You must meet a maneuver's prerequisite to learn it. See Table 3-1, page 39, to determine the highest-level maneuvers you can learn. Upon reaching 4th level, and at every even-numbered warblade level after that (6th, 8th, 10th, and so on), you can choose to learn a new maneuver in place of one you already know. In effect, you lose the old maneuver in exchange for the new one. You can choose a new maneuver of any level you like, as long as you observe your restriction on the highest-level maneuvers you know; you need not replace the old maneuver with a maneuver of the same level. For example, upon reaching 10th level, you could trade in a single 1st-, 2nd-, 3rd- or 4th-level maneuver for a maneuver of 5th level or lower, as long as you meet the prerequisite of the new maneuver. You can swap only a single maneuver at any given level."
+            },
+            {
+              "level": 1,
+              "name": "Maneuvers Readied",
+              "summary": "You can ready all three of the maneuvers you know at 1st level, but as you advance in level and learn more maneuvers, you must choose which maneuvers to ready. You ready your maneuvers by exercising for 5 minutes. The maneuvers you choose remain readied until you decide to exercise again and change them. You need not sleep or rest for any long period of time to ready your maneuvers; any time you spend 5 minutes in practice, you can change your readied maneuvers. You begin an encounter with all your readied maneuvers unexpended, regardless of how many times you might have already used them since you chose them. When you initiate a maneuver, you expend it for the current encounter, so each of your readied maneuvers can be used once per encounter (until you recover them, as described below). You can recover all expended maneuvers with a single swift action, which must be immediately followed in the same round with a melee attack or using a standard action to do nothing else in the round (such as executing a quick, harmless flourish with your weapon). You cannot initiate a maneuver or change your stance while you are recovering your expended maneuvers, but you can remain in a stance in which you began your turn."
+            },
+            {
+              "level": 1,
+              "name": "Stances Known",
+              "summary": "You begin play with knowledge of one 1st level stance from any discipline open to warblades. At 4th, 10th, and 16th level, you can choose additional stances. Unlike maneuvers, stances are not expended, and you do not have to ready them. All the stances you know are available to you at all times, and you can change the stance you are currently using as a swift action. A stance is an extraordinary ability unless otherwise stated in the stance description. Unlike with maneuvers, you cannot learn a new stance at higher levels in place of one you already know."
+            },
+            {
+              "level": 1,
+              "name": "Weapon and Armor Proficiency",
+              "summary": "You are proficient with simple and martial melee weapons (including those that can be used as thrown weapons), light and medium armor, and all shields except tower shields."
+            },
+            {
+              "level": 1,
+              "name": "Weapon Aptitude",
+              "summary": "Your training with a wide range of weaponry and tactics gives you great skill with particular weapons. You qualify for feats that usually require a minimum number of fighter levels (such as Weapon Specialization) as if you had a fighter level equal to your warblade level -2. For example, as a 6th-level warblade, you could take Weapon Specialization, since you're treated as being a 4th-level fighter for this purpose. These effective fighter levels stack with any actual fighter levels you have. Thus, a fighter 2/warblade 4 would also qualify for Weapon Specialization. You also have the flexibility to adjust your weapon training. Each morning, you can spend 1 hour in weapon practice to change the designated weapon for any feat you have that applies only to a single weapon (such as Weapon Focus). You must have the newly designated weapon available during your practice session to make this change. For example, if you wish to change the designated weapon for your Weapon Focus feat from greatsword to longsword, you must have a longsword available to practice with during your practice session. You can adjust any number of your feats in this way, and you don't have to adjust them all in the same way. However, you can't change the weapon choices in such a way that you no longer meet the prerequisite for some other feat you possess. For instance, if you have both Weapon Focus (longsword) and Weapon Specialization (longsword), you can't change the designated weapon for Weapon Focus unless you also change the weapon for Weapon Specialization in the same way."
+            },
+            {
+              "level": 2,
+              "name": "Uncanny Dodge",
+              "summary": "At 2nd level, you gain the ability to react to danger before your senses would normally allow you to do so. You retain your Dexterity bonus to AC (if any) even if you are caught flat-footed or struck by an invisible attacker. However, you still lose your Dexterity bonus to AC if you are immobilized. If you already have uncanny dodge from a different class (barbarian or rogue, for example), you automatically gain improved uncanny dodge (see below) instead."
+            },
+            {
+              "level": 3,
+              "name": "Battle Ardor",
+              "summary": "The sheer love of battle lends uncanny strength to your blows. Starting at 3rd level, you gain an insight bonus equal to your Intelligence bonus on rolls made to confirm critical hits."
+            },
+            {
+              "level": 5,
+              "name": "Bonus Feat",
+              "summary": "At 5th level, you gain a bonus feat from the list given below. You must meet the prerequisite for the feat you select. Every four levels thereafter (at 9th, 13th, and 17th level), you choose another bonus feat from the list. Bonus Feat List: Acrobatic, Agile, Athletic, Blade Meditation*, Blind-Fight, Combat Reflexes, Diehard, Endurance, Great Fortitude, Improved Initiative, Iron Will, Ironheart*, Lightning Reflexes, Quick Draw, Run, Stone Power*, Tiger Blooded*, Unnerving Calm*, White Raven Defense*. *New feats described in Chapter 2."
+            },
+            {
+              "level": 6,
+              "name": "Improved Uncanny Dodge",
+              "summary": "At 6th level and higher, you can no longer be flanked; you can react to opponents on opposite sides of you as easily as you can react to a single attacker. See the barbarian class feature (PH 26) for more information."
+            },
+            {
+              "level": 7,
+              "name": "Battle Cunning",
+              "summary": "Your instinct for seizing the moment gives you a significant advantage over foes unprepared for your attack. At 7th level, you gain an insight bonus equal to your Intelligence bonus on melee damage rolls against flat-footed or flanked opponents."
+            },
+            {
+              "level": 9,
+              "name": "Bonus Feat",
+              "summary": "Select from the Warblade bonus feat list."
+            },
+            {
+              "level": 11,
+              "name": "Battle Skill",
+              "summary": "You anticipate your enemies' ploys and tactics. At 11th level, you gain an insight bonus equal to your Intelligence bonus on any check made to oppose an enemy's bull rush, disarm, feint, overrun, sunder, or trip attempt."
+            },
+            {
+              "level": 13,
+              "name": "Bonus Feat",
+              "summary": "Select from the Warblade bonus feat list."
+            },
+            {
+              "level": 15,
+              "name": "Battle Mastery",
+              "summary": "You notice the most subtle openings and cues offered by your opponents. At 15th level, you gain an insight bonus equal to your Intelligence bonus on melee attack rolls and melee damage rolls made whenever you make an attack of opportunity."
+            },
+            {
+              "level": 17,
+              "name": "Bonus Feat",
+              "summary": "Select from the Warblade bonus feat list."
+            },
+            {
+              "level": 20,
+              "name": "Stance Mastery",
+              "summary": "At 20th level, you can have two stances active simultaneously. When you use a swift action to initiate or change your stance, you can initiate or change one or both stances."
+            }
+          ],
+          "martial": {
+            "disciplines": [
+              "Diamond Mind",
+              "Iron Heart",
+              "Stone Dragon",
+              "Tiger Claw",
+              "White Raven"
+            ],
+            "prestige": false,
+            "levels": {
+              "1": {
+                "known": 3,
+                "readied": 3,
+                "stances": 1,
+                "granted": 0
+              },
+              "2": {
+                "known": 4,
+                "readied": 3,
+                "stances": 1,
+                "granted": 0
+              },
+              "3": {
+                "known": 5,
+                "readied": 3,
+                "stances": 1,
+                "granted": 0
+              },
+              "4": {
+                "known": 5,
+                "readied": 4,
+                "stances": 2,
+                "granted": 0
+              },
+              "5": {
+                "known": 6,
+                "readied": 4,
+                "stances": 2,
+                "granted": 0
+              },
+              "6": {
+                "known": 6,
+                "readied": 4,
+                "stances": 2,
+                "granted": 0
+              },
+              "7": {
+                "known": 7,
+                "readied": 4,
+                "stances": 2,
+                "granted": 0
+              },
+              "8": {
+                "known": 7,
+                "readied": 4,
+                "stances": 2,
+                "granted": 0
+              },
+              "9": {
+                "known": 8,
+                "readied": 4,
+                "stances": 2,
+                "granted": 0
+              },
+              "10": {
+                "known": 8,
+                "readied": 5,
+                "stances": 3,
+                "granted": 0
+              },
+              "11": {
+                "known": 9,
+                "readied": 5,
+                "stances": 3,
+                "granted": 0
+              },
+              "12": {
+                "known": 9,
+                "readied": 5,
+                "stances": 3,
+                "granted": 0
+              },
+              "13": {
+                "known": 10,
+                "readied": 5,
+                "stances": 3,
+                "granted": 0
+              },
+              "14": {
+                "known": 10,
+                "readied": 5,
+                "stances": 3,
+                "granted": 0
+              },
+              "15": {
+                "known": 11,
+                "readied": 6,
+                "stances": 3,
+                "granted": 0
+              },
+              "16": {
+                "known": 11,
+                "readied": 6,
+                "stances": 4,
+                "granted": 0
+              },
+              "17": {
+                "known": 12,
+                "readied": 6,
+                "stances": 4,
+                "granted": 0
+              },
+              "18": {
+                "known": 12,
+                "readied": 6,
+                "stances": 4,
+                "granted": 0
+              },
+              "19": {
+                "known": 13,
+                "readied": 6,
+                "stances": 4,
+                "granted": 0
+              },
+              "20": {
+                "known": 13,
+                "readied": 7,
+                "stances": 4,
+                "granted": 0
+              }
+            }
+          }
+        }
+      },
+      "pending": [
+        "Level tables and investment eligibility are complete. Target-dependent class effects outside the bounded incarnum replay are descriptive, not automatic encounter effects."
+      ]
+    },
+    {
+      "id": "35e:ua_sa_fighter:class:sneak_attack_fighter",
+      "source": "ua_sa_fighter",
+      "key": "Sneak Attack Fighter",
+      "name": "Sneak Attack Fighter",
+      "requirements": [],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 10,
+        "max_level": 20,
+        "prestige": false,
+        "attack": "full",
+        "fortitude": "good",
+        "reflex": "poor",
+        "will": "poor",
+        "skill_points": 2,
+        "class_skills": [
+          "Climb",
+          "TYPE.Craft",
+          "Handle Animal",
+          "Intimidate",
+          "Jump",
+          "Ride",
+          "Swim"
+        ],
+        "magic": {
+          "progression": [
+            {
+              "level": 1,
+              "name": "Sneak Attack",
+              "summary": "+1d6; replaces all fighter bonus feats, not general character feats."
+            },
+            {
+              "level": 3,
+              "name": "Sneak Attack",
+              "summary": "+2d6; replaces all fighter bonus feats, not general character feats."
+            },
+            {
+              "level": 5,
+              "name": "Sneak Attack",
+              "summary": "+3d6; replaces all fighter bonus feats, not general character feats."
+            },
+            {
+              "level": 7,
+              "name": "Sneak Attack",
+              "summary": "+4d6; replaces all fighter bonus feats, not general character feats."
+            },
+            {
+              "level": 9,
+              "name": "Sneak Attack",
+              "summary": "+5d6; replaces all fighter bonus feats, not general character feats."
+            },
+            {
+              "level": 11,
+              "name": "Sneak Attack",
+              "summary": "+6d6; replaces all fighter bonus feats, not general character feats."
+            },
+            {
+              "level": 13,
+              "name": "Sneak Attack",
+              "summary": "+7d6; replaces all fighter bonus feats, not general character feats."
+            },
+            {
+              "level": 15,
+              "name": "Sneak Attack",
+              "summary": "+8d6; replaces all fighter bonus feats, not general character feats."
+            },
+            {
+              "level": 17,
+              "name": "Sneak Attack",
+              "summary": "+9d6; replaces all fighter bonus feats, not general character feats."
+            },
+            {
+              "level": 19,
+              "name": "Sneak Attack",
+              "summary": "+10d6; replaces all fighter bonus feats, not general character feats."
+            }
+          ],
+          "proficiencies": [
+            {
+              "level": 1,
+              "weapon_groups": [
+                "Simple",
+                "Martial"
+              ],
+              "armor": [
+                "light",
+                "medium",
+                "heavy"
+              ],
+              "shields": [
+                "light",
+                "heavy",
+                "tower"
+              ]
+            }
+          ],
+          "feature_values": [
+            {
+              "at_level": 1,
+              "name": "Sneak Attack",
+              "values": {
+                "dice": "floor((CLASSLEVEL+1)/2)"
+              }
+            }
+          ]
+        }
+      },
+      "pending": [
+        "Level tables and investment eligibility are complete. Target-dependent class effects outside the bounded incarnum replay are descriptive, not automatic encounter effects."
+      ]
+    },
+    {
+      "id": "35e:moi_incarnum:feat:bonus_essentia",
+      "source": "moi_incarnum",
+      "key": "Bonus Essentia",
+      "name": "Bonus Essentia",
+      "requirements": [
+        {
+          "stat": {
+            "stat": "CON",
+            "min": 13,
+            "max": null
+          }
+        },
+        {
+          "character_level": {
+            "min": 6,
+            "max": null
+          }
+        }
+      ],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "General"
+        ],
+        "repeatable": false
+      },
+      "pending": [
+        "Essentia benefit is evaluated by incarnum_snapshot; it does not grant spell slots or advance meldshaper level."
+      ]
+    }
+  ]
+}

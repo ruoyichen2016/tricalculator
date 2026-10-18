@@ -49,6 +49,12 @@ pub fn render(
 }
 
 pub fn render_text(snapshot: &CharacterSnapshot) -> String {
+    if !snapshot.is_available() {
+        return format!(
+            "Derived values: unavailable\n{}\n",
+            snapshot.diagnostics.join("\n")
+        );
+    }
     let mut out = String::new();
     writeln!(out, "{}", snapshot.name).ok();
     writeln!(out, "{}", "=".repeat(snapshot.name.chars().count().max(8))).ok();
@@ -133,6 +139,12 @@ pub fn render_text(snapshot: &CharacterSnapshot) -> String {
 }
 
 pub fn render_markdown(snapshot: &CharacterSnapshot) -> String {
+    if !snapshot.is_available() {
+        return format!(
+            "Derived values: unavailable\n{}\n",
+            snapshot.diagnostics.join("\n")
+        );
+    }
     let mut out = String::new();
     writeln!(out, "# {}\n", snapshot.name).ok();
     writeln!(out, "**Race:** {}  ", snapshot.race_id).ok();
@@ -174,6 +186,12 @@ pub fn render_markdown(snapshot: &CharacterSnapshot) -> String {
 }
 
 pub fn render_csv(snapshot: &CharacterSnapshot) -> String {
+    if !snapshot.is_available() {
+        return format!(
+            "Status,Reason\nUnavailable,\"{}\"\n",
+            snapshot.diagnostics.join("; ").replace('"', "\"\"")
+        );
+    }
     let mut out = String::from("section,key,value\n");
     let mut row = |section: &str, key: &str, value: &str| {
         writeln!(out, "{section},{key},{value}").ok();
@@ -216,6 +234,15 @@ pub fn render_json(snapshot: &CharacterSnapshot) -> Result<String, serde_json::E
 }
 
 pub fn render_html(snapshot: &CharacterSnapshot) -> String {
+    if !snapshot.is_available() {
+        let reasons = snapshot
+            .diagnostics
+            .iter()
+            .map(|reason| format!("<li>{}</li>", escape_html(reason)))
+            .collect::<String>();
+        return format!("<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Derived values unavailable</title><body><h1>{}</h1><section role=\"alert\"><h2>Derived values: unavailable</h2><p>Unresolved diagnostics prevent publishing derived values. HP, BAB, saves, resource pools and companion values are unavailable.</p><ul>{reasons}</ul></section></body></html>", escape_html(&snapshot.name));
+    }
+
     let mut out = String::new();
     writeln!(
         out,
@@ -246,6 +273,20 @@ pub fn render_html(snapshot: &CharacterSnapshot) -> String {
         snapshot.total_level
     )
     .ok();
+
+    if !snapshot.rule_gaps.is_empty() {
+        out.push_str("<section role=\"alert\"><h2>Incomplete rule support</h2><p>The following mechanics are not implemented. These numbers do not certify a complete build.</p><ul>");
+        for (rule, gap) in &snapshot.rule_gaps {
+            write!(
+                out,
+                "<li><b>{}</b>: {}</li>",
+                escape_html(rule),
+                escape_html(gap)
+            )
+            .ok();
+        }
+        out.push_str("</ul></section>");
+    }
 
     if !snapshot.stats.is_empty() {
         out.push_str("<section><h2>Ability Scores</h2><table>");
@@ -321,20 +362,11 @@ pub fn render_html(snapshot: &CharacterSnapshot) -> String {
         out.push_str("</table></div></section>");
     }
 
-    let has_abilities = !snapshot.active_abilities.is_empty()
-        || snapshot
-            .ability_lists
-            .values()
-            .any(|values| !values.is_empty());
+    let has_abilities = !snapshot.active_abilities.is_empty();
     if has_abilities {
         out.push_str("<section><h2>Feats &amp; Abilities</h2><ul>");
         for ability in &snapshot.active_abilities {
             writeln!(out, "<li>{}</li>", escape_html(ability)).ok();
-        }
-        for values in snapshot.ability_lists.values() {
-            for ability in values {
-                writeln!(out, "<li>{}</li>", escape_html(ability)).ok();
-            }
         }
         out.push_str("</ul></section>");
     }
@@ -546,6 +578,10 @@ fn escape_html(value: &str) -> String {
 
 /// Build a JSON context for the minimal FreeMarker-style renderer.
 pub fn snapshot_context(snapshot: &CharacterSnapshot) -> serde_json::Value {
+    if !snapshot.is_available() {
+        return serde_json::json!({"name": snapshot.name, "race": snapshot.race_id, "level": snapshot.total_level, "validity": snapshot.validity(), "hp": null, "bab": null, "initiative": null, "ac": null, "touch_ac": null, "flat_ac": null, "stats": null, "saves": null, "skills": null, "spells": null, "power_points": null});
+    }
+
     serde_json::json!({
         "name": snapshot.name,
         "race": snapshot.race_id,
@@ -566,6 +602,9 @@ pub fn snapshot_context(snapshot: &CharacterSnapshot) -> serde_json::Value {
 
 /// Render a minimal FreeMarker-style template for a snapshot.
 pub fn render_template_snapshot(template: &str, snapshot: &CharacterSnapshot) -> String {
+    if !snapshot.is_available() {
+        return render_html(snapshot);
+    }
     let context = snapshot_context(snapshot);
     let (template, macros) = extract_macros(template);
     let rendered = render_template_value(&template, &context);
@@ -1007,4 +1046,57 @@ fn evaluate_condition(context: &serde_json::Value, condition: &str) -> bool {
 
 fn number(value: &serde_json::Value) -> Option<f64> {
     value.as_f64()
+}
+
+#[cfg(test)]
+mod validity_tests {
+    use super::*;
+
+    #[test]
+    fn unavailable_snapshot_hides_partial_values_in_every_output() {
+        let snapshot = CharacterSnapshot {
+            name: "Invalid <character>".into(),
+            hit_points: 98765,
+            base_attack_bonus: 98765,
+            diagnostics: vec!["class Test: Missing+1 failed <unsafe>".into()],
+            ..Default::default()
+        };
+        let json: serde_json::Value =
+            serde_json::from_str(&render_json(&snapshot).unwrap()).unwrap();
+        assert_eq!(json["validity"]["status"], "unavailable");
+        for field in [
+            "hit_points",
+            "base_attack_bonus",
+            "saves",
+            "stats",
+            "ability_pools",
+            "companions",
+            "gestalt",
+            "variables",
+        ] {
+            assert!(json[field].is_null(), "{field}");
+        }
+        for rendered in [
+            render_text(&snapshot),
+            render_markdown(&snapshot),
+            render_csv(&snapshot),
+            render_html(&snapshot),
+            render_template_snapshot("${hp}", &snapshot),
+        ] {
+            assert!(rendered.to_lowercase().contains("unavailable"));
+            assert!(!rendered.contains("98765"));
+        }
+        assert!(!render_html(&snapshot).contains("<unsafe>"));
+        assert!(snapshot_context(&snapshot)["hp"].is_null());
+    }
+
+    #[test]
+    fn available_zero_remains_a_number_not_unavailable() {
+        let snapshot = CharacterSnapshot::default();
+        let json: serde_json::Value =
+            serde_json::from_str(&render_json(&snapshot).unwrap()).unwrap();
+        assert_eq!(json["validity"]["status"], "available");
+        assert_eq!(json["hit_points"], 0);
+        assert!(!render_html(&snapshot).contains("Unavailable"));
+    }
 }

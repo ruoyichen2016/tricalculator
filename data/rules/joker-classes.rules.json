@@ -1,0 +1,1376 @@
+{
+  "format": "gladius.module/1",
+  "sources": {
+    "joker_cd": {
+      "title": "Complete Divine",
+      "reference": "data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/complete_divine/cd_classes.lst",
+      "locator": "Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77."
+    },
+    "joker_be": {
+      "title": "Book Of Exalted Deeds",
+      "reference": "data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/book_of_exalted_deeds/be_classes.lst",
+      "locator": "Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77."
+    },
+    "joker_pg": {
+      "title": "Players Guide To Faerun",
+      "reference": "data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/campaign_settings/forgotten_realms/players_guide_to_faerun/pg_classes.lst",
+      "locator": "Named class and companion abilities records. Ability prose takes precedence over malformed ANY advancement and missing bonus-feat grants. Complete Divine pp.6-10,26-28; Book of Exalted Deeds pp.61-62; Players Guide to Faerun pp.75-77."
+    }
+  },
+  "rules": [
+    {
+      "id": "35e:joker_cd:class:favored_soul",
+      "source": "joker_cd",
+      "key": "Favored Soul",
+      "name": "Favored Soul",
+      "requirements": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 8,
+        "max_level": 20,
+        "prestige": false,
+        "attack": "three_quarter",
+        "fortitude": "good",
+        "reflex": "good",
+        "will": "good",
+        "skill_points": 2,
+        "class_skills": [
+          "Concentration",
+          "TYPE.Craft",
+          "Diplomacy",
+          "Heal",
+          "Jump",
+          "Knowledge (Arcana)",
+          "TYPE.Profession",
+          "Sense Motive",
+          "Spellcraft"
+        ],
+        "magic": {
+          "progression": [
+            {
+              "level": 1,
+              "name": "Weapon and Armor Proficiency",
+              "summary": "Favored souls are proficient with all simple weapons, with light and medium armor, and with shields (except tower shields). A favored soul is alos proficient with his diety's favored weapon.  Although a favored soul is not proficient with heavy armor, wearing it does not interfere with her spellcasting.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 3,
+              "name": "Weapon Focus",
+              "summary": "At 3rd level, a favored soul gains the Weapon Focus feat with her deity's favored weapon. If the character already has that feat, she can choose a different one.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 5,
+              "name": "Energy Resistance",
+              "summary": "At 5th level, a favored soul chooses an energy type and gains resistance 10 against that type. At 10th level and 15th level, the character gains resistance 10 against another energy type of her choosing.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 12,
+              "name": "Weapon Specialization",
+              "summary": "At 12th level, a favored soul gains the Weapon Specialization feat with her deity's favored weapon. If she already has that feat, she can choose a different one.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 17,
+              "name": "Wings",
+              "summary": "At 17th level, a favored soul gains wings and can fly at a speed of 60 feet (good maneuverability). A good-aligned favored soul grows feathered wings, and an evil-aligned favored soul gains batlike wings. A favored soul who is neither good nor evil may choose either type of wings.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 20,
+              "name": "Damage Reduction",
+              "summary": "A 20th-level favored soul gains damage reduction. If the character is lawful-aligned, the damage reduction is 10/silver. If the character is chaotic-aligned, the damage is 10/cold iron. A favored soul who is neither lawful nor chaotic may choose either type of damage reduction.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 10,
+              "name": "Additional Energy Resistance",
+              "summary": "Choose another energy type; resistance 10.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 15,
+              "name": "Additional Energy Resistance",
+              "summary": "Choose another energy type; resistance 10.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 3,
+              "name": "Deity's Favor (optional replacement)",
+              "summary": "PHB II p.43: replaces deity weapon focus and specialization; one affected ally gains 3 \u00d7 spell level temporary HP for spell level minutes. Actual Favored Soul 12 permits multiple affected allies. Uses overlap; if the spell grants temporary HP use the larger value and its duration. This extraordinary benefit does not change spell type.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "partial",
+                "execution": "partial",
+                "note": "One-use read-only benefit and recipient threshold resolved. Persistent overlapping temporary-HP pools are not committed by this probe."
+              }
+            }
+          ],
+          "save_dc_ability": "WIS",
+          "list_access": [
+            {
+              "at_level": 1,
+              "list": "Cleric",
+              "divine_unless_on": [],
+              "target_class": "Favored Soul",
+              "power": "divine"
+            }
+          ]
+        },
+        "advancement": [],
+        "casting": {
+          "ability": "CHA",
+          "mode": "spontaneous",
+          "power": "divine",
+          "slots": [
+            {
+              "level": 1,
+              "slots": [
+                5,
+                3
+              ]
+            },
+            {
+              "level": 2,
+              "slots": [
+                6,
+                4
+              ]
+            },
+            {
+              "level": 3,
+              "slots": [
+                6,
+                5
+              ]
+            },
+            {
+              "level": 4,
+              "slots": [
+                6,
+                6,
+                3
+              ]
+            },
+            {
+              "level": 5,
+              "slots": [
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 6,
+              "slots": [
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 7,
+              "slots": [
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 8,
+              "slots": [
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 9,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 10,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 11,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 12,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 13,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 14,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 15,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 16,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 17,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 18,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                5,
+                4,
+                3
+              ]
+            },
+            {
+              "level": 19,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 20,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6
+              ]
+            }
+          ],
+          "known": [
+            {
+              "level": 1,
+              "slots": [
+                4,
+                3
+              ]
+            },
+            {
+              "level": 2,
+              "slots": [
+                5,
+                3
+              ]
+            },
+            {
+              "level": 3,
+              "slots": [
+                5,
+                4
+              ]
+            },
+            {
+              "level": 4,
+              "slots": [
+                6,
+                4,
+                3
+              ]
+            },
+            {
+              "level": 5,
+              "slots": [
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 6,
+              "slots": [
+                7,
+                5,
+                4,
+                3
+              ]
+            },
+            {
+              "level": 7,
+              "slots": [
+                7,
+                6,
+                4,
+                3
+              ]
+            },
+            {
+              "level": 8,
+              "slots": [
+                8,
+                6,
+                5,
+                4,
+                3
+              ]
+            },
+            {
+              "level": 9,
+              "slots": [
+                8,
+                6,
+                5,
+                4,
+                3
+              ]
+            },
+            {
+              "level": 10,
+              "slots": [
+                9,
+                6,
+                6,
+                5,
+                4,
+                3
+              ]
+            },
+            {
+              "level": 11,
+              "slots": [
+                9,
+                6,
+                6,
+                5,
+                4,
+                3
+              ]
+            },
+            {
+              "level": 12,
+              "slots": [
+                9,
+                6,
+                6,
+                6,
+                5,
+                4,
+                3
+              ]
+            },
+            {
+              "level": 13,
+              "slots": [
+                9,
+                6,
+                6,
+                6,
+                5,
+                4,
+                3
+              ]
+            },
+            {
+              "level": 14,
+              "slots": [
+                9,
+                6,
+                6,
+                6,
+                6,
+                5,
+                4,
+                3
+              ]
+            },
+            {
+              "level": 15,
+              "slots": [
+                9,
+                6,
+                6,
+                6,
+                6,
+                5,
+                4,
+                3
+              ]
+            },
+            {
+              "level": 16,
+              "slots": [
+                9,
+                6,
+                6,
+                6,
+                6,
+                6,
+                5,
+                4,
+                3
+              ]
+            },
+            {
+              "level": 17,
+              "slots": [
+                9,
+                6,
+                6,
+                6,
+                6,
+                6,
+                5,
+                4,
+                3
+              ]
+            },
+            {
+              "level": 18,
+              "slots": [
+                9,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                5,
+                4,
+                3
+              ]
+            },
+            {
+              "level": 19,
+              "slots": [
+                9,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                5,
+                4,
+                3
+              ]
+            },
+            {
+              "level": 20,
+              "slots": [
+                9,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                5,
+                4
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "35e:joker_cd:class:church_inquisitor",
+      "source": "joker_cd",
+      "key": "Church Inquisitor",
+      "name": "Church Inquisitor",
+      "requirements": [
+        {
+          "skill_ranks": {
+            "specs": [
+              {
+                "name": "Knowledge (Arcana)",
+                "min_ranks": 4
+              },
+              {
+                "name": "Knowledge (Religion)",
+                "min_ranks": 4
+              },
+              {
+                "name": "Spellcraft",
+                "min_ranks": 4
+              }
+            ],
+            "min_count": 3
+          }
+        },
+        {
+          "alignment": {
+            "allowed": [
+              "LG",
+              "LN"
+            ]
+          }
+        },
+        {
+          "base_save": {
+            "save": "Will",
+            "min": 3
+          }
+        }
+      ],
+      "pending": [],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 8,
+        "max_level": 10,
+        "prestige": true,
+        "attack": "three_quarter",
+        "fortitude": "poor",
+        "reflex": "poor",
+        "will": "good",
+        "skill_points": 4,
+        "class_skills": [
+          "Bluff",
+          "Concentration",
+          "Decipher Script",
+          "Diplomacy",
+          "Gather Information",
+          "Intimidate",
+          "Knowledge (Arcana)",
+          "Knowledge (Local)",
+          "Knowledge (The Planes)",
+          "Knowledge (Religion)",
+          "Search",
+          "Sense Motive",
+          "Spellcraft",
+          "Spot"
+        ],
+        "magic": {
+          "progression": [
+            {
+              "level": 1,
+              "name": "Weapon and Armor Proficiency",
+              "summary": "Church inquisitors gain no weapon or armor proficiencies.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 1,
+              "name": "Detect Evil",
+              "summary": "A church inquisitor can use detect evil at will as a spell-like ability.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 1,
+              "name": "Inquisition Domain",
+              "summary": "Upon adopting the church inquisitor class, a character gains access to the Inquisition domain, described in Chapter 7: Domains and Spells. The character gains the granted power associated with the domain (a +4 bonus on dispel checks) and can choose the spells in that domain as his daily domain spells.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 1,
+              "name": "Spells per Day/Spells Known",
+              "summary": "A church inquisitor continues advancing in divine spellcasting ability as well as learning the skills of inquisition. Thus, when a new church inquisitor level is gained, the character gains new divine spells per day (and spells known, if applicable) as if he had also gained a level in whatever divine spellcasting class he belonged to before he added the prestige class. He does not, however, gain any other benefit a character of that class would have gained (improved chance of controlling or rebuking undead, more frequent remove disease, and so on). This means that he adds the level of church inquisitor to the level of another divine spellcasting class the character has, then determines spells per day accordingly. If a character had more than one divine spellcasting class before he became a church inquisitor, the player must decide which class to assign each level of church inquisitor for the purpose of determining divine spells per day and spells known.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 2,
+              "name": "Immune to Charms",
+              "summary": "A church inquisitor of 2nd level or higher is immune to all enchantment (charm) spells and effects.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 3,
+              "name": "Pierce Illusion",
+              "summary": "At 3rd level, the church inquisitor gains the supernatural ability to penetrate illusions and disguises at will. Whenever an inquisitor sees an illusion or disguise spell of any sort, he immediately makes a Will save to see through it. The inquisitor need not interact with or touch the illusion, visual contact is enough to give the Will save.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 4,
+              "name": "Pierce Disguise",
+              "summary": "The inquisitor has a +4 competence bonus on Spot checks against the Disguise skill.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 5,
+              "name": "Immune to Compulsions",
+              "summary": "A church inquisitor of 5th level or higher is immune to all compulsion spells and effects.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 6,
+              "name": "Force Shapechange",
+              "summary": "A church inquisitor of 6th level or higher can force a creature into its natural form. The church inquisitor must make a successful melee touch attack against the creature. If the attack is successful, the church inquisitor makes a caster level check as if casting dispel magic against the shapechanging effect. The church inquisitor's +4 bonus on dispel checks (the Inquisition domain granted power) applies to this check. This ability undoes the effect of alter self, polymorph, shapechange, and alternate form abilities, whether exceptional, spell-like, or supernatural in nature. The affected creature cannot change its shape again for 1d6 rounds. The church inquisitor can use this ability at will.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 8,
+              "name": "Immunity to Possession",
+              "summary": "A church inquisitor of 8th level or higher has immunity to magic jar, soul bind, trap the soul, a ghost's malevolence ability, and all other spells or effects that displace or replace a character's life force. The character can still travel to the planes via astral projection, if so desired.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 9,
+              "name": "Discern Lies",
+              "summary": "A church inquisitor of 9th level or higher can use discern lies as a spelllike ability three times per day.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 10,
+              "name": "Learn the Truth",
+              "summary": "By touching a creature that has lied to him, a church inquisitor of 10th level or higher can force the creature to tell the truth. The creature can make a Will save (DC 10 + the church inquisitor's level + the church inquisitor's Cha modifier) to resist this mindaffecting compulsion effect. If the saving throw fails, the creature must speak the true version of the lie it uttered. The church inquisitor can use this ability 3 times/day.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            }
+          ],
+          "entry_spells_any": [
+            "Zone of Truth"
+          ],
+          "entry_states": [
+            "Lawful good church membership; corruption uncovered; LG or LN; base Will +3; divine Zone of Truth"
+          ]
+        },
+        "advancement": [
+          {
+            "level": 1,
+            "scope": "divine"
+          },
+          {
+            "level": 2,
+            "scope": "divine"
+          },
+          {
+            "level": 3,
+            "scope": "divine"
+          },
+          {
+            "level": 4,
+            "scope": "divine"
+          },
+          {
+            "level": 5,
+            "scope": "divine"
+          },
+          {
+            "level": 6,
+            "scope": "divine"
+          },
+          {
+            "level": 7,
+            "scope": "divine"
+          },
+          {
+            "level": 8,
+            "scope": "divine"
+          },
+          {
+            "level": 9,
+            "scope": "divine"
+          },
+          {
+            "level": 10,
+            "scope": "divine"
+          }
+        ]
+      }
+    },
+    {
+      "id": "35e:joker_be:class:exalted_arcanist",
+      "source": "joker_be",
+      "key": "Exalted Arcanist",
+      "name": "Exalted Arcanist",
+      "requirements": [
+        {
+          "skill_ranks": {
+            "specs": [
+              {
+                "name": "Knowledge (Arcana)",
+                "min_ranks": 9
+              },
+              {
+                "name": "Knowledge (Religion)",
+                "min_ranks": 4
+              }
+            ],
+            "min_count": 2
+          }
+        },
+        {
+          "spell_type": {
+            "specs": [
+              {
+                "spell_type": "Arcane",
+                "min_level": 3
+              }
+            ],
+            "count": 1
+          }
+        },
+        {
+          "alignment": {
+            "allowed": [
+              "LG",
+              "NG",
+              "CG"
+            ]
+          }
+        },
+        {
+          "base_save": {
+            "save": "Will",
+            "min": 5
+          }
+        },
+        {
+          "ability_requirement": {
+            "category": "FEAT",
+            "wanted": [
+              {
+                "kind": "name",
+                "value": "Consecrate Spell"
+              },
+              {
+                "kind": "name",
+                "value": "Purify Spell"
+              }
+            ],
+            "excluded": [],
+            "min_count": 2
+          }
+        }
+      ],
+      "pending": [
+        "Spell Knowledge selections, sanctified/exalted spell list and noncasting class actions are descriptive; no automatic acquisition or combat resolution."
+      ],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 4,
+        "max_level": 5,
+        "prestige": true,
+        "attack": "half",
+        "fortitude": "poor",
+        "reflex": "poor",
+        "will": "good",
+        "skill_points": 4,
+        "class_skills": [
+          "Concentration",
+          "TYPE.Craft",
+          "Decipher Script",
+          "Diplomacy",
+          "Knowledge (Arcana)",
+          "Knowledge (Religion)",
+          "TYPE.Perform",
+          "TYPE.Profession",
+          "Sense Motive",
+          "Spellcraft",
+          "Use Magic Device"
+        ],
+        "magic": {
+          "progression": [
+            {
+              "level": 1,
+              "name": "Exalted Spell List",
+              "summary": "An exalted arcanist gains access to spells that do not normally appear on arcane spellcasters' spell lists. The exalted arcanist's spell list additions appear below. At 1st level, an exalted arcanist adds the spells of up to 3rd level to her spell list, and each additional exalted arcanist level grants her access to two more spell levels on the spell list. She does not automatically know these spells, but can choose them as spells known.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 1,
+              "name": "Spell Knowledge",
+              "summary": "At 1st level, an exalted arcanist learns two new arcane spells of any level up to the maximum spell level she can cast. These can be spells from her normal spell list or from the exalted spell list that appears below. She does not gain any extra spell slots at this level.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 1,
+              "name": "Weapon and Armor Proficiency",
+              "summary": "Exalted arcanists gain no proficiency with any weapon or armor.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 2,
+              "name": "Faster Consecrate",
+              "summary": "At 2nd level, an exalted arcanist can spontaneously cast spells with the Consecrate Spell feat without extending the spells' casting time.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 3,
+              "name": "Bonus Exalted Feat",
+              "summary": "At 3rd level, and again at 5th level, an exalted arcanist gains a bonus feat. This feat must be chosen from the exalted feats that appear in Chapter 4.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 4,
+              "name": "Faster Purify",
+              "summary": "At 4th level, an exalted arcanist can spontaneously cast spells with the Purify Spell feat without extending the spells' casting time.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 5,
+              "name": "Sanctified Spells",
+              "summary": "A 5th-level exalted arcanist can use sanctified spells as though they were among her spells known.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 5,
+              "name": "Bonus Exalted Feat",
+              "summary": "Second bonus exalted feat; first is at level 3, not level 2.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            }
+          ],
+          "entry_states": [
+            "Good alignment; base Will +5; Consecrate Spell and Purify Spell; spontaneous arcane casting"
+          ]
+        },
+        "advancement": [
+          {
+            "level": 2,
+            "scope": "arcane"
+          },
+          {
+            "level": 3,
+            "scope": "arcane"
+          },
+          {
+            "level": 4,
+            "scope": "arcane"
+          },
+          {
+            "level": 5,
+            "scope": "arcane"
+          }
+        ],
+        "feat_pools": [
+          {
+            "id": "exalted_arcanist_exalted",
+            "name": "Exalted Arcanist bonus feats",
+            "levels": [
+              3,
+              5
+            ],
+            "allowed_types": [
+              "Exalted"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "35e:joker_pg:class:spellguard_of_silverymoon",
+      "source": "joker_pg",
+      "key": "Spellguard of Silverymoon",
+      "name": "Spellguard of Silverymoon",
+      "requirements": [
+        {
+          "skill_ranks": {
+            "specs": [
+              {
+                "name": "Concentration",
+                "min_ranks": 8
+              },
+              {
+                "name": "Spellcraft",
+                "min_ranks": 5
+              }
+            ],
+            "min_count": 2
+          }
+        },
+        {
+          "spell_type": {
+            "specs": [
+              {
+                "spell_type": "Arcane",
+                "min_level": 4
+              }
+            ],
+            "count": 1
+          }
+        },
+        {
+          "alignment": {
+            "allowed": [
+              "LG",
+              "LN",
+              "NG",
+              "TN",
+              "CG",
+              "CN"
+            ]
+          }
+        },
+        {
+          "ability_requirement": {
+            "category": "FEAT",
+            "wanted": [
+              {
+                "kind": "name",
+                "value": "Combat Casting"
+              }
+            ],
+            "excluded": [],
+            "min_count": 1
+          }
+        }
+      ],
+      "pending": [],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 4,
+        "max_level": 5,
+        "prestige": true,
+        "attack": "half",
+        "fortitude": "poor",
+        "reflex": "poor",
+        "will": "good",
+        "skill_points": 2,
+        "class_skills": [
+          "Concentration",
+          "TYPE.Craft",
+          "Decipher Script",
+          "TYPE.Knowledge",
+          "TYPE.Profession",
+          "Spellcraft",
+          "Spot"
+        ],
+        "magic": {
+          "progression": [
+            {
+              "level": 1,
+              "name": "Weapon and Armor Proficiency",
+              "summary": "Spellguards of Silverymoon gain no proficiency with any weapon, armor, or shield. Armor check penalties for armor heavier than leather apply to the skills Balance, Climb, Escape Artist, Hide, Jump, Move Silently, Sleight of Hand, and Tumble, and double the normal armor check penalty applies to Swim checks.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 1,
+              "name": "Spells per Day/Spells Known",
+              "summary": "When a new spellguard of Silverymoon level is gained, the character gains new spells per day (and spells known, if applicable) as if he had also gained a level in whatever arcane spellcasting class granted him access to 4th-level spells before he added the prestige class. He does not, however, gain any other benefit a character of that class would have gained (bonus metamagic or item creation feats, bard or assassin abilities, and so on), except for an increased effective level of spellcasting. This essentially means that he adds the level of spellguard of Silverymoon to the level of whatever other arcane spellcasting class granted him access to 4th-level spells, then determines spells per day, spells known, and caster level accordingly. If a character had more than one arcane spellcasting class that granted access to 4th-level spells before he became a spellguard of Silverymoon, he must decide to which class he adds each level of spellguard for the purpose of determining spells per day and spells known.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 1,
+              "name": "Obligation",
+              "summary": "The Spellguard is a military unit, not just a loose fraternity of mages. As such, each spellguard of Silverymoon must spend at least two days out of every tenday on active duty, usually either guarding the walls of Silverymoon itself or patrolling the surrounding area with a detachment of the Knights in Silver.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 1,
+              "name": "Token",
+              "summary": "As a member of the Spellguard, a 1st-level spellguard of Silverymoon receives an adrath token-a small metal disk that allows him to cast spells that are normally forbidden by the mythal. As long as he has this token in his possession, he may cast conjuration (summoning) spells, evocation [fire] spells, and spells with the teleportation descriptor within the wards of Silverymoon. He may also freely use magic items that produce those effects. This token does not magically appear in the spellguard's possession; he must return to Silverymoon to receive it from his superior.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 1,
+              "name": "Ward Attunement",
+              "summary": "Each 1st-level spellguard of Silverymoon is inducted formally into the order through an elaborate ceremony held in the High Palace of Silverymoon. This ceremony attunes the spellguard to the mythal that surrounds Silverymoon without the 2,500 XP cost normally required. See the sidebar for information on ward attunement.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 2,
+              "name": "Metamagic Feat",
+              "summary": "At 2nd level and again at 4th level, the spellguard may select any metamagic feat he does not already have as a bonus feat. He must meet any prerequisites for a feat in order to select it.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 3,
+              "name": "Selective Spell",
+              "summary": "Spellguards are specifically trained to minimize collateral damage when casting their combat spells. Once per day per point of Intelligence bonus (minimum once per day), a spellguard o f at least 3 rd level may d esignate a s ingle type (and subtype, if desired) of creature when casting a spell. When a single creature type has multiple subtypes, the spellguard may choose to count only one of the subtypes or all of them, at his discretion. At the spellguard's option, that type of creature is either the only type affected by the spell or the only type unaffected by it. Inorganic material, objects, and anything else that does not have a creature type i s affected normally. Casting a selective spell requires a fullround action. For example, suppose a spellguard is patrolling the forest around Silverymoon with a p arty o f Knights in S ilver made up o f two humans, an elf, and a dwarf. Suddenly, the group is rushed by goblins. The spellguard uses his selective spell ability to cast a fireball, designating humanoid (goblinoid) as the only creature type affected. The fireball detonates in the midst of the melee, and although the spellguard's companions are within the area of the spell, they are spared any ill effects. At 5th level, the spellguard may designate multiple creature types and subtypes for a s elective spell. Each type o r subtype so designated, however, uses up one additional use per day of his selective spell ability.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 4,
+              "name": "Spellguard",
+              "summary": "The Spellguard was originally formed to protect High Lady Alustriel from personal attacks. Though that purpose has largely become secondary to defending the city, spellguards still receive some training in serving as bodyguards. At 4th level, the spellguard of Silverymoon may cast any personal-range defensive arcane spell on another character with a touch. For this purpose, a defensive spell is one that improves AC, increases a saving throw modifier, or grants additional hit points (either by healing wounds or by bestowing temporary hit points).",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "implemented",
+                "execution": "partial",
+                "note": "Actual class level, arcane power and verified defensive spell profile checked. Conversion and tapestry range are resolved; spell effects use their own resolvers."
+              }
+            },
+            {
+              "level": 5,
+              "name": "Spell Power",
+              "summary": "At 5th level, the spellguard's effective caster level increases by 1 for the purpose of determining level-dependent variables and making caster level checks.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 4,
+              "name": "Metamagic Feat",
+              "summary": "Second bonus metamagic feat; prerequisites still apply.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            },
+            {
+              "level": 5,
+              "name": "Improved Selective Spell",
+              "summary": "Multiple creature types or subtypes; each additional type or subtype spends another daily use.",
+              "coverage": {
+                "data": "recorded",
+                "qualification": "not_assessed",
+                "execution": "not_implemented",
+                "note": "Level and RAW description recorded; no claim of a complete combat resolver."
+              }
+            }
+          ],
+          "entry_states": [
+            "Nonevil; Combat Casting and a metamagic feat; Silverymoon or Silver Marches; accepted into Spellguard"
+          ]
+        },
+        "advancement": [
+          {
+            "level": 1,
+            "scope": "arcane"
+          },
+          {
+            "level": 2,
+            "scope": "arcane"
+          },
+          {
+            "level": 3,
+            "scope": "arcane"
+          },
+          {
+            "level": 4,
+            "scope": "arcane"
+          },
+          {
+            "level": 5,
+            "scope": "arcane"
+          }
+        ],
+        "feat_pools": [
+          {
+            "id": "spellguard_metamagic",
+            "name": "Spellguard of Silverymoon bonus feats",
+            "levels": [
+              2,
+              4
+            ],
+            "allowed_types": [
+              "Metamagic"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "spell_profiles": {
+    "Shield": {
+      "range": "personal",
+      "spellguard_defensive": true,
+      "duration": "1 minute/level",
+      "instantaneous": false,
+      "discharged": false,
+      "targets_creatures": true,
+      "harmless_or_willing": true,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": false,
+      "targeting": {
+        "living_only": false,
+        "allied_only": false,
+        "creature_types": [],
+        "max_pair_distance_feet": null,
+        "choices": [],
+        "requires_willing": true
+      },
+      "casting_time": "standard"
+    },
+    "False Life": {
+      "range": "personal",
+      "spellguard_defensive": true,
+      "duration": "1 hour/level or until discharged",
+      "instantaneous": false,
+      "discharged": true,
+      "targets_creatures": true,
+      "harmless_or_willing": true,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": false,
+      "targeting": {
+        "living_only": false,
+        "allied_only": false,
+        "creature_types": [],
+        "max_pair_distance_feet": null,
+        "choices": [],
+        "requires_willing": true
+      },
+      "casting_time": "standard"
+    }
+  }
+}

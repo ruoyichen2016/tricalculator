@@ -1,7 +1,8 @@
 //! Psionic closed loop: power points, manifester level, power DC and powers.
 
-use pcgen_engine::{CharacterDraft, DraftClassLevel, Engine};
+use pcgen_engine::{CharacterDraft, Engine};
 use pcgen_import::compile_pcc;
+use pcgen_import::PcgClassLevel as DraftClassLevel;
 use pcgen_ir::{lower_records, RawRecord, RawTag, SourceRef};
 use std::path::{Path, PathBuf};
 
@@ -82,13 +83,13 @@ fn psion_power_points_manifester_level_and_dc() {
         stats: [("INT".to_string(), 18), ("WIS".to_string(), 16)]
             .into_iter()
             .collect(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Psion".to_string(),
             level: 5,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         spells: vec![pcgen_engine::DraftSpell {
             name: "Psionic Charm".to_string(),
             level: 2,
@@ -123,13 +124,13 @@ fn psychic_warrior_power_points_use_wisdom() {
         stats: [("INT".to_string(), 10), ("WIS".to_string(), 16)]
             .into_iter()
             .collect(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Psychic Warrior".to_string(),
             level: 6,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         ..CharacterDraft::default()
     };
     let snapshot = Engine::new(pack).evaluate(&draft);
@@ -149,13 +150,13 @@ fn wilder_is_the_third_psionic_class_golden() {
     let draft = CharacterDraft {
         race_id: "Human".to_string(),
         stats: [("CHA".to_string(), 18)].into_iter().collect(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Wilder".to_string(),
             level: 5,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         ..CharacterDraft::default()
     };
     let snapshot = Engine::new(pack).evaluate(&draft);
@@ -180,7 +181,7 @@ fn psionic_prestige_class_advances_base_manifester_level() {
     let draft = CharacterDraft {
         race_id: "Human".to_string(),
         stats: [("INT".to_string(), 18)].into_iter().collect(),
-        class_levels: vec![
+        advancement: pcgen_import::advancement_from_class_levels(&vec![
             DraftClassLevel {
                 class_id: "Psion".to_string(),
                 level: 5,
@@ -195,7 +196,7 @@ fn psionic_prestige_class_advances_base_manifester_level() {
                 hit_points_by_level: Vec::new(),
                 experience_gained: 0,
             },
-        ],
+        ]),
         ..CharacterDraft::default()
     };
     let snapshot = Engine::new(pack).evaluate(&draft);

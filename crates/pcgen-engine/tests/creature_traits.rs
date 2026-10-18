@@ -1,4 +1,5 @@
-use pcgen_engine::{CharacterDraft, DraftClassLevel, Engine};
+use pcgen_engine::{CharacterDraft, Engine};
+use pcgen_import::PcgClassLevel as DraftClassLevel;
 use pcgen_ir::{lower_records, RawRecord, RawTag, SourceRef};
 use std::collections::BTreeMap;
 
@@ -203,7 +204,15 @@ fn active_moveclone_expands_movement_modes() {
 #[test]
 fn companion_mod_sr_and_hd_are_derived() {
     let records = vec![
-        record("RACE", "Human", &[("SIZE", "M")]),
+        record(
+            "RACE",
+            "Human",
+            &[
+                ("SIZE", "M"),
+                ("DEFINE", "FamiliarLVL|11"),
+                ("DEFINE", "SpecialMountLVL|15"),
+            ],
+        ),
         record(
             "COMPANIONMOD",
             "FOLLOWER:FamiliarLVL=11",
@@ -280,6 +289,7 @@ fn companion_rows_with_same_id_are_preserved_not_overwritten() {
     // first row carries unconditional familiar modifiers; later rows select
     // specific companion races via `PRERACE` + `KIT`.
     let records = vec![
+        record("RACE", "Human", &[("DEFINE", "FamiliarLVL|1")]),
         record(
             "COMPANIONMOD",
             "FOLLOWER:FamiliarLVL=1",
@@ -325,7 +335,11 @@ fn companion_rows_with_same_id_are_preserved_not_overwritten() {
 #[test]
 fn companion_condition_matching_applies_hd_sr_abilities_traits_and_bonuses() {
     let records = vec![
-        record("RACE", "Human", &[("SIZE", "M")]),
+        record(
+            "RACE",
+            "Human",
+            &[("SIZE", "M"), ("DEFINE", "FamiliarLVL|1")],
+        ),
         record(
             "COMPANIONMOD",
             "FOLLOWER:FamiliarLVL=1",
@@ -456,13 +470,23 @@ fn damage_reduction_does_not_stack_within_a_type() {
             templates: vec!["T".to_string()],
             ..CharacterDraft::default()
         };
-        draft.class_levels.push(DraftClassLevel {
-            class_id: "Fighter".to_string(),
-            level: 1,
-            hit_points_gained: 0,
-            hit_points_by_level: vec![],
-            experience_gained: 0,
-        });
+        draft.advancement.extend(
+            pcgen_import::advancement_from_class_levels(&[DraftClassLevel {
+                class_id: "Fighter".to_string(),
+                level: 1,
+                hit_points_gained: 0,
+                hit_points_by_level: vec![],
+                experience_gained: 0,
+            }])
+            .into_iter()
+            .map({
+                let offset = draft.total_level();
+                move |mut frame| {
+                    frame.character_level += offset;
+                    frame
+                }
+            }),
+        );
         engine.evaluate(&draft).damage_reduction
     };
 

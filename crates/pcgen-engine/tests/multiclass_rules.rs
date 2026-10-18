@@ -60,7 +60,7 @@ fn multiclass_draft(class_levels: &[(&str, u32)]) -> CharacterDraft {
                     0,
                     0,
                 );
-                lane.hit_points_gained = 0;
+                lane.hit_points_gained = Some(0);
                 lanes.push(lane);
                 break;
             }
@@ -131,4 +131,50 @@ fn feats_follow_character_level_not_class_level() {
         one_one.feat_slots, single.feat_slots,
         "character level 2 yields the same general feat count either way"
     );
+}
+
+#[test]
+fn raw_gestalt_skill_awards_and_base_save_requirements() {
+    let engine = rsrd().expect("local raw RSRD must compile");
+    // Human INT 14: Rogue gives (8 + 2 + 1) * 4, then 11.
+    // Entering Wizard at character level two must not multiply its award.
+    let draft = CharacterDraft {
+        race_id: "Human".into(),
+        stats: [("INT".into(), 14)].into(),
+        advancement: vec![
+            AdvancementFrame {
+                character_level: 1,
+                lanes: vec![
+                    AdvancementLane::new("a", "Fighter", 1, 10, 0),
+                    AdvancementLane::new("b", "Rogue", 1, 6, 0),
+                ],
+            },
+            AdvancementFrame {
+                character_level: 2,
+                lanes: vec![
+                    AdvancementLane::new("a", "Wizard", 1, 4, 0),
+                    AdvancementLane::new("b", "Rogue", 2, 4, 0),
+                ],
+            },
+        ],
+        ..Default::default()
+    };
+    assert_eq!(engine.evaluate(&draft).skill_points, 55);
+    // Two good Will classes must not double the base prerequisite save.
+    let mut saves_draft = draft.clone();
+    saves_draft.advancement.truncate(1);
+    saves_draft.advancement[0].lanes = vec![
+        AdvancementLane::new("a", "Cleric", 1, 8, 0),
+        AdvancementLane::new("b", "Wizard", 1, 4, 0),
+    ];
+    let base =
+        pcgen_engine::bab::derive_base_saves(&engine.pack, &saves_draft, &BTreeMap::new()).unwrap();
+    assert_eq!(base[&pcgen_core::SaveKind::Will], 2);
+    assert_eq!(engine.evaluate(&saves_draft).saves["Will"], 2);
+    // Low Intelligence applies the minimum before Human's racial award.
+    saves_draft.stats.insert("INT".into(), 1);
+    assert_eq!(engine.evaluate(&saves_draft).skill_points, 8);
+    let mut ordinary = saves_draft.clone();
+    ordinary.advancement[0].lanes.truncate(1);
+    assert_eq!(engine.evaluate(&ordinary).skill_points, 8);
 }

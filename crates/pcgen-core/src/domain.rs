@@ -512,6 +512,8 @@ impl SkillDefinition {
 /// Spell/power definition.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SpellDefinition {
+    #[serde(default)]
+    pub profile: crate::magic::SpellProfile,
     pub id: String,
     pub name: String,
     #[serde(default)]
@@ -544,6 +546,7 @@ pub struct SpellDefinition {
 impl SpellDefinition {
     pub fn new(id: impl Into<String>, name: impl Into<String>) -> Self {
         Self {
+            profile: Default::default(),
             id: id.into(),
             name: name.into(),
             level: 0,
@@ -960,7 +963,7 @@ pub struct StatDefinition {
 pub struct CompanionBonus {
     /// Canonical target, e.g. `COMBAT.AC` or `STAT.STR`.
     pub target: String,
-    /// Numeric formula, evaluated against the companion's master level.
+    /// Numeric formula, evaluated in the master character's variable scope.
     pub formula: String,
     #[serde(default)]
     pub bonus_type: Option<String>,
@@ -1042,6 +1045,8 @@ pub struct AbilityDefinition {
 /// One `ABILITYCATEGORY:` definition.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AbilityCategoryDefinition {
+    #[serde(default)]
+    pub choice_restrictions: BTreeMap<String, Vec<String>>,
     pub id: String,
     pub name: String,
     #[serde(default)]

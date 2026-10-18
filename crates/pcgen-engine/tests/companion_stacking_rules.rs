@@ -15,7 +15,7 @@
 //! > special abilities.
 
 use pcgen_core::{AdvancementFrame, AdvancementLane, LaneId};
-use pcgen_engine::{CharacterDraft, DraftClassLevel, DraftCompanion, Engine};
+use pcgen_engine::{CharacterDraft, DraftCompanion, Engine};
 use pcgen_ir::CompiledRulePack;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -59,16 +59,6 @@ fn draft(class_levels: &[(&str, u32)]) -> CharacterDraft {
     }
     CharacterDraft {
         advancement: frames,
-        class_levels: class_levels
-            .iter()
-            .map(|(class_id, levels)| DraftClassLevel {
-                class_id: (*class_id).to_string(),
-                level: *levels,
-                hit_points_gained: 0,
-                hit_points_by_level: Vec::new(),
-                experience_gained: 0,
-            })
-            .collect(),
         stats: BTreeMap::new(),
         ..Default::default()
     }

@@ -1,0 +1,1981 @@
+{
+  "format": "gladius.module/1",
+  "sources": {
+    "phb2_expanded": {
+      "title": "Player's Handbook II",
+      "reference": "https://dtdnd.neocities.org/books/player/PlayersHandbookII.pdf",
+      "locator": "Dragon Shaman pp.11-18, Duskblade pp.19-24, Knight pp.24-30; original class tables 1-2/1-3/1-4 and Duskblade printed spell list. Enervate resolves to Enervation; named hands use SRD names. The printed tables, not LST KNOWN rows, govern learning choices."
+    },
+    "srd-tactical": {
+      "title": "Revised SRD: Shocking Grasp",
+      "reference": "https://www.d20srd.org/srd/spells/shockingGrasp.htm",
+      "locator": "Touch, standard action, electricity 1d6/CL (max 5d6), no save, SR yes; creature or object."
+    },
+    "srd-vampiric-touch": {
+      "title": "Revised SRD: Vampiric Touch",
+      "reference": "https://www.d20srd.org/srd/spells/vampiricTouch.htm",
+      "locator": "Complete spell entry: targets, defense, damage and ongoing effects."
+    },
+    "srd-chill-touch": {
+      "title": "Revised SRD: Chill Touch",
+      "reference": "https://www.d20srd.org/srd/spells/chillTouch.htm",
+      "locator": "Complete spell entry: targets, defense, damage and ongoing effects."
+    },
+    "srd-touch-of-fatigue": {
+      "title": "Revised SRD: Touch of Fatigue",
+      "reference": "https://www.d20srd.org/srd/spells/touchOfFatigue.htm",
+      "locator": "Complete spell entry: targets, defense, damage and ongoing effects."
+    },
+    "srd-touch-of-idiocy": {
+      "title": "Revised SRD: Touch of Idiocy",
+      "reference": "https://www.d20srd.org/srd/spells/touchOfIdiocy.htm",
+      "locator": "Complete spell entry: targets, defense, damage and ongoing effects."
+    },
+    "srd-ghoul-touch": {
+      "title": "Revised SRD: Ghoul Touch",
+      "reference": "https://www.d20srd.org/srd/spells/ghoulTouch.htm",
+      "locator": "Complete spell entry: targets, defense, damage and ongoing effects."
+    },
+    "phb2-touch-actions": {
+      "title": "Player's Handbook II",
+      "reference": "https://dtdnd.neocities.org/books/player/PlayersHandbookII.pdf",
+      "locator": "p.110 Dimension Hop and Dispelling Touch; pp.20-21 Arcane Channeling; dispel check uses ordinary dispel DC 11+effect CL."
+    },
+    "srd-physical-dr": {
+      "title": "Revised SRD: Damage Reduction",
+      "reference": "https://www.d20srd.org/srd/specialAbilities.htm#damageReduction",
+      "locator": "Weapon damage traits, material and alignment; combined and alternative bypasses; highest applicable DR; spell damage is separate."
+    },
+    "wotc-channeling-faq": {
+      "title": "D&D 3.5 Main FAQ (Wizards of the Coast, 2008-06-30)",
+      "reference": "https://www.d20pfsrd.com/wp-content/uploads/sites/12/2017/01/Main35FAQv06302008.pdf",
+      "locator": "p.17: a missed standard channel retains its charge; full channel expires at round end; one touch for standard multi-touch channeling; each full-attack target affected once. FAQ clarification supplements PHB II pp.20-21."
+    },
+    "srd-held-touch": {
+      "title": "Revised SRD: Touch Spells in Combat; Attacks of Opportunity",
+      "reference": "https://www.d20srd.org/srd/combat/actionsInCombat.htm#touchSpellsinCombat",
+      "locator": "Miss retains charge; contact expends it; casting another spell dissipates it. Ordinary Chill Touch has CL uses, independent of channeling limits."
+    }
+  },
+  "rules": [
+    {
+      "id": "35e:phb2_expanded:class:dragon_shaman",
+      "source": "phb2_expanded",
+      "key": "Dragon Shaman",
+      "name": "Dragon Shaman",
+      "requirements": [
+        {
+          "alignment": {
+            "allowed": [
+              "LG",
+              "LN",
+              "LE",
+              "NG",
+              "NE",
+              "CG",
+              "CN",
+              "CE"
+            ]
+          }
+        }
+      ],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 10,
+        "max_level": 20,
+        "prestige": false,
+        "attack": "three_quarter",
+        "fortitude": "good",
+        "reflex": "poor",
+        "will": "good",
+        "skill_points": 2,
+        "class_skills": [
+          "Climb",
+          "TYPE.Craft",
+          "Intimidate",
+          "Knowledge (Nature)",
+          "Search"
+        ],
+        "magic": {
+          "progression": [
+            {
+              "level": 1,
+              "name": "Draconic aura +1; totem dragon",
+              "summary": ""
+            },
+            {
+              "level": 2,
+              "name": "Skill Focus",
+              "summary": ""
+            },
+            {
+              "level": 3,
+              "name": "Draconic adaptation; fourth aura known",
+              "summary": ""
+            },
+            {
+              "level": 4,
+              "name": "Breath weapon 2d6 (15-ft cone or 30-ft line); draconic resolve",
+              "summary": ""
+            },
+            {
+              "level": 5,
+              "name": "Draconic aura +2; fifth aura known",
+              "summary": ""
+            },
+            {
+              "level": 6,
+              "name": "Breath weapon 3d6; touch of vitality (heal wounds)",
+              "summary": ""
+            },
+            {
+              "level": 7,
+              "name": "Natural armor +1; sixth aura known",
+              "summary": ""
+            },
+            {
+              "level": 8,
+              "name": "Breath weapon 4d6; Skill Focus",
+              "summary": ""
+            },
+            {
+              "level": 9,
+              "name": "Energy immunity; seventh aura known",
+              "summary": ""
+            },
+            {
+              "level": 10,
+              "name": "Breath weapon 5d6; draconic aura +3",
+              "summary": ""
+            },
+            {
+              "level": 11,
+              "name": "Touch of vitality (remove conditions)",
+              "summary": ""
+            },
+            {
+              "level": 12,
+              "name": "Breath weapon 6d6 (30-ft cone or 60-ft line); natural armor +2",
+              "summary": ""
+            },
+            {
+              "level": 13,
+              "name": "Draconic adaptation (share with allies)",
+              "summary": ""
+            },
+            {
+              "level": 14,
+              "name": "Breath weapon 7d6; commune with dragon spirit",
+              "summary": ""
+            },
+            {
+              "level": 15,
+              "name": "Draconic aura +4",
+              "summary": ""
+            },
+            {
+              "level": 16,
+              "name": "Breath weapon 8d6; Skill Focus",
+              "summary": ""
+            },
+            {
+              "level": 17,
+              "name": "Natural armor +3",
+              "summary": ""
+            },
+            {
+              "level": 18,
+              "name": "Breath weapon 9d6",
+              "summary": ""
+            },
+            {
+              "level": 19,
+              "name": "Draconic wings",
+              "summary": ""
+            },
+            {
+              "level": 20,
+              "name": "Breath weapon 10d6 (60-ft cone or 120-ft line); draconic aura +5",
+              "summary": ""
+            }
+          ],
+          "proficiencies": [
+            {
+              "level": 1,
+              "weapon_groups": [
+                "Simple"
+              ],
+              "armor": [
+                "light",
+                "medium"
+              ],
+              "shields": [
+                "light",
+                "heavy"
+              ]
+            }
+          ],
+          "feature_values": [
+            {
+              "at_level": 1,
+              "name": "Draconic Aura",
+              "values": {
+                "bonus": "1+floor(CLASSLEVEL/5)",
+                "auras_known": "min(7,2+ceil(CLASSLEVEL/2))",
+                "radius_feet": "30"
+              }
+            },
+            {
+              "at_level": 4,
+              "name": "Breath Weapon",
+              "values": {
+                "damage_d6": "floor(CLASSLEVEL/2)",
+                "reflex_dc": "10+floor(CLASSLEVEL/2)+CON",
+                "cone_feet": "if(CLASSLEVEL>=20,60,if(CLASSLEVEL>=12,30,15))",
+                "line_feet": "if(CLASSLEVEL>=20,120,if(CLASSLEVEL>=12,60,30))",
+                "cooldown_die": "4"
+              },
+              "resolution": {
+                "kind": "breath_weapon"
+              }
+            },
+            {
+              "at_level": 6,
+              "name": "Touch of Vitality",
+              "values": {},
+              "daily_uses": "2*CLASSLEVEL*max(CHA,0)",
+              "resolution": {
+                "kind": "vitality",
+                "energy": "living_healing",
+                "self_only": false,
+                "touch": true,
+                "radius_feet": null,
+                "dice_sides": null,
+                "save": "none",
+                "points": true,
+                "cap_half": false
+              }
+            },
+            {
+              "at_level": 7,
+              "name": "Natural Armor",
+              "values": {
+                "bonus": "1+floor((CLASSLEVEL-7)/5)"
+              }
+            },
+            {
+              "at_level": 14,
+              "name": "Commune with Dragon Spirit",
+              "values": {
+                "questions": "floor(CLASSLEVEL/3)",
+                "recovery_days": "7"
+              }
+            },
+            {
+              "at_level": 19,
+              "name": "Draconic Wings",
+              "values": {
+                "speed_feet": "60",
+                "medium_load_speed_feet": "40"
+              }
+            }
+          ],
+          "choices": [
+            {
+              "key": "Dragon Shaman.Totem",
+              "label": "Totem dragon",
+              "at_level": 1,
+              "options": [
+                {
+                  "value": "Black",
+                  "alignments": [
+                    "NE",
+                    "CE",
+                    "CN"
+                  ],
+                  "class_skills": [
+                    "Hide",
+                    "Move Silently",
+                    "Swim"
+                  ],
+                  "breath": {
+                    "energy": "acid",
+                    "cone": false
+                  }
+                },
+                {
+                  "value": "Blue",
+                  "alignments": [
+                    "NE",
+                    "LE",
+                    "LN"
+                  ],
+                  "class_skills": [
+                    "Bluff",
+                    "Hide",
+                    "Spellcraft"
+                  ],
+                  "breath": {
+                    "energy": "electricity",
+                    "cone": false
+                  }
+                },
+                {
+                  "value": "Brass",
+                  "alignments": [
+                    "NG",
+                    "CG",
+                    "CN"
+                  ],
+                  "class_skills": [
+                    "Bluff",
+                    "Gather Information",
+                    "Survival"
+                  ],
+                  "breath": {
+                    "energy": "fire",
+                    "cone": false
+                  }
+                },
+                {
+                  "value": "Bronze",
+                  "alignments": [
+                    "NG",
+                    "LG",
+                    "LN"
+                  ],
+                  "class_skills": [
+                    "Disguise",
+                    "Survival",
+                    "Swim"
+                  ],
+                  "breath": {
+                    "energy": "electricity",
+                    "cone": false
+                  }
+                },
+                {
+                  "value": "Copper",
+                  "alignments": [
+                    "NG",
+                    "CG",
+                    "CN"
+                  ],
+                  "class_skills": [
+                    "Bluff",
+                    "Hide",
+                    "Jump"
+                  ],
+                  "breath": {
+                    "energy": "acid",
+                    "cone": false
+                  }
+                },
+                {
+                  "value": "Gold",
+                  "alignments": [
+                    "NG",
+                    "LG",
+                    "LN"
+                  ],
+                  "class_skills": [
+                    "Disguise",
+                    "Heal",
+                    "Swim"
+                  ],
+                  "breath": {
+                    "energy": "fire",
+                    "cone": true
+                  }
+                },
+                {
+                  "value": "Green",
+                  "alignments": [
+                    "NE",
+                    "LE",
+                    "LN"
+                  ],
+                  "class_skills": [
+                    "Bluff",
+                    "Hide",
+                    "Move Silently"
+                  ],
+                  "breath": {
+                    "energy": "acid",
+                    "cone": true
+                  }
+                },
+                {
+                  "value": "Red",
+                  "alignments": [
+                    "NE",
+                    "CE",
+                    "CN"
+                  ],
+                  "class_skills": [
+                    "Appraise",
+                    "Bluff",
+                    "Jump"
+                  ],
+                  "breath": {
+                    "energy": "fire",
+                    "cone": true
+                  }
+                },
+                {
+                  "value": "Silver",
+                  "alignments": [
+                    "NG",
+                    "LG",
+                    "LN"
+                  ],
+                  "class_skills": [
+                    "Bluff",
+                    "Disguise",
+                    "Jump"
+                  ],
+                  "breath": {
+                    "energy": "cold",
+                    "cone": true
+                  }
+                },
+                {
+                  "value": "White",
+                  "alignments": [
+                    "NE",
+                    "CE",
+                    "CN"
+                  ],
+                  "class_skills": [
+                    "Hide",
+                    "Move Silently",
+                    "Swim"
+                  ],
+                  "breath": {
+                    "energy": "cold",
+                    "cone": true
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "35e:phb2_expanded:class:duskblade",
+      "source": "phb2_expanded",
+      "key": "Duskblade",
+      "name": "Duskblade",
+      "requirements": [],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 8,
+        "max_level": 20,
+        "prestige": false,
+        "attack": "full",
+        "fortitude": "good",
+        "reflex": "poor",
+        "will": "good",
+        "skill_points": 2,
+        "class_skills": [
+          "Climb",
+          "Concentration",
+          "TYPE.Craft",
+          "Decipher Script",
+          "Jump",
+          "TYPE.Knowledge",
+          "Ride",
+          "Sense Motive",
+          "Spellcraft",
+          "Swim"
+        ],
+        "magic": {
+          "progression": [
+            {
+              "level": 1,
+              "name": "Arcane attunement; armored mage (light armor and light shields)",
+              "summary": ""
+            },
+            {
+              "level": 2,
+              "name": "Combat Casting",
+              "summary": ""
+            },
+            {
+              "level": 3,
+              "name": "Arcane channeling",
+              "summary": ""
+            },
+            {
+              "level": 4,
+              "name": "Armored mage (medium armor)",
+              "summary": ""
+            },
+            {
+              "level": 5,
+              "name": "Quick cast 1/day",
+              "summary": ""
+            },
+            {
+              "level": 6,
+              "name": "Spell power +2",
+              "summary": ""
+            },
+            {
+              "level": 7,
+              "name": "Armored mage (heavy shields)",
+              "summary": ""
+            },
+            {
+              "level": 8,
+              "name": "No new class ability",
+              "summary": ""
+            },
+            {
+              "level": 9,
+              "name": "No new class ability",
+              "summary": ""
+            },
+            {
+              "level": 10,
+              "name": "Quick cast 2/day",
+              "summary": ""
+            },
+            {
+              "level": 11,
+              "name": "Spell power +3",
+              "summary": ""
+            },
+            {
+              "level": 12,
+              "name": "No new class ability",
+              "summary": ""
+            },
+            {
+              "level": 13,
+              "name": "Arcane channeling (full attack)",
+              "summary": ""
+            },
+            {
+              "level": 14,
+              "name": "No new class ability",
+              "summary": ""
+            },
+            {
+              "level": 15,
+              "name": "Quick cast 3/day",
+              "summary": ""
+            },
+            {
+              "level": 16,
+              "name": "Spell power +4",
+              "summary": ""
+            },
+            {
+              "level": 17,
+              "name": "No new class ability",
+              "summary": ""
+            },
+            {
+              "level": 18,
+              "name": "Spell power +5",
+              "summary": ""
+            },
+            {
+              "level": 19,
+              "name": "No new class ability",
+              "summary": ""
+            },
+            {
+              "level": 20,
+              "name": "Quick cast 4/day",
+              "summary": ""
+            }
+          ],
+          "proficiencies": [
+            {
+              "level": 1,
+              "weapon_groups": [
+                "Simple",
+                "Martial"
+              ],
+              "armor": [
+                "light",
+                "medium"
+              ],
+              "shields": [
+                "light",
+                "heavy"
+              ]
+            }
+          ],
+          "armored_casting": {
+            "light_from_level": 1,
+            "medium_from_level": 4,
+            "light_shield": true,
+            "heavy_shield_from_level": 7
+          },
+          "bonus_feats": [
+            {
+              "level": 2,
+              "feat": "Combat Casting"
+            }
+          ],
+          "feature_values": [
+            {
+              "at_level": 1,
+              "name": "Arcane Attunement",
+              "values": {
+                "caster_level": "CLASSLEVEL"
+              },
+              "daily_uses": "max(0,3+INT)"
+            },
+            {
+              "at_level": 3,
+              "name": "Arcane Channeling",
+              "values": {
+                "full_attack": "if(CLASSLEVEL>=13,1,0)"
+              }
+            },
+            {
+              "at_level": 5,
+              "name": "Quick Cast",
+              "values": {},
+              "daily_uses": "floor(CLASSLEVEL/5)",
+              "resolution": {
+                "kind": "quick_cast"
+              }
+            },
+            {
+              "at_level": 6,
+              "name": "Spell Power",
+              "values": {
+                "penetration_bonus": "if(CLASSLEVEL>=18,5,if(CLASSLEVEL>=16,4,if(CLASSLEVEL>=11,3,2)))"
+              }
+            }
+          ]
+        },
+        "casting": {
+          "ability": "INT",
+          "mode": "spontaneous",
+          "power": "arcane",
+          "slots": [
+            {
+              "level": 1,
+              "slots": [
+                3,
+                2
+              ]
+            },
+            {
+              "level": 2,
+              "slots": [
+                4,
+                3
+              ]
+            },
+            {
+              "level": 3,
+              "slots": [
+                5,
+                4
+              ]
+            },
+            {
+              "level": 4,
+              "slots": [
+                6,
+                5
+              ]
+            },
+            {
+              "level": 5,
+              "slots": [
+                6,
+                5,
+                2
+              ]
+            },
+            {
+              "level": 6,
+              "slots": [
+                6,
+                6,
+                3
+              ]
+            },
+            {
+              "level": 7,
+              "slots": [
+                6,
+                6,
+                5
+              ]
+            },
+            {
+              "level": 8,
+              "slots": [
+                6,
+                7,
+                6
+              ]
+            },
+            {
+              "level": 9,
+              "slots": [
+                6,
+                7,
+                6,
+                2
+              ]
+            },
+            {
+              "level": 10,
+              "slots": [
+                6,
+                8,
+                7,
+                3
+              ]
+            },
+            {
+              "level": 11,
+              "slots": [
+                6,
+                8,
+                7,
+                5
+              ]
+            },
+            {
+              "level": 12,
+              "slots": [
+                6,
+                8,
+                8,
+                6
+              ]
+            },
+            {
+              "level": 13,
+              "slots": [
+                6,
+                9,
+                8,
+                6,
+                2
+              ]
+            },
+            {
+              "level": 14,
+              "slots": [
+                6,
+                9,
+                8,
+                7,
+                3
+              ]
+            },
+            {
+              "level": 15,
+              "slots": [
+                6,
+                9,
+                8,
+                7,
+                5
+              ]
+            },
+            {
+              "level": 16,
+              "slots": [
+                6,
+                9,
+                9,
+                8,
+                6
+              ]
+            },
+            {
+              "level": 17,
+              "slots": [
+                6,
+                10,
+                9,
+                8,
+                6,
+                2
+              ]
+            },
+            {
+              "level": 18,
+              "slots": [
+                6,
+                10,
+                9,
+                8,
+                7,
+                3
+              ]
+            },
+            {
+              "level": 19,
+              "slots": [
+                6,
+                10,
+                10,
+                9,
+                7,
+                5
+              ]
+            },
+            {
+              "level": 20,
+              "slots": [
+                6,
+                10,
+                10,
+                10,
+                8,
+                6
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "35e:phb2_expanded:class:knight",
+      "source": "phb2_expanded",
+      "key": "Knight",
+      "name": "Knight",
+      "requirements": [
+        {
+          "alignment": {
+            "allowed": [
+              "LG",
+              "LN",
+              "LE"
+            ]
+          }
+        }
+      ],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 12,
+        "max_level": 20,
+        "prestige": false,
+        "attack": "full",
+        "fortitude": "poor",
+        "reflex": "poor",
+        "will": "good",
+        "skill_points": 2,
+        "class_skills": [
+          "Climb",
+          "Handle Animal",
+          "Intimidate",
+          "Jump",
+          "Knowledge (Nobility And Royalty)",
+          "Ride",
+          "Swim"
+        ],
+        "magic": {
+          "progression": [
+            {
+              "level": 1,
+              "name": "Fighting challenge +1; knight's challenge; knight's code",
+              "summary": ""
+            },
+            {
+              "level": 2,
+              "name": "Mounted Combat; shield block +1",
+              "summary": ""
+            },
+            {
+              "level": 3,
+              "name": "Bulwark of defense",
+              "summary": ""
+            },
+            {
+              "level": 4,
+              "name": "Armor mastery (medium); test of mettle",
+              "summary": ""
+            },
+            {
+              "level": 5,
+              "name": "Bonus feat; vigilant defender",
+              "summary": ""
+            },
+            {
+              "level": 6,
+              "name": "Shield ally",
+              "summary": ""
+            },
+            {
+              "level": 7,
+              "name": "Fighting challenge +2",
+              "summary": ""
+            },
+            {
+              "level": 8,
+              "name": "Call to battle",
+              "summary": ""
+            },
+            {
+              "level": 9,
+              "name": "Armor mastery (heavy)",
+              "summary": ""
+            },
+            {
+              "level": 10,
+              "name": "Bonus feat",
+              "summary": ""
+            },
+            {
+              "level": 11,
+              "name": "Shield block +2",
+              "summary": ""
+            },
+            {
+              "level": 12,
+              "name": "Daunting challenge",
+              "summary": ""
+            },
+            {
+              "level": 13,
+              "name": "Fighting challenge +3",
+              "summary": ""
+            },
+            {
+              "level": 14,
+              "name": "Improved shield ally",
+              "summary": ""
+            },
+            {
+              "level": 15,
+              "name": "Bonus feat",
+              "summary": ""
+            },
+            {
+              "level": 16,
+              "name": "Bond of loyalty",
+              "summary": ""
+            },
+            {
+              "level": 17,
+              "name": "Impetuous endurance",
+              "summary": ""
+            },
+            {
+              "level": 18,
+              "name": "No new class ability",
+              "summary": ""
+            },
+            {
+              "level": 19,
+              "name": "Fighting challenge +4",
+              "summary": ""
+            },
+            {
+              "level": 20,
+              "name": "Loyal beyond death; shield block +3",
+              "summary": ""
+            }
+          ],
+          "proficiencies": [
+            {
+              "level": 1,
+              "weapon_groups": [
+                "Simple",
+                "Martial"
+              ],
+              "armor": [
+                "light",
+                "medium",
+                "heavy"
+              ],
+              "shields": [
+                "light",
+                "heavy"
+              ]
+            }
+          ],
+          "bonus_feats": [
+            {
+              "level": 2,
+              "feat": "Mounted Combat"
+            }
+          ],
+          "feature_values": [
+            {
+              "at_level": 1,
+              "name": "Knight's Challenge",
+              "values": {
+                "will_dc": "10+floor(CLASSLEVEL/2)+CHA",
+                "duration_rounds": "5+max(CHA,0)",
+                "fighting_bonus": "1+floor((CLASSLEVEL-1)/6)"
+              },
+              "daily_uses": "max(1,floor(CLASSLEVEL/2)+max(CHA,0))"
+            },
+            {
+              "at_level": 2,
+              "name": "Shield Block",
+              "values": {
+                "shield_bonus": "if(CLASSLEVEL>=20,3,if(CLASSLEVEL>=11,2,1))"
+              }
+            },
+            {
+              "at_level": 5,
+              "name": "Vigilant Defender",
+              "values": {
+                "tumble_dc_increase": "CLASSLEVEL"
+              }
+            },
+            {
+              "at_level": 1,
+              "name": "Fighting Challenge",
+              "values": {
+                "will_dc": "10+floor(CLASSLEVEL/2)+CHA",
+                "duration_rounds": "5+max(CHA,0)",
+                "fighting_bonus": "1+floor((CLASSLEVEL-1)/6)"
+              },
+              "resolution": {
+                "kind": "knight_challenge",
+                "mode": "fighting"
+              }
+            },
+            {
+              "at_level": 4,
+              "name": "Test of Mettle",
+              "values": {
+                "will_dc": "10+floor(CLASSLEVEL/2)+CHA",
+                "duration_rounds": "5+max(CHA,0)",
+                "fighting_bonus": "1+floor((CLASSLEVEL-1)/6)"
+              },
+              "resolution": {
+                "kind": "knight_challenge",
+                "mode": "mettle"
+              }
+            },
+            {
+              "at_level": 12,
+              "name": "Daunting Challenge",
+              "values": {
+                "will_dc": "10+floor(CLASSLEVEL/2)+CHA",
+                "duration_rounds": "5+max(CHA,0)",
+                "fighting_bonus": "1+floor((CLASSLEVEL-1)/6)"
+              },
+              "resolution": {
+                "kind": "knight_challenge",
+                "mode": "daunting"
+              }
+            }
+          ]
+        },
+        "feat_pools": [
+          {
+            "id": "knight_bonus_feat",
+            "name": "Knight bonus feat",
+            "levels": [
+              5,
+              10,
+              15
+            ],
+            "allowed_types": [],
+            "allowed_feats": [
+              "Animal Affinity",
+              "Diehard",
+              "Endurance",
+              "Great Fortitude",
+              "Iron Will",
+              "Quick Draw",
+              "Ride-By Attack",
+              "Spirited Charge",
+              "Trample",
+              "Weapon Focus"
+            ],
+            "choice_restrictions": {
+              "Weapon Focus": [
+                "Lance"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "spells": [
+    {
+      "id": "Tripping Hand",
+      "name": "Tripping Hand",
+      "school": "Evocation",
+      "subschool": null,
+      "descriptors": [
+        "Force"
+      ],
+      "class_levels": {
+        "Duskblade": 1,
+        "Sorcerer": 1,
+        "Wizard": 1
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Blade of Blood",
+      "name": "Blade of Blood",
+      "school": "Necromancy",
+      "subschool": null,
+      "descriptors": [],
+      "class_levels": {
+        "Assassin": 1,
+        "Blackguard": 1,
+        "Cleric": 1,
+        "Duskblade": 1,
+        "Sorcerer": 1,
+        "Wizard": 1
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "swift"
+      }
+    },
+    {
+      "id": "Kelgore's Fire Bolt",
+      "name": "Kelgore's Fire Bolt",
+      "school": "Conjuration|Evocation",
+      "subschool": null,
+      "descriptors": [
+        "Fire"
+      ],
+      "class_levels": {
+        "Duskblade": 1,
+        "Sorcerer": 1,
+        "Wizard": 1
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Deflect (Lesser)",
+      "name": "Deflect (Lesser)",
+      "school": "Abjuration",
+      "subschool": null,
+      "descriptors": [
+        "Force"
+      ],
+      "class_levels": {
+        "Duskblade": 1,
+        "Sorcerer": 1,
+        "Wizard": 1
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": false,
+        "casting_time": "immediate"
+      }
+    },
+    {
+      "id": "Stand",
+      "name": "Stand",
+      "school": "Conjuration",
+      "subschool": "Teleportation",
+      "descriptors": [],
+      "class_levels": {
+        "Duskblade": 1,
+        "Sorcerer": 1,
+        "Wizard": 1
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "immediate"
+      }
+    },
+    {
+      "id": "Expeditious Retreat (Swift)",
+      "name": "Expeditious Retreat (Swift)",
+      "school": "Transmutation",
+      "subschool": null,
+      "descriptors": [],
+      "class_levels": {
+        "Bard": 1,
+        "Sorcerer": 1,
+        "Wizard": 1
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": false,
+        "casting_time": "swift"
+      }
+    },
+    {
+      "id": "Animalistic Power",
+      "name": "Animalistic Power",
+      "school": "Transmutation",
+      "subschool": null,
+      "descriptors": [],
+      "class_levels": {
+        "Cleric": 2,
+        "Druid": 2,
+        "Duskblade": 2,
+        "Ranger": 2,
+        "Sorcerer": 2,
+        "Wizard": 2
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Striking Fist",
+      "name": "Striking Fist",
+      "school": "Evocation",
+      "subschool": null,
+      "descriptors": [
+        "Force"
+      ],
+      "class_levels": {
+        "Duskblade": 2,
+        "Sorcerer": 2,
+        "Wizard": 2
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Deflect",
+      "name": "Deflect",
+      "school": "Abjuration",
+      "subschool": null,
+      "descriptors": [
+        "Force"
+      ],
+      "class_levels": {
+        "Duskblade": 2,
+        "Sorcerer": 2,
+        "Wizard": 2
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": false,
+        "casting_time": "immediate"
+      }
+    },
+    {
+      "id": "Dimension Hop",
+      "name": "Dimension Hop",
+      "school": "Conjuration",
+      "subschool": "Teleportation",
+      "descriptors": [],
+      "class_levels": {
+        "Duskblade": 2,
+        "Sorcerer": 2,
+        "Wizard": 2
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": false,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Seeking Ray",
+      "name": "Seeking Ray",
+      "school": "Evocation",
+      "subschool": null,
+      "descriptors": [],
+      "class_levels": {
+        "Duskblade": 2,
+        "Sorcerer": 2,
+        "Wizard": 2
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Stretch Weapon",
+      "name": "Stretch Weapon",
+      "school": "Transmutation",
+      "subschool": null,
+      "descriptors": [],
+      "class_levels": {
+        "Bard": 2,
+        "Cleric": 2,
+        "Duskblade": 2,
+        "Sorcerer": 2,
+        "Wizard": 2
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": false,
+        "casting_time": "swift"
+      }
+    },
+    {
+      "id": "Sure Strike",
+      "name": "Sure Strike",
+      "school": "Divination",
+      "subschool": null,
+      "descriptors": [],
+      "class_levels": {
+        "Duskblade": 2,
+        "Sorcerer": 2,
+        "Wizard": 2
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": false,
+        "casting_time": "swift"
+      }
+    },
+    {
+      "id": "Fly (Swift)",
+      "name": "Fly (Swift)",
+      "school": "Transmutation",
+      "subschool": null,
+      "descriptors": [],
+      "class_levels": {
+        "Bard": 2,
+        "Sorcerer": 2,
+        "Wizard": 2,
+        "Druid": 3
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": false,
+        "casting_time": "swift"
+      }
+    },
+    {
+      "id": "Invisibility (Swift)",
+      "name": "Invisibility (Swift)",
+      "school": "Illusion",
+      "subschool": "Glamer",
+      "descriptors": [],
+      "class_levels": {
+        "Bard": 1,
+        "Assassin": 2
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": false,
+        "casting_time": "swift"
+      }
+    },
+    {
+      "id": "Crown of Might",
+      "name": "Crown of Might",
+      "school": "Transmutation",
+      "subschool": null,
+      "descriptors": [],
+      "class_levels": {
+        "Cleric": 3,
+        "Duskblade": 3,
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Crown of Protection",
+      "name": "Crown of Protection",
+      "school": "Transmutation",
+      "subschool": null,
+      "descriptors": [],
+      "class_levels": {
+        "Cleric": 3,
+        "Duskblade": 3,
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Dispelling Touch",
+      "name": "Dispelling Touch",
+      "school": "Abjuration",
+      "subschool": null,
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 2,
+        "Wizard": 2,
+        "Duskblade": 3
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Doom Scarabs",
+      "name": "Doom Scarabs",
+      "school": "Conjuration|Necromancy",
+      "subschool": null,
+      "descriptors": [],
+      "class_levels": {
+        "Duskblade": 3,
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Energy Aegis",
+      "name": "Energy Aegis",
+      "school": "Abjuration",
+      "subschool": null,
+      "descriptors": [],
+      "class_levels": {
+        "Cleric": 3,
+        "Duskblade": 3,
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": false,
+        "casting_time": "immediate"
+      }
+    },
+    {
+      "id": "Energy Surge",
+      "name": "Energy Surge",
+      "school": "Transmutation",
+      "subschool": null,
+      "descriptors": [
+        "Acid",
+        "Cold",
+        "Electricity",
+        "Fire",
+        "Sonic"
+      ],
+      "class_levels": {
+        "Duskblade": 3,
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": false,
+        "casting_time": "swift"
+      }
+    },
+    {
+      "id": "Regroup",
+      "name": "Regroup",
+      "school": "Conjuration",
+      "subschool": "Teleportation",
+      "descriptors": [],
+      "class_levels": {
+        "Duskblade": 3,
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Channeled Pyroburst",
+      "name": "Channeled Pyroburst",
+      "school": "Evocation",
+      "subschool": null,
+      "descriptors": [
+        "Fire"
+      ],
+      "class_levels": {
+        "Duskblade": 4,
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true
+      }
+    },
+    {
+      "id": "Toxic Weapon",
+      "name": "Toxic Weapon",
+      "school": "Conjuration",
+      "subschool": "Creation",
+      "descriptors": [],
+      "class_levels": {
+        "Duskblade": 4,
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Slashing Dispel",
+      "name": "Slashing Dispel",
+      "school": "Abjuration|Evocation",
+      "subschool": null,
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 4,
+        "Wizard": 4,
+        "Duskblade": 5
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Sonic Shield",
+      "name": "Sonic Shield",
+      "school": "Evocation",
+      "subschool": null,
+      "descriptors": [],
+      "class_levels": {
+        "Bard": 3,
+        "Duskblade": 5,
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    }
+  ],
+  "spell_lists": {
+    "Duskblade": {
+      "Acid Splash": 0,
+      "Disrupt Undead": 0,
+      "Ray of Frost": 0,
+      "Touch of Fatigue": 0,
+      "Tripping Hand": 1,
+      "Blade of Blood": 1,
+      "Burning Hands": 1,
+      "Cause Fear": 1,
+      "Chill Touch": 1,
+      "Color Spray": 1,
+      "Jump": 1,
+      "Kelgore's Fire Bolt": 1,
+      "Deflect (Lesser)": 1,
+      "Magic Weapon": 1,
+      "Obscuring Mist": 1,
+      "Ray of Enfeeblement": 1,
+      "Resist Energy": 1,
+      "Rouse": 1,
+      "Shocking Grasp": 1,
+      "Stand": 1,
+      "Expeditious Retreat (Swift)": 1,
+      "True Strike": 1,
+      "Animalistic Power": 2,
+      "Bear's Endurance": 2,
+      "Striking Fist": 2,
+      "Bull's Strength": 2,
+      "Cat's Grace": 2,
+      "Darkvision": 2,
+      "Deflect": 2,
+      "Dimension Hop": 2,
+      "Ghoul Touch": 2,
+      "Acid Arrow": 2,
+      "Scorching Ray": 2,
+      "See Invisibility": 2,
+      "Seeking Ray": 2,
+      "Spider Climb": 2,
+      "Stretch Weapon": 2,
+      "Sure Strike": 2,
+      "Fly (Swift)": 2,
+      "Invisibility (Swift)": 2,
+      "Touch of Idiocy": 2,
+      "Crown of Might": 3,
+      "Crown of Protection": 3,
+      "Dispelling Touch": 3,
+      "Doom Scarabs": 3,
+      "Energy Aegis": 3,
+      "Energy Surge": 3,
+      "Magic Weapon (Greater)": 3,
+      "Halt": 3,
+      "Keen Edge": 3,
+      "Protection from Energy": 3,
+      "Ray of Exhaustion": 3,
+      "Regroup": 3,
+      "Vampiric Touch": 3,
+      "Interposing Hand": 4,
+      "Channeled Pyroburst": 4,
+      "Dimension Door": 4,
+      "Dispel Magic": 4,
+      "Enervation": 4,
+      "Fire Shield": 4,
+      "Phantasmal Killer": 4,
+      "Shout": 4,
+      "Toxic Weapon": 4,
+      "Clenched Fist": 5,
+      "Chain Lightning": 5,
+      "Disintegrate": 5,
+      "Hold Monster": 5,
+      "Polar Ray": 5,
+      "Slashing Dispel": 5,
+      "Sonic Shield": 5,
+      "Waves of Fatigue": 5
+    }
+  },
+  "spell_profiles": {
+    "Shocking Grasp": {
+      "casting_time": "standard",
+      "range": "touch",
+      "instantaneous": true,
+      "duration": "Instantaneous",
+      "somatic": true,
+      "energy": "electricity",
+      "hit_point_damage": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "variable_numeric_effect": true,
+      "defense": {
+        "save": "none",
+        "on_save": "none",
+        "harmless": false,
+        "spell_resistance": true
+      },
+      "damage": {
+        "dice": "min(CASTERLEVEL,5)",
+        "die_sides": 6,
+        "flat": "0",
+        "packets": "1",
+        "area": false
+      },
+      "affects_objects": true
+    },
+    "Vampiric Touch": {
+      "casting_time": "standard",
+      "range": "touch",
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": true,
+      "affects_objects": false,
+      "defense": {
+        "save": "none",
+        "on_save": "none",
+        "harmless": false,
+        "spell_resistance": true
+      },
+      "targeting": {
+        "living_only": true,
+        "allied_only": false,
+        "creature_types": [],
+        "max_pair_distance_feet": null,
+        "choices": []
+      },
+      "impact": {
+        "kind": "vampiric",
+        "temporary_seconds": 3600
+      },
+      "damage_kind": {
+        "kind": "untyped"
+      },
+      "instantaneous": true,
+      "duration": "Instantaneous / 1 hour",
+      "damage": {
+        "dice": "min(floor(CASTERLEVEL/2),10)",
+        "die_sides": 6,
+        "flat": "0",
+        "packets": "1",
+        "area": false
+      }
+    },
+    "Chill Touch": {
+      "casting_time": "standard",
+      "range": "touch",
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": true,
+      "affects_objects": false,
+      "defense": {
+        "save": "fortitude",
+        "on_save": "none",
+        "harmless": false,
+        "spell_resistance": true
+      },
+      "targeting": {
+        "living_only": false,
+        "allied_only": false,
+        "creature_types": [],
+        "max_pair_distance_feet": null,
+        "choices": []
+      },
+      "impact": {
+        "kind": "chill",
+        "strength_damage": 1
+      },
+      "damage_kind": {
+        "kind": "negative_energy"
+      },
+      "instantaneous": true,
+      "duration": "Instantaneous",
+      "damage": {
+        "dice": "1",
+        "die_sides": 6,
+        "flat": "0",
+        "packets": "1",
+        "area": false
+      },
+      "touch_uses": "CASTERLEVEL"
+    },
+    "Touch of Fatigue": {
+      "casting_time": "standard",
+      "range": "touch",
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": false,
+      "affects_objects": false,
+      "defense": {
+        "save": "fortitude",
+        "on_save": "negates",
+        "harmless": false,
+        "spell_resistance": true
+      },
+      "targeting": {
+        "living_only": false,
+        "allied_only": false,
+        "creature_types": [],
+        "max_pair_distance_feet": null,
+        "choices": []
+      },
+      "impact": {
+        "kind": "fatigue",
+        "seconds": "6*CASTERLEVEL"
+      },
+      "duration": "1 round/level",
+      "instantaneous": false
+    },
+    "Touch of Idiocy": {
+      "casting_time": "standard",
+      "range": "touch",
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": false,
+      "affects_objects": false,
+      "defense": {
+        "save": "none",
+        "on_save": "none",
+        "harmless": false,
+        "spell_resistance": true
+      },
+      "targeting": {
+        "living_only": true,
+        "allied_only": false,
+        "creature_types": [],
+        "max_pair_distance_feet": null,
+        "choices": []
+      },
+      "impact": {
+        "kind": "idiocy",
+        "seconds": "600*CASTERLEVEL"
+      },
+      "duration": "10 minutes/level",
+      "instantaneous": false
+    },
+    "Ghoul Touch": {
+      "casting_time": "standard",
+      "range": "touch",
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": false,
+      "affects_objects": false,
+      "defense": {
+        "save": "fortitude",
+        "on_save": "negates",
+        "harmless": false,
+        "spell_resistance": true
+      },
+      "targeting": {
+        "living_only": true,
+        "allied_only": false,
+        "creature_types": [
+          "humanoid"
+        ],
+        "max_pair_distance_feet": null,
+        "choices": []
+      },
+      "impact": {
+        "kind": "ghoul",
+        "radius_feet": 10
+      },
+      "duration": "1d6+2 rounds",
+      "instantaneous": false
+    },
+    "Dispelling Touch": {
+      "casting_time": "standard",
+      "range": "touch",
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": false,
+      "affects_objects": true,
+      "defense": {
+        "save": "none",
+        "on_save": "none",
+        "harmless": false,
+        "spell_resistance": false
+      },
+      "targeting": {
+        "living_only": false,
+        "allied_only": false,
+        "creature_types": [],
+        "max_pair_distance_feet": null,
+        "choices": []
+      },
+      "impact": {
+        "kind": "dispel",
+        "maximum_bonus": 10
+      },
+      "duration": "Instantaneous",
+      "instantaneous": true
+    },
+    "Dimension Hop": {
+      "casting_time": "standard",
+      "range": "touch",
+      "somatic": false,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": false,
+      "affects_objects": false,
+      "defense": {
+        "save": "will",
+        "on_save": "negates",
+        "harmless": false,
+        "spell_resistance": true
+      },
+      "targeting": {
+        "living_only": false,
+        "allied_only": false,
+        "creature_types": [],
+        "max_pair_distance_feet": null,
+        "choices": []
+      },
+      "impact": {
+        "kind": "teleport",
+        "feet": "5*floor(CASTERLEVEL/2)"
+      },
+      "duration": "Instantaneous",
+      "instantaneous": true
+    }
+  }
+}

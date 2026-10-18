@@ -95,6 +95,7 @@ impl Default for GestaltPolicy {
 pub trait ClassProgressSource {
     fn base_attack_bonus(&self, class_id: &str, class_level: u32) -> Option<i32>;
     fn base_save(&self, class_id: &str, class_level: u32, kind: SaveKind) -> Option<i32>;
+    /// `first_level` means character level one, not the first level in a class.
     fn skill_points(
         &self,
         class_id: &str,
@@ -347,7 +348,7 @@ fn plan_frame(
                 lanes: vec![lane.lane_id.to_string()],
             });
         }
-        hit_points.push(lane.hit_points_gained);
+        hit_points.push(lane.hit_points_gained.unwrap_or(0));
 
         let lane_slot = if advanced_classes.len() > 1 {
             PrestigeSlotCost::DualLane
@@ -405,7 +406,7 @@ fn plan_frame(
             }
 
             if let Some(points) =
-                source.skill_points(class_id, intelligence_modifier, lane.class_level == 1)
+                source.skill_points(class_id, intelligence_modifier, frame.character_level == 1)
             {
                 skill_points.push(points);
             } else {
@@ -735,7 +736,7 @@ mod tests {
         ];
         let plan = plan_gestalt(&frames, &FakeSource, 0, &GestaltPolicy::default());
         let mut changed = frames.clone();
-        changed[1].lanes[0].hit_points_gained = 8;
+        changed[1].lanes[0].hit_points_gained = Some(8);
         let update = plan_gestalt_incremental(
             &frames,
             &plan,

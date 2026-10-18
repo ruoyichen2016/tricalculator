@@ -4,10 +4,7 @@
 //! drive the engine: the class domain is rebuilt from records and everything
 //! else is left as the pack already had it.
 //!
-//! Note what does *not* come back: `base_attack_formula` and the save formulas.
-//! The format carries per-level tables instead (R5), and the engine falls back
-//! to the table when no formula is present.  The transpiler checks the two
-//! agree before dropping the formula.
+//! Source formulas survive alongside tables so dynamic character dependencies remain intact.
 
 use crate::format::{ClassGrant, ClassLevelRecord, ClassRecord, VariantRecord};
 use pcgen_core::{ClassDefinition, ClassProgression, VariantDefinition};
@@ -59,11 +56,6 @@ fn class_definition(
     // The level maps live on `class_level` records now; restore them so the
     // parts of the pipeline that read them keep working.
     definition.level_abilities = grants.clone();
-    // No formula: the table is authoritative (R5).
-    definition.base_attack_formula = None;
-    definition.fortitude_formula = None;
-    definition.reflex_formula = None;
-    definition.will_formula = None;
     definition
 }
 

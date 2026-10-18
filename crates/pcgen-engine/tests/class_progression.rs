@@ -1,7 +1,8 @@
 //! P4-CLASS-2: class progression consumes SKILLMULT / LEVELSPERFEAT /
 //! HITDIE / ADDLEVEL / EXCLASS / EXCHANGELEVEL.
 
-use pcgen_engine::{CharacterDraft, DraftClassLevel, Engine};
+use pcgen_engine::{CharacterDraft, Engine};
+use pcgen_import::PcgClassLevel as DraftClassLevel;
 use pcgen_ir::{lower_records, RawRecord, RawTag, SourceRef};
 
 fn record(category: &str, name: &str, tags: &[(&str, &str)]) -> RawRecord {
@@ -81,13 +82,13 @@ fn hitdie_skillmult_and_levelsperfeat_reach_snapshot() {
     );
     let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
         race_id: "Human".to_string(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Fighter".to_string(),
             level: 2,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         ..CharacterDraft::default()
     });
     // d12 average is 7 per level, CON 10 has no modifier.
@@ -120,13 +121,13 @@ fn template_addlevel_changes_effective_total_level() {
     );
     let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
         race_id: "Human".to_string(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Fighter".to_string(),
             level: 1,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         templates: vec!["Monster Template".to_string()],
         ..CharacterDraft::default()
     });

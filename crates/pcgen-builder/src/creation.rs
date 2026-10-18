@@ -2,11 +2,11 @@
 
 use crate::point_buy;
 use crate::BuilderError;
+use pcgen_core::CompiledRulePack;
 use pcgen_core::{AdvancementFrame, AdvancementLane, LaneId};
-use pcgen_engine::{CharacterDraft, DraftClassLevel, DraftSpell};
-use pcgen_ir::CompiledRulePack;
+use pcgen_engine::{CharacterDraft, DraftSpell};
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 const ABILITY_KEYS: [&str; 6] = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
 
@@ -195,10 +195,9 @@ pub fn create_draft(
     // (normal multiclass or Gestalt) or the legacy single-class request.
     let mut class_ids: Vec<String> = Vec::new();
     let mut advancement = Vec::new();
-    let mut class_levels = Vec::new();
 
     if !request.advancement.is_empty() {
-        let mut lane_levels: BTreeMap<(String, String), u32> = BTreeMap::new();
+        let mut lane_levels: BTreeMap<String, u32> = BTreeMap::new();
         for (index, frame) in request.advancement.iter().enumerate() {
             if frame.lanes.is_empty() {
                 return Err(BuilderError::InvalidLevel(index as u32 + 1));
@@ -208,7 +207,7 @@ pub fn create_draft(
             } else {
                 frame.character_level
             };
-            if character_level == 0 || character_level > 20 {
+            if character_level != index as u32 + 1 || character_level > 20 {
                 return Err(BuilderError::InvalidLevel(character_level));
             }
 
@@ -223,7 +222,7 @@ pub fn create_draft(
                 } else {
                     LaneId::new(format!("lane-{}", lane_index + 1))
                 };
-                let key = (lane_id.to_string(), class_id.clone());
+                let key = class_id.clone();
                 let next_level = lane_levels.entry(key).or_insert(0);
                 *next_level += 1;
                 if let Some(class) = pack.classes.get(&class_id) {
@@ -297,18 +296,19 @@ pub fn create_draft(
             }
         }
         class_ids.push(class_id.clone());
-        class_levels.push(DraftClassLevel {
-            class_id: class_id.clone(),
-            level: request.level,
-            hit_points_gained: 0,
-            hit_points_by_level: average_hit_points(pack, &class_id, request.level),
-            experience_gained: 0,
-        });
+        for (index, hp) in average_hit_points(pack, &class_id, request.level)
+            .into_iter()
+            .enumerate()
+        {
+            advancement.push(AdvancementFrame::single(
+                index as u32 + 1,
+                class_id.clone(),
+                index as u32 + 1,
+                hp,
+                0,
+            ));
+        }
     }
-
-    let intelligence_modifier = intelligence_modifier(&stats);
-    let skill_budget = skill_point_budget(pack, &advancement, &class_levels, intelligence_modifier);
-
     // SRD, "Skills Summary": a class skill costs 1 point per rank, a
     // cross-class skill 1 point per **half** rank, so the points a skill
     // consumes depend on whether it is on any of the character's class lists.
@@ -317,20 +317,13 @@ pub fn create_draft(
     // cross-class skill, if it is a class skill for any of your classes, your
     // maximum rank equals your total character level + 3." — hence the union
     // across classes, and the *character* level for the cap.
-    let character_level: u32 = class_levels.iter().map(|entry| entry.level).sum();
-    let mut class_skill_names: BTreeSet<String> = BTreeSet::new();
-    for entry in &class_levels {
-        if let Some(progression) = pack.progressions.get(&entry.class_id) {
-            class_skill_names.extend(progression.class_skills.iter().cloned());
-        } else if let Some(class) = pack.classes.get(&entry.class_id) {
-            class_skill_names.extend(class.class_skills.iter().cloned());
-        }
-    }
-    let is_class_skill = |skill: &str| {
-        class_skill_names
-            .iter()
-            .any(|name| name.eq_ignore_ascii_case(skill) || name == skill)
+    let character_level = advancement.len() as u32;
+    let skill_context = CharacterDraft {
+        advancement: advancement.clone(),
+        ..Default::default()
     };
+    let class_skill_names = pcgen_engine::effects::class_skill_names(pack, &skill_context);
+    let is_class_skill = |skill: &str| class_skill_names.contains(&skill.to_ascii_lowercase());
 
     let mut spent_skill_points = 0.0_f64;
     for (skill, ranks) in &skills {
@@ -344,12 +337,6 @@ pub fn create_draft(
             });
         }
         spent_skill_points += pcgen_core::skill_rules::points_for_ranks(*ranks, class_skill);
-    }
-    if spent_skill_points > f64::from(skill_budget) + 1e-9 {
-        return Err(BuilderError::SkillPointsExceeded {
-            spent: spent_skill_points,
-            budget: skill_budget,
-        });
     }
 
     let mut spells = Vec::new();
@@ -388,7 +375,6 @@ pub fn create_draft(
         campaign: request.campaign.clone(),
         alignment: request.alignment.clone(),
         stats,
-        class_levels,
         advancement,
         skills,
         spells,
@@ -399,6 +385,23 @@ pub fn create_draft(
         domains: request.domains.clone(),
         ..CharacterDraft::default()
     };
+    let snapshot = pcgen_engine::Engine::new(pack.clone()).evaluate(&draft);
+    if spent_skill_points > 0.0 && !snapshot.is_available() {
+        return Err(BuilderError::DerivedUnavailable(
+            snapshot.diagnostics.join("; "),
+        ));
+    }
+    let skill_budget = snapshot
+        .available(snapshot.skill_points)
+        .unwrap_or_default()
+        .max(0) as u32;
+    if spent_skill_points > f64::from(skill_budget) + 1e-9 {
+        return Err(BuilderError::SkillPointsExceeded {
+            spent: spent_skill_points,
+            budget: skill_budget,
+        });
+    }
+
     draft.id = crate::sanitize_id(&draft.id).unwrap_or_else(|_| "character".to_string());
     Ok(draft)
 }
@@ -477,44 +480,10 @@ fn resolve_substitution_level(
     Ok(variant.id.clone())
 }
 
-/// Update class-level totals so they stay consistent after editing a lane.
-fn sync_draft_class_levels(draft: &mut CharacterDraft) {
-    let mut totals: BTreeMap<String, u32> = BTreeMap::new();
-    for frame in &draft.advancement {
-        for lane in &frame.lanes {
-            let entry = totals.entry(lane.class_id.clone()).or_insert(0);
-            if *entry < lane.class_level {
-                *entry = lane.class_level;
-            }
-        }
-    }
-    draft
-        .class_levels
-        .retain(|entry| totals.get(&entry.class_id).is_some_and(|level| *level > 0));
-    for (class_id, level) in &totals {
-        if let Some(entry) = draft
-            .class_levels
-            .iter_mut()
-            .find(|entry| entry.class_id.eq_ignore_ascii_case(class_id))
-        {
-            entry.level = *level;
-        } else {
-            draft.class_levels.push(DraftClassLevel {
-                class_id: class_id.clone(),
-                level: *level,
-                hit_points_gained: 0,
-                hit_points_by_level: Vec::new(),
-                experience_gained: 0,
-            });
-        }
-    }
-}
-
 /// Resolve the ordered list of lanes to advance for a level-up request.
 ///
 /// `request.class_id` is always the primary lane; any extra `lanes` are
-/// appended for Gestalt/multiclass progression.  A single lane keeps the
-/// legacy behaviour of tracking per-level HP inside `class_levels`.
+/// appended for parallel progression. Every level is recorded as a frame.
 fn collect_level_up_lanes(request: &LevelUpRequest) -> Vec<LevelUpLane> {
     let mut lanes = Vec::new();
     if !request.class_id.trim().is_empty() || request.lanes.is_empty() {
@@ -545,28 +514,14 @@ fn bump_class_level(
         .hp_gained
         .unwrap_or_else(|| average_hit_die(pack, &class_id));
 
-    let next_level = if let Some(entry) = draft
-        .class_levels
-        .iter_mut()
-        .find(|entry| entry.class_id.eq_ignore_ascii_case(&class_id))
+    let next_level = draft.level_in_class(&class_id) + 1;
+    if pack
+        .classes
+        .get(&class_id)
+        .is_some_and(|class| class.max_level > 0 && next_level > class.max_level)
     {
-        entry.level += 1;
-        if !entry.hit_points_by_level.is_empty() || lane.hp_gained.is_some() {
-            entry.hit_points_by_level.push(gained);
-        } else {
-            entry.hit_points_gained += gained;
-        }
-        entry.level
-    } else {
-        draft.class_levels.push(DraftClassLevel {
-            class_id: class_id.clone(),
-            level: 1,
-            hit_points_gained: 0,
-            hit_points_by_level: vec![gained],
-            experience_gained: 0,
-        });
-        1
-    };
+        return Err(BuilderError::InvalidLevel(next_level));
+    }
 
     if let Some(archetype) = &lane.archetype {
         let variant = resolve_variant(pack, archetype)?;
@@ -603,18 +558,24 @@ fn build_advancement_lane(
     Ok(advancement_lane)
 }
 
-/// True when this lane asked for an explicit variant or subclass.
-fn lane_has_choices(lane: &LevelUpLane) -> bool {
-    lane.archetype.is_some() || lane.substitution_level.is_some() || lane.subclass.is_some()
-}
-
 /// Apply one character level to `draft`.
 ///
 /// `advancement` overrides the per-level lane choices when non-empty (used for
 /// application and preview); otherwise the request's single-class fields and
-/// `lanes` are used.  Errors leave `draft` unspecified — callers should work on
-/// a clone when the original must be preserved (see [`preview_level_up`]).
+/// `lanes` are used. Failed commands leave the original draft unchanged.
 pub fn apply_level_up(
+    pack: &CompiledRulePack,
+    draft: &mut CharacterDraft,
+    request: &LevelUpRequest,
+    advancement: Option<AdvancementFrame>,
+) -> Result<(), BuilderError> {
+    let mut next = draft.clone();
+    apply_level_up_inner(pack, &mut next, request, advancement)?;
+    *draft = next;
+    Ok(())
+}
+
+fn apply_level_up_inner(
     pack: &CompiledRulePack,
     draft: &mut CharacterDraft,
     request: &LevelUpRequest,
@@ -623,92 +584,42 @@ pub fn apply_level_up(
     if draft.total_level() >= 20 {
         return Err(BuilderError::InvalidLevel(draft.total_level() + 1));
     }
-    let frame_level = draft
-        .advancement
-        .iter()
-        .map(|frame| frame.character_level)
-        .max()
-        .unwrap_or(0)
-        + 1;
-
-    if let Some(frame) = advancement {
-        for lane in &frame.lanes {
-            let class_id = canonical_class(pack, &lane.class_id)
+    let frame_level = draft.total_level() + 1;
+    let frame = if let Some(mut frame) = advancement {
+        if frame.character_level != frame_level || frame.lanes.is_empty() {
+            return Err(BuilderError::InvalidLevel(frame.character_level));
+        }
+        for lane in &mut frame.lanes {
+            lane.class_id = canonical_class(pack, &lane.class_id)
                 .ok_or_else(|| BuilderError::UnknownClass(lane.class_id.clone()))?;
-            // An explicit frame carries the absolute class level per lane.
-            if let Some(entry) = draft
-                .class_levels
-                .iter_mut()
-                .find(|entry| entry.class_id.eq_ignore_ascii_case(&class_id))
-            {
-                entry.level = lane.class_level.max(entry.level);
-                if entry.hit_points_by_level.len() as u32 >= entry.level {
-                    entry.hit_points_by_level =
-                        entry.hit_points_by_level[..entry.level as usize].to_vec();
-                } else {
-                    while (entry.hit_points_by_level.len() as u32) < entry.level {
-                        entry
-                            .hit_points_by_level
-                            .push(average_hit_die(pack, &class_id));
-                    }
-                }
-            } else {
-                draft.class_levels.push(DraftClassLevel {
-                    class_id: class_id.clone(),
-                    level: lane.class_level.max(1),
-                    hit_points_gained: 0,
-                    hit_points_by_level: Vec::new(),
-                    experience_gained: 0,
-                });
-            }
-            if let Some(subclass) = &lane.subclass {
-                draft
-                    .class_subclasses
-                    .insert(class_id.clone(), subclass.clone());
+            if lane.class_level != draft.level_in_class(&lane.class_id) + 1 {
+                return Err(BuilderError::InvalidLevel(lane.class_level));
             }
         }
-        // Rebuild class-level totals from the authoritative advancement chain.
-        draft.advancement.push(frame);
-        sync_draft_class_levels(draft);
+        frame
     } else {
-        let lanes = collect_level_up_lanes(request);
         let mut frame_lanes = Vec::new();
-        let mut any_choices = false;
-        let multi = lanes.len() > 1;
-        for (index, lane) in lanes.iter().enumerate() {
+        for (index, lane) in collect_level_up_lanes(request).iter().enumerate() {
             let (class_id, next_level, gained) = bump_class_level(pack, draft, lane)?;
-            if let Some(subclass) = &lane.subclass {
-                draft
-                    .class_subclasses
-                    .insert(class_id.clone(), subclass.clone());
-            }
-            if lane_has_choices(lane) {
-                any_choices = true;
-            }
-            // Always record a frame for multi-lane levels so the class-level
-            // chain stays authoritative for Gestalt characters.
-            if lane_has_choices(lane) || multi {
-                let lane_id = if multi {
-                    if index == 0 {
-                        LaneId::new("primary")
-                    } else {
-                        LaneId::new(format!("lane-{}", index + 1))
-                    }
-                } else {
-                    LaneId::primary()
-                };
-                frame_lanes.push(build_advancement_lane(
-                    pack, lane, lane_id, &class_id, next_level, gained,
-                )?);
-            }
+            let lane_id = if index == 0 {
+                LaneId::primary()
+            } else {
+                LaneId::new(format!("lane-{}", index + 1))
+            };
+            frame_lanes.push(build_advancement_lane(
+                pack, lane, lane_id, &class_id, next_level, gained,
+            )?);
         }
-        if any_choices || multi {
+        AdvancementFrame::new(frame_level, frame_lanes)
+    };
+    for lane in &frame.lanes {
+        if let Some(subclass) = &lane.subclass {
             draft
-                .advancement
-                .push(AdvancementFrame::new(frame_level, frame_lanes));
-            sync_draft_class_levels(draft);
+                .class_subclasses
+                .insert(lane.class_id.clone(), subclass.clone());
         }
     }
+    draft.advancement.push(frame);
 
     // Skills, abilities and spells are shared across all lanes; attribute them
     // to the primary class for spell-list validation.
@@ -939,86 +850,6 @@ fn canonical_class(pack: &CompiledRulePack, value: &str) -> Option<String> {
         .map(|(key, _)| key.clone())
 }
 
-fn intelligence_modifier(stats: &BTreeMap<String, i32>) -> i32 {
-    stats
-        .get("INT")
-        .copied()
-        .map(|score| (score - 10) / 2)
-        .unwrap_or(0)
-}
-
-fn progression_for_class<'a>(
-    pack: &'a CompiledRulePack,
-    class_id: &str,
-) -> Option<&'a pcgen_core::domain::ClassProgression> {
-    if let Some(progression) = pack.progressions.get(class_id) {
-        return Some(progression);
-    }
-    pack.progressions
-        .iter()
-        .find(|(key, _)| key.eq_ignore_ascii_case(class_id))
-        .map(|(_, progression)| progression)
-}
-
-fn skill_point_budget(
-    pack: &CompiledRulePack,
-    advancement: &[AdvancementFrame],
-    class_levels: &[DraftClassLevel],
-    intelligence_modifier: i32,
-) -> u32 {
-    let mut budget: u32 = 0;
-    if !advancement.is_empty() {
-        for frame in advancement {
-            for lane in &frame.lanes {
-                let first = lane.class_level == 1;
-                let mut points = 0i32;
-                if let Some(progression) = progression_for_class(pack, &lane.class_id) {
-                    points = if first {
-                        progression.first_level_skill_points as i32
-                    } else {
-                        progression.skill_points_per_level as i32
-                    };
-                } else if let Some(class) = pack.classes.get(&lane.class_id) {
-                    points = if first {
-                        (class.skill_points_per_level as i32)
-                            .saturating_mul(class.skill_multiplier.unwrap_or(4) as i32)
-                    } else {
-                        class.skill_points_per_level as i32
-                    };
-                }
-                budget = budget.saturating_add((points + intelligence_modifier).max(1) as u32);
-            }
-        }
-    } else {
-        for entry in class_levels {
-            let mut points = 0i32;
-            if let Some(progression) = progression_for_class(pack, &entry.class_id) {
-                let first_total = (progression.first_level_skill_points as i32
-                    + intelligence_modifier)
-                    .max(1) as u32;
-                let per_level = (progression.skill_points_per_level as i32 + intelligence_modifier)
-                    .max(1) as u32;
-                if entry.level > 0 {
-                    budget = budget
-                        .saturating_add(first_total + (entry.level - 1).saturating_mul(per_level));
-                }
-                continue;
-            } else if let Some(class) = pack.classes.get(&entry.class_id) {
-                points = class.skill_points_per_level as i32;
-            }
-            let first_total = (points + intelligence_modifier).max(1) as u32;
-            let per_level = (points + intelligence_modifier).max(1) as u32;
-            if entry.level > 0 {
-                budget = budget
-                    .saturating_add(first_total + (entry.level - 1).saturating_mul(per_level));
-            } else {
-                budget = budget.saturating_add(first_total);
-            }
-        }
-    }
-    budget
-}
-
 fn canonical_skill(pack: &CompiledRulePack, value: &str) -> Option<String> {
     if pack.skills.contains_key(value) {
         return Some(value.to_string());
@@ -1126,9 +957,12 @@ mod tests {
             "Spellcraft".to_string(),
             pcgen_core::domain::SkillDefinition::new("Spellcraft", "Spellcraft"),
         );
+        pack.skills.get_mut("Climb").unwrap().key_stat = Some("STR".into());
+        pack.skills.get_mut("Spellcraft").unwrap().key_stat = Some("INT".into());
         pack.ability_categories.insert(
             "FEAT".to_string(),
             pcgen_core::AbilityCategoryDefinition {
+                choice_restrictions: Default::default(),
                 id: "FEAT".to_string(),
                 name: "FEAT".to_string(),
                 ..Default::default()
@@ -1147,6 +981,47 @@ mod tests {
             pcgen_core::domain::TemplateDefinition::new("Celestial", "Celestial"),
         );
         pack
+    }
+
+    #[test]
+    fn plain_level_up_continues_explicit_advancement() {
+        let pack = sample_pack();
+        let draft = create_draft(
+            &pack,
+            &CreateRequest {
+                name: "Web Hero".into(),
+                race: "Human".into(),
+                advancement: vec![CreateAdvancementFrame {
+                    character_level: 1,
+                    lanes: vec![CreateAdvancementLane {
+                        class: "Fighter".into(),
+                        ..Default::default()
+                    }],
+                }],
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let preview = preview_level_up(
+            &pack,
+            &draft,
+            &LevelUpRequest {
+                class_id: "Fighter".into(),
+                hp_gained: Some(6),
+                ..Default::default()
+            },
+            None,
+        )
+        .unwrap();
+        assert_eq!(draft.total_level(), 1);
+        assert_eq!(preview.total_level(), 2);
+        assert_eq!(preview.advancement.len(), 2);
+        assert_eq!(preview.advancement[1].lanes[0].class_level, 2);
+        let engine = pcgen_engine::Engine::new(pack);
+        assert_eq!(
+            engine.evaluate(&preview).hit_points,
+            engine.evaluate(&draft).hit_points + 6
+        );
     }
 
     #[test]
@@ -1169,8 +1044,8 @@ mod tests {
         let draft = create_draft(&pack, &request).unwrap();
         assert_eq!(draft.id, "hero");
         assert_eq!(draft.race_id, "Human");
-        assert_eq!(draft.class_levels[0].class_id, "Fighter");
-        assert_eq!(draft.class_levels[0].level, 3);
+        assert_eq!(draft.class_levels()[0].class_id, "Fighter");
+        assert_eq!(draft.class_levels()[0].level, 3);
         assert_eq!(draft.skills.get("Climb"), Some(&4.0));
         assert_eq!(draft.equipment, vec!["Longsword".to_string()]);
     }
@@ -1250,9 +1125,10 @@ mod tests {
                 .collect(),
             ..CreateRequest::default()
         };
+        let result = create_draft(&pack, &fitting);
         assert!(
-            create_draft(&pack, &fitting).is_ok(),
-            "4 class ranks (4 pts) + 2 cross-class ranks (4 pts) = the 8-point budget"
+            result.is_ok(),
+            "4 class ranks + 2 cross-class ranks must fit the 8-point budget: {result:?}"
         );
 
         // One more cross-class rank costs 2 more points, so the budget is now
@@ -1402,7 +1278,7 @@ mod tests {
             ..CreateRequest::default()
         };
         let draft = create_draft(&pack, &request).unwrap();
-        assert!(draft.class_levels.is_empty());
+        assert!(!draft.advancement.is_empty());
         assert_eq!(draft.advancement.len(), 3);
         assert_eq!(draft.total_level(), 3);
         assert_eq!(draft.advancement[0].lanes[0].class_id, "Fighter");
@@ -1457,7 +1333,7 @@ mod tests {
         };
         let draft = create_draft(&pack, &request).unwrap();
         assert!(draft.is_gestalt());
-        assert!(draft.class_levels.is_empty());
+        assert!(!draft.advancement.is_empty());
         assert_eq!(draft.advancement.len(), 2);
         assert_eq!(draft.advancement[0].lanes.len(), 2);
         assert_eq!(draft.total_level(), 2);
@@ -1568,7 +1444,10 @@ mod tests {
         };
         level_up_draft(&pack, &mut draft, &request).unwrap();
         assert_eq!(draft.total_level(), 2);
-        assert_eq!(draft.class_levels[0].hit_points_by_level, vec![5, 6]);
+        assert_eq!(
+            draft.class_levels()[0].hit_points_by_level,
+            vec![Some(5), Some(6)]
+        );
         assert_eq!(draft.skills.get("Climb"), Some(&2.0));
     }
 
@@ -1636,13 +1515,13 @@ mod tests {
             ..LevelUpRequest::default()
         };
         level_up_draft(&pack, &mut draft, &request).unwrap();
-        assert_eq!(draft.advancement.len(), 1);
-        let lane = &draft.advancement[0].lanes[0];
+        assert_eq!(draft.advancement.len(), 2);
+        let lane = &draft.advancement[1].lanes[0];
         assert_eq!(lane.class_id, "Fighter");
         assert_eq!(lane.class_level, 2);
         assert_eq!(lane.archetype.as_deref(), Some("Two-Handed Fighter"));
         assert_eq!(lane.subclass.as_deref(), Some("Weapon Master"));
-        assert_eq!(draft.class_levels[0].level, 2);
+        assert_eq!(draft.class_levels()[0].level, 2);
         assert_eq!(
             draft.class_subclasses.get("Fighter").map(String::as_str),
             Some("Weapon Master")
@@ -1727,17 +1606,16 @@ mod tests {
             ..LevelUpRequest::default()
         };
         level_up_draft(&pack, &mut draft, &request).unwrap();
-        // A gestalt level adds one level to each lane; the raw sum of class
-        // levels is 3 for a single character level.
-        assert_eq!(draft.total_level(), 3);
+        // Two advanced classes still add only one character level.
+        assert_eq!(draft.total_level(), 2);
         let fighter = draft
-            .class_levels
-            .iter()
+            .class_levels()
+            .into_iter()
             .find(|entry| entry.class_id == "Fighter")
             .unwrap();
         let wizard = draft
-            .class_levels
-            .iter()
+            .class_levels()
+            .into_iter()
             .find(|entry| entry.class_id == "Wizard")
             .unwrap();
         assert_eq!(fighter.level, 2);
@@ -1770,8 +1648,8 @@ mod tests {
             ..LevelUpRequest::default()
         };
         level_up_draft(&pack, &mut draft, &request).unwrap();
-        assert_eq!(draft.advancement.len(), 1, "both lanes share one frame");
-        let frame = &draft.advancement[0];
+        assert_eq!(draft.advancement.len(), 2, "both lanes share the new frame");
+        let frame = &draft.advancement[1];
         assert_eq!(frame.lanes.len(), 2);
         let wizard_lane = frame
             .lanes
@@ -1811,7 +1689,7 @@ mod tests {
             ..LevelUpRequest::default()
         };
         level_up_draft(&pack, &mut draft, &request).unwrap();
-        let frame = &draft.advancement[0];
+        let frame = &draft.advancement[1];
         let fighter_lane = frame
             .lanes
             .iter()

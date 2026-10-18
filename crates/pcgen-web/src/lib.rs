@@ -15,8 +15,8 @@ use pcgen_builder::{
     create_draft, level_up_draft, preview_level_up, starting_gold_for_class, BuilderError,
     CharacterRepository, CharacterSummary, CreateRequest, LevelUpRequest, NativeSaveEnvelope,
 };
-use pcgen_engine::{CharacterDraft, DraftClassLevel, DraftSpell, Engine};
-use pcgen_import::{compile_pcc, parse_pcg_draft_file, PcgDraft};
+use pcgen_engine::{CharacterDraft, Engine};
+use pcgen_import::{compile_pcc, parse_pcg_draft_file};
 use pcgen_output::{render_html, render_json};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -49,8 +49,9 @@ impl Default for WebConfig {
 struct AppState {
     config: Arc<WebConfig>,
     repository: CharacterRepository,
+    mutation_lock: Arc<tokio::sync::Mutex<()>>,
     /// Cache of compiled rule packs keyed by absolute `.pcc` path.
-    pack_cache: Arc<std::sync::Mutex<std::collections::HashMap<String, Arc<Engine>>>>,
+    pack_cache: Arc<rules::RuleStore>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -429,10 +430,29 @@ pub fn app(config: WebConfig) -> Router {
     let state = AppState {
         config: Arc::new(config),
         repository,
-        pack_cache: Arc::new(std::sync::Mutex::new(std::collections::HashMap::new())),
+        mutation_lock: Arc::new(tokio::sync::Mutex::new(())),
+        pack_cache: Arc::new(rules::RuleStore::default()),
     };
     Router::new()
-        .route("/", get(index))
+        .route("/", get(character_page::page))
+        .route("/workbench", get(workbench::page))
+        .route("/editor", get(editor::page).post(editor::save))
+        .route("/build", get(build_forms::page).post(build_forms::save))
+        .route("/spellcasting", get(spellcasting_forms::page).post(spellcasting_forms::action))
+        .route("/cases", get(cases_forms::page))
+        .route("/classes", get(library::page))
+        .route("/martial", get(martial_forms::page).post(martial_forms::replay))
+        .route("/incarnum", get(incarnum_forms::page).post(incarnum_forms::replay))
+        .route("/joker", get(joker_forms::page).post(joker_forms::replay))
+        .route(
+            "/class-play",
+            get(class_play::page).post(class_play::commit),
+        )
+        .route("/workbench/cast", post(workbench::cast))
+        .route("/workbench/action", post(workbench::action))
+        .route("/workbench/quiescent", post(workbench::quiescent))
+        .route("/workbench/school", post(workbench::school))
+        .route("/workbench/metamagic", post(workbench::metamagic))
         .route("/api/health", get(health))
         .route("/api/curated", get(curated))
         .route("/api/recalculate", post(recalculate))
@@ -458,6 +478,7 @@ pub fn app(config: WebConfig) -> Router {
             "/api/characters/{id}",
             get(character).delete(delete_character),
         )
+        .route("/api/characters/{id}/magic", post(magic_preview))
         .route("/api/characters/{id}/level-up", post(level_up_character))
         .route("/api/characters/{id}/undo", post(undo_character))
         .route("/api/characters/{id}/redo", post(redo_character))
@@ -469,76 +490,16 @@ pub fn app(config: WebConfig) -> Router {
         .with_state(state)
 }
 
-/// Cache key for a compiled pack: the resolved path plus the newest
-/// modification time across the campaign file and every `.lst`/`.pcc` it pulls
-/// in, so editing or regenerating data invalidates the entry instead of
-/// requiring a server restart.
-fn pack_cache_key(pcc_path: &Path) -> String {
-    let mut newest = std::fs::metadata(pcc_path)
-        .and_then(|meta| meta.modified())
-        .ok();
-    let root = pcc_path.parent().unwrap_or_else(|| Path::new("."));
-    let mut stack = vec![root.to_path_buf()];
-    while let Some(dir) = stack.pop() {
-        let Ok(entries) = std::fs::read_dir(&dir) else {
-            continue;
-        };
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_dir() {
-                stack.push(path);
-                continue;
-            }
-            let is_data = path
-                .extension()
-                .and_then(|value| value.to_str())
-                .is_some_and(|ext| {
-                    ext.eq_ignore_ascii_case("lst") || ext.eq_ignore_ascii_case("pcc")
-                });
-            if !is_data {
-                continue;
-            }
-            if let Ok(modified) = entry.metadata().and_then(|meta| meta.modified()) {
-                if newest.is_none_or(|current| modified > current) {
-                    newest = Some(modified);
-                }
-            }
-        }
-    }
-    let stamp = newest
-        .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
-        .map(|duration| duration.as_nanos())
-        .unwrap_or(0);
-    format!("{}@{stamp}", pcc_path.to_string_lossy())
-}
-
 fn cached_engine(state: &AppState, pcc_path: &Path) -> Result<Arc<Engine>, String> {
-    let key = pack_cache_key(pcc_path);
-    if let Some(engine) = state
-        .pack_cache
-        .lock()
-        .map_err(|_| "pack cache lock poisoned".to_string())?
-        .get(&key)
-        .cloned()
-    {
-        return Ok(engine);
-    }
-    let (pack, _) = compile_pcc(pcc_path).map_err(|error| error.to_string())?;
-    let engine = Arc::new(Engine::new(pack));
-    let mut cache = state
-        .pack_cache
-        .lock()
-        .map_err(|_| "pack cache lock poisoned".to_string())?;
-    // Drop stale entries for the same campaign so the map cannot grow without
-    // bound as data files change during a session.
-    let prefix = format!("{}@", pcc_path.to_string_lossy());
-    cache.retain(|existing, _| !existing.starts_with(&prefix));
-    cache.insert(key, engine.clone());
-    Ok(engine)
+    state.pack_cache.load(pcc_path)
 }
 
-async fn index() -> Html<&'static str> {
-    Html(include_str!("index.html"))
+async fn load_engine(state: &AppState, path: &Path) -> Result<Arc<Engine>, String> {
+    let store = state.pack_cache.clone();
+    let path = path.to_path_buf();
+    tokio::task::spawn_blocking(move || store.load(&path))
+        .await
+        .map_err(|error| error.to_string())?
 }
 
 async fn health() -> Json<serde_json::Value> {
@@ -686,7 +647,7 @@ async fn characters(
     let list = match query.pcc.as_deref() {
         Some(pcc) if !pcc.trim().is_empty() => {
             let pcc_path = resolve_path(&state.config.data_root, pcc);
-            let engine = match cached_engine(&state, &pcc_path) {
+            let engine = match load_engine(&state, &pcc_path).await {
                 Ok(engine) => engine,
                 Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
             };
@@ -795,6 +756,9 @@ fn snapshot_delta(
     after: &pcgen_engine::CharacterSnapshot,
 ) -> serde_json::Value {
     use serde_json::json;
+    if !before.is_available() || !after.is_available() {
+        return json!({"validity": {"status": "unavailable", "reasons": ["The before or after snapshot is unavailable; a level-up delta cannot be calculated"]}});
+    }
 
     let stat_delta: serde_json::Value = before
         .stats
@@ -861,7 +825,7 @@ async fn level_up_character(
         Err(error) => return api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
     };
     let pcc_path = resolve_path(&state.config.data_root, &body.pcc);
-    let engine = match cached_engine(&state, &pcc_path) {
+    let engine = match load_engine(&state, &pcc_path).await {
         Ok(engine) => engine,
         Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
     };
@@ -1010,7 +974,7 @@ async fn create_character(
 ) -> impl IntoResponse {
     let pcc_path = resolve_path(&state.config.data_root, &request.pcc);
     let pcg_path = resolve_path(&state.config.data_root, &request.pcg);
-    let engine = match cached_engine(&state, &pcc_path) {
+    let engine = match load_engine(&state, &pcc_path).await {
         Ok(engine) => engine,
         Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
     };
@@ -1235,63 +1199,13 @@ fn run_export(state: &AppState, request: &ExportRequest) -> anyhow::Result<Expor
         pcg: pcgen_import::write_pcg_draft_string(&exported)?,
         unresolved_choices,
         unresolved_hints: hints,
-        ability_pool_usage: serde_json::to_value(&snapshot.ability_pool_usage)?,
+        ability_pool_usage: serde_json::to_value(snapshot.available(&snapshot.ability_pool_usage))?,
         diagnostics: snapshot.diagnostics.clone(),
     })
 }
 
 /// Convert an engine draft back into the `.pcg` compatibility type.
-pub fn pcg_from_draft(draft: &CharacterDraft) -> PcgDraft {
-    PcgDraft {
-        name: draft.name.clone(),
-        race_id: draft.race_id.clone(),
-        campaign: draft.campaign.clone(),
-        alignment: draft.alignment.clone(),
-        gender: draft.gender.clone(),
-        character_type: if draft.character_type.trim().is_empty() {
-            pcgen_engine::default_character_type()
-        } else {
-            draft.character_type.clone()
-        },
-        stats: draft.stats.clone(),
-        class_levels: draft
-            .class_levels
-            .iter()
-            .map(|entry| pcgen_import::PcgClassLevel {
-                class_id: entry.class_id.clone(),
-                level: entry.level,
-                hit_points_gained: entry.hit_points_gained,
-                hit_points_by_level: entry.hit_points_by_level.clone(),
-                experience_gained: entry.experience_gained,
-            })
-            .collect(),
-        skills: draft.skills.clone(),
-        spells: draft
-            .spells
-            .iter()
-            .map(|spell| pcgen_import::PcgSpell {
-                name: spell.name.clone(),
-                level: spell.level,
-                class_id: spell.class_id.clone(),
-                times_memorized: spell.times_memorized,
-                book: spell.book.clone(),
-            })
-            .collect(),
-        equipment: draft.equipment.clone(),
-        equipment_modifiers: draft.equipment_modifiers.clone(),
-        equipment_base_items: draft.equipment_base_items.clone(),
-        equipment_display_names: draft.equipment_display_names.clone(),
-        equip_slots: draft.equip_slots.clone(),
-        abilities: draft.abilities.clone(),
-        templates: draft.templates.clone(),
-        advancement: draft.advancement.clone(),
-        choices: draft.choices.clone(),
-        class_subclasses: draft.class_subclasses.clone(),
-        deity: draft.deity.clone(),
-        domains: draft.domains.clone(),
-        deity_domains: draft.deity_domains.clone(),
-    }
-}
+pub use pcgen_import::{draft_from_pcg, pcg_from_draft};
 
 fn run_recalculate(
     state: &AppState,
@@ -1305,7 +1219,8 @@ fn run_recalculate(
     let snapshot = engine.evaluate(&draft);
     let snapshot_json: serde_json::Value = serde_json::from_str(&render_json(&snapshot)?)?;
     let choices = serde_json::to_value(&snapshot.choices)?;
-    let ability_pool_usage = serde_json::to_value(&snapshot.ability_pool_usage)?;
+    let ability_pool_usage =
+        serde_json::to_value(snapshot.available(&snapshot.ability_pool_usage))?;
     let unresolved_choices = snapshot.unresolved_choices.clone();
     let hints = unresolved_hints(&draft, &unresolved_choices, &engine.pack);
     Ok(RecalculateResponse {
@@ -1528,7 +1443,7 @@ async fn pack_options(
     Query(query): Query<PackOptionsQuery>,
 ) -> impl IntoResponse {
     let pcc_path = resolve_path(&state.config.data_root, &query.pcc);
-    let engine = match cached_engine(&state, &pcc_path) {
+    let engine = match load_engine(&state, &pcc_path).await {
         Ok(engine) => engine,
         Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
     };
@@ -1627,7 +1542,7 @@ async fn spell_search_options(
     Query(query): Query<SpellOptionsQuery>,
 ) -> impl IntoResponse {
     let pcc_path = resolve_path(&state.config.data_root, &query.pcc);
-    let engine = match cached_engine(&state, &pcc_path) {
+    let engine = match load_engine(&state, &pcc_path).await {
         Ok(engine) => engine,
         Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
     };
@@ -1720,7 +1635,7 @@ async fn equipment_search_options(
     Query(query): Query<EquipmentOptionsQuery>,
 ) -> impl IntoResponse {
     let pcc_path = resolve_path(&state.config.data_root, &query.pcc);
-    let engine = match cached_engine(&state, &pcc_path) {
+    let engine = match load_engine(&state, &pcc_path).await {
         Ok(engine) => engine,
         Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
     };
@@ -1837,7 +1752,7 @@ async fn race_search_options(
     Query(query): Query<RaceOptionsQuery>,
 ) -> impl IntoResponse {
     let pcc_path = resolve_path(&state.config.data_root, &query.pcc);
-    let engine = match cached_engine(&state, &pcc_path) {
+    let engine = match load_engine(&state, &pcc_path).await {
         Ok(engine) => engine,
         Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
     };
@@ -1910,7 +1825,7 @@ async fn template_search_options(
     Query(query): Query<TemplateOptionsQuery>,
 ) -> impl IntoResponse {
     let pcc_path = resolve_path(&state.config.data_root, &query.pcc);
-    let engine = match cached_engine(&state, &pcc_path) {
+    let engine = match load_engine(&state, &pcc_path).await {
         Ok(engine) => engine,
         Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
     };
@@ -1959,7 +1874,7 @@ async fn ability_search_options(
     Query(query): Query<AbilityOptionsQuery>,
 ) -> impl IntoResponse {
     let pcc_path = resolve_path(&state.config.data_root, &query.pcc);
-    let engine = match cached_engine(&state, &pcc_path) {
+    let engine = match load_engine(&state, &pcc_path).await {
         Ok(engine) => engine,
         Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
     };
@@ -2043,7 +1958,7 @@ fn resolve_race_id(pack: &pcgen_ir::CompiledRulePack, value: &str) -> String {
     let uuid = value;
     pack.races
         .iter()
-        .find(|(_, race)| stable_id("option", &race.id) == uuid)
+        .find(|(_, race)| stable_id("race", &race.id) == uuid)
         .map(|(id, _)| id.clone())
         .unwrap_or_else(|| value.to_string())
 }
@@ -2063,7 +1978,7 @@ async fn preview_character(
     Json(body): Json<PreviewRequest>,
 ) -> impl IntoResponse {
     let pcc_path = resolve_path(&state.config.data_root, &body.pcc);
-    let engine = match cached_engine(&state, &pcc_path) {
+    let engine = match load_engine(&state, &pcc_path).await {
         Ok(engine) => engine,
         Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
     };
@@ -2075,6 +1990,7 @@ async fn preview_character(
         Err(error) => return api_error(StatusCode::BAD_REQUEST, error.to_string()),
     };
     let snapshot = engine.evaluate(&draft);
+    let values = serde_json::to_value(&snapshot).expect("snapshot serialization");
     let ecl = snapshot.total_level as i32
         + engine
             .pack
@@ -2083,16 +1999,20 @@ async fn preview_character(
             .map(|race| race.level_adjustment)
             .unwrap_or(0);
     Json(serde_json::json!({
-        "ability_pool_usage": snapshot.ability_pool_usage,
+        "rule_gaps": values["rule_gaps"],
+        "validity": values["validity"],
+        "ability_pool_usage": values["ability_pool_usage"],
         "preview": {
             "total_level": snapshot.total_level,
-            "ecl": ecl,
-            "stats": snapshot.stats,
-            "skill_points": snapshot.skill_points,
-            "feat_slots": snapshot.feat_slots,
-            "hit_points": snapshot.hit_points,
-            "base_attack_bonus": snapshot.base_attack_bonus,
-            "active_abilities": snapshot.active_abilities,
+            "ecl": snapshot.available(ecl),
+            "rule_gaps": values["rule_gaps"],
+            "validity": values["validity"],
+            "stats": values["stats"],
+            "skill_points": values["skill_points"],
+            "feat_slots": values["feat_slots"],
+            "hit_points": values["hit_points"],
+            "base_attack_bonus": values["base_attack_bonus"],
+            "active_abilities": values["active_abilities"],
             "templates": draft.templates,
         },
         "diagnostics": snapshot.diagnostics,
@@ -2105,7 +2025,7 @@ async fn create_character_from_request(
     Json(body): Json<CreateFromRequest>,
 ) -> impl IntoResponse {
     let pcc_path = resolve_path(&state.config.data_root, &body.pcc);
-    let engine = match cached_engine(&state, &pcc_path) {
+    let engine = match load_engine(&state, &pcc_path).await {
         Ok(engine) => engine,
         Err(error) => return api_error(StatusCode::BAD_REQUEST, error),
     };
@@ -2186,60 +2106,6 @@ pub fn apply_overrides(draft: &mut CharacterDraft, overrides: &DraftOverrides) {
     }
 }
 
-/// Convert a parsed `.pcg` draft into the engine draft.
-///
-/// Mirrors the CLI conversion so the Web API and CLI stay consistent.
-pub fn draft_from_pcg(draft: PcgDraft) -> CharacterDraft {
-    CharacterDraft {
-        id: format!("pcg:{}", draft.name),
-        name: draft.name,
-        race_id: draft.race_id,
-        campaign: draft.campaign,
-        alignment: draft.alignment,
-        gender: draft.gender,
-        character_type: draft.character_type,
-        stats: draft.stats,
-        class_levels: draft
-            .class_levels
-            .into_iter()
-            .map(|entry| DraftClassLevel {
-                class_id: entry.class_id,
-                level: entry.level,
-                hit_points_gained: entry.hit_points_gained,
-                hit_points_by_level: entry.hit_points_by_level,
-                experience_gained: entry.experience_gained,
-            })
-            .collect(),
-        advancement: draft.advancement,
-        skills: draft.skills,
-        spells: draft
-            .spells
-            .into_iter()
-            .map(|spell| DraftSpell {
-                name: spell.name,
-                level: spell.level,
-                class_id: spell.class_id,
-                times_memorized: spell.times_memorized,
-                book: spell.book,
-            })
-            .collect(),
-        equipment: draft.equipment,
-        equipment_modifiers: draft.equipment_modifiers,
-        equipment_base_items: draft.equipment_base_items,
-        equipment_display_names: draft.equipment_display_names,
-        equip_slots: draft.equip_slots,
-        abilities: draft.abilities,
-        templates: draft.templates,
-        active_states: Vec::new(),
-        choices: draft.choices,
-        companions: Vec::new(),
-        class_subclasses: draft.class_subclasses,
-        deity: draft.deity,
-        domains: draft.domains,
-        deity_domains: draft.deity_domains,
-    }
-}
-
 #[cfg(test)]
 mod variant_visibility_tests {
     use super::*;
@@ -2312,41 +2178,88 @@ mod variant_visibility_tests {
     }
 }
 
-#[cfg(test)]
-mod pack_cache_tests {
-    use super::*;
+mod rules;
 
-    #[test]
-    fn cache_key_changes_when_a_data_file_changes() {
-        let dir = std::env::temp_dir().join(format!("pcgen-cache-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        let pcc = dir.join("campaign.pcc");
-        let lst = dir.join("campaign.lst");
-        std::fs::write(&pcc, "CAMPAIGN:x\n").unwrap();
-        std::fs::write(&lst, "A\n").unwrap();
-
-        let before = pack_cache_key(&pcc);
-        // Touch the .lst so its mtime moves past the previous key.
-        std::thread::sleep(std::time::Duration::from_millis(1100));
-        std::fs::write(&lst, "B\n").unwrap();
-        let after = pack_cache_key(&pcc);
-
-        assert_ne!(
-            before, after,
-            "editing a .lst file must invalidate the cached pack"
-        );
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn cache_key_is_stable_without_changes() {
-        let dir = std::env::temp_dir().join(format!("pcgen-cache-stable-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        let pcc = dir.join("campaign.pcc");
-        std::fs::write(&pcc, "CAMPAIGN:x\n").unwrap();
-        assert_eq!(pack_cache_key(&pcc), pack_cache_key(&pcc));
-        let _ = std::fs::remove_dir_all(&dir);
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MagicPreviewRequest {
+    cast: pcgen_core::magic::CastRequest,
+    #[serde(default)]
+    entry_class: Option<String>,
+}
+async fn magic_preview(
+    State(state): State<AppState>,
+    AxumPath(id): AxumPath<String>,
+    Json(request): Json<MagicPreviewRequest>,
+) -> impl IntoResponse {
+    let result = (|| -> Result<serde_json::Value, String> {
+        let envelope = state.repository.load(&id).map_err(|e| e.to_string())?;
+        let pcc = envelope
+            .pcc
+            .as_deref()
+            .ok_or("Character has no rule database")?;
+        let engine = cached_engine(&state, &resolve_path(&state.config.data_root, pcc))?;
+        if let Some(target) = request.entry_class {
+            serde_json::to_value(engine.class_entry(
+                &envelope.character,
+                &target,
+                Some(&request.cast),
+            )?)
+            .map_err(|e| e.to_string())
+        } else {
+            serde_json::to_value(engine.cast_preview(&envelope.character, &request.cast)?)
+                .map_err(|e| e.to_string())
+        }
+    })();
+    match result {
+        Ok(result) => (
+            StatusCode::OK,
+            Json(serde_json::json!({"available":true,"result":result})),
+        )
+            .into_response(),
+        Err(error) => (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(serde_json::json!({"available":false,"error":error})),
+        )
+            .into_response(),
     }
 }
+
+mod workbench;
+
+mod editor;
+
+mod editor_fields;
+
+mod class_play;
+
+mod class_resource_forms;
+mod feature_forms;
+
+mod scene_forms;
+
+mod defense_forms;
+mod item_forms;
+
+mod character_context;
+mod forms;
+mod ui;
+
+mod library;
+
+mod necromancy_forms;
+
+mod tactical_forms;
+
+mod combat_forms;
+
+mod martial_forms;
+mod incarnum_forms;
+mod joker_forms;
+
+mod build_forms;
+
+mod spellcasting_forms;
+mod cases_forms;
+
+mod character_page;

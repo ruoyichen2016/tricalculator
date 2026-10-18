@@ -1,0 +1,460 @@
+{
+  "acquisition": {
+    "recorded_through": 0,
+    "decisions": [
+      {
+        "level": 0,
+        "subject": "Build history",
+        "status": "missing_evidence",
+        "explanation": "Some levels have incomplete acquisition records",
+        "source": null
+      },
+      {
+        "level": 4,
+        "subject": "Crusader",
+        "status": "failed",
+        "explanation": "Alignment: LG or NG or CG or LN or CN or LE or NE or CE",
+        "source": "Tome of Battle — pp.8-17, 39-40, 122-123. Local ability descriptions override Mettle level 12 typo (13). Numeric readiness tables cross-checked at https://www.dndtools.org/classes/swordsage/ and /crusader/. Original PDF retrieval failed; no claim of visual verification. Crusader alignment: original book p.8 excerpt at https://www.scribd.com/doc/49212252/Tome-of-Battle-3-5-OEF. Training is class-specific, not the local HighestInitiatorLVL shortcut. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/tome_of_battle/tob_classes.lst)"
+      },
+      {
+        "level": 4,
+        "subject": "Crusader",
+        "status": "not_implemented",
+        "explanation": "Full class progression and numeric tiers recorded. The martial stress replay executes the Shadow Pounce case; other class-specific encounter abilities are descriptive until their own resolver is provided.",
+        "source": "Tome of Battle — pp.8-17, 39-40, 122-123. Local ability descriptions override Mettle level 12 typo (13). Numeric readiness tables cross-checked at https://www.dndtools.org/classes/swordsage/ and /crusader/. Original PDF retrieval failed; no claim of visual verification. Crusader alignment: original book p.8 excerpt at https://www.scribd.com/doc/49212252/Tome-of-Battle-3-5-OEF. Training is class-specific, not the local HighestInitiatorLVL shortcut. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/tome_of_battle/tob_classes.lst)"
+      },
+      {
+        "level": 5,
+        "subject": "Swordsage",
+        "status": "not_implemented",
+        "explanation": "Full class progression and numeric tiers recorded. The martial stress replay executes the Shadow Pounce case; other class-specific encounter abilities are descriptive until their own resolver is provided.",
+        "source": "Tome of Battle — pp.8-17, 39-40, 122-123. Local ability descriptions override Mettle level 12 typo (13). Numeric readiness tables cross-checked at https://www.dndtools.org/classes/swordsage/ and /crusader/. Original PDF retrieval failed; no claim of visual verification. Crusader alignment: original book p.8 excerpt at https://www.scribd.com/doc/49212252/Tome-of-Battle-3-5-OEF. Training is class-specific, not the local HighestInitiatorLVL shortcut. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/tome_of_battle/tob_classes.lst)"
+      },
+      {
+        "level": 6,
+        "subject": "Crinti Shadow Marauder",
+        "status": "satisfied",
+        "explanation": "Alignment: LN or N or CN or LE or NE or CE",
+        "source": "Shining South — pp.23-24 transcribed class entry. Local shs_classes.lst is an unimplemented comment. Primary PDF retrieval failed; this is a secondary transcription. (https://www.dndtools.org/classes/crinti-shadow-marauder/)"
+      },
+      {
+        "level": 6,
+        "subject": "Crinti Shadow Marauder",
+        "status": "missing_evidence",
+        "explanation": "Meet 4 skill requirement(s): Handle Animal 4 ranks; Hide 8 ranks; Move Silently 8 ranks; Ride 8 ranks",
+        "source": "Shining South — pp.23-24 transcribed class entry. Local shs_classes.lst is an unimplemented comment. Primary PDF retrieval failed; this is a secondary transcription. (https://www.dndtools.org/classes/crinti-shadow-marauder/)"
+      },
+      {
+        "level": 6,
+        "subject": "Crinti Shadow Marauder",
+        "status": "not_implemented",
+        "explanation": "Full class progression and numeric tiers recorded. The martial stress replay executes the Shadow Pounce case; other class-specific encounter abilities are descriptive until their own resolver is provided.",
+        "source": "Shining South — pp.23-24 transcribed class entry. Local shs_classes.lst is an unimplemented comment. Primary PDF retrieval failed; this is a secondary transcription. (https://www.dndtools.org/classes/crinti-shadow-marauder/)"
+      },
+      {
+        "level": 6,
+        "subject": "Crinti Shadow Marauder",
+        "status": "missing_evidence",
+        "explanation": "dambrath_region",
+        "source": "Shining South — pp.23-24 transcribed class entry. Local shs_classes.lst is an unimplemented comment. Primary PDF retrieval failed; this is a secondary transcription. (https://www.dndtools.org/classes/crinti-shadow-marauder/)"
+      },
+      {
+        "level": 6,
+        "subject": "Crinti Shadow Marauder",
+        "status": "missing_evidence",
+        "explanation": "crinti_or_noble_sanction",
+        "source": "Shining South — pp.23-24 transcribed class entry. Local shs_classes.lst is an unimplemented comment. Primary PDF retrieval failed; this is a secondary transcription. (https://www.dndtools.org/classes/crinti-shadow-marauder/)"
+      },
+      {
+        "level": 11,
+        "subject": "Swashbuckler",
+        "status": "not_implemented",
+        "explanation": "Full class progression and numeric tiers recorded. The martial stress replay executes the Shadow Pounce case; other class-specific encounter abilities are descriptive until their own resolver is provided.",
+        "source": "Complete Warrior — Swashbuckler pp.11-12; local cw_abilities.lst. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/complete_warrior/cw_classes.lst)"
+      },
+      {
+        "level": 12,
+        "subject": "Ruby Knight Vindicator",
+        "status": "satisfied",
+        "explanation": "Deity requirement (1): Wee Jas",
+        "source": "Tome of Battle — pp.8-17, 39-40, 122-123. Local ability descriptions override Mettle level 12 typo (13). Numeric readiness tables cross-checked at https://www.dndtools.org/classes/swordsage/ and /crusader/. Original PDF retrieval failed; no claim of visual verification. Crusader alignment: original book p.8 excerpt at https://www.scribd.com/doc/49212252/Tome-of-Battle-3-5-OEF. Training is class-specific, not the local HighestInitiatorLVL shortcut. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/tome_of_battle/tob_classes.lst)"
+      },
+      {
+        "level": 12,
+        "subject": "Ruby Knight Vindicator",
+        "status": "missing_evidence",
+        "explanation": "Meet 3 skill requirement(s): Hide 4 ranks; Intimidate 4 ranks; Knowledge (Religion) 8 ranks",
+        "source": "Tome of Battle — pp.8-17, 39-40, 122-123. Local ability descriptions override Mettle level 12 typo (13). Numeric readiness tables cross-checked at https://www.dndtools.org/classes/swordsage/ and /crusader/. Original PDF retrieval failed; no claim of visual verification. Crusader alignment: original book p.8 excerpt at https://www.scribd.com/doc/49212252/Tome-of-Battle-3-5-OEF. Training is class-specific, not the local HighestInitiatorLVL shortcut. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/tome_of_battle/tob_classes.lst)"
+      },
+      {
+        "level": 12,
+        "subject": "Ruby Knight Vindicator",
+        "status": "not_implemented",
+        "explanation": "Full class progression and numeric tiers recorded. The martial stress replay executes the Shadow Pounce case; other class-specific encounter abilities are descriptive until their own resolver is provided.",
+        "source": "Tome of Battle — pp.8-17, 39-40, 122-123. Local ability descriptions override Mettle level 12 typo (13). Numeric readiness tables cross-checked at https://www.dndtools.org/classes/swordsage/ and /crusader/. Original PDF retrieval failed; no claim of visual verification. Crusader alignment: original book p.8 excerpt at https://www.scribd.com/doc/49212252/Tome-of-Battle-3-5-OEF. Training is class-specific, not the local HighestInitiatorLVL shortcut. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/tome_of_battle/tob_classes.lst)"
+      },
+      {
+        "level": 12,
+        "subject": "Ruby Knight Vindicator",
+        "status": "missing_evidence",
+        "explanation": "rkv_devoted_spirit_maneuver",
+        "source": "Tome of Battle — pp.8-17, 39-40, 122-123. Local ability descriptions override Mettle level 12 typo (13). Numeric readiness tables cross-checked at https://www.dndtools.org/classes/swordsage/ and /crusader/. Original PDF retrieval failed; no claim of visual verification. Crusader alignment: original book p.8 excerpt at https://www.scribd.com/doc/49212252/Tome-of-Battle-3-5-OEF. Training is class-specific, not the local HighestInitiatorLVL shortcut. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/tome_of_battle/tob_classes.lst)"
+      },
+      {
+        "level": 12,
+        "subject": "Ruby Knight Vindicator",
+        "status": "missing_evidence",
+        "explanation": "rkv_devoted_spirit_stance",
+        "source": "Tome of Battle — pp.8-17, 39-40, 122-123. Local ability descriptions override Mettle level 12 typo (13). Numeric readiness tables cross-checked at https://www.dndtools.org/classes/swordsage/ and /crusader/. Original PDF retrieval failed; no claim of visual verification. Crusader alignment: original book p.8 excerpt at https://www.scribd.com/doc/49212252/Tome-of-Battle-3-5-OEF. Training is class-specific, not the local HighestInitiatorLVL shortcut. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/tome_of_battle/tob_classes.lst)"
+      },
+      {
+        "level": 12,
+        "subject": "Ruby Knight Vindicator",
+        "status": "missing_evidence",
+        "explanation": "rkv_turn_or_rebuke",
+        "source": "Tome of Battle — pp.8-17, 39-40, 122-123. Local ability descriptions override Mettle level 12 typo (13). Numeric readiness tables cross-checked at https://www.dndtools.org/classes/swordsage/ and /crusader/. Original PDF retrieval failed; no claim of visual verification. Crusader alignment: original book p.8 excerpt at https://www.scribd.com/doc/49212252/Tome-of-Battle-3-5-OEF. Training is class-specific, not the local HighestInitiatorLVL shortcut. (data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/tome_of_battle/tob_classes.lst)"
+      },
+      {
+        "level": 1,
+        "subject": "Two-Weapon Fighting",
+        "status": "satisfied",
+        "explanation": "DEX at least 15",
+        "source": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst"
+      },
+      {
+        "level": 1,
+        "subject": "Mounted Combat",
+        "status": "missing_evidence",
+        "explanation": "Meet 1 skill requirement(s): Ride 1 ranks",
+        "source": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst"
+      },
+      {
+        "level": 1,
+        "subject": "Stealthy",
+        "status": "satisfied",
+        "explanation": "Recorded acquisition prerequisites satisfied; feat-slot allocation is checked separately",
+        "source": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst"
+      },
+      {
+        "level": 1,
+        "subject": "Extra Turning",
+        "status": "satisfied",
+        "explanation": "AllowExtraTurning: at least 1",
+        "source": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst"
+      },
+      {
+        "level": 3,
+        "subject": "Extra Turning",
+        "status": "satisfied",
+        "explanation": "AllowExtraTurning: at least 1",
+        "source": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst"
+      },
+      {
+        "level": 5,
+        "subject": "Weapon Focus",
+        "status": "satisfied",
+        "explanation": "Requires BAB 1; actual BAB 3",
+        "source": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst"
+      },
+      {
+        "level": 6,
+        "subject": "Shadow Blade",
+        "status": "not_implemented",
+        "explanation": "No structured feat definition",
+        "source": null
+      },
+      {
+        "level": 8,
+        "subject": "Ride-By Attack",
+        "status": "satisfied",
+        "explanation": "Have 1 FEAT selection(s) from Mounted Combat; excluded: none",
+        "source": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst"
+      },
+      {
+        "level": 8,
+        "subject": "Ride-By Attack",
+        "status": "missing_evidence",
+        "explanation": "Meet 1 skill requirement(s): Ride 1 ranks",
+        "source": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst"
+      },
+      {
+        "level": 9,
+        "subject": "Improved Two-Weapon Fighting",
+        "status": "satisfied",
+        "explanation": "Have 1 FEAT selection(s) from Two-Weapon Fighting; excluded: none",
+        "source": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst"
+      },
+      {
+        "level": 9,
+        "subject": "Improved Two-Weapon Fighting",
+        "status": "satisfied",
+        "explanation": "DEX at least 17",
+        "source": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst"
+      },
+      {
+        "level": 9,
+        "subject": "Improved Two-Weapon Fighting",
+        "status": "satisfied",
+        "explanation": "Requires BAB 6; actual BAB 6",
+        "source": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst"
+      },
+      {
+        "level": 11,
+        "subject": "Weapon Finesse",
+        "status": "satisfied",
+        "explanation": "Requires BAB 1; actual BAB 7",
+        "source": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst"
+      },
+      {
+        "level": 12,
+        "subject": "Greater Two-Weapon Fighting",
+        "status": "satisfied",
+        "explanation": "Have 2 FEAT selection(s) from Two-Weapon Fighting, Improved Two-Weapon Fighting; excluded: none",
+        "source": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst"
+      },
+      {
+        "level": 12,
+        "subject": "Greater Two-Weapon Fighting",
+        "status": "satisfied",
+        "explanation": "DEX at least 19",
+        "source": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst"
+      },
+      {
+        "level": 12,
+        "subject": "Greater Two-Weapon Fighting",
+        "status": "failed",
+        "explanation": "Requires BAB 11; actual BAB 8",
+        "source": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst"
+      },
+      {
+        "level": 15,
+        "subject": "Craven",
+        "status": "not_implemented",
+        "explanation": "No structured feat definition",
+        "source": null
+      },
+      {
+        "level": 18,
+        "subject": "Extra Turning",
+        "status": "satisfied",
+        "explanation": "AllowExtraTurning: at least 1",
+        "source": "/home/ursa/worksphere/gladius/raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst"
+      },
+      {
+        "level": 0,
+        "subject": "Coverage",
+        "status": "not_implemented",
+        "explanation": "Chronology, rank caps, class entry and recorded feat prerequisites are audited. Full skill-point budgets, every feat source, known-spell quotas and retraining dependencies are not yet certified.",
+        "source": null
+      }
+    ]
+  },
+  "name": "Madly Pouncing RKV - original forum proposal",
+  "class_levels": {
+    "Cleric": 3,
+    "Crinti Shadow Marauder": 5,
+    "Crusader": 1,
+    "Ruby Knight Vindicator": 7,
+    "Swashbuckler": 1,
+    "Swordsage": 3
+  },
+  "base_attack_bonus": 16,
+  "base_saves": {
+    "Fortitude": 11,
+    "Reflex": 10,
+    "Will": 12
+  },
+  "training": {
+    "tracks": {
+      "Crusader": {
+        "initiator_level": 14,
+        "known_capacity": 6,
+        "readied_capacity": 5,
+        "stance_capacity": 2,
+        "granted": 2,
+        "known": [
+          "Charging Minotaur",
+          "Crusader's Strike",
+          "Divine Surge",
+          "Douse The Flames",
+          "Stone Bones",
+          "Vanguard Strike"
+        ],
+        "stances": [
+          "Aura of Chaos",
+          "Martial Spirit"
+        ]
+      },
+      "Swordsage": {
+        "initiator_level": 15,
+        "known_capacity": 9,
+        "readied_capacity": 6,
+        "stance_capacity": 3,
+        "granted": 0,
+        "known": [
+          "Burning Blade",
+          "Burning Brand",
+          "Clinging Shadow Strike",
+          "Cloak of Deception",
+          "Flashing Sun",
+          "Inferno Blade",
+          "Shadow Blink",
+          "Shadow Jaunt",
+          "Shadow Stride"
+        ],
+        "stances": [
+          "Assassin's Stance",
+          "Fiery Assault",
+          "Island of Blades"
+        ]
+      }
+    },
+    "errors": [
+      "Level 17 / Divine Surge, Greater: Maneuver level 8 needs IL 15; current IL 12"
+    ]
+  },
+  "build_errors": [
+    "Level 4: Crusader: Alignment: LG or NG or CG or LN or CN or LE or NE or CE",
+    "Level 12: Greater Two-Weapon Fighting: Requires BAB 11; actual BAB 8",
+    "Wee Jas cleric alignment must be within one step of LN; True Neutral is not permitted for a non-neutral deity",
+    "Wee Jas does not grant Undeath in the standard deity entry"
+  ],
+  "unresolved": [
+    "No per-level skill spending, base ability purchase or item acquisition history was supplied; entry skills and feat ability thresholds are not certified.",
+    "Human Crinti entry needs Dambrath region and noble sanction; not established by the post.",
+    "HP 154 cannot be verified without level-by-level HP inputs.",
+    "Bracers are not light armor: the literal Swordsage AC bonus condition is not met. An unarmored allowance requires a ruling.",
+    "Belt of Magnificence and Battle is a custom combined item requiring approval; Belt of Battle also grants +2 initiative.",
+    "Craven qualification through a stance and the favored campaign's deity/domain adaptations need explicit adjudication."
+  ],
+  "strict": {
+    "errors": [
+      "Level 17 / Divine Surge, Greater: Maneuver level 8 needs IL 15; current IL 12",
+      "Level 4: Crusader: Alignment: LG or NG or CG or LN or CN or LE or NE or CE",
+      "Level 12: Greater Two-Weapon Fighting: Requires BAB 11; actual BAB 8",
+      "Wee Jas cleric alignment must be within one step of LN; True Neutral is not permitted for a non-neutral deity",
+      "Wee Jas does not grant Undeath in the standard deity entry"
+    ],
+    "log": [],
+    "turning_remaining": 29,
+    "full_attacks": 0,
+    "main_attacks": 0,
+    "off_attacks": 0,
+    "conditional": false,
+    "main_attack_bonuses": [],
+    "off_attack_bonuses": [],
+    "hit_damage_min": 0,
+    "hit_damage_max": 0,
+    "all_hit_average": null,
+    "damage_notes": []
+  },
+  "resource_probe": {
+    "errors": [],
+    "log": [
+      "1: Initiate { track: \"Swordsage\", maneuver: \"Inferno Blade\" }; full attacks +0; turn attempts 29",
+      "2: Initiate { track: \"Swordsage\", maneuver: \"Shadow Jaunt\" }; full attacks +1; turn attempts 29",
+      "3: Impetus; full attacks +0; turn attempts 28",
+      "4: Belt { charges: 3 }; full attacks +0; turn attempts 28",
+      "5: FullAttack; full attacks +1; turn attempts 28",
+      "6: Initiate { track: \"Swordsage\", maneuver: \"Shadow Stride\" }; full attacks +1; turn attempts 28",
+      "7: Impetus; full attacks +0; turn attempts 27",
+      "8: Initiate { track: \"Swordsage\", maneuver: \"Shadow Blink\" }; full attacks +1; turn attempts 27",
+      "9: Impetus; full attacks +0; turn attempts 26",
+      "10: Recovery { track: \"Swordsage\", maneuver: \"Shadow Blink\" }; full attacks +0; turn attempts 25",
+      "11: Impetus; full attacks +0; turn attempts 24",
+      "12: Initiate { track: \"Swordsage\", maneuver: \"Shadow Blink\" }; full attacks +1; turn attempts 24",
+      "13: Impetus; full attacks +0; turn attempts 23",
+      "14: Recovery { track: \"Swordsage\", maneuver: \"Shadow Blink\" }; full attacks +0; turn attempts 22",
+      "15: Impetus; full attacks +0; turn attempts 21",
+      "16: Initiate { track: \"Swordsage\", maneuver: \"Shadow Blink\" }; full attacks +1; turn attempts 21",
+      "17: Impetus; full attacks +0; turn attempts 20",
+      "18: Recovery { track: \"Swordsage\", maneuver: \"Shadow Blink\" }; full attacks +0; turn attempts 19",
+      "19: Impetus; full attacks +0; turn attempts 18",
+      "20: Initiate { track: \"Swordsage\", maneuver: \"Shadow Blink\" }; full attacks +1; turn attempts 18",
+      "21: Impetus; full attacks +0; turn attempts 17",
+      "22: Recovery { track: \"Swordsage\", maneuver: \"Shadow Blink\" }; full attacks +0; turn attempts 16",
+      "23: Impetus; full attacks +0; turn attempts 15",
+      "24: Initiate { track: \"Swordsage\", maneuver: \"Shadow Blink\" }; full attacks +1; turn attempts 15",
+      "25: Impetus; full attacks +0; turn attempts 14",
+      "26: Recovery { track: \"Swordsage\", maneuver: \"Shadow Blink\" }; full attacks +0; turn attempts 13",
+      "27: Impetus; full attacks +0; turn attempts 12",
+      "28: Initiate { track: \"Swordsage\", maneuver: \"Shadow Blink\" }; full attacks +1; turn attempts 12",
+      "29: Impetus; full attacks +0; turn attempts 11",
+      "30: Recovery { track: \"Swordsage\", maneuver: \"Shadow Blink\" }; full attacks +0; turn attempts 10",
+      "31: Impetus; full attacks +0; turn attempts 9",
+      "32: Initiate { track: \"Swordsage\", maneuver: \"Shadow Blink\" }; full attacks +1; turn attempts 9",
+      "33: Impetus; full attacks +0; turn attempts 8",
+      "34: Recovery { track: \"Swordsage\", maneuver: \"Shadow Blink\" }; full attacks +0; turn attempts 7",
+      "35: Impetus; full attacks +0; turn attempts 6",
+      "36: Initiate { track: \"Swordsage\", maneuver: \"Shadow Blink\" }; full attacks +1; turn attempts 6",
+      "37: Impetus; full attacks +0; turn attempts 5",
+      "38: Recovery { track: \"Swordsage\", maneuver: \"Shadow Blink\" }; full attacks +0; turn attempts 4",
+      "39: Impetus; full attacks +0; turn attempts 3",
+      "40: Initiate { track: \"Swordsage\", maneuver: \"Shadow Blink\" }; full attacks +1; turn attempts 3",
+      "41: Impetus; full attacks +0; turn attempts 2",
+      "42: Recovery { track: \"Swordsage\", maneuver: \"Shadow Blink\" }; full attacks +0; turn attempts 1",
+      "43: Impetus; full attacks +0; turn attempts 0",
+      "44: Initiate { track: \"Swordsage\", maneuver: \"Shadow Blink\" }; full attacks +1; turn attempts 0"
+    ],
+    "turning_remaining": 0,
+    "full_attacks": 13,
+    "main_attacks": 65,
+    "off_attacks": 39,
+    "conditional": true,
+    "main_attack_bonuses": [
+      35,
+      35,
+      30,
+      25,
+      20
+    ],
+    "off_attack_bonuses": [
+      35,
+      30,
+      25
+    ],
+    "hit_damage_min": 6682,
+    "hit_damage_max": 11882,
+    "all_hit_average": 9282.0,
+    "damage_notes": [
+      "Every attack assumed to hit; no criticals or physical DR. Precision assumes visible, reachable vitals. Teleportation does not itself deny Dexterity. Gear: two +5 martial-discipline short swords."
+    ]
+  },
+  "action_rules_probe": {
+    "errors": [
+      "Action 3: Divine Impetus requires a standard action; free activation is a house ruling"
+    ],
+    "log": [
+      "1: Initiate { track: \"Swordsage\", maneuver: \"Inferno Blade\" }; full attacks +0; turn attempts 29",
+      "2: Initiate { track: \"Swordsage\", maneuver: \"Shadow Jaunt\" }; full attacks +1; turn attempts 29"
+    ],
+    "turning_remaining": 29,
+    "full_attacks": 1,
+    "main_attacks": 5,
+    "off_attacks": 3,
+    "conditional": false,
+    "main_attack_bonuses": [
+      35,
+      35,
+      30,
+      25,
+      20
+    ],
+    "off_attack_bonuses": [
+      35,
+      30,
+      25
+    ],
+    "hit_damage_min": 514,
+    "hit_damage_max": 914,
+    "all_hit_average": null,
+    "damage_notes": [
+      "Every attack assumed to hit; no criticals or physical DR. Precision assumes visible, reachable vitals. Teleportation does not itself deny Dexterity. Gear: two +5 martial-discipline short swords."
+    ]
+  },
+  "resource_probe_assumptions": [
+    "Remove the illegal Greater Divine Surge selection; all attack feats assumed available.",
+    "Allow free Divine Impetus and the claimed Undeath domain; this is not a legal-build result.",
+    "One Nightstick only, prepared teleport maneuvers, pre-existing Assassin's Stance, activated Boots of Speed, and the chosen target conditions."
+  ]
+}

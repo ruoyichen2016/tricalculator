@@ -4,7 +4,7 @@
 //! `DefineVariable` and `ModifyFormula`, applies modifiers to a runtime
 //! variable table, and records `CHOOSE` resolution.
 
-use crate::draft::{CharacterDraft, DraftClassLevel};
+use crate::draft::{CharacterDraft, ClassLevelSummary};
 use pcgen_core::progression::SaveKind;
 use pcgen_core::CompiledRulePack;
 use pcgen_core::{CastingType, SpellPowerType};
@@ -30,22 +30,12 @@ struct PendingFormula {
     source_key: Option<String>,
 }
 
-/// A `BONUS:VAR|A,B|expr` waiting for its expression to resolve.
-///
-/// The names are already a list: lowering split them, so the engine never has
-/// to parse a comma-separated string out of a target.
-struct PendingVariable {
-    names: Vec<String>,
-    expression: String,
-    source_key: Option<String>,
-}
-
 #[derive(Debug, Clone, Default)]
 pub struct EffectState {
     pub variables: BTreeMap<String, i32>,
-    /// Variables explicitly changed by `BONUS:VAR` / `SetVariable`; defined
-    /// variables must not overwrite these on later resolution passes.
-    pub explicit_variables: BTreeSet<String>,
+    /// Failed active definitions are unknown, distinct from absent raw variables.
+    pub unresolved_variables: BTreeSet<String>,
+    pub unresolved_derived: BTreeSet<String>,
     /// Ability modifiers (`STR`..`CHA`) available to PCGen formulas.
     pub ability_modifiers: BTreeMap<String, i32>,
     pub external_modifiers: BTreeMap<String, i32>,
@@ -226,6 +216,19 @@ pub struct EffectState {
 
 impl VariableResolver for EffectState {
     fn resolve(&self, name: &str) -> Option<FormulaValue> {
+        if let Some((category, kind)) = pcgen_core::formula_vocab::ability_count_selectors(name) {
+            let count = self
+                .active_abilities
+                .iter()
+                .filter(|key| {
+                    self.ability_traits.get(&normalized(key)).is_some_and(|a| {
+                        a.category.eq_ignore_ascii_case(&category)
+                            && a.types.iter().any(|t| t.eq_ignore_ascii_case(&kind))
+                    })
+                })
+                .count();
+            return Some(FormulaValue::Int(count as i64));
+        }
         self.variables
             .get(name)
             .copied()
@@ -240,6 +243,7 @@ impl VariableResolver for EffectState {
 
 /// Apply all effects reachable from the draft.
 pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectState {
+    if draft.build_history.is_some() { return match draft.materialized() { Ok(d) => apply_effects(pack, &d), Err(error) => EffectState {diagnostics:vec![error],..Default::default()} }; }
     // Resolve base size from the draft's race so PREBASESIZE* predicates work.
     let base_size = pack
         .races
@@ -297,16 +301,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
             )
         })
         .collect();
-    let mut skill_types: BTreeMap<String, Vec<String>> = BTreeMap::new();
-    for definition in pack.skills.values() {
-        for tag in &definition.type_tags {
-            let entry = skill_types.entry(tag.to_ascii_lowercase()).or_default();
-            entry.push(definition.id.clone());
-            if !definition.name.is_empty() {
-                entry.push(definition.name.clone());
-            }
-        }
-    }
+    let skill_types = skill_type_index(pack);
     // `PRECSKILL` asks whether a skill is a *class skill*, which is a property of
     // the character's classes rather than of anything spent.  It has to be known
     // before the effect loop, like vision and the base saves.
@@ -339,11 +334,14 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
                 .push(spell.level);
         }
     }
-    let race_creature_type = pack
-        .races
-        .get(&draft.race_id)
-        .and_then(|race| race.traits.race_type.clone())
-        .map(|kind| kind.to_ascii_lowercase());
+    let race_creature_type = if draft.class_play.necromancy.lich {
+        Some("undead".into())
+    } else {
+        pack.races
+            .get(&draft.race_id)
+            .and_then(|race| race.traits.race_type.clone())
+            .map(|kind| kind.to_ascii_lowercase())
+    };
     let race_subtypes = pack
         .races
         .get(&draft.race_id)
@@ -383,10 +381,15 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         })
         .collect();
     let initial = initial_entities(pack, draft);
-    let prereq_bab = crate::bab::derive_prereq_bab(pack, draft, &initial);
-    let base_saves = crate::bab::derive_base_saves(pack, draft);
-    let (spell_powers, max_spell_level, spell_slots_by_type, has_spellbook, class_casting) =
-        derive_spellcasting_prereq(pack, draft);
+
+    let (
+        spell_powers,
+        max_spell_level,
+        spell_slots_by_type,
+        has_spellbook,
+        class_casting,
+        casting_errors,
+    ) = derive_spellcasting_prereq(pack, draft);
     let race = pack.races.get(&draft.race_id);
     let mut templates: BTreeSet<String> = race
         .map(|race| race.templates.clone())
@@ -402,18 +405,8 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
     // `PREVISION` and `PRESRGTEQ` could not be answered at all.  Neither merge
     // needs a gate evaluated, so both can be done here, before the effect loop.
     let mut vision: Vec<String> = Vec::new();
-    let mut spell_resistance: Option<i32> = None;
     let mut absorb = |traits: &pcgen_core::CreatureTraits| {
         vision.extend(traits.vision.iter().cloned());
-        if let Some(value) = traits.spell_resistance.as_deref().and_then(|raw| {
-            raw.chars()
-                .filter(char::is_ascii_digit)
-                .collect::<String>()
-                .parse::<i32>()
-                .ok()
-        }) {
-            spell_resistance = Some(spell_resistance.map_or(value, |old| old.max(value)));
-        }
     };
     if let Some(race) = pack.races.get(&draft.race_id) {
         absorb(&race.traits);
@@ -545,6 +538,19 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         .iter()
         .map(|(_, key)| normalized(key))
         .collect();
+    for class in crate::engine::effective_class_levels(pack, draft) {
+        if let Some(magic) = crate::magic::class_magic(pack, &class.class_id) {
+            for grant in magic
+                .proficiencies
+                .iter()
+                .filter(|g| g.level <= class.level)
+            {
+                for group in &grant.weapon_groups {
+                    seed_weapon_bonus(pack, &mut weapon_proficiencies, &format!("TYPE.{group}"));
+                }
+            }
+        }
+    }
     let mut languages: BTreeSet<String> = BTreeSet::new();
     for &index in &initial {
         if let Some(entity) = pack.entities.get(index) {
@@ -567,8 +573,10 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         }
     }
     let mut ability_modifiers = BTreeMap::new();
+    let mut diagnostics = Vec::new();
+    let mut unresolved_variables = BTreeSet::new();
     {
-        let mut stats = draft.stats.clone();
+        let mut stats = crate::feature_resolution::encounter_stats(draft);
         if let Some(race) = pack.races.get(&draft.race_id) {
             for (stat, adjustment) in &race.ability_adjustments {
                 *stats.entry(stat.clone()).or_insert(10) += adjustment;
@@ -576,24 +584,22 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         }
         for stat in ["STR", "DEX", "CON", "INT", "WIS", "CHA"] {
             let score = stats.get(stat).copied().unwrap_or(10);
-            ability_modifiers.insert(stat.to_string(), (score - 10).div_euclid(2));
+            match crate::derived::report(
+                crate::engine::stat_modifier_for_pack(pack, stat, score),
+                &mut diagnostics,
+            ) {
+                Some(value) => {
+                    ability_modifiers.insert(stat.to_string(), value);
+                }
+                None => {
+                    unresolved_variables.insert(stat.to_string());
+                }
+            }
         }
     }
-    // `PRECHECK` asks for the total save, which is the base save plus the save's
-    // ability modifier.  Built here rather than in the snapshot because
-    // `predicate_holds` runs inside the effect loop and cannot see it there.
-    let total_saves: BTreeMap<SaveKind, i32> =
-        [SaveKind::Fortitude, SaveKind::Reflex, SaveKind::Will]
-            .into_iter()
-            .map(|kind| {
-                let base = base_saves.get(&kind).copied().unwrap_or(0);
-                (
-                    kind,
-                    base + crate::engine::save_ability_modifier(&ability_modifiers, kind),
-                )
-            })
-            .collect();
     let mut state = EffectState {
+        diagnostics,
+        unresolved_variables,
         size: base_size,
         legs,
         race_types,
@@ -608,7 +614,6 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         ability_traits,
         class_traits,
         vision,
-        spell_resistance,
         region: match (region.as_deref(), subregion.as_deref()) {
             (Some(region), Some(subregion)) => format!("{region} ({subregion})"),
             (Some(region), None) => region.to_string(),
@@ -619,10 +624,6 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         },
         character_class_levels: class_levels,
         ability_modifiers,
-        total_bab: prereq_bab,
-        highest_class_bab: crate::bab::max_class_bab(pack, draft),
-        base_saves,
-        total_saves,
         spell_powers,
         max_spell_level,
         spell_slots_by_type,
@@ -650,6 +651,42 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         hit_dice: draft.total_level(),
         ..EffectState::default()
     };
+    state.diagnostics.extend(casting_errors);
+    for class in crate::engine::effective_class_levels(pack, draft) {
+        if let Some(m) = crate::magic::class_magic(pack, &class.class_id) {
+            for g in m.sudden_grants.iter().filter(|g| g.level <= class.level) {
+                if let Some(feat) = pack
+                    .entities
+                    .iter()
+                    .find(|e| e.name.eq_ignore_ascii_case(&g.feat))
+                {
+                    state.active_abilities.insert(feat.id.key.clone());
+                }
+            }
+        }
+    }
+
+    // Selected abilities and granted abilities use the same identity set.
+    state.active_abilities.extend(
+        pack.entities
+            .iter()
+            .filter(|e| e.category.is_ability_like() && ability_matches_draft(draft, e))
+            .map(|e| e.id.key.clone()),
+    );
+    let flaws: Vec<_> = pack
+        .entities
+        .iter()
+        .filter(|e| {
+            e.category.is_ability_like()
+                && e.type_tags.iter().any(|t| t.eq_ignore_ascii_case("Flaw"))
+                && ability_matches_draft(draft, e)
+        })
+        .collect();
+    if flaws.len() > 2 {
+        state
+            .diagnostics
+            .push("At most two creation flaws are permitted".into());
+    }
     // The runtime formula vocabulary.  PCGen's `CL` / `TL` / `classlevel(...)`
     // are translated at lowering time (see `pcgen_core::formula_vocab`), so the
     // engine only has to publish the values those names refer to.  Doing it
@@ -658,6 +695,10 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
     state.variables.insert(
         pcgen_core::formula_vocab::CHARACTER_LEVEL.to_string(),
         draft.total_level() as i32,
+    );
+    state.variables.insert(
+        pcgen_core::formula_vocab::HIT_DICE.to_string(),
+        state.hit_dice as i32,
     );
     for entry in crate::engine::effective_class_levels(pack, draft) {
         state.variables.insert(
@@ -668,59 +709,61 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
     state
         .diagnostics
         .extend(crate::bab::bab_cycle_diagnostics(pack, &initial));
+    // Conditions read the previous complete result; every round is rebuilt
+    // from the same seed, so an invalidated gate retracts its effects. The
+    // activation signature is finite: recurrence is a rule cycle, not a reason
+    // to keep adding bonuses or impose an arbitrary iteration limit.
+    let seed = state;
+    let mut previous = seed.clone();
+    let mut seen = BTreeSet::new();
+    let mut last = None;
+    loop {
+        let (mut next, signature) = execute_effects(pack, draft, &initial, seed.clone(), &previous);
+        if last.as_ref() == Some(&signature) {
+            return next;
+        }
+        if !seen.insert(signature.clone()) {
+            next.diagnostics.push(
+                "effect activation dependency cycle; conditional effects have no stable result"
+                    .into(),
+            );
+            return next;
+        }
+        last = Some(signature);
+        previous = next;
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct Activation {
+    entities: BTreeSet<usize>,
+    effects: BTreeSet<(usize, usize)>,
+    variants: BTreeSet<(String, usize)>,
+    damage_reduction: BTreeMap<String, i32>,
+    grants: BTreeSet<String>,
+    choices: BTreeMap<String, String>,
+    bindings: BTreeMap<String, Vec<String>>,
+}
+
+fn execute_effects(
+    pack: &CompiledRulePack,
+    draft: &CharacterDraft,
+    initial: &[usize],
+    mut state: EffectState,
+    condition_state: &EffectState,
+) -> (EffectState, Activation) {
+    let mut applied = BTreeSet::new();
     let mut active: BTreeSet<usize> = BTreeSet::new();
     let mut queued: BTreeSet<usize> = BTreeSet::new();
     let mut processed_variant_effects: BTreeSet<(String, usize)> = BTreeSet::new();
 
-    // Every `DEFINE`/`VAR` for a name, not just the last: PCGen "keeps the one
-    // with the higher value" when several objects define the same variable.
-    let mut variable_defs: BTreeMap<String, Vec<String>> = BTreeMap::new();
-
-    // A pre-pass over the initially-selected entities, so a variable a
-    // predicate needs is known *before* the effect loop rather than after it.
-    // A vision range is the case that matters: `VISION:Darkvision
-    // (DarkvisionRange)` carries its distance in a variable, and
-    // `PREVISION:1,Darkvision=120` is evaluated while grants are still being
-    // applied — by the time the usual `resolve_variables` pass runs, the answer
-    // has already been needed.
-    for index in &initial {
-        if let Some(entity) = pack.entities.get(*index) {
-            for effect in &entity.effects {
-                if let EffectAction::DefineVariable { name, expression } = &effect.action {
-                    variable_defs
-                        .entry(name.clone())
-                        .or_default()
-                        .push(expression.clone());
-                }
-            }
-        }
-    }
-    resolve_variables(&mut state, &variable_defs);
-
-    // Collect the special abilities of the initially-active entities before the
-    // effect loop: `PRESA` is a prerequisite on feats and abilities, and the loop
-    // evaluates a prerequisite when it reaches the entity carrying it, so reading
-    // the set as it is built would make the answer depend on entity order.
-    let mut abilities: Vec<String> = Vec::new();
-    for index in &initial {
-        let Some(entity) = pack.entities.get(*index) else {
-            continue;
-        };
-        for effect in &entity.effects {
-            if let EffectAction::GrantSpecialAbility { name } = &effect.action {
-                if predicate_holds(effect.condition.as_ref(), draft, &state) {
-                    abilities.push(name.clone());
-                }
-            }
-        }
-    }
-    state.special_abilities.extend(abilities);
+    let mut variables = crate::variables::VariableProgram::default();
 
     // The same reasoning applies to `PREFACT`: it counts objects in an
     // `OutputDB` location, so the locations are filled before the loop rather
     // than as entities are reached.
     let mut location_facts: BTreeMap<String, Vec<BTreeMap<String, String>>> = BTreeMap::new();
-    for index in &initial {
+    for index in initial {
         let Some(entity) = pack.entities.get(*index) else {
             continue;
         };
@@ -739,12 +782,12 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
     // `PREDR` reads the same kind of pre-loop snapshot: the character's own DR,
     // with each entry's own gate evaluated.
     let mut damage_reduction: BTreeMap<String, i32> = BTreeMap::new();
-    for index in &initial {
+    for index in initial {
         let Some(entity) = pack.entities.get(*index) else {
             continue;
         };
         for entry in &entity.traits.damage_reduction {
-            if !predicate_holds(entry.condition.as_ref(), draft, &state) {
+            if !predicate_holds(entry.condition.as_ref(), draft, condition_state) {
                 continue;
             }
             let Some((amount, kind)) = split_damage_reduction(&entry.value) else {
@@ -762,7 +805,7 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
     // key's default is 5) with templates overriding it.  `BONUS:COMBAT|REACH` is
     // added at evaluation time, where it is order-independent.
     let mut reach_feet = None;
-    for index in &initial {
+    for index in initial {
         let Some(entity) = pack.entities.get(*index) else {
             continue;
         };
@@ -778,14 +821,13 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
     state.reach_feet = reach_feet;
 
     for index in initial {
-        queued.insert(index);
+        queued.insert(*index);
     }
 
     let mut pending_formulas: Vec<PendingFormula> = Vec::new();
-    let mut pending_variables: Vec<PendingVariable> = Vec::new();
 
     // Fixed-point closure over granted entities and variant effects.
-    for _ in 0..16 {
+    loop {
         let current: Vec<usize> = queued.iter().copied().collect();
         queued.clear();
         let mut changed = false;
@@ -796,10 +838,11 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
             let Some(entity) = pack.entities.get(index) else {
                 continue;
             };
-            for effect in &entity.effects {
-                if !predicate_holds(effect.condition.as_ref(), draft, &state) {
+            for (effect_index, effect) in entity.effects.iter().enumerate() {
+                if !effect_condition_holds(effect, draft, condition_state, &mut state) {
                     continue;
                 }
+                applied.insert((index, effect_index));
                 state.applied_effects += 1;
                 apply_action(
                     effect,
@@ -808,9 +851,9 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
                     pack,
                     draft,
                     &mut state,
-                    &mut variable_defs,
+                    condition_state,
+                    &mut variables,
                     &mut pending_formulas,
-                    &mut pending_variables,
                     &mut active,
                     &mut queued,
                     &mut changed,
@@ -842,12 +885,13 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
                         continue;
                     };
                     for (index, effect) in variant.effects.iter().enumerate() {
-                        if !processed_variant_effects.insert((variant.id.clone(), index)) {
+                        if processed_variant_effects.contains(&(variant.id.clone(), index)) {
                             continue;
                         }
-                        if !predicate_holds(effect.condition.as_ref(), draft, &state) {
+                        if !effect_condition_holds(effect, draft, condition_state, &mut state) {
                             continue;
                         }
+                        processed_variant_effects.insert((variant.id.clone(), index));
                         state.applied_effects += 1;
                         apply_action(
                             effect,
@@ -856,9 +900,9 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
                             pack,
                             draft,
                             &mut state,
-                            &mut variable_defs,
+                            condition_state,
+                            &mut variables,
                             &mut pending_formulas,
-                            &mut pending_variables,
                             &mut active,
                             &mut queued,
                             &mut changed,
@@ -873,60 +917,127 @@ pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectS
         }
     }
 
-    // Resolve DEFINE variables first.  Then resolve variable assignments in
-    // dependency passes before other effect formulas, so e.g. `MonkAC` is
-    // available when `COMBAT.AC` is evaluated.
-    resolve_variables(&mut state, &variable_defs);
-
-    let effect_formulas = pending_formulas;
-
-    for _ in 0..16 {
-        if pending_variables.is_empty() {
-            break;
-        }
-        let mut remaining = Vec::new();
-        let mut progress = false;
-        for pending in pending_variables.drain(..) {
-            let normalized =
-                normalize_formula(&pending.expression, &state, pending.source_key.as_deref());
-            match pcgen_formula::evaluate(&normalized, &state) {
-                Ok(value) => {
-                    let value = formula_to_i32(&value);
-                    for name in &pending.names {
-                        state.explicit_variables.insert(name.clone());
-                        *state.variables.entry(name.clone()).or_insert(0) += value;
-                    }
-                    progress = true;
+    variables.evaluate(&mut state);
+    for index in &active {
+        let entity = &pack.entities[*index];
+        if let Some(raw) = &entity.traits.spell_resistance {
+            let result = pcgen_formula::Formula::parse(raw)
+                .and_then(|formula| formula.eval_i32(&state))
+                .map_err(|error| {
+                    crate::derived::context(error, &format!("creature `{}` SR", entity.id.key), raw)
+                });
+            match crate::derived::report(result, &mut state.diagnostics) {
+                Some(value) => {
+                    state.spell_resistance =
+                        Some(state.spell_resistance.map_or(value, |old| old.max(value)))
                 }
-                Err(_) => remaining.push(pending),
+                None => {
+                    state.unresolved_derived.insert("SR".into());
+                }
             }
         }
-        pending_variables = remaining;
-        if !progress {
-            break;
-        }
-        resolve_variables(&mut state, &variable_defs);
-    }
-    for pending in &pending_variables {
-        state.diagnostics.push(format!(
-            "unresolved variable formula `{}` for variable `{}`",
-            pending.expression,
-            pending.names.join(",")
-        ));
     }
 
-    for pending in effect_formulas {
-        let normalized =
-            normalize_formula(&pending.expression, &state, pending.source_key.as_deref());
-        match pcgen_formula::evaluate(&normalized, &state) {
-            Ok(value) => add_formula_target(&mut state, &pending, formula_to_i32(&value)),
-            Err(_) => state.diagnostics.push(format!(
-                "unresolved formula `{}` for target `{}`",
-                pending.expression, pending.target
+    for (key, result) in [
+        (
+            "BAB",
+            crate::bab::derive_prereq_bab(pack, draft, initial, &state.variables),
+        ),
+        (
+            "MAX_BAB",
+            crate::bab::max_class_bab(pack, draft, &state.variables),
+        ),
+    ] {
+        match crate::derived::report(result, &mut state.diagnostics) {
+            Some(value) if key == "BAB" => state.total_bab = value,
+            Some(value) => state.highest_class_bab = value,
+            None => {
+                state.unresolved_derived.insert(key.into());
+            }
+        }
+    }
+    match crate::derived::report(
+        crate::bab::derive_base_saves(pack, draft, &state.variables),
+        &mut state.diagnostics,
+    ) {
+        Some(saves) => {
+            state.base_saves = saves;
+            state.total_saves = state
+                .base_saves
+                .iter()
+                .map(|(kind, value)| {
+                    (
+                        *kind,
+                        value
+                            + crate::engine::save_ability_modifier(&state.ability_modifiers, *kind),
+                    )
+                })
+                .collect();
+        }
+        None => {
+            state.unresolved_derived.insert("SAVES".into());
+        }
+    }
+
+    for pending in pending_formulas {
+        let normalized = bind_choices(&pending.expression, &state, pending.source_key.as_deref());
+        match pcgen_formula::Formula::parse(&normalized)
+            .and_then(|formula| formula.eval_i32(&state))
+        {
+            Ok(value) => {
+                let targets =
+                    if pending.target.contains("%LIST") || pending.target.contains("%CHOICE") {
+                        pending
+                            .source_key
+                            .as_ref()
+                            .and_then(|key| state.choice_bindings.get(key))
+                            .map(|choices| {
+                                choices
+                                    .iter()
+                                    .map(|choice| {
+                                        pending
+                                            .target
+                                            .replace("%LIST%", choice)
+                                            .replace("%LIST", choice)
+                                            .replace("%CHOICE%", choice)
+                                            .replace("%CHOICE", choice)
+                                    })
+                                    .collect::<Vec<_>>()
+                            })
+                            .unwrap_or_default()
+                    } else {
+                        vec![pending.target.clone()]
+                    };
+                if targets.is_empty() {
+                    state.diagnostics.push(format!(
+                        "Unresolved bonus target choice: {}",
+                        pending.target
+                    ));
+                }
+                for target in targets {
+                    let resolved = PendingFormula {
+                        target,
+                        ..pending.clone()
+                    };
+                    add_formula_target(&mut state, &resolved, value);
+                }
+            }
+            Err(error) => state.diagnostics.push(format!(
+                "unresolved formula `{}` for target `{}`: {}",
+                pending.expression, pending.target, error.message
             )),
         }
     }
-    state
+    let signature = Activation {
+        entities: active,
+        effects: applied,
+        variants: processed_variant_effects,
+        damage_reduction: state.damage_reduction.clone(),
+        grants: state.active_abilities.clone(),
+        choices: state.choices.clone(),
+        bindings: state.choice_bindings.clone(),
+    };
+    (state, signature)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -937,28 +1048,26 @@ fn apply_action(
     pack: &CompiledRulePack,
     draft: &CharacterDraft,
     state: &mut EffectState,
-    variable_defs: &mut BTreeMap<String, Vec<String>>,
+    condition_state: &EffectState,
+    variables: &mut crate::variables::VariableProgram,
     pending_formulas: &mut Vec<PendingFormula>,
-    pending_variables: &mut Vec<PendingVariable>,
     active: &mut BTreeSet<usize>,
     queued: &mut BTreeSet<usize>,
     changed: &mut bool,
 ) {
     match &effect.action {
         EffectAction::DefineVariable { name, expression } => {
-            variable_defs
-                .entry(name.clone())
-                .or_default()
-                .push(expression.clone());
+            variables.define(
+                name,
+                expression.clone(),
+                source_entity.map(|e| normalized(&e.key)),
+            );
         }
         EffectAction::DeclareVariable { name, initial } => {
-            state
-                .variables
-                .entry(name.clone())
-                .or_insert(initial.floor() as i32);
+            variables.declare(name, initial.floor() as i32);
         }
         EffectAction::SetVariable { name, value } => {
-            state.variables.insert(name.clone(), value.floor() as i32);
+            variables.set(name, value.floor() as i32);
         }
         EffectAction::Modify { modifier } => {
             if modifier.operation == ModifierOperation::Add {
@@ -969,6 +1078,17 @@ fn apply_action(
                     &modifier.target,
                 ) {
                     state.structural_effects_skipped += 1;
+                } else if modifier.target.to_ascii_uppercase().starts_with("DC.")
+                    || modifier.target.contains("%LIST")
+                    || modifier.target.contains("%CHOICE")
+                {
+                    pending_formulas.push(PendingFormula {
+                        target: modifier.target.clone(),
+                        expression: modifier.value.to_string(),
+                        bonus_type: modifier.bonus_type.clone(),
+                        stack_key: modifier.stack_key.clone(),
+                        source_key: source_entity.map(|entity| normalized(&entity.key)),
+                    });
                 } else if is_typed_bonus_target(&modifier.target) {
                     state.typed_bonuses.push(TypedBonus {
                         target: modifier.target.clone(),
@@ -982,13 +1102,21 @@ fn apply_action(
             }
         }
         EffectAction::ModifyVariable {
-            names, expression, ..
+            names,
+            expression,
+            bonus_type,
+            stack_key,
+            ..
         } => {
-            pending_variables.push(PendingVariable {
-                names: names.clone(),
-                expression: expression.clone(),
-                source_key: source_entity.map(|entity| normalized(&entity.key)),
-            });
+            for name in names {
+                variables.bonus(
+                    name,
+                    expression.clone(),
+                    source_entity.map(|e| normalized(&e.key)),
+                    bonus_type.clone(),
+                    stack_key.clone(),
+                );
+            }
         }
         EffectAction::ModifyFormula {
             target,
@@ -1012,9 +1140,19 @@ fn apply_action(
         EffectAction::Grant { entity } => {
             let source_key = source_entity.map(|entity| normalized(&entity.key));
             let resolved = EntityId {
-                key: resolve_placeholders(&entity.key, state, source_key.as_deref()),
+                key: bind_choices(&entity.key, condition_state, source_key.as_deref()),
                 ..entity.clone()
             };
+            if resolved.key.contains("%CHOICE%")
+                || resolved.key.contains("%choice%")
+                || resolved.key.contains("%LIST%")
+                || resolved.key.contains("%list%")
+            {
+                state
+                    .diagnostics
+                    .push(format!("unresolved grant choice `{}`", resolved.key));
+                return;
+            }
             if resolved.entity_type.eq_ignore_ascii_case("weaponprof") {
                 seed_weapon_bonus(pack, &mut state.weapon_proficiencies, &resolved.key);
             } else if resolved.entity_type.eq_ignore_ascii_case("lang")
@@ -1023,7 +1161,7 @@ fn apply_action(
                 state.languages.insert(normalized(&resolved.key));
             }
             if let Some(target) = find_entity(pack, &resolved) {
-                if !grant_allowed(&pack.entities[target], draft, state) {
+                if !grant_allowed(&pack.entities[target], draft, condition_state) {
                     state.diagnostics.push(format!(
                         "grant `{}` failed embedded prerequisites",
                         resolved.key
@@ -1036,6 +1174,26 @@ fn apply_action(
                 state.active_abilities.insert(resolved.key.clone());
             } else {
                 state.active_abilities.insert(resolved.key.clone());
+            }
+        }
+        EffectAction::GrantByType { category, type_tag } => {
+            for (index, candidate) in pack.entities.iter().enumerate() {
+                if !type_tag.is_empty()
+                    && candidate
+                        .ability_category
+                        .as_deref()
+                        .is_some_and(|pool| pool.eq_ignore_ascii_case(category))
+                    && candidate
+                        .type_tags
+                        .iter()
+                        .any(|tag| tag.eq_ignore_ascii_case(type_tag))
+                    && grant_allowed(candidate, draft, condition_state)
+                {
+                    if !active.contains(&index) && queued.insert(index) {
+                        *changed = true;
+                    }
+                    state.active_abilities.insert(candidate.id.key.clone());
+                }
             }
         }
         EffectAction::GrantTag { tag } => {
@@ -1057,8 +1215,7 @@ fn apply_action(
         EffectAction::Choose { spec } => {
             apply_choose(spec, draft, state, source_entity, pack);
         }
-        // An entity granted during the loop contributes its special abilities as
-        // it is applied.  The initially-active set was already collected above.
+        // Special abilities share the same activation pass as every effect.
         EffectAction::GrantSpecialAbility { name } => {
             state.special_abilities.insert(name.clone());
         }
@@ -1154,7 +1311,7 @@ fn resolve_dynamic_choice(
             .collect()
     } else {
         draft
-            .class_levels
+            .class_levels()
             .iter()
             .map(|entry| entry.class_id.clone())
             .chain(
@@ -1237,11 +1394,13 @@ fn internal_race_selector(entity: &CompiledEntity) -> bool {
     // are gated by PRERACE.  After `.MOD` merging the selector may live on the
     // base ability entity, so key/name prefixes are not reliable here.
     entity.effects.iter().any(|effect| {
-        matches!(effect.action, EffectAction::Grant { .. })
-            && effect
-                .condition
-                .as_ref()
-                .is_some_and(contains_race_predicate)
+        matches!(
+            effect.action,
+            EffectAction::Grant { .. } | EffectAction::GrantByType { .. }
+        ) && effect
+            .condition
+            .as_ref()
+            .is_some_and(contains_race_predicate)
     })
 }
 
@@ -1260,7 +1419,7 @@ fn contains_race_predicate(predicate: &Predicate) -> bool {
     }
 }
 
-pub(crate) fn ability_matches_draft(draft: &CharacterDraft, entity: &CompiledEntity) -> bool {
+pub fn ability_matches_draft(draft: &CharacterDraft, entity: &CompiledEntity) -> bool {
     draft.abilities.iter().any(|(_, ability)| {
         ability.eq_ignore_ascii_case(&entity.id.key) || ability.eq_ignore_ascii_case(&entity.name)
     })
@@ -1274,7 +1433,7 @@ pub(crate) fn equipment_matches_draft(draft: &CharacterDraft, entity: &CompiledE
 }
 
 pub(crate) fn class_level_is_active(
-    class_levels: &[DraftClassLevel],
+    class_levels: &[ClassLevelSummary],
     class_id: &str,
     level: u32,
 ) -> bool {
@@ -1396,6 +1555,7 @@ fn find_entity(pack: &CompiledRulePack, entity: &pcgen_core::EntityId) -> Option
 fn is_typed_bonus_target(target: &str) -> bool {
     let upper = target.to_ascii_uppercase();
     upper == "AC"
+        || upper.starts_with("DC.")
         || upper == "COMBAT.AC"
         || upper.starts_with("SAVE")
         || upper.starts_with("SKILL")
@@ -1464,12 +1624,15 @@ fn derive_spellcasting_prereq(
     BTreeMap<(String, u32), u32>,
     bool,
     BTreeMap<String, CastingType>,
+    Vec<String>,
 ) {
     let mut powers = BTreeSet::new();
     let mut max_spell_level: BTreeMap<SpellPowerType, u32> = BTreeMap::new();
     let mut slots: BTreeMap<(String, u32), u32> = BTreeMap::new();
     let mut has_spellbook = false;
     let mut class_casting = BTreeMap::new();
+    let mut casting_errors = Vec::new();
+    let tracks = crate::magic::casting_levels(pack, draft, &mut casting_errors);
     for entry in crate::engine::effective_class_levels(pack, draft) {
         let Some(class) = pack.classes.get(&entry.class_id).or_else(|| {
             pack.classes
@@ -1488,7 +1651,10 @@ fn derive_spellcasting_prereq(
         // class whose fact is unset, which is why an empty text contributes
         // nothing here.
         if !class.spell_type.is_empty() {
-            if let Some(table) = class.spell_slots.get(&entry.level) {
+            if let Some(table) = class
+                .spell_slots
+                .get(tracks.get(&class.id).unwrap_or(&entry.level))
+            {
                 for (level, count) in table.iter().enumerate() {
                     if *count == 0 {
                         continue;
@@ -1514,7 +1680,10 @@ fn derive_spellcasting_prereq(
         if power != SpellPowerType::Unknown {
             powers.insert(power);
         }
-        if let Some(table) = class.spell_slots.get(&entry.level) {
+        if let Some(table) = class
+            .spell_slots
+            .get(tracks.get(&class.id).unwrap_or(&entry.level))
+        {
             for (level, count) in table.iter().enumerate() {
                 if *count == 0 {
                     continue;
@@ -1527,32 +1696,33 @@ fn derive_spellcasting_prereq(
             }
         }
     }
-    (powers, max_spell_level, slots, has_spellbook, class_casting)
+    (
+        powers,
+        max_spell_level,
+        slots,
+        has_spellbook,
+        class_casting,
+        casting_errors,
+    )
 }
 
-fn variable_value(state: &EffectState, name: &str) -> i32 {
-    let trimmed = name.trim();
-    if trimmed.eq_ignore_ascii_case("%CHOICE") {
-        return 0;
+fn variable_value(state: &EffectState, expression: &str) -> Option<i32> {
+    struct PredicateScope<'a>(&'a EffectState);
+    impl VariableResolver for PredicateScope<'_> {
+        fn resolve(&self, name: &str) -> Option<FormulaValue> {
+            if self.0.unresolved_variables.contains(name) {
+                None
+            } else {
+                // raw PREVAR treats an absent (inactive) variable as zero.
+                self.0.resolve(name).or(Some(FormulaValue::Int(0)))
+            }
+        }
     }
-    state
-        .variables
-        .get(trimmed)
-        .copied()
-        .or_else(|| {
-            state
-                .ability_modifiers
-                .get(&trimmed.to_ascii_uppercase())
-                .copied()
-        })
-        // PCGen's `getVariableValue` evaluates its argument, so a symbolic
-        // operand is often a plain number: `PREVARGTEQ:3,EmpowerHealingLVL` is
-        // "3 >= EmpowerHealingLVL".  Without this the literal read as 0 and the
-        // comparison silently inverted.  A formula (`ceil((CL=Horizon
-        // Walker)/10)`) still resolves to 0; see `PCGEN_SYNTAX_INVENTORY.md`
-        // §5af.
-        .or_else(|| trimmed.parse::<i32>().ok())
-        .unwrap_or(0)
+    let expression = bind_choices(expression, state, None);
+    pcgen_formula::Formula::parse(&expression)
+        .ok()?
+        .eval_i32(&PredicateScope(state))
+        .ok()
 }
 
 /// Does one `PREVISION` requirement hold?
@@ -1962,7 +2132,135 @@ fn entity_is_active(state: &EffectState, draft: &CharacterDraft, entity: &Entity
     }
 }
 
+/// Three-valued conditions prevent `Not(unsupported)` from silently succeeding.
+pub(crate) fn predicate_result(
+    predicate: Option<&Predicate>,
+    draft: &CharacterDraft,
+    state: &EffectState,
+) -> Option<bool> {
+    let Some(predicate) = predicate else {
+        return Some(true);
+    };
+    match predicate {
+        Predicate::TotalBab { .. } if state.unresolved_derived.contains("BAB") => None,
+        Predicate::SpellResistance { .. } if state.unresolved_derived.contains("SR") => None,
+        Predicate::Check { base: false, .. }
+            if ["CON", "DEX", "WIS"]
+                .iter()
+                .any(|stat| state.unresolved_variables.contains(*stat)) =>
+        {
+            None
+        }
+
+        Predicate::HighestClassBab { .. } if state.unresolved_derived.contains("MAX_BAB") => None,
+        Predicate::BaseSave { .. } | Predicate::Check { .. }
+            if state.unresolved_derived.contains("SAVES") =>
+        {
+            None
+        }
+
+        Predicate::Variable { name, min, max } => {
+            let value = variable_value(state, name)?;
+            Some(min.is_none_or(|min| value >= min) && max.is_none_or(|max| value <= max))
+        }
+        Predicate::VariableCompare {
+            left,
+            right,
+            greater,
+            strict,
+        } => {
+            let left = variable_value(state, left)?;
+            let right = variable_value(state, right)?;
+            Some(match (*greater, *strict) {
+                (true, true) => left > right,
+                (true, false) => left >= right,
+                (false, true) => left < right,
+                (false, false) => left <= right,
+            })
+        }
+        Predicate::VariableEquals {
+            left,
+            right,
+            equals,
+        } => Some((variable_value(state, left)? == variable_value(state, right)?) == *equals),
+        Predicate::AtLeast { n, items } => {
+            let values: Vec<_> = items
+                .iter()
+                .map(|item| predicate_result(Some(item), draft, state))
+                .collect();
+            let yes = values.iter().filter(|value| **value == Some(true)).count() as u32;
+            let unknown = values.iter().filter(|value| value.is_none()).count() as u32;
+            if yes >= *n {
+                Some(true)
+            } else if yes + unknown < *n {
+                Some(false)
+            } else {
+                None
+            }
+        }
+
+        Predicate::Unsupported { .. } => None,
+        Predicate::Not(inner) => predicate_result(Some(inner), draft, state).map(|value| !value),
+        Predicate::All(parts) => {
+            let values: Vec<_> = parts
+                .iter()
+                .map(|part| predicate_result(Some(part), draft, state))
+                .collect();
+            if values.contains(&Some(false)) {
+                Some(false)
+            } else if values.contains(&None) {
+                None
+            } else {
+                Some(true)
+            }
+        }
+        Predicate::Any(parts) => {
+            let values: Vec<_> = parts
+                .iter()
+                .map(|part| predicate_result(Some(part), draft, state))
+                .collect();
+            if values.contains(&Some(true)) {
+                Some(true)
+            } else if values.contains(&None) {
+                None
+            } else {
+                Some(false)
+            }
+        }
+        _ => Some(predicate_leaf_holds(Some(predicate), draft, state)),
+    }
+}
+
 pub(crate) fn predicate_holds(
+    predicate: Option<&Predicate>,
+    draft: &CharacterDraft,
+    state: &EffectState,
+) -> bool {
+    predicate_result(predicate, draft, state) == Some(true)
+}
+
+fn effect_condition_holds(
+    effect: &pcgen_core::Effect,
+    draft: &CharacterDraft,
+    condition_state: &EffectState,
+    state: &mut EffectState,
+) -> bool {
+    match predicate_result(effect.condition.as_ref(), draft, condition_state) {
+        Some(value) => value,
+        None => {
+            let message = format!(
+                "unresolved condition {:?} at {}",
+                effect.condition, effect.source.source
+            );
+            if !state.diagnostics.contains(&message) {
+                state.diagnostics.push(message);
+            }
+            false
+        }
+    }
+}
+
+fn predicate_leaf_holds(
     predicate: Option<&Predicate>,
     draft: &CharacterDraft,
     state: &EffectState,
@@ -1972,10 +2270,7 @@ pub(crate) fn predicate_holds(
     };
     match predicate {
         Predicate::Always => true,
-        // An unreadable gate is kept in the IR for reporting.  Applying the
-        // effect is an intentional over-approximation: the alternative was to
-        // discard the whole effect when lowering, which made the loss silent.
-        Predicate::Unsupported { .. } => true,
+        Predicate::Unsupported { .. } => false,
         Predicate::ActiveState { states } => states.iter().any(|state| {
             draft
                 .active_states
@@ -1994,9 +2289,10 @@ pub(crate) fn predicate_holds(
             min.is_none_or(|min| value >= min) && max.is_none_or(|max| value <= max)
         }
         Predicate::HasEntity { entity } => entity_is_active(state, draft, entity),
-        Predicate::Variable { name, min, max } => {
-            let value = state.variables.get(name).copied().unwrap_or(0);
-            min.is_none_or(|min| value >= min) && max.is_none_or(|max| value <= max)
+        Predicate::Variable { .. }
+        | Predicate::VariableCompare { .. }
+        | Predicate::VariableEquals { .. } => {
+            predicate_result(Some(predicate), draft, state) == Some(true)
         }
         Predicate::SkillRanks { specs, min_count } => {
             let matches = specs
@@ -2499,34 +2795,6 @@ pub(crate) fn predicate_holds(
             min.is_none_or(|min| state.hit_dice >= min)
                 && max.is_none_or(|max| state.hit_dice <= max)
         }
-        Predicate::VariableCompare {
-            left,
-            right,
-            greater,
-            strict,
-        } => {
-            let left = variable_value(state, left);
-            let right = variable_value(state, right);
-            match (*greater, *strict) {
-                (true, true) => left > right,
-                (true, false) => left >= right,
-                (false, true) => left < right,
-                (false, false) => left <= right,
-            }
-        }
-        Predicate::VariableEquals {
-            left,
-            right,
-            equals,
-        } => {
-            let left = variable_value(state, left);
-            let right = variable_value(state, right);
-            if *equals {
-                left == right
-            } else {
-                left != right
-            }
-        }
         Predicate::ArmorType { types } => types.iter().any(|armor_type| {
             state
                 .equipment_values
@@ -2621,112 +2889,36 @@ fn rule_enabled(rule: &str, draft: &CharacterDraft) -> bool {
     )
 }
 
-fn resolve_variables(state: &mut EffectState, definitions: &BTreeMap<String, Vec<String>>) {
-    if definitions.is_empty() {
-        return;
-    }
-    let names: Vec<String> = definitions.keys().cloned().collect();
-    let index: BTreeMap<&str, usize> = names
-        .iter()
-        .enumerate()
-        .map(|(index, name)| (name.as_str(), index))
-        .collect();
-    let mut adjacency = vec![Vec::new(); names.len()];
-    for (position, name) in names.iter().enumerate() {
-        // Every expression for the name contributes dependencies.
-        let expression = definitions
-            .get(name)
-            .map(|expressions| expressions.join("+"))
-            .unwrap_or_default();
-        for dependency in variable_dependencies(&expression) {
-            if let Some(&dependency_index) = index.get(dependency.as_str()) {
-                // dependency -> dependent
-                adjacency[dependency_index].push(position);
-            }
-        }
-    }
-    let Some(order) = pcgen_core::topological_sort(&adjacency) else {
-        let cyclic: Vec<&str> = names
-            .iter()
-            .filter(|name| {
-                let expression = definitions
-                    .get(*name)
-                    .map(|expressions| expressions.join("+"))
-                    .unwrap_or_default();
-                !variable_dependencies(&expression).is_empty()
-            })
-            .map(String::as_str)
-            .collect();
-        state
-            .diagnostics
-            .push(format!("variable dependency cycle involving {cyclic:?}"));
-        return;
-    };
-
-    for position in order {
-        let name = &names[position];
-        if state.explicit_variables.contains(name) {
-            continue;
-        }
-        // The reference: "If it finds more than one, it keeps the one with the
-        // higher value." Expressions that fail are reported and skipped rather
-        // than discarding the whole name.
-        let mut best: Option<i32> = None;
-        for expression in definitions.get(name).map(Vec::as_slice).unwrap_or_default() {
-            let normalized = normalize_formula(expression, state, None);
-            match pcgen_formula::evaluate(&normalized, state) {
-                Ok(value) => {
-                    let value = formula_to_i32(&value);
-                    best = Some(best.map_or(value, |old| old.max(value)));
-                }
-                Err(error) => state.diagnostics.push(format!(
-                    "variable `{name}` definition `{expression}` failed: {}",
-                    error.message
-                )),
-            }
-        }
-        if let Some(value) = best {
-            state.variables.insert(name.clone(), value);
-        }
-    }
-}
-
-fn variable_dependencies(expression: &str) -> BTreeSet<String> {
-    let normalized = dependency_expression(expression);
-    pcgen_formula::Formula::parse(&normalized)
-        .map(|formula| formula.variables().into_iter().collect())
-        .unwrap_or_default()
-}
-
-/// Rewrite an expression so it can be parsed for its variable references.
-///
-/// The PCGen dialect is already gone by this point (lowering translated it),
-/// so only the placeholders need neutralising.
-fn dependency_expression(expression: &str) -> String {
-    expression.replace("%CHOICE%", "0").replace("%LIST%", "0")
-}
-
 /// Prepare an expression for evaluation.
 ///
 /// PCGen's dialect is translated at lowering time
 /// ([`pcgen_core::formula_vocab`]), so `CL`, `TL`, `classlevel(...)` and
 /// `var(...)` no longer appear here.  What remains is the choice placeholders,
 /// which depend on what the player selected at this character's own table.
-fn normalize_formula(expression: &str, state: &EffectState, source_key: Option<&str>) -> String {
+pub(crate) fn bind_choices(
+    expression: &str,
+    state: &EffectState,
+    source_key: Option<&str>,
+) -> String {
     let mut normalized = expression.to_string();
     let bound = source_key
         .and_then(|key| state.choice_bindings.get(key))
         .filter(|values| !values.is_empty());
     if let Some(first) = bound
         .and_then(|values| values.first().cloned())
-        .or_else(|| state.choices.values().next().cloned())
+        .or_else(|| {
+            source_key
+                .is_none()
+                .then(|| state.choices.values().next().cloned())
+                .flatten()
+        })
     {
         normalized = normalized
             .replace("%CHOICE%", &first)
             .replace("%choice%", &first);
     }
     if let Some(list) = bound.map(|values| values.join(",")).or_else(|| {
-        (!state.choices.is_empty()).then(|| {
+        (source_key.is_none() && !state.choices.is_empty()).then(|| {
             state
                 .choices
                 .values()
@@ -2738,15 +2930,6 @@ fn normalize_formula(expression: &str, state: &EffectState, source_key: Option<&
         normalized = normalized.replace("%LIST%", &list).replace("%list%", &list);
     }
     normalized
-}
-
-fn formula_to_i32(value: &FormulaValue) -> i32 {
-    match value {
-        FormulaValue::Int(value) => *value as i32,
-        FormulaValue::Float(value) => *value as i32,
-        FormulaValue::Bool(value) => *value as i32,
-        FormulaValue::String(_) => 0,
-    }
 }
 
 fn seed_weapon_bonus(pack: &CompiledRulePack, proficiencies: &mut BTreeSet<String>, value: &str) {
@@ -2777,29 +2960,6 @@ fn seed_weapon_bonus(pack: &CompiledRulePack, proficiencies: &mut BTreeSet<Strin
 
 fn normalized(value: &str) -> String {
     value.trim().to_ascii_lowercase().replace(' ', "_")
-}
-
-fn resolve_placeholders(value: &str, state: &EffectState, source_key: Option<&str>) -> String {
-    let bound = source_key
-        .and_then(|key| state.choice_bindings.get(key))
-        .filter(|values| !values.is_empty());
-    let first = bound
-        .and_then(|values| values.first().cloned())
-        .or_else(|| state.choices.values().next().cloned())
-        .unwrap_or_default();
-    let list = bound.map(|values| values.join(",")).unwrap_or_else(|| {
-        state
-            .choices
-            .values()
-            .cloned()
-            .collect::<Vec<_>>()
-            .join(",")
-    });
-    value
-        .replace("%CHOICE%", &first)
-        .replace("%choice%", &first)
-        .replace("%LIST%", &list)
-        .replace("%list%", &list)
 }
 
 fn grant_allowed(entity: &CompiledEntity, draft: &CharacterDraft, state: &EffectState) -> bool {
@@ -2872,6 +3032,23 @@ fn class_progression_for<'a>(
 ///
 /// Not modelled: the *global* `CSKILL:` / `CCSKILL:` that PCGen also accepts on
 /// templates, races and abilities, and the `SERVESAS` skill imitators.
+fn skill_type_index(pack: &CompiledRulePack) -> BTreeMap<String, Vec<String>> {
+    let mut skill_types: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for definition in pack.skills.values() {
+        for tag in &definition.type_tags {
+            let entry = skill_types.entry(tag.to_ascii_lowercase()).or_default();
+            entry.push(definition.id.clone());
+            if !definition.name.is_empty() {
+                entry.push(definition.name.clone());
+            }
+        }
+    }
+    skill_types
+}
+/// Shared class-skill expansion for prerequisites and character creation.
+pub fn class_skill_names(pack: &CompiledRulePack, draft: &CharacterDraft) -> BTreeSet<String> {
+    character_class_skills(pack, draft, &skill_type_index(pack))
+}
 fn character_class_skills(
     pack: &CompiledRulePack,
     draft: &CharacterDraft,
@@ -2884,6 +3061,7 @@ fn character_class_skills(
         let lowered = entry.trim().to_ascii_lowercase();
         let lower = lowered
             .strip_prefix("type=")
+            .or_else(|| lowered.strip_prefix("type."))
             .unwrap_or(&lowered)
             .trim()
             .to_string();
@@ -2896,6 +3074,19 @@ fn character_class_skills(
         names.insert(lower);
     };
     for level in crate::engine::effective_class_levels(pack, draft) {
+        if let Some(m) = crate::magic::class_magic(pack, &level.class_id) {
+            for rule in m.choices.iter().filter(|r| r.at_level <= level.level) {
+                if let Some(option) = draft
+                    .choices
+                    .get(&rule.key)
+                    .and_then(|v| rule.options.iter().find(|o| &o.value == v))
+                {
+                    for skill in &option.class_skills {
+                        add(skill, &mut names);
+                    }
+                }
+            }
+        }
         match class_progression_for(pack, &level.class_id) {
             Some(progression) => {
                 for skill in &progression.class_skills {

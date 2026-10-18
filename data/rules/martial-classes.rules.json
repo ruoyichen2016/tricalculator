@@ -1,0 +1,3168 @@
+{
+  "format": "gladius.module/1",
+  "sources": {
+    "tob_martial": {
+      "title": "Tome of Battle",
+      "reference": "data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/tome_of_battle/tob_classes.lst",
+      "locator": "pp.8-17, 39-40, 122-123. Local ability descriptions override Mettle level 12 typo (13). Numeric readiness tables cross-checked at https://www.dndtools.org/classes/swordsage/ and /crusader/. Original PDF retrieval failed; no claim of visual verification. Crusader alignment: original book p.8 excerpt at https://www.scribd.com/doc/49212252/Tome-of-Battle-3-5-OEF. Training is class-specific, not the local HighestInitiatorLVL shortcut."
+    },
+    "cw_martial": {
+      "title": "Complete Warrior",
+      "reference": "data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/complete_warrior/cw_classes.lst",
+      "locator": "Swashbuckler pp.11-12; local cw_abilities.lst."
+    },
+    "shs_martial": {
+      "title": "Shining South",
+      "reference": "https://www.dndtools.org/classes/crinti-shadow-marauder/",
+      "locator": "pp.23-24 transcribed class entry. Local shs_classes.lst is an unimplemented comment. Primary PDF retrieval failed; this is a secondary transcription."
+    }
+  },
+  "rules": [
+    {
+      "id": "35e:tob_martial:class:crusader",
+      "source": "tob_martial",
+      "key": "Crusader",
+      "name": "Crusader",
+      "requirements": [
+        {
+          "alignment": {
+            "allowed": [
+              "LG",
+              "NG",
+              "CG",
+              "LN",
+              "CN",
+              "LE",
+              "NE",
+              "CE"
+            ]
+          }
+        }
+      ],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 10,
+        "max_level": 20,
+        "prestige": false,
+        "attack": "full",
+        "fortitude": "good",
+        "reflex": "poor",
+        "will": "poor",
+        "skill_points": 4,
+        "class_skills": [
+          "Balance",
+          "Concentration",
+          "TYPE.Craft",
+          "Diplomacy",
+          "Intimidate",
+          "Jump",
+          "Knowledge (History)",
+          "Knowledge (Religion)",
+          "Martial Lore",
+          "Ride"
+        ],
+        "magic": {
+          "progression": [
+            {
+              "level": 1,
+              "name": "Maneuvers",
+              "summary": "You begin your career with knowledge of five martial maneuvers. The disciplines available to you are Devoted Spirit, Stone Dragon, and White Raven. Once you know a maneuver, you must ready it before you can use it (see Maneuvers Readied, below). A maneuver usable by crusaders is considered an extraordinary ability unless otherwise noted in its description. Your maneuvers are not affected by spell resistance, and you do not provoke attacks of opportunity when you initiate one. You learn additional maneuvers at higher levels, as shown on Table 1-1. You must meet a maneuver's prerequisite to learn it. See Table 3-1, page 39, to determine the highest-level maneuvers you can learn. Upon reaching 4th level, and at every even-numbered crusader level after that (6th, 8th, 10th, and so on), you can choose to learn a new maneuver in place of one you already know. In effect, you lose the old maneuver in exchange for the new one. You can choose a new maneuver of any level you like, as long as you observe your restriction on the highest-level maneuvers you know; you need not replace the old maneuver with a maneuver of the same level. For example, upon reaching 10th level, you could trade in a single 1st-, 2nd-, 3rd- or 4th-level maneuver for a maneuver of 5th level or lower, as long as you meet the prerequisite of the new maneuver. You can swap only a single maneuver at any given level."
+            },
+            {
+              "level": 1,
+              "name": "Maneuvers Readied",
+              "summary": "You can ready all five maneuvers you know at 1st level, but as you advance in level and learn more maneuvers, you must choose which maneuvers to ready. You ready maneuvers by praying for 5 minutes. The maneuvers you choose remain readied until you decide to pray again and change them. You need not sleep or rest for any long period of time in order to ready your maneuvers; any time you spend 5 minutes in prayer, you can change your readied maneuvers. You begin an encounter with all your readied maneuvers unexpended, regardless of how many times you might have already used them since you chose them. When you initiate a maneuver, you expend it for the current encounter, so each of your readied maneuvers can be used once per encounter (unless you recover them, as described below). Crusaders are unique among martial adepts, relying on f lashes of divine inspiration to use their martial maneuvers. As such, you do not control access to your readied maneuvers. Before you take your first action in an encounter, two of your readied maneuvers (randomly determined) are granted to you. The rest of your readied maneuvers are withheld, currently inaccessible. At the end of each turn, one previously withheld maneuver (again, randomly determined) is granted to you, and thus becomes accessible for your next turn and subsequent turns. You can freely choose to initiate any maneuver that is currently granted when your turn begins, but you cannot initiate a withheld maneuver. If you choose not to employ a maneuver in a given round, your currently granted maneuvers remain available, and a previously withheld maneuver is granted, as described above. In other words, it doesn't matter if you use your maneuvers or not-at the end of each of your turns, one withheld maneuver from your  selection of readied maneuvers is granted to you. Over the course of a few rounds, all your maneuvers will eventually be granted. If, at the end of your turn, you cannot be granted a maneuver because you have no withheld maneuvers remaining, you recover all expended maneuvers, and a new pair of readied maneuvers is granted to you. Randomly determine which of your maneuvers are granted and which are withheld. At the end of your next turn, a withheld maneuver is granted to you, and the whole process of divine inspiration begins again. You begin an encounter with an additional granted maneuver at 10th level (bringing your total to three), and again at 20th level (bringing your total to four)."
+            },
+            {
+              "level": 1,
+              "name": "Stances Known",
+              "summary": "You begin play with knowledge of one 1st-level stance from the Devoted Spirit, Stone Dragon, or White Raven discipline. At 2nd, 8th, and 14th level, you can choose an additional stance. Unlike maneuvers, stances are not expended, and you do not have to ready them. All the stances you know are available to you at all times, and you can change the stance you currently use as a swift action. A stance is an extraordinary ability unless otherwise stated in the stance description. Unlike with maneuvers, you cannot learn a new stance at higher levels in place of one you already know."
+            },
+            {
+              "level": 1,
+              "name": "Weapon and Armor Proficiency",
+              "summary": "As a crusader, you are proficient with simple weapons, martial weapons, light, medium, and heavy armor, and all shields."
+            },
+            {
+              "level": 1,
+              "name": "Furious Counterstrike",
+              "summary": "You can channel the pain of your injuries into a boiling rage that lets you lash out at your enemies with renewed vigor and power. Each attack that strikes you only pushes you onward to greater glory. During your turn, you gain a bonus on attack rolls and damage rolls equal to the current value of your delayed damage pool (see steely resolve, above) divided by 5, and rounding down (minimum +1). You can only gain a maximum bonus on attack rolls and damage rolls of +6 from furious counterstrike. Use the table below to quickly determine the attack bonus and damage bonus from furious counterstrike, based on the amount of damage in your delayed damage pool. This ability's benefits last until the end of your turn."
+            },
+            {
+              "level": 1,
+              "name": "Steely Resolve",
+              "summary": "Your supreme dedication and intense focus allow you to temporarily set aside the pain and hindering effects of injuries. When an opponent strikes you, the injury does not immediately affect you. You have a delayed damage pool that allows you to forestall the effects of many injuries. This pool begins at 0 with each encounter. When you are attacked, any hit point damage the blow deals is added to your delayed damage pool. At the end of your next turn, you take damage equal to the total stored in your delayed damage pool, which then resets to 0. Any healing you receive can either increase your current hit point total as normal or reduce the total damage in your delayed damage pool. When you receive healing, you choose whether it affects your damage pool, your hit points, or both (you can split the amount of healing as you wish). Most crusaders opt to keep as much damage in their delayed damage pool as possible to maximize the benefit of their furious counterstrike ability (see below). Special effects tied to an attack, such as energy drain, stun, and so forth, still affect you as normal, and their effects are not delayed by this ability. For example, if you are bitten by a venomous spider, you must still attempt a Fortitude save against the poison immediately, even though the bite damage shifts into your delayed damage pool. By the same token, any other special attack that imposes a condition, such as a medusa's petrifying gaze, takes immediate effect on you. At 1st level, your delayed damage pool can hold up to 5 points of damage. Any damage beyond that comes off your hit points as normal. The maximum damage your pool holds increases by 5 at 4th, 8th, 12th, 16th, and 20th level."
+            },
+            {
+              "level": 2,
+              "name": "Indomitable Soul",
+              "summary": "Beginning at 2nd level, you draw upon the power of your unwavering faith to steel yourself against the enemies you face. Your personality, energy, and dedication to your faith make it possible for you to shrug off attacks that target your willpower. You add your Charisma bonus (if any) as a bonus on Will saves. This bonus does not stack with that from a paladin's divine grace ability."
+            },
+            {
+              "level": 3,
+              "name": "Zealous Surge",
+              "summary": "Your boundless energy and dedication to your cause allow you to throw off the effect of a special attack, spell, or other attack that would otherwise hinder or harm you. Once per day, from 3rd level on, you can opt to reroll a single saving throw. You must abide by the result of the new, second saving throw, even if it is lower than the first. This ability does not require an action. You simply decide to use it after seeing the result of your saving throw roll but before the DM tells you if it fails or succeeds."
+            },
+            {
+              "level": 6,
+              "name": "Smite",
+              "summary": "Driven by the courage of your convictions and the ironclad strength of your beliefs, you can strike back at those who dare stand against your cause. Starting at 6th level, once per day, you can concentrate all your anger, hatred, and determination into a single attack. On the next melee attack you make, you gain a bonus on your attack roll equal to your Charisma bonus (if any) and a bonus on damage equal to your crusader level. At 18th level, you gain an additional use of smite per day."
+            },
+            {
+              "level": 10,
+              "name": "Die Hard",
+              "summary": "At 10th level, you gain Die Hard as a bonus feat."
+            },
+            {
+              "level": 13,
+              "name": "Mettle",
+              "summary": "You can resist magical attacks with greater effectiveness than other warriors. Beginning at 13th level, by drawing on your boundless energy and dedication to your cause, you can shrug off effects that would hinder even the toughest warrior. If you succeed on a Fortitude or Will save against an attack that would normally produce a lesser effect on a successful save (such as a spell with a saving throw entry of Will half or Fortitude partial), you instead negate the effect. You do not gain the benefit of mettle when you are unconscious or sleeping."
+            },
+            {
+              "level": 4,
+              "name": "Steely Resolve",
+              "summary": "Delayed damage capacity 10."
+            },
+            {
+              "level": 8,
+              "name": "Steely Resolve",
+              "summary": "Delayed damage capacity 15."
+            },
+            {
+              "level": 12,
+              "name": "Steely Resolve",
+              "summary": "Delayed damage capacity 20."
+            },
+            {
+              "level": 16,
+              "name": "Steely Resolve",
+              "summary": "Delayed damage capacity 25."
+            },
+            {
+              "level": 20,
+              "name": "Steely Resolve",
+              "summary": "Delayed damage capacity 30."
+            },
+            {
+              "level": 18,
+              "name": "Smite",
+              "summary": "Two uses per day."
+            }
+          ],
+          "feature_values": [
+            {
+              "at_level": 1,
+              "name": "Steely Resolve",
+              "values": {
+                "capacity": "5+5*floor(CLASSLEVEL/4)"
+              }
+            },
+            {
+              "at_level": 6,
+              "name": "Smite",
+              "values": {
+                "damage": "CLASSLEVEL",
+                "uses": "1+floor(CLASSLEVEL/18)"
+              }
+            }
+          ],
+          "martial": {
+            "disciplines": [
+              "Devoted Spirit",
+              "Stone Dragon",
+              "White Raven"
+            ],
+            "prestige": false,
+            "levels": {
+              "1": {
+                "known": 5,
+                "readied": 5,
+                "granted": 2,
+                "stances": 1
+              },
+              "2": {
+                "known": 5,
+                "readied": 5,
+                "granted": 2,
+                "stances": 2
+              },
+              "3": {
+                "known": 6,
+                "readied": 5,
+                "granted": 2,
+                "stances": 2
+              },
+              "4": {
+                "known": 6,
+                "readied": 5,
+                "granted": 2,
+                "stances": 2
+              },
+              "5": {
+                "known": 7,
+                "readied": 5,
+                "granted": 2,
+                "stances": 2
+              },
+              "6": {
+                "known": 7,
+                "readied": 5,
+                "granted": 2,
+                "stances": 2
+              },
+              "7": {
+                "known": 8,
+                "readied": 5,
+                "granted": 2,
+                "stances": 2
+              },
+              "8": {
+                "known": 8,
+                "readied": 5,
+                "granted": 2,
+                "stances": 3
+              },
+              "9": {
+                "known": 9,
+                "readied": 5,
+                "granted": 2,
+                "stances": 3
+              },
+              "10": {
+                "known": 9,
+                "readied": 6,
+                "granted": 3,
+                "stances": 3
+              },
+              "11": {
+                "known": 10,
+                "readied": 6,
+                "granted": 3,
+                "stances": 3
+              },
+              "12": {
+                "known": 10,
+                "readied": 6,
+                "granted": 3,
+                "stances": 3
+              },
+              "13": {
+                "known": 11,
+                "readied": 6,
+                "granted": 3,
+                "stances": 3
+              },
+              "14": {
+                "known": 11,
+                "readied": 6,
+                "granted": 3,
+                "stances": 4
+              },
+              "15": {
+                "known": 12,
+                "readied": 6,
+                "granted": 3,
+                "stances": 4
+              },
+              "16": {
+                "known": 12,
+                "readied": 6,
+                "granted": 3,
+                "stances": 4
+              },
+              "17": {
+                "known": 13,
+                "readied": 6,
+                "granted": 3,
+                "stances": 4
+              },
+              "18": {
+                "known": 13,
+                "readied": 6,
+                "granted": 3,
+                "stances": 4
+              },
+              "19": {
+                "known": 14,
+                "readied": 6,
+                "granted": 3,
+                "stances": 4
+              },
+              "20": {
+                "known": 14,
+                "readied": 7,
+                "granted": 4,
+                "stances": 4
+              }
+            }
+          },
+          "bonus_feats": [
+            {
+              "level": 10,
+              "feat": "Diehard"
+            }
+          ]
+        }
+      },
+      "pending": [
+        "Full class progression and numeric tiers recorded. The martial stress replay executes the Shadow Pounce case; other class-specific encounter abilities are descriptive until their own resolver is provided."
+      ]
+    },
+    {
+      "id": "35e:tob_martial:class:swordsage",
+      "source": "tob_martial",
+      "key": "Swordsage",
+      "name": "Swordsage",
+      "requirements": [],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 8,
+        "max_level": 20,
+        "prestige": false,
+        "attack": "three_quarter",
+        "fortitude": "poor",
+        "reflex": "good",
+        "will": "good",
+        "skill_points": 6,
+        "class_skills": [
+          "Balance",
+          "Climb",
+          "Concentration",
+          "TYPE.Craft",
+          "Heal",
+          "Hide",
+          "Intimidate",
+          "Jump",
+          "Knowledge (History)",
+          "Knowledge (Local)",
+          "Knowledge (Nature)",
+          "Knowledge (nobility and royalty)",
+          "Listen",
+          "Martial Lore",
+          "Move Silently",
+          "TYPE.Profession",
+          "Ride",
+          "Sense Motive",
+          "Swim",
+          "Tumble"
+        ],
+        "magic": {
+          "progression": [
+            {
+              "level": 1,
+              "name": "Discipline Focus",
+              "summary": "As a swordsage, you can focus your training to take advantage of each discipline's fighting style. Each time you gain the discipline focus ability, select one of the six swordsage disciplines to which that focus applies. You can select a different discipline each time you gain discipline focus, but you must know at least one martial maneuver from the selected discipline. Even if you select a different discipline at higher levels, your discipline choice for earlier abilities does not change. This focus manifests in the following ways.  Weapon Focus: At 1st level, you gain the benefit of the Weapon Focus feat for weapons associated with the chosen discipline. See the discipline descriptions in Chapter 4.  Insightful Strikes: At 4th level, you can add your Wisdom modifier as a bonus on damage rolls whenever you execute a strike from the chosen discipline. At 12th level, you can choose a second discipline to which this ability applies.  Defensive Stance: At 8th level, you gain a +2 bonus on saving throws whenever you adopt a stance from the chosen discipline. At 16th level, you can choose a second discipline to which this ability applies. You gain a +2 bonus on Martial Lore checks made regarding a maneuver in a discipline in which you have discipline focus."
+            },
+            {
+              "level": 1,
+              "name": "Maneuvers",
+              "summary": "You begin your career with knowledge of six martial maneuvers. The disciplines available to you are Desert Wind, Diamond Mind, Setting Sun, Shadow Hand, Stone Dragon, and Tiger Claw. Once you know a maneuver, you must ready it before you can use it (see Maneuvers Readied, below). A maneuver usable by swordsages is considered an extraordinary ability unless otherwise noted in its description. Your maneuvers are not affected by spell resistance, and you do not provoke attacks of opportunity when you initiate one. You learn additional maneuvers at higher levels, as shown on Table 1-2. You must meet a maneuver's prerequisite to learn it. See Table 3-1, page 39, to determine the highest-level maneuvers you can learn. Upon reaching 4th level, and at every even-numbered swordsage level after that (6th, 8th, 10th, and so on), you can choose to learn a new maneuver in place of one you already know. In effect, you lose the old maneuver in exchange for the new one. You can choose a new maneuver of any level you like, as long as you observe your restriction on the highest- level maneuvers you know; you need not replace the old maneuver with a maneuver of the same level. For example, upon reaching 10th level, you could trade in a single 1st-, 2nd-, 3rd- or 4th-level maneuver for a maneuver of 5th level or lower, as long as you meet the prerequisite of the new maneuver. You can swap only a single maneuver at any given level."
+            },
+            {
+              "level": 1,
+              "name": "Maneuvers Readied",
+              "summary": "You can ready four of your six maneuvers known at 1st level, and as you advance in level and learn more maneuvers, you are able to ready more, but you must still choose which maneuvers to ready. You ready your maneuvers by meditating and exercising for 5 minutes. The maneuvers you choose remain readied until you decide to meditate again and change them. You need not sleep or rest for any long period of time to ready your maneuvers; any time you spend 5 minutes in meditation, you can change your readied maneuvers. You begin an encounter with all your readied maneuvers unexpended, regardless of how many times you might have already used them since you chose them. When you initiate a maneuver, you expend it for the current encounter, so each of your readied maneuvers can be used once per encounter (unless you recover them, as described below). You can recover an expended maneuver by using a fullround action to quickly meditate. Doing this does not provoke attacks of opportunity. If you complete your meditation, you can choose one expended maneuver to refresh. It is now available for use in a subsequent round."
+            },
+            {
+              "level": 1,
+              "name": "Quick to Act",
+              "summary": "You gain a +%1 bonus on initiative checks.|QuickToActBonus"
+            },
+            {
+              "level": 1,
+              "name": "Stances Known",
+              "summary": "You begin play with knowledge of one 1st-level stance from any discipline open to you. At 2nd, 5th, 9th, 14th, and 20th level, you can choose additional stances. Unlike maneuvers, stances are not expended, and you do not have to ready them. All the stances you know are available to you at all times, and you can change the stance you currently use as a swift action. A stance is an extraordinary ability unless otherwise stated in the stance description. Unlike with maneuvers, you cannot learn a new stance at higher levels in place of one you already know."
+            },
+            {
+              "level": 1,
+              "name": "Weapon and Armor Proficiency",
+              "summary": "As a swordsage, you are proficient with simple weapons, martial melee weapons (including those that can be used as thrown weapons), and light armor, but not with shields."
+            },
+            {
+              "level": 2,
+              "name": "AC Bonus",
+              "summary": "Starting at 2nd level, you can add your Wisdom modifier as a bonus to Armor Class, so long as you wear light armor, are unencumbered, and do not use a shield. This bonus to AC applies even against touch attacks or when you are flat-footed. However, you lose this bonus when you are immobilized or helpless."
+            },
+            {
+              "level": 7,
+              "name": "Sense Magic",
+              "summary": "Beginning at 7th level, you can spend 10 minutes focusing upon a weapon or suit of armor. If you succeed on a level check (DC 10 + the caster level of the weapon or armor), you can identify the properties of that item, including its enhancement bonus and special abilities. This ability does not reveal the properties of artifacts or legacy weapons, though it does indicate that such items are significantly powerful."
+            },
+            {
+              "level": 9,
+              "name": "Evasion",
+              "summary": "At 9th level, you can avoid even magical and unusual attacks with great agility. If you make a successful Reflex saving throw against an attack that normally deals damage on a successful save, you instead take no damage. Evasion can be used only if you are wearing light armor or no armor. If you are helpless, you do not gain the benefit of evasion."
+            },
+            {
+              "level": 17,
+              "name": "Improved Evasion",
+              "summary": "From 17th level on, you gain the benefit of improved evasion. You still take no damage if you make a successful Reflex save against an attack, and even if you fail the Reflex save, you take only half damage from the attack. If you are helpless, you do not gain the benefit of improved evasion."
+            },
+            {
+              "level": 20,
+              "name": "Dual Boost",
+              "summary": "When you reach 20th level, you can use two boost maneuvers simultaneously. Whenever you initiate a boost maneuver, you can also initiate any other boost maneuver that you know as a free action. Both boosts you initiate are expended normally. You can use this ability three times per day."
+            },
+            {
+              "level": 4,
+              "name": "Discipline Focus",
+              "summary": "Select a discipline: Wisdom damage on strikes at 4/12; +2 saves while in its stance at 8/16."
+            },
+            {
+              "level": 8,
+              "name": "Discipline Focus",
+              "summary": "Select a discipline: Wisdom damage on strikes at 4/12; +2 saves while in its stance at 8/16."
+            },
+            {
+              "level": 12,
+              "name": "Discipline Focus",
+              "summary": "Select a discipline: Wisdom damage on strikes at 4/12; +2 saves while in its stance at 8/16."
+            },
+            {
+              "level": 16,
+              "name": "Discipline Focus",
+              "summary": "Select a discipline: Wisdom damage on strikes at 4/12; +2 saves while in its stance at 8/16."
+            },
+            {
+              "level": 5,
+              "name": "Quick to Act",
+              "summary": "Initiative +2."
+            },
+            {
+              "level": 10,
+              "name": "Quick to Act",
+              "summary": "Initiative +3."
+            },
+            {
+              "level": 15,
+              "name": "Quick to Act",
+              "summary": "Initiative +4."
+            },
+            {
+              "level": 20,
+              "name": "Quick to Act",
+              "summary": "Initiative +5."
+            }
+          ],
+          "feature_values": [
+            {
+              "at_level": 1,
+              "name": "Quick to Act",
+              "values": {
+                "initiative": "1+floor(CLASSLEVEL/5)"
+              }
+            },
+            {
+              "at_level": 20,
+              "name": "Dual Boost",
+              "values": {
+                "uses": "3"
+              }
+            }
+          ],
+          "martial": {
+            "disciplines": [
+              "Desert Wind",
+              "Diamond Mind",
+              "Setting Sun",
+              "Shadow Hand",
+              "Stone Dragon",
+              "Tiger Claw"
+            ],
+            "prestige": false,
+            "levels": {
+              "1": {
+                "known": 6,
+                "readied": 4,
+                "stances": 1
+              },
+              "2": {
+                "known": 7,
+                "readied": 4,
+                "stances": 2
+              },
+              "3": {
+                "known": 8,
+                "readied": 5,
+                "stances": 2
+              },
+              "4": {
+                "known": 9,
+                "readied": 5,
+                "stances": 2
+              },
+              "5": {
+                "known": 10,
+                "readied": 6,
+                "stances": 3
+              },
+              "6": {
+                "known": 11,
+                "readied": 6,
+                "stances": 3
+              },
+              "7": {
+                "known": 12,
+                "readied": 6,
+                "stances": 3
+              },
+              "8": {
+                "known": 13,
+                "readied": 7,
+                "stances": 3
+              },
+              "9": {
+                "known": 14,
+                "readied": 7,
+                "stances": 4
+              },
+              "10": {
+                "known": 15,
+                "readied": 8,
+                "stances": 4
+              },
+              "11": {
+                "known": 16,
+                "readied": 8,
+                "stances": 4
+              },
+              "12": {
+                "known": 17,
+                "readied": 8,
+                "stances": 4
+              },
+              "13": {
+                "known": 18,
+                "readied": 9,
+                "stances": 4
+              },
+              "14": {
+                "known": 19,
+                "readied": 9,
+                "stances": 5
+              },
+              "15": {
+                "known": 20,
+                "readied": 10,
+                "stances": 5
+              },
+              "16": {
+                "known": 21,
+                "readied": 10,
+                "stances": 5
+              },
+              "17": {
+                "known": 22,
+                "readied": 10,
+                "stances": 5
+              },
+              "18": {
+                "known": 23,
+                "readied": 11,
+                "stances": 5
+              },
+              "19": {
+                "known": 24,
+                "readied": 11,
+                "stances": 5
+              },
+              "20": {
+                "known": 25,
+                "readied": 12,
+                "stances": 6
+              }
+            }
+          }
+        }
+      },
+      "pending": [
+        "Full class progression and numeric tiers recorded. The martial stress replay executes the Shadow Pounce case; other class-specific encounter abilities are descriptive until their own resolver is provided."
+      ]
+    },
+    {
+      "id": "35e:tob_martial:class:ruby_knight_vindicator",
+      "source": "tob_martial",
+      "key": "Ruby Knight Vindicator",
+      "name": "Ruby Knight Vindicator",
+      "requirements": [
+        {
+          "deity": {
+            "names": [
+              "Wee Jas"
+            ],
+            "min_count": 1
+          }
+        },
+        {
+          "skill_ranks": {
+            "specs": [
+              {
+                "name": "Hide",
+                "min_ranks": 4
+              },
+              {
+                "name": "Intimidate",
+                "min_ranks": 4
+              },
+              {
+                "name": "Knowledge (Religion)",
+                "min_ranks": 8
+              }
+            ],
+            "min_count": 3
+          }
+        }
+      ],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 8,
+        "max_level": 10,
+        "prestige": true,
+        "attack": "full",
+        "fortitude": "poor",
+        "reflex": "poor",
+        "will": "good",
+        "skill_points": 4,
+        "class_skills": [
+          "Balance",
+          "Concentration",
+          "TYPE.Craft",
+          "Diplomacy",
+          "Heal",
+          "Hide",
+          "Intimidate",
+          "Jump",
+          "Knowledge (History)",
+          "Knowledge (Local)",
+          "Knowledge (Religion)",
+          "Martial Lore",
+          "TYPE.Profession",
+          "Ride",
+          "Sense Motive",
+          "Spellcraft"
+        ],
+        "magic": {
+          "progression": [
+            {
+              "level": 1,
+              "name": "Maneuvers",
+              "summary": "At each even-numbered level, you gain one new maneuver known from the Devoted Spirit, Shadow Hand, Stone Dragon, or White Raven disciplines. You must meet a maneuver's prerequisite to learn it. You add your full Ruby Knight vindicator levels to your initiator level to determine your total initiator level and your highest-level maneuvers known. At 5th level and 9th level, you gain an additional maneuver readied per day."
+            },
+            {
+              "level": 1,
+              "name": "Multiclass Note",
+              "summary": "A paladin who becomes a Ruby Knight vindicator can continue advancing as a paladin."
+            },
+            {
+              "level": 1,
+              "name": "Spellcasting",
+              "summary": "At each level except 1st and 6th, you gain new spells per day and an increase in caster level (and spells known, if applicable) as if you had also gained a level in a divine spellcasting class to which you belonged before adding the prestige class level. You do not, however, gain any other benefit a character of that class would have gained. If you had more than one divine spellcasting class before becoming a devoted enforcer, you must decide to which class to add each level for the purpose of determining spells per day, caster level, and spells known."
+            },
+            {
+              "level": 1,
+              "name": "Stances Known",
+              "summary": "At 1st level and again at 6th level, you learn a new martial stance from the Devoted Spirit, Shadow Hand, Stone Dragon, or White Raven discipline. You must meet a stance's prerequisite to learn it."
+            },
+            {
+              "level": 2,
+              "name": "Divine Recovery",
+              "summary": "Beginning at 2nd level, you can channel divine power to recharge your martial maneuvers. You can expend a turn or rebuke undead attempt as a swift action to recover one expended maneuver. If you are a crusader, the maneuver you recover is immediately available to you as a granted maneuver."
+            },
+            {
+              "level": 5,
+              "name": "Armored Stealth",
+              "summary": "Knights-vindicator are taught unusual techniques for staying out of sight. Starting at 5th level, you no longer take an armor check penalty on Hide checks. Your armor check penalty still applies to any other skills affected by armor check penalties."
+            },
+            {
+              "level": 7,
+              "name": "Divine Impetus",
+              "summary": "At 7th level, you learn how to use the divine power of the Stern Lady to quicken your reactions and act without hesitation. You can expend a turn or rebuke undead attempt to gain one additional swift action this round. For example, you could use this ability to both change your stance and initiate a boost maneuver in the same turn, or if you initiated a counter before your turn, you can activate this ability and then initiate a boost on your turn."
+            },
+            {
+              "level": 9,
+              "name": "Divine Fury",
+              "summary": "From 9th level on, you can directly channel Wee Jas's divine energy into your martial strikes. As a free action, you can spend a turn or rebuke undead attempt to add a +4 sacred (or profane, if you are evil) bonus on your attack roll with one martial strike this turn. In addition to its normal effects, the strike deals an extra 1d10 points of damage."
+            }
+          ],
+          "feature_values": [],
+          "entry_states": [
+            "rkv_devoted_spirit_maneuver",
+            "rkv_devoted_spirit_stance",
+            "rkv_turn_or_rebuke"
+          ],
+          "martial": {
+            "disciplines": [
+              "Devoted Spirit",
+              "Shadow Hand",
+              "Stone Dragon",
+              "White Raven"
+            ],
+            "prestige": true,
+            "levels": {
+              "1": {
+                "known": 0,
+                "readied": 0,
+                "stances": 1
+              },
+              "2": {
+                "known": 1,
+                "readied": 0,
+                "stances": 0
+              },
+              "3": {
+                "known": 0,
+                "readied": 0,
+                "stances": 0
+              },
+              "4": {
+                "known": 1,
+                "readied": 0,
+                "stances": 0
+              },
+              "5": {
+                "known": 0,
+                "readied": 1,
+                "stances": 0
+              },
+              "6": {
+                "known": 1,
+                "readied": 0,
+                "stances": 1
+              },
+              "7": {
+                "known": 0,
+                "readied": 0,
+                "stances": 0
+              },
+              "8": {
+                "known": 1,
+                "readied": 0,
+                "stances": 0
+              },
+              "9": {
+                "known": 0,
+                "readied": 1,
+                "stances": 0
+              },
+              "10": {
+                "known": 1,
+                "readied": 0,
+                "stances": 0
+              }
+            }
+          }
+        },
+        "advancement": [
+          {
+            "level": 2,
+            "scope": "divine"
+          },
+          {
+            "level": 3,
+            "scope": "divine"
+          },
+          {
+            "level": 4,
+            "scope": "divine"
+          },
+          {
+            "level": 5,
+            "scope": "divine"
+          },
+          {
+            "level": 7,
+            "scope": "divine"
+          },
+          {
+            "level": 8,
+            "scope": "divine"
+          },
+          {
+            "level": 9,
+            "scope": "divine"
+          },
+          {
+            "level": 10,
+            "scope": "divine"
+          }
+        ]
+      },
+      "pending": [
+        "Full class progression and numeric tiers recorded. The martial stress replay executes the Shadow Pounce case; other class-specific encounter abilities are descriptive until their own resolver is provided."
+      ]
+    },
+    {
+      "id": "35e:cw_martial:class:swashbuckler",
+      "source": "cw_martial",
+      "key": "Swashbuckler",
+      "name": "Swashbuckler",
+      "requirements": [],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 10,
+        "max_level": 20,
+        "prestige": false,
+        "attack": "full",
+        "fortitude": "good",
+        "reflex": "poor",
+        "will": "poor",
+        "skill_points": 4,
+        "class_skills": [
+          "Balance",
+          "Bluff",
+          "Climb",
+          "TYPE.Craft",
+          "Diplomacy",
+          "Escape Artist",
+          "Jump",
+          "TYPE.Profession",
+          "Sense Motive",
+          "Swim",
+          "Tumble",
+          "Use Rope"
+        ],
+        "magic": {
+          "progression": [
+            {
+              "level": 1,
+              "name": "Weapon and Armor Proficiency",
+              "summary": "Swashbucklers are proficient with all simple and martial weapons, and with light armor. Some of the swashbuckler's class features, as noted below, rely on her being no more than lightly armored and unencumbered."
+            },
+            {
+              "level": 1,
+              "name": "Weapon Finesse",
+              "summary": "A swashbuckler gains Weapon Finesse as a bonus feat at 1st level even if she does not qualify for the feat."
+            },
+            {
+              "level": 2,
+              "name": "Grace",
+              "summary": "A swashbuckler gains a +1 competence bonus on Reflex saves at 2nd level. This bonus increases to +2 at 11th level and to +3 at 20th level. A swashbuckler loses this bonus when wearing medium or heavy armor or when carrying a medium or heavy load.  [Cannot use this ability]|PREVARGTEQ:ENCUMBERANCE,1,var(\"COUNT[EQTYPE.ARMOR.IS.MEDIUM]\"),1"
+            },
+            {
+              "level": 3,
+              "name": "Insightful Strike",
+              "summary": "At 3rd level, a swashbuckler becomes able to place her finesse attacks where they deal greater damage. She applies her Intelligence bonus (if any) as a bonus on damage rolls (in addition to any Strength bonus she may have) with any light weapon, as well as any other weapon that can be used with Weapon Finesse, such as a rapier, whip, or spiked chain. Targets immune to sneak attacks or critical hits are immune to the swashbuckler's insightful strike. A swashbuckler cannot use this ability when wearing medium or heavy armor or when carrying a medium or heavy load. [+%1 Bonus]|InsightfulStrikeBonus  [Cannot use this ability]|PREVARGTEQ:ENCUMBERANCE,1,var(\"COUNT[EQTYPE.ARMOR.IS.MEDIUM]\"),1"
+            },
+            {
+              "level": 5,
+              "name": "Dodge Bonus",
+              "summary": "A swashbuckler is trained at focusing her defenses on a single opponent in melee. During her action, she may designate an opponent and receive a +1 dodge bonus to Armor Class against melee attacks from that opponent. She can select a new opponent on any action. This bonus increases by +1 at every five levels after 5th (+2 at 10th level, +3 at 15th, and +4 at 20th). A swashbuckler loses this bonus when wearing medium or heavy armor or when carrying a medium or heavy load. If the swashbuckler also has the Dodge feat, she need not designate the same target for this ability as for the Dodge feat. (If she designates the same target, the bonuses stack.)  [Cannot use this ability]|PREVARGTEQ:ENCUMBERANCE,1,var(\"COUNT[EQTYPE.ARMOR.IS.MEDIUM]\"),1"
+            },
+            {
+              "level": 7,
+              "name": "Acrobatic Charge",
+              "summary": "A swashbuckler of 7th level or higher can charge in situations where others cannot. She may charge over difficult terrain that normally slows movement or allies blocking her path. This ability enables her to run down steep stairs, leap down from a balcony, or to tumble over tables to get to her target. Depending on the circumstance, she may still need to make appropriate checks (Jump or Tumble checks, in particular) to successfully move over the terrain."
+            },
+            {
+              "level": 8,
+              "name": "Improved Flanking",
+              "summary": "A swashbuckler of 8th level or higher who is flanking an opponent gains a +4 bonus on attacks instead of a +2 bonus on attacks. (Other characters flanking with the swashbuckler don't gain this increased bonus.)"
+            },
+            {
+              "level": 11,
+              "name": "Lucky",
+              "summary": "Many swashbucklers live by the credo \"Better lucky than good.\" Once per day, a swashbuckler of 11th level or higher may reroll any failed attack roll, skill check, ability check, or saving throw. The character must take the result of the reroll, even if it's worse than the original roll."
+            },
+            {
+              "level": 13,
+              "name": "Acrobatic Skill Mastery",
+              "summary": "At 13th level, a swashbuckler becomes so certain in the use of her acrobatic skills that she can use them reliably even under adverse conditions. When making a Jump or Tumble check, a swashbuckler may take 10 even if stress and distractions would normally prevent her from doing so."
+            },
+            {
+              "level": 14,
+              "name": "Weakening Critical",
+              "summary": "A swashbuckler of 14th level or higher who scores a critical hit against a creature also deals 2 points of Strength damage to the creature. Creatures immune to critical hits are immune to this effect."
+            },
+            {
+              "level": 17,
+              "name": "Slippery Mind",
+              "summary": "When a swashbuckler reaches 17th level, her mind becomes more difficult to control. If the swashbuckler fails her save against an enchantment spell or effect, she can attempt the save again 1 round later at the same DC (assuming she is still alive). She gets only this one extra chance to succeed at a certain saving throw."
+            },
+            {
+              "level": 19,
+              "name": "Wounding Critical",
+              "summary": "A swashbuckler of 19th level or higher who scores a critical hit against a creature also deals 2 points of Constitution damage to the creature. (This damage is in addition to the Strength damage dealt by the swashbuckler's weakening critical class feature.) Creatures immune to critical hits are immune to this effect."
+            },
+            {
+              "level": 10,
+              "name": "Dodge Bonus",
+              "summary": "+2 dodge AC against the selected opponent."
+            },
+            {
+              "level": 15,
+              "name": "Dodge Bonus",
+              "summary": "+3 dodge AC against the selected opponent."
+            },
+            {
+              "level": 20,
+              "name": "Dodge Bonus",
+              "summary": "+4 dodge AC against the selected opponent."
+            },
+            {
+              "level": 11,
+              "name": "Grace",
+              "summary": "+2 Reflex while lightly armored and lightly loaded."
+            },
+            {
+              "level": 20,
+              "name": "Grace",
+              "summary": "+3 Reflex while lightly armored and lightly loaded."
+            }
+          ],
+          "feature_values": [
+            {
+              "at_level": 2,
+              "name": "Grace",
+              "values": {
+                "reflex": "1+floor(CLASSLEVEL/11)+floor(CLASSLEVEL/20)"
+              }
+            },
+            {
+              "at_level": 5,
+              "name": "Dodge Bonus",
+              "values": {
+                "ac": "floor(CLASSLEVEL/5)"
+              }
+            }
+          ],
+          "bonus_feats": [
+            {
+              "level": 1,
+              "feat": "Weapon Finesse"
+            }
+          ]
+        }
+      },
+      "pending": [
+        "Full class progression and numeric tiers recorded. The martial stress replay executes the Shadow Pounce case; other class-specific encounter abilities are descriptive until their own resolver is provided."
+      ]
+    },
+    {
+      "id": "35e:shs_martial:class:crinti_shadow_marauder",
+      "source": "shs_martial",
+      "key": "Crinti Shadow Marauder",
+      "name": "Crinti Shadow Marauder",
+      "requirements": [
+        {
+          "alignment": {
+            "allowed": [
+              "LN",
+              "N",
+              "CN",
+              "LE",
+              "NE",
+              "CE"
+            ]
+          }
+        },
+        {
+          "skill_ranks": {
+            "specs": [
+              {
+                "name": "Handle Animal",
+                "min_ranks": 4
+              },
+              {
+                "name": "Hide",
+                "min_ranks": 8
+              },
+              {
+                "name": "Move Silently",
+                "min_ranks": 8
+              },
+              {
+                "name": "Ride",
+                "min_ranks": 8
+              }
+            ],
+            "min_count": 4
+          }
+        }
+      ],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 8,
+        "max_level": 5,
+        "prestige": true,
+        "attack": "three_quarter",
+        "fortitude": "poor",
+        "reflex": "good",
+        "will": "poor",
+        "skill_points": 4,
+        "class_skills": [
+          "Balance",
+          "Handle Animal",
+          "Hide",
+          "Intimidate",
+          "Knowledge (Nobility and Royalty)",
+          "Listen",
+          "Move Silently",
+          "Ride",
+          "Search",
+          "Spot",
+          "Use Rope"
+        ],
+        "feat_pools": [
+          {
+            "id": "crinti_mounted",
+            "name": "Crinti mounted feat",
+            "levels": [
+              3
+            ],
+            "allowed_types": [],
+            "allowed_feats": [
+              "Mounted Archery",
+              "Ride-By Attack",
+              "Spirited Charge",
+              "Trample"
+            ]
+          }
+        ],
+        "magic": {
+          "entry_states": [
+            "dambrath_region",
+            "crinti_or_noble_sanction"
+          ],
+          "progression": [
+            {
+              "level": 1,
+              "name": "Shadow Ride",
+              "summary": "Mounted teleport between shadows; 50 feet/class level/day, minimum expenditure 25 feet per ride; dimension door restrictions apply."
+            },
+            {
+              "level": 2,
+              "name": "Sudden Strike",
+              "summary": "1d6 when the target is denied Dexterity; normal precision restrictions; flanking alone does not qualify."
+            },
+            {
+              "level": 3,
+              "name": "Mounted bonus feat and Shadow Walk",
+              "summary": "One listed mounted feat with prerequisites; mounted Shadow Walk 1/day, caster level equals class level."
+            },
+            {
+              "level": 4,
+              "name": "Sudden Strike",
+              "summary": "2d6."
+            },
+            {
+              "level": 5,
+              "name": "Shadow Pounce",
+              "summary": "Full attack after teleportation. See the target before departure; arrive within melee reach using the weapon already held."
+            }
+          ],
+          "feature_values": [
+            {
+              "at_level": 1,
+              "name": "Shadow Ride",
+              "values": {
+                "feet": "50*CLASSLEVEL",
+                "minimum_feet": "25"
+              }
+            },
+            {
+              "at_level": 2,
+              "name": "Sudden Strike",
+              "values": {
+                "dice": "floor(CLASSLEVEL/2)"
+              }
+            }
+          ]
+        }
+      },
+      "pending": [
+        "Full class progression and numeric tiers recorded. The martial stress replay executes the Shadow Pounce case; other class-specific encounter abilities are descriptive until their own resolver is provided."
+      ]
+    }
+  ],
+  "maneuvers": {
+    "Blistering Flourish": {
+      "name": "Blistering Flourish",
+      "discipline": "Desert Wind",
+      "level": 1,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.52"
+    },
+    "Burning Blade": {
+      "name": "Burning Blade",
+      "discipline": "Desert Wind",
+      "level": 1,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.52"
+    },
+    "Burning Brand": {
+      "name": "Burning Brand",
+      "discipline": "Desert Wind",
+      "level": 2,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.52"
+    },
+    "Death Mark": {
+      "name": "Death Mark",
+      "discipline": "Desert Wind",
+      "level": 3,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.52"
+    },
+    "Desert Tempest": {
+      "name": "Desert Tempest",
+      "discipline": "Desert Wind",
+      "level": 6,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.52"
+    },
+    "Distracting Ember": {
+      "name": "Distracting Ember",
+      "discipline": "Desert Wind",
+      "level": 1,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.52"
+    },
+    "Dragon's Flame": {
+      "name": "Dragon's Flame",
+      "discipline": "Desert Wind",
+      "level": 5,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.53"
+    },
+    "Fan The Flames": {
+      "name": "Fan The Flames",
+      "discipline": "Desert Wind",
+      "level": 3,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.53"
+    },
+    "Fiery Assault": {
+      "name": "Fiery Assault",
+      "discipline": "Desert Wind",
+      "level": 6,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.53"
+    },
+    "Fire Riposte": {
+      "name": "Fire Riposte",
+      "discipline": "Desert Wind",
+      "level": 2,
+      "stance": false,
+      "action": "1 immediate action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.53"
+    },
+    "Firesnake": {
+      "name": "Firesnake",
+      "discipline": "Desert Wind",
+      "level": 4,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.53"
+    },
+    "Flame's Blessing": {
+      "name": "Flame's Blessing",
+      "discipline": "Desert Wind",
+      "level": 1,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.53"
+    },
+    "Flashing Sun": {
+      "name": "Flashing Sun",
+      "discipline": "Desert Wind",
+      "level": 2,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.54"
+    },
+    "Hatchling's Flame": {
+      "name": "Hatchling's Flame",
+      "discipline": "Desert Wind",
+      "level": 2,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.54"
+    },
+    "Holocaust Cloak": {
+      "name": "Holocaust Cloak",
+      "discipline": "Desert Wind",
+      "level": 3,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.54"
+    },
+    "Inferno Blade": {
+      "name": "Inferno Blade",
+      "discipline": "Desert Wind",
+      "level": 7,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.54"
+    },
+    "Inferno Blast": {
+      "name": "Inferno Blast",
+      "discipline": "Desert Wind",
+      "level": 9,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 5,
+      "teleportation": false,
+      "source": "tob_spells.lst p.55"
+    },
+    "Leaping Flame": {
+      "name": "Leaping Flame",
+      "discipline": "Desert Wind",
+      "level": 5,
+      "stance": false,
+      "action": "1 immediate action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.55"
+    },
+    "Lingering Inferno": {
+      "name": "Lingering Inferno",
+      "discipline": "Desert Wind",
+      "level": 5,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.55"
+    },
+    "Ring of Fire": {
+      "name": "Ring of Fire",
+      "discipline": "Desert Wind",
+      "level": 6,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.55"
+    },
+    "Rising Phoenix": {
+      "name": "Rising Phoenix",
+      "discipline": "Desert Wind",
+      "level": 8,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.55"
+    },
+    "Salamander Charge": {
+      "name": "Salamander Charge",
+      "discipline": "Desert Wind",
+      "level": 7,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.55"
+    },
+    "Searing Blade": {
+      "name": "Searing Blade",
+      "discipline": "Desert Wind",
+      "level": 4,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.56"
+    },
+    "Searing Charge": {
+      "name": "Searing Charge",
+      "discipline": "Desert Wind",
+      "level": 4,
+      "stance": false,
+      "action": "1 full round",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.56"
+    },
+    "Wind Stride": {
+      "name": "Wind Stride",
+      "discipline": "Desert Wind",
+      "level": 1,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.56"
+    },
+    "Wyrm's Flame": {
+      "name": "Wyrm's Flame",
+      "discipline": "Desert Wind",
+      "level": 8,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.56"
+    },
+    "Zephyr Dance": {
+      "name": "Zephyr Dance",
+      "discipline": "Desert Wind",
+      "level": 3,
+      "stance": false,
+      "action": "1 immediate action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.57"
+    },
+    "Aura of Chaos": {
+      "name": "Aura of Chaos",
+      "discipline": "Devoted Spirit",
+      "level": 6,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.57"
+    },
+    "Aura of Perfect Order": {
+      "name": "Aura of Perfect Order",
+      "discipline": "Devoted Spirit",
+      "level": 6,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.57"
+    },
+    "Aura of Triumph": {
+      "name": "Aura of Triumph",
+      "discipline": "Devoted Spirit",
+      "level": 6,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.57"
+    },
+    "Aura of Tyranny": {
+      "name": "Aura of Tyranny",
+      "discipline": "Devoted Spirit",
+      "level": 6,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.57"
+    },
+    "Castigating Strike": {
+      "name": "Castigating Strike",
+      "discipline": "Devoted Spirit",
+      "level": 7,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.57"
+    },
+    "Crusader's Strike": {
+      "name": "Crusader's Strike",
+      "discipline": "Devoted Spirit",
+      "level": 1,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.58"
+    },
+    "Daunting Strike": {
+      "name": "Daunting Strike",
+      "discipline": "Devoted Spirit",
+      "level": 5,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.58"
+    },
+    "Defensive Rebuke": {
+      "name": "Defensive Rebuke",
+      "discipline": "Devoted Spirit",
+      "level": 3,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.58"
+    },
+    "Divine Surge": {
+      "name": "Divine Surge",
+      "discipline": "Devoted Spirit",
+      "level": 4,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.58"
+    },
+    "Divine Surge, Greater": {
+      "name": "Divine Surge, Greater",
+      "discipline": "Devoted Spirit",
+      "level": 8,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.58"
+    },
+    "Doom Charge": {
+      "name": "Doom Charge",
+      "discipline": "Devoted Spirit",
+      "level": 5,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.58"
+    },
+    "Entangling Blade": {
+      "name": "Entangling Blade",
+      "discipline": "Devoted Spirit",
+      "level": 4,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.58"
+    },
+    "Foehammer": {
+      "name": "Foehammer",
+      "discipline": "Devoted Spirit",
+      "level": 2,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.59"
+    },
+    "Immortal Fortitude": {
+      "name": "Immortal Fortitude",
+      "discipline": "Devoted Spirit",
+      "level": 8,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.59"
+    },
+    "Iron Guard's Glare": {
+      "name": "Iron Guard's Glare",
+      "discipline": "Devoted Spirit",
+      "level": 1,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.59"
+    },
+    "Law Bearer": {
+      "name": "Law Bearer",
+      "discipline": "Devoted Spirit",
+      "level": 5,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.59"
+    },
+    "Martial Spirit": {
+      "name": "Martial Spirit",
+      "discipline": "Devoted Spirit",
+      "level": 1,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.60"
+    },
+    "Radiant Charge": {
+      "name": "Radiant Charge",
+      "discipline": "Devoted Spirit",
+      "level": 5,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.60"
+    },
+    "Rallying Strike": {
+      "name": "Rallying Strike",
+      "discipline": "Devoted Spirit",
+      "level": 6,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.60"
+    },
+    "Revitalizing Strike": {
+      "name": "Revitalizing Strike",
+      "discipline": "Devoted Spirit",
+      "level": 3,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.60"
+    },
+    "Shield Block": {
+      "name": "Shield Block",
+      "discipline": "Devoted Spirit",
+      "level": 2,
+      "stance": false,
+      "action": "1 immediate action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.60"
+    },
+    "Shield Counter": {
+      "name": "Shield Counter",
+      "discipline": "Devoted Spirit",
+      "level": 7,
+      "stance": false,
+      "action": "1 immediate action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.60"
+    },
+    "Strike of Righteous Vitality": {
+      "name": "Strike of Righteous Vitality",
+      "discipline": "Devoted Spirit",
+      "level": 9,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.60"
+    },
+    "Thicket of Blades": {
+      "name": "Thicket of Blades",
+      "discipline": "Devoted Spirit",
+      "level": 3,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.61"
+    },
+    "Tide of Chaos": {
+      "name": "Tide of Chaos",
+      "discipline": "Devoted Spirit",
+      "level": 5,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.61"
+    },
+    "Vanguard Strike": {
+      "name": "Vanguard Strike",
+      "discipline": "Devoted Spirit",
+      "level": 1,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.62"
+    },
+    "Action Before Thought": {
+      "name": "Action Before Thought",
+      "discipline": "Diamond Mind",
+      "level": 2,
+      "stance": false,
+      "action": "1 immediate action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.62"
+    },
+    "Avalanche of Blades": {
+      "name": "Avalanche of Blades",
+      "discipline": "Diamond Mind",
+      "level": 7,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.62"
+    },
+    "Bounding Assault": {
+      "name": "Bounding Assault",
+      "discipline": "Diamond Mind",
+      "level": 4,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.62"
+    },
+    "Diamond Defense": {
+      "name": "Diamond Defense",
+      "discipline": "Diamond Mind",
+      "level": 8,
+      "stance": false,
+      "action": "1 immediate action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.62"
+    },
+    "Diamond Nightmare Blade": {
+      "name": "Diamond Nightmare Blade",
+      "discipline": "Diamond Mind",
+      "level": 8,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.62"
+    },
+    "Disrupting Blow": {
+      "name": "Disrupting Blow",
+      "discipline": "Diamond Mind",
+      "level": 5,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.63"
+    },
+    "Emerald Razor": {
+      "name": "Emerald Razor",
+      "discipline": "Diamond Mind",
+      "level": 2,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.63"
+    },
+    "Hearing The Air": {
+      "name": "Hearing The Air",
+      "discipline": "Diamond Mind",
+      "level": 5,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.63"
+    },
+    "Insightful Strike": {
+      "name": "Insightful Strike",
+      "discipline": "Diamond Mind",
+      "level": 3,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.63"
+    },
+    "Insightful Strike, Greater": {
+      "name": "Insightful Strike, Greater",
+      "discipline": "Diamond Mind",
+      "level": 6,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.64"
+    },
+    "Mind Over Body": {
+      "name": "Mind Over Body",
+      "discipline": "Diamond Mind",
+      "level": 3,
+      "stance": false,
+      "action": "1 immediate action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.64"
+    },
+    "Mind Strike": {
+      "name": "Mind Strike",
+      "discipline": "Diamond Mind",
+      "level": 4,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.64"
+    },
+    "Moment of Alacrity": {
+      "name": "Moment of Alacrity",
+      "discipline": "Diamond Mind",
+      "level": 6,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.64"
+    },
+    "Moment of Perfect Mind": {
+      "name": "Moment of Perfect Mind",
+      "discipline": "Diamond Mind",
+      "level": 1,
+      "stance": false,
+      "action": "1 immediate action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.64"
+    },
+    "Pearl of Black Doubt": {
+      "name": "Pearl of Black Doubt",
+      "discipline": "Diamond Mind",
+      "level": 3,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.64"
+    },
+    "Quicksilver Motion": {
+      "name": "Quicksilver Motion",
+      "discipline": "Diamond Mind",
+      "level": 7,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.65"
+    },
+    "Rapid Counter": {
+      "name": "Rapid Counter",
+      "discipline": "Diamond Mind",
+      "level": 5,
+      "stance": false,
+      "action": "1 immediate action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.65"
+    },
+    "Ruby Nightmare Blade": {
+      "name": "Ruby Nightmare Blade",
+      "discipline": "Diamond Mind",
+      "level": 4,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.65"
+    },
+    "Sapphire Nightmare Blade": {
+      "name": "Sapphire Nightmare Blade",
+      "discipline": "Diamond Mind",
+      "level": 1,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.65"
+    },
+    "Stance of Alacrity": {
+      "name": "Stance of Alacrity",
+      "discipline": "Diamond Mind",
+      "level": 8,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.65"
+    },
+    "Stance of Clarity": {
+      "name": "Stance of Clarity",
+      "discipline": "Diamond Mind",
+      "level": 1,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.66"
+    },
+    "Time Stands Still": {
+      "name": "Time Stands Still",
+      "discipline": "Diamond Mind",
+      "level": 9,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 4,
+      "teleportation": false,
+      "source": "tob_spells.lst p.66"
+    },
+    "Absolute Steel": {
+      "name": "Absolute Steel",
+      "discipline": "Iron Heart",
+      "level": 3,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.66"
+    },
+    "Adamantine Hurricane": {
+      "name": "Adamantine Hurricane",
+      "discipline": "Iron Heart",
+      "level": 8,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.66"
+    },
+    "Dancing Blade Form": {
+      "name": "Dancing Blade Form",
+      "discipline": "Iron Heart",
+      "level": 5,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.67"
+    },
+    "Dazing Strike": {
+      "name": "Dazing Strike",
+      "discipline": "Iron Heart",
+      "level": 5,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.67"
+    },
+    "Disarming Strike": {
+      "name": "Disarming Strike",
+      "discipline": "Iron Heart",
+      "level": 2,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.67"
+    },
+    "Exorcism of Steel": {
+      "name": "Exorcism of Steel",
+      "discipline": "Iron Heart",
+      "level": 3,
+      "stance": false,
+      "action": "Standard action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.67"
+    },
+    "Finishing Move": {
+      "name": "Finishing Move",
+      "discipline": "Iron Heart",
+      "level": 7,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.67"
+    },
+    "Iron Heart Endurance": {
+      "name": "Iron Heart Endurance",
+      "discipline": "Iron Heart",
+      "level": 6,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.68"
+    },
+    "Iron Heart Focus": {
+      "name": "Iron Heart Focus",
+      "discipline": "Iron Heart",
+      "level": 5,
+      "stance": false,
+      "action": "1 immediate action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.68"
+    },
+    "Iron Heart Surge": {
+      "name": "Iron Heart Surge",
+      "discipline": "Iron Heart",
+      "level": 3,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.68"
+    },
+    "Lightning Recovery": {
+      "name": "Lightning Recovery",
+      "discipline": "Iron Heart",
+      "level": 4,
+      "stance": false,
+      "action": "1 immediate action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.68"
+    },
+    "Lightning Throw": {
+      "name": "Lightning Throw",
+      "discipline": "Iron Heart",
+      "level": 8,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.68"
+    },
+    "Manticore Parry": {
+      "name": "Manticore Parry",
+      "discipline": "Iron Heart",
+      "level": 6,
+      "stance": false,
+      "action": "1 immediate action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.69"
+    },
+    "Mithral Tornado": {
+      "name": "Mithral Tornado",
+      "discipline": "Iron Heart",
+      "level": 4,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.69"
+    },
+    "Punishing Stance": {
+      "name": "Punishing Stance",
+      "discipline": "Iron Heart",
+      "level": 1,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.69"
+    },
+    "Scything Blade": {
+      "name": "Scything Blade",
+      "discipline": "Iron Heart",
+      "level": 7,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.69"
+    },
+    "Steel Wind": {
+      "name": "Steel Wind",
+      "discipline": "Iron Heart",
+      "level": 1,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.69"
+    },
+    "Steely Strike": {
+      "name": "Steely Strike",
+      "discipline": "Iron Heart",
+      "level": 1,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.69"
+    },
+    "Strike of Perfect Clarity": {
+      "name": "Strike of Perfect Clarity",
+      "discipline": "Iron Heart",
+      "level": 9,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 4,
+      "teleportation": false,
+      "source": "tob_spells.lst p.70"
+    },
+    "Supreme Blade Parry": {
+      "name": "Supreme Blade Parry",
+      "discipline": "Iron Heart",
+      "level": 8,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.70"
+    },
+    "Wall of Blades": {
+      "name": "Wall of Blades",
+      "discipline": "Iron Heart",
+      "level": 2,
+      "stance": false,
+      "action": "1 immediate action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.70"
+    },
+    "Baffling Defense": {
+      "name": "Baffling Defense",
+      "discipline": "Setting Sun",
+      "level": 2,
+      "stance": false,
+      "action": "1 immediate action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.70"
+    },
+    "Ballista Throw": {
+      "name": "Ballista Throw",
+      "discipline": "Setting Sun",
+      "level": 6,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.70"
+    },
+    "Clever Positioning": {
+      "name": "Clever Positioning",
+      "discipline": "Setting Sun",
+      "level": 2,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.70"
+    },
+    "Comet Throw": {
+      "name": "Comet Throw",
+      "discipline": "Setting Sun",
+      "level": 4,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.71"
+    },
+    "Counter Charge": {
+      "name": "Counter Charge",
+      "discipline": "Setting Sun",
+      "level": 1,
+      "stance": false,
+      "action": "1 immediate action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.71"
+    },
+    "Devastating Throw": {
+      "name": "Devastating Throw",
+      "discipline": "Setting Sun",
+      "level": 3,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.71"
+    },
+    "Feigned Opening": {
+      "name": "Feigned Opening",
+      "discipline": "Setting Sun",
+      "level": 3,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.72"
+    },
+    "Fool's Strike": {
+      "name": "Fool's Strike",
+      "discipline": "Setting Sun",
+      "level": 8,
+      "stance": false,
+      "action": "1 immediate action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.72"
+    },
+    "Ghostly Defense": {
+      "name": "Ghostly Defense",
+      "discipline": "Setting Sun",
+      "level": 8,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.72"
+    },
+    "Giant Killing Style": {
+      "name": "Giant Killing Style",
+      "discipline": "Setting Sun",
+      "level": 3,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.72"
+    },
+    "Hydra Slaying Strike": {
+      "name": "Hydra Slaying Strike",
+      "discipline": "Setting Sun",
+      "level": 7,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.73"
+    },
+    "Mighty Throw": {
+      "name": "Mighty Throw",
+      "discipline": "Setting Sun",
+      "level": 1,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.73"
+    },
+    "Mirrored Pursuit": {
+      "name": "Mirrored Pursuit",
+      "discipline": "Setting Sun",
+      "level": 5,
+      "stance": false,
+      "action": "1 immediate action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.73"
+    },
+    "Scorpion Parry": {
+      "name": "Scorpion Parry",
+      "discipline": "Setting Sun",
+      "level": 6,
+      "stance": false,
+      "action": "1 immediate action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.73"
+    },
+    "Shifting Defense": {
+      "name": "Shifting Defense",
+      "discipline": "Setting Sun",
+      "level": 5,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.73"
+    },
+    "Soaring Throw": {
+      "name": "Soaring Throw",
+      "discipline": "Setting Sun",
+      "level": 5,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.73"
+    },
+    "Stalking Shadow": {
+      "name": "Stalking Shadow",
+      "discipline": "Setting Sun",
+      "level": 5,
+      "stance": false,
+      "action": "1 immediate action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.74"
+    },
+    "Step of the Wind": {
+      "name": "Step of the Wind",
+      "discipline": "Setting Sun",
+      "level": 1,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.74"
+    },
+    "Strike of the Broken Shield": {
+      "name": "Strike of the Broken Shield",
+      "discipline": "Setting Sun",
+      "level": 4,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.74"
+    },
+    "Tornado Throw": {
+      "name": "Tornado Throw",
+      "discipline": "Setting Sun",
+      "level": 9,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 5,
+      "teleportation": false,
+      "source": "tob_spells.lst p.75"
+    },
+    "Assassin's Stance": {
+      "name": "Assassin's Stance",
+      "discipline": "Shadow Hand",
+      "level": 3,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.75"
+    },
+    "Balance On The Sky": {
+      "name": "Balance On The Sky",
+      "discipline": "Shadow Hand",
+      "level": 8,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.75"
+    },
+    "Bloodletting Strike": {
+      "name": "Bloodletting Strike",
+      "discipline": "Shadow Hand",
+      "level": 5,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.75"
+    },
+    "Child of Shadow": {
+      "name": "Child of Shadow",
+      "discipline": "Shadow Hand",
+      "level": 1,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.76"
+    },
+    "Clinging Shadow Strike": {
+      "name": "Clinging Shadow Strike",
+      "discipline": "Shadow Hand",
+      "level": 1,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.76"
+    },
+    "Cloak of Deception": {
+      "name": "Cloak of Deception",
+      "discipline": "Shadow Hand",
+      "level": 2,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.76"
+    },
+    "Dance of the Spider": {
+      "name": "Dance of the Spider",
+      "discipline": "Shadow Hand",
+      "level": 3,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.76"
+    },
+    "Death In The Dark": {
+      "name": "Death In The Dark",
+      "discipline": "Shadow Hand",
+      "level": 7,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.76"
+    },
+    "Drain Vitality": {
+      "name": "Drain Vitality",
+      "discipline": "Shadow Hand",
+      "level": 2,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.77"
+    },
+    "Enervating Shadow Strike": {
+      "name": "Enervating Shadow Strike",
+      "discipline": "Shadow Hand",
+      "level": 8,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.77"
+    },
+    "Five-Shadow Creeping Ice Enervation Strike": {
+      "name": "Five-Shadow Creeping Ice Enervation Strike",
+      "discipline": "Shadow Hand",
+      "level": 9,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 5,
+      "teleportation": false,
+      "source": "tob_spells.lst p.77"
+    },
+    "Ghost Blade": {
+      "name": "Ghost Blade",
+      "discipline": "Shadow Hand",
+      "level": 6,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.77"
+    },
+    "Hand of Death": {
+      "name": "Hand of Death",
+      "discipline": "Shadow Hand",
+      "level": 4,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.77"
+    },
+    "Island of Blades": {
+      "name": "Island of Blades",
+      "discipline": "Shadow Hand",
+      "level": 1,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.78"
+    },
+    "Obscuring Shadow Veil": {
+      "name": "Obscuring Shadow Veil",
+      "discipline": "Shadow Hand",
+      "level": 4,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.78"
+    },
+    "One With Shadow": {
+      "name": "One With Shadow",
+      "discipline": "Shadow Hand",
+      "level": 8,
+      "stance": false,
+      "action": "1 immediate action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.78"
+    },
+    "Shadow Blade Technique": {
+      "name": "Shadow Blade Technique",
+      "discipline": "Shadow Hand",
+      "level": 1,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.78"
+    },
+    "Shadow Blink": {
+      "name": "Shadow Blink",
+      "discipline": "Shadow Hand",
+      "level": 7,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 0,
+      "teleportation": true,
+      "source": "tob_spells.lst p.78"
+    },
+    "Shadow Garrote": {
+      "name": "Shadow Garrote",
+      "discipline": "Shadow Hand",
+      "level": 3,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.78"
+    },
+    "Shadow Jaunt": {
+      "name": "Shadow Jaunt",
+      "discipline": "Shadow Hand",
+      "level": 2,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": true,
+      "source": "tob_spells.lst p.79"
+    },
+    "Shadow Noose": {
+      "name": "Shadow Noose",
+      "discipline": "Shadow Hand",
+      "level": 6,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.79"
+    },
+    "Shadow Stride": {
+      "name": "Shadow Stride",
+      "discipline": "Shadow Hand",
+      "level": 5,
+      "stance": false,
+      "action": "1 move action",
+      "prerequisite_count": 0,
+      "teleportation": true,
+      "source": "tob_spells.lst p.80"
+    },
+    "Stalker In The Night": {
+      "name": "Stalker In The Night",
+      "discipline": "Shadow Hand",
+      "level": 6,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.80"
+    },
+    "Step of the Dancing Moth": {
+      "name": "Step of the Dancing Moth",
+      "discipline": "Shadow Hand",
+      "level": 5,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.80"
+    },
+    "Strength Draining Strike": {
+      "name": "Strength Draining Strike",
+      "discipline": "Shadow Hand",
+      "level": 3,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.80"
+    },
+    "Adamantine Bones": {
+      "name": "Adamantine Bones",
+      "discipline": "Stone Dragon",
+      "level": 8,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.81"
+    },
+    "Ancient Mountain Hammer": {
+      "name": "Ancient Mountain Hammer",
+      "discipline": "Stone Dragon",
+      "level": 7,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.81"
+    },
+    "Bonesplitting Strike": {
+      "name": "Bonesplitting Strike",
+      "discipline": "Stone Dragon",
+      "level": 4,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.81"
+    },
+    "Bonecrusher": {
+      "name": "Bonecrusher",
+      "discipline": "Stone Dragon",
+      "level": 3,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.81"
+    },
+    "Boulder Roll": {
+      "name": "Boulder Roll",
+      "discipline": "Stone Dragon",
+      "level": 4,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.81"
+    },
+    "Charging Minotaur": {
+      "name": "Charging Minotaur",
+      "discipline": "Stone Dragon",
+      "level": 1,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.81"
+    },
+    "Colossus Strike": {
+      "name": "Colossus Strike",
+      "discipline": "Stone Dragon",
+      "level": 7,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.82"
+    },
+    "Crushing Vise": {
+      "name": "Crushing Vise",
+      "discipline": "Stone Dragon",
+      "level": 6,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.82"
+    },
+    "Crushing Weight of the Mountain": {
+      "name": "Crushing Weight of the Mountain",
+      "discipline": "Stone Dragon",
+      "level": 3,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.82"
+    },
+    "Earthstrike Quake": {
+      "name": "Earthstrike Quake",
+      "discipline": "Stone Dragon",
+      "level": 8,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.82"
+    },
+    "Elder Mountain Hammer": {
+      "name": "Elder Mountain Hammer",
+      "discipline": "Stone Dragon",
+      "level": 5,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.82"
+    },
+    "Giant's Stance": {
+      "name": "Giant's Stance",
+      "discipline": "Stone Dragon",
+      "level": 5,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.83"
+    },
+    "Iron Bones": {
+      "name": "Iron Bones",
+      "discipline": "Stone Dragon",
+      "level": 6,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.83"
+    },
+    "Irresistible Mountain Strike": {
+      "name": "Irresistible Mountain Strike",
+      "discipline": "Stone Dragon",
+      "level": 6,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.83"
+    },
+    "Mountain Avalanche": {
+      "name": "Mountain Avalanche",
+      "discipline": "Stone Dragon",
+      "level": 5,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.84"
+    },
+    "Mountain Hammer": {
+      "name": "Mountain Hammer",
+      "discipline": "Stone Dragon",
+      "level": 2,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.84"
+    },
+    "Mountain Tombstone Strike": {
+      "name": "Mountain Tombstone Strike",
+      "discipline": "Stone Dragon",
+      "level": 9,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.84"
+    },
+    "Overwhelming Mountain Strike": {
+      "name": "Overwhelming Mountain Strike",
+      "discipline": "Stone Dragon",
+      "level": 4,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.84"
+    },
+    "Roots of the Mountain": {
+      "name": "Roots of the Mountain",
+      "discipline": "Stone Dragon",
+      "level": 3,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.84"
+    },
+    "Stone Bones": {
+      "name": "Stone Bones",
+      "discipline": "Stone Dragon",
+      "level": 1,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.84"
+    },
+    "Stone Dragon's Fury": {
+      "name": "Stone Dragon's Fury",
+      "discipline": "Stone Dragon",
+      "level": 3,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.85"
+    },
+    "Stone Vise": {
+      "name": "Stone Vise",
+      "discipline": "Stone Dragon",
+      "level": 2,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.85"
+    },
+    "Stonefoot Stance": {
+      "name": "Stonefoot Stance",
+      "discipline": "Stone Dragon",
+      "level": 1,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.85"
+    },
+    "Strength of Stone": {
+      "name": "Strength of Stone",
+      "discipline": "Stone Dragon",
+      "level": 8,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.85"
+    },
+    "Blood In The Water": {
+      "name": "Blood In The Water",
+      "discipline": "Tiger Claw",
+      "level": 1,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.86"
+    },
+    "Claw At The Moon": {
+      "name": "Claw At The Moon",
+      "discipline": "Tiger Claw",
+      "level": 2,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.86"
+    },
+    "Dancing Mongoose": {
+      "name": "Dancing Mongoose",
+      "discipline": "Tiger Claw",
+      "level": 5,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.86"
+    },
+    "Death From Above": {
+      "name": "Death From Above",
+      "discipline": "Tiger Claw",
+      "level": 4,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.86"
+    },
+    "Feral Death Blow": {
+      "name": "Feral Death Blow",
+      "discipline": "Tiger Claw",
+      "level": 9,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 4,
+      "teleportation": false,
+      "source": "tob_spells.lst p.87"
+    },
+    "Flesh Ripper": {
+      "name": "Flesh Ripper",
+      "discipline": "Tiger Claw",
+      "level": 3,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.87"
+    },
+    "Fountain of Blood": {
+      "name": "Fountain of Blood",
+      "discipline": "Tiger Claw",
+      "level": 4,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.87"
+    },
+    "Girallon Windmill Flesh Rip": {
+      "name": "Girallon Windmill Flesh Rip",
+      "discipline": "Tiger Claw",
+      "level": 8,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.87"
+    },
+    "Hamstring Attack": {
+      "name": "Hamstring Attack",
+      "discipline": "Tiger Claw",
+      "level": 7,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.88"
+    },
+    "Hunter's Sense": {
+      "name": "Hunter's Sense",
+      "discipline": "Tiger Claw",
+      "level": 1,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.88"
+    },
+    "Leaping Dragon Stance": {
+      "name": "Leaping Dragon Stance",
+      "discipline": "Tiger Claw",
+      "level": 3,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.88"
+    },
+    "Pouncing Charge": {
+      "name": "Pouncing Charge",
+      "discipline": "Tiger Claw",
+      "level": 5,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.88"
+    },
+    "Prey On The Weak": {
+      "name": "Prey On The Weak",
+      "discipline": "Tiger Claw",
+      "level": 7,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.88"
+    },
+    "Rabid Bear Strike": {
+      "name": "Rabid Bear Strike",
+      "discipline": "Tiger Claw",
+      "level": 6,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.88"
+    },
+    "Rabid Wolf Strike": {
+      "name": "Rabid Wolf Strike",
+      "discipline": "Tiger Claw",
+      "level": 2,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.88"
+    },
+    "Raging Mongoose": {
+      "name": "Raging Mongoose",
+      "discipline": "Tiger Claw",
+      "level": 8,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.89"
+    },
+    "Soaring Raptor Strike": {
+      "name": "Soaring Raptor Strike",
+      "discipline": "Tiger Claw",
+      "level": 3,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.89"
+    },
+    "Sudden Leap": {
+      "name": "Sudden Leap",
+      "discipline": "Tiger Claw",
+      "level": 1,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.89"
+    },
+    "Swooping Dragon Strike": {
+      "name": "Swooping Dragon Strike",
+      "discipline": "Tiger Claw",
+      "level": 7,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.89"
+    },
+    "Wolf Climbs The Mountain": {
+      "name": "Wolf Climbs The Mountain",
+      "discipline": "Tiger Claw",
+      "level": 6,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.89"
+    },
+    "Wolf Fang Strike": {
+      "name": "Wolf Fang Strike",
+      "discipline": "Tiger Claw",
+      "level": 1,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.90"
+    },
+    "Wolf Pack Tactics": {
+      "name": "Wolf Pack Tactics",
+      "discipline": "Tiger Claw",
+      "level": 8,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.90"
+    },
+    "Wolverine Stance": {
+      "name": "Wolverine Stance",
+      "discipline": "Tiger Claw",
+      "level": 3,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.90"
+    },
+    "Battle Leader's Charge": {
+      "name": "Battle Leader's Charge",
+      "discipline": "White Raven",
+      "level": 2,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.90"
+    },
+    "Bolstering Voice": {
+      "name": "Bolstering Voice",
+      "discipline": "White Raven",
+      "level": 1,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.90"
+    },
+    "Clarion Call": {
+      "name": "Clarion Call",
+      "discipline": "White Raven",
+      "level": 7,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.91"
+    },
+    "Covering Strike": {
+      "name": "Covering Strike",
+      "discipline": "White Raven",
+      "level": 4,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.91"
+    },
+    "Douse The Flames": {
+      "name": "Douse The Flames",
+      "discipline": "White Raven",
+      "level": 1,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.91"
+    },
+    "Flanking Maneuver": {
+      "name": "Flanking Maneuver",
+      "discipline": "White Raven",
+      "level": 5,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.91"
+    },
+    "Leading The Attack": {
+      "name": "Leading The Attack",
+      "discipline": "White Raven",
+      "level": 1,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.91"
+    },
+    "Leading The Charge": {
+      "name": "Leading The Charge",
+      "discipline": "White Raven",
+      "level": 1,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 0,
+      "teleportation": false,
+      "source": "tob_spells.lst p.92"
+    },
+    "Lion's Roar": {
+      "name": "Lion's Roar",
+      "discipline": "White Raven",
+      "level": 3,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.92"
+    },
+    "Order Forged From Chaos": {
+      "name": "Order Forged From Chaos",
+      "discipline": "White Raven",
+      "level": 6,
+      "stance": false,
+      "action": "1 move action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.92"
+    },
+    "Press The Advantage": {
+      "name": "Press The Advantage",
+      "discipline": "White Raven",
+      "level": 5,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.93"
+    },
+    "Swarm Tactics": {
+      "name": "Swarm Tactics",
+      "discipline": "White Raven",
+      "level": 8,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.93"
+    },
+    "Swarming Assault": {
+      "name": "Swarming Assault",
+      "discipline": "White Raven",
+      "level": 7,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.93"
+    },
+    "Tactical Strike": {
+      "name": "Tactical Strike",
+      "discipline": "White Raven",
+      "level": 2,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.93"
+    },
+    "Tactics of the Wolf": {
+      "name": "Tactics of the Wolf",
+      "discipline": "White Raven",
+      "level": 3,
+      "stance": true,
+      "action": "1 swift action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.93"
+    },
+    "War Leader's Charge": {
+      "name": "War Leader's Charge",
+      "discipline": "White Raven",
+      "level": 6,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 2,
+      "teleportation": false,
+      "source": "tob_spells.lst p.93"
+    },
+    "War Master's Charge": {
+      "name": "War Master's Charge",
+      "discipline": "White Raven",
+      "level": 9,
+      "stance": false,
+      "action": "1 full-round action",
+      "prerequisite_count": 4,
+      "teleportation": false,
+      "source": "tob_spells.lst p.94"
+    },
+    "White Raven Hammer": {
+      "name": "White Raven Hammer",
+      "discipline": "White Raven",
+      "level": 8,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 3,
+      "teleportation": false,
+      "source": "tob_spells.lst p.94"
+    },
+    "White Raven Strike": {
+      "name": "White Raven Strike",
+      "discipline": "White Raven",
+      "level": 4,
+      "stance": false,
+      "action": "1 standard action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.94"
+    },
+    "White Raven Tactics": {
+      "name": "White Raven Tactics",
+      "discipline": "White Raven",
+      "level": 3,
+      "stance": false,
+      "action": "1 swift action",
+      "prerequisite_count": 1,
+      "teleportation": false,
+      "source": "tob_spells.lst p.94"
+    }
+  },
+  "skills": [
+    {
+      "id": "Martial Lore",
+      "name": "Martial Lore",
+      "key_stat": "INT",
+      "trained_only": true,
+      "armor_check": false
+    }
+  ]
+}

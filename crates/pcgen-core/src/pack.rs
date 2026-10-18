@@ -77,6 +77,8 @@ impl CampaignSource {
 /// Runtime-facing rule pack.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CompiledRulePack {
+    #[serde(default)]
+    pub maneuvers: BTreeMap<String, crate::martial::Maneuver>,
     pub header: CompiledPackHeader,
     pub entities: Vec<CompiledEntity>,
     pub coverage: RuleCoverage,

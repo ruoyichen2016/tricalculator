@@ -22,7 +22,8 @@
 //! `TYPE.` (51) and `ANY` (2) looked for a class by that literal name and so
 //! could never match.
 
-use pcgen_engine::{apply_effects, CharacterDraft, DraftClassLevel};
+use pcgen_engine::{apply_effects, CharacterDraft};
+use pcgen_import::PcgClassLevel as DraftClassLevel;
 use pcgen_ir::{lower_records, RawRecord, RawTag, SourceRef};
 
 fn record(category: &str, name: &str, tags: &[(&str, &str)]) -> RawRecord {
@@ -118,13 +119,23 @@ fn active(preclass: &str, levels: &[(&str, u32)]) -> bool {
         ..CharacterDraft::default()
     };
     for (class_id, level) in levels {
-        draft.class_levels.push(DraftClassLevel {
-            class_id: (*class_id).to_string(),
-            level: *level,
-            hit_points_gained: 0,
-            hit_points_by_level: vec![],
-            experience_gained: 0,
-        });
+        draft.advancement.extend(
+            pcgen_import::advancement_from_class_levels(&[DraftClassLevel {
+                class_id: (*class_id).to_string(),
+                level: *level,
+                hit_points_gained: 0,
+                hit_points_by_level: vec![],
+                experience_gained: 0,
+            }])
+            .into_iter()
+            .map({
+                let offset = draft.total_level();
+                move |mut frame| {
+                    frame.character_level += offset;
+                    frame
+                }
+            }),
+        );
     }
     apply_effects(&pack, &draft)
         .weapon_proficiencies

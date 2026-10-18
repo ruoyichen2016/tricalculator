@@ -176,34 +176,10 @@ fn class_record(
     class: &ClassDefinition,
     progression: Option<&ClassProgression>,
     origin: Option<Origin>,
-    warnings: &mut Vec<String>,
+    _warnings: &mut Vec<String>,
 ) -> ClassRecord {
     let empty = ClassProgression::default();
     let progression = progression.unwrap_or(&empty);
-
-    // R5: the formula string is dropped, and the table takes over.  The engine
-    // currently prefers the formula, so the transpiler checks they agree rather
-    // than assuming it.  For the RSRD they agree at every class and level.
-    if let Some(formula) = &class.base_attack_formula {
-        let mismatched = (1..=class.max_level.min(20)).any(|level| {
-            let from_table = progression.bab(level);
-            let from_formula = pcgen_engine::evaluate_class_formula(
-                formula,
-                &class.id,
-                level,
-                level,
-                &BTreeMap::new(),
-            );
-            from_formula != from_table
-        });
-        if mismatched {
-            warnings.push(format!(
-                "class `{}`: base attack formula `{formula}` disagrees with the \
-                 progression table; the table was written",
-                class.id
-            ));
-        }
-    }
 
     // The per-level maps move to `class_level` records, so clear them here
     // rather than storing the same rows twice.
@@ -211,12 +187,8 @@ fn class_record(
     definition.level_abilities.clear();
     definition.level_bonuses.clear();
     definition.level_prerequisites.clear();
-    // R5: the tables in `progression` are authoritative, so the formula
-    // strings do not travel.
-    definition.base_attack_formula = None;
-    definition.fortitude_formula = None;
-    definition.reflex_formula = None;
-    definition.will_formula = None;
+    // Keep source formulas: tables are a projection, not a replacement for
+    // expressions that depend on character state.
 
     let carried = progression.clone();
 

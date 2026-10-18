@@ -1,0 +1,339 @@
+{
+  "id": "malkavon-rainbow-warweaver",
+  "name": "Malkavon's basic Rainbow Warweaver",
+  "status": "executable_cast_and_conditional_entry_slice",
+  "purpose": "手动极端场景；不是完整角色存档，不加入默认测试或全量门禁。",
+  "source": {
+    "provided_by": "user",
+    "repost_url": "https://forums.giantitp.com/showsinglepost.php?p=19913976&postcount=38",
+    "authority": "论坛只提供 build 输入；数值及资格判断以已核实的 raw 规则为准。"
+  },
+  "build": {
+    "race": "Human",
+    "levels": [
+      {
+        "class": "Warmage",
+        "levels": 1
+      },
+      {
+        "class": "Rainbow Servant",
+        "levels": 10
+      },
+      {
+        "class": "Sacred Exorcist",
+        "levels": 1
+      },
+      {
+        "class": "War Weaver",
+        "levels": 5
+      },
+      {
+        "class": "Incantatrix",
+        "levels": 3
+      }
+    ],
+    "total_level": 20,
+    "feat_selections": [
+      {
+        "feat": "Heighten Spell",
+        "source_kind": "level",
+        "character_level": 1,
+        "source_or_choice": null
+      },
+      {
+        "feat": "Earth Sense",
+        "source_kind": "human",
+        "character_level": 1,
+        "source_or_choice": null
+      },
+      {
+        "feat": "Earth Spell",
+        "source_kind": "flaw",
+        "character_level": 1,
+        "source_or_choice": "F1"
+      },
+      {
+        "feat": "Versatile Spellcaster",
+        "source_kind": "flaw",
+        "character_level": 1,
+        "source_or_choice": "F2"
+      },
+      {
+        "feat": "Extend Spell",
+        "source_kind": "level",
+        "character_level": 3,
+        "source_or_choice": null
+      },
+      {
+        "feat": "Iron Will",
+        "source_kind": "location",
+        "character_level": null,
+        "source_or_choice": "Otyugh Hole"
+      },
+      {
+        "feat": "Enlarge Spell",
+        "source_kind": "level",
+        "character_level": 6,
+        "source_or_choice": null
+      },
+      {
+        "feat": "Persistent Spell",
+        "source_kind": "level",
+        "character_level": 9,
+        "source_or_choice": null
+      },
+      {
+        "feat": "Divine Metamagic",
+        "source_kind": "level",
+        "character_level": 12,
+        "source_or_choice": "Persistent Spell"
+      },
+      {
+        "feat": "Sanctum Spell",
+        "source_kind": "level",
+        "character_level": 15,
+        "source_or_choice": null
+      },
+      {
+        "feat": null,
+        "source_kind": "level",
+        "character_level": 18,
+        "source_or_choice": null
+      },
+      {
+        "feat": null,
+        "source_kind": "class",
+        "character_level": 18,
+        "source_or_choice": "Incantatrix 1"
+      }
+    ],
+    "unspecified": [
+      "属性及逐级属性提升",
+      "逐级 HP",
+      "技能分配",
+      "两个 flaw 的具体选择",
+      "Otyugh Hole 获得等级及条件",
+      "18 级普通专长选择",
+      "Incantatrix 1 奖励专长选择",
+      "装备、法术及环境条件"
+    ],
+    "notes": [
+      "职业按给定列表顺序展开；Incantatrix 1 因此在角色 18 级。",
+      "F1/F2 保留为不同 flaw 来源，未擅自选择 flaw；Open 为未选槽位，不是名为 Open 的专长。"
+    ]
+  },
+  "raw_audit": {
+    "scope": "主 raw、被忽略的 data/packs/custom/original、规则原文的网络转录",
+    "method": "精确匹配记录名或 KEY，人工核对规则身份；名字命中不代表当前 PCC 已加载或语义已支持。",
+    "missing_required_classes": [],
+    "missing_named_rules": [
+      "Otyugh Hole"
+    ],
+    "rejected_name_collisions": [
+      {
+        "name": "Warmage",
+        "reason": "AEG War 的同名进阶职业及 Alea 的同名专长均不能代替该 build 所需的基础职业。",
+        "matches": [
+          {
+            "path": "data/35e/alea_publishing_group/question_of_loyalty/questionloyalty_feats.lst",
+            "line": 42,
+            "head": "Warmage"
+          },
+          {
+            "path": "data/35e/alderac_entertainment_group/war/warclasses.lst",
+            "line": 308,
+            "head": "CLASS:Warmage"
+          },
+          {
+            "path": "data/35e/alderac_entertainment_group/war/warclasses.lst",
+            "line": 310,
+            "head": "CLASS:Warmage"
+          },
+          {
+            "path": "data/35e/alderac_entertainment_group/war/warclasses.lst",
+            "line": 312,
+            "head": "CLASS:Warmage"
+          }
+        ]
+      }
+    ],
+    "available_rsrd_feat_records": {
+      "Heighten Spell": [
+        {
+          "path": "data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst",
+          "line": 56,
+          "head": "Heighten Spell"
+        }
+      ],
+      "Extend Spell": [
+        {
+          "path": "data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst",
+          "line": 45,
+          "head": "Extend Spell"
+        }
+      ],
+      "Iron Will": [
+        {
+          "path": "data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst",
+          "line": 74,
+          "head": "Iron Will"
+        }
+      ],
+      "Enlarge Spell": [
+        {
+          "path": "data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst",
+          "line": 42,
+          "head": "Enlarge Spell"
+        }
+      ],
+      "Persistent Spell": [
+        {
+          "path": "data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst",
+          "line": 164,
+          "head": "Persistent Spell"
+        }
+      ]
+    },
+    "not_inferred": "Iron Will 存在不代表 Otyugh Hole 授予路径存在。",
+    "correction": "此前只扫描主 raw 的缺项结论不完整。五职业和十专长已录入原生规则库；记录存在不表示全部机制可执行，见各记录 pending。"
+  },
+  "checkpoints": [
+    {
+      "level": 1,
+      "focus": "普通、人类、F1、F2 四个独立专长来源；同级前置条件顺序及属性、技能要求"
+    },
+    {
+      "level": 2,
+      "focus": "Rainbow Servant 入门：Heighten/Earth Spell/Versatile Spellcaster 的资格依赖；槽位、可施放等级与已知法术不混用"
+    },
+    {
+      "level": 11,
+      "focus": "Rainbow Servant 10 的法术列表变化与施法推进；先明确 raw 版本及正文/表格差异"
+    },
+    {
+      "level": 12,
+      "focus": "Sacred Exorcist 入门、驱散资源来源、Divine Metamagic 选择及适用法术类型"
+    },
+    {
+      "level": 13,
+      "focus": "War Weaver 入门与首级施法推进；不得机械推进所有进阶职业等级"
+    },
+    {
+      "level": 17,
+      "focus": "War Weaver 5、Sanctum Spell 与法术等级/范围/目标限制分别求值"
+    },
+    {
+      "level": 18,
+      "focus": "Incantatrix 入门、Otyugh Hole 来源的 Iron Will、普通与职业奖励两个未选槽位"
+    },
+    {
+      "level": 20,
+      "focus": "最终施法推进、法术位、已知/可访问列表和超魔资源分别核算，不以单一 CL 代替"
+    }
+  ],
+  "expected_behavior": {
+    "missing_rules": "报告缺失的具体规则及其来源；依赖它们的派生值不可用，不补零，不按同名职业替换。",
+    "independent_values": "输入的种族名、20 级成长计划及未选槽位仍可读取；无依赖的有效字段不能因一个错误全部失效。",
+    "source_pools": "普通、人类、flaw、地点和职业授予分别记录；不把所有选择都扣普通 FEAT 池。",
+    "disputed_interactions": "保留待核实假设，不能因为论坛给出 build 就自动视为满足前置条件。",
+    "numeric_oracle": {
+      "scope": "仅职业数值推进探针，不验证提前入阶或完整 build",
+      "assumptions": [
+        "各级明确 HP 骰值 3；CON 14",
+        "Rainbow Servant 使用正文 10/10 推进",
+        "每个进阶等级明确指向 Warmage；War Weaver 1 不推进",
+        "未选择专长、法术、装备；不凭缺失条件推定合法"
+      ],
+      "level": 20,
+      "hp": 100,
+      "bab": 8,
+      "warmage_casting_level": 19,
+      "warmage_base_9th_level_slots": 4,
+      "incantatrix_metamagic_pool": 1
+    }
+  },
+  "native_database": "data/rules/rainbow-warweaver.rules.json",
+  "casting_probe": {
+    "feats": [
+      "Heighten Spell",
+      "Earth Sense",
+      "Earth Spell",
+      "Versatile Spellcaster"
+    ],
+    "example_flaws": [
+      "Inattentive",
+      "Poor Reflexes"
+    ],
+    "flaw_note": "Probe assumptions only; the forum build does not identify F1/F2.",
+    "entry_state": "visited_couatl_temple",
+    "cast": {
+      "class_id": "Warmage",
+      "spell": "Magic Missile",
+      "heighten_to": 2,
+      "earth": true,
+      "versatile": true,
+      "on_stone_or_unworked_earth": true,
+      "earth_uses_virtual_slot": true
+    },
+    "expected": {
+      "effective_level": 3,
+      "caster_level": 2,
+      "paid_slot_level": 1,
+      "paid_slots": 2,
+      "entry_conditional": true
+    },
+    "limits": "Not a chronological audit of all twenty levels, skill purchases or Otyugh Hole."
+  },
+  "metamagic_probe": {
+    "assumptions": {
+      "INT": 14,
+      "Spellcraft ranks": 23,
+      "Incantatrix.FocusedStudies": "Necromancy"
+    },
+    "extend_silent_wall_of_fire_effect_dc": 33,
+    "extend_silent_empowered_wall_of_fire_effect_dc": 39,
+    "extend_silent_wall_of_fire_cooperative_dc": 36,
+    "persistent_divine_power_effect": {
+      "dc": 48,
+      "roll": 20,
+      "total": 45,
+      "success": false
+    },
+    "scope": "Incantatrix levels 1-3; assumptions are not supplied by the forum build."
+  },
+  "class_action_probe": {
+    "assumptions": {
+      "INT": 14,
+      "CHA": 18,
+      "Craft (Weaving) ranks": 6
+    },
+    "wings_seconds_per_day": 600,
+    "exorcism_roll10_hd5_cha10_total": 15,
+    "detect_thoughts_dc": 16,
+    "good_spell_cl": 20,
+    "magic_missile_damage_ranges": [
+      [
+        4,
+        7
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        2,
+        5
+      ]
+    ],
+    "armor": "Warmage 1 ignores light armor/light shield; advanced CL 19 does not unlock medium armor",
+    "quiescent": "All stored spells release in casting order with one move action; targets checked at release."
+  }
+}

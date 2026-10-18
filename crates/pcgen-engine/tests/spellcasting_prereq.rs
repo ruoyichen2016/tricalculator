@@ -1,5 +1,6 @@
 use pcgen_core::SpellPowerType;
-use pcgen_engine::{CharacterDraft, DraftClassLevel, Engine};
+use pcgen_engine::{CharacterDraft, Engine};
+use pcgen_import::PcgClassLevel as DraftClassLevel;
 use pcgen_ir::{lower_records, RawRecord, RawTag, SourceRef};
 use std::collections::BTreeMap;
 
@@ -55,13 +56,13 @@ fn draft(level: u32) -> CharacterDraft {
         race_id: "Human".to_string(),
         campaign: "3e".to_string(),
         stats: BTreeMap::from([("INT".to_string(), 18)]),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Wizard".to_string(),
             level,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         ..CharacterDraft::default()
     }
 }

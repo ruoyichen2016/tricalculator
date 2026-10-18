@@ -22,7 +22,7 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 /// Current native save schema.
-pub const SAVE_SCHEMA: u32 = 1;
+pub const SAVE_SCHEMA: u32 = 2;
 /// Application version written into new envelopes.
 pub const APPLICATION_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -78,11 +78,13 @@ pub struct CharacterSummary {
 
 #[derive(Debug, Error)]
 pub enum BuilderError {
+    #[error("derived values unavailable: {0}")]
+    DerivedUnavailable(String),
     #[error("io: {0}")]
     Io(#[from] std::io::Error),
     #[error("json: {0}")]
     Json(#[from] serde_json::Error),
-    #[error("unsupported save schema {found} (max {max})")]
+    #[error("unsupported save schema {found} (current {max})")]
     UnsupportedSchema { found: u32, max: u32 },
     #[error("invalid character id: {0}")]
     InvalidId(String),
@@ -187,12 +189,12 @@ fn summarize(revision: &CharacterDraft, current: &CharacterDraft) -> VersionSumm
     use std::collections::BTreeSet;
 
     let revision_classes: BTreeSet<String> = revision
-        .class_levels
+        .class_levels()
         .iter()
         .map(|entry| entry.class_id.clone())
         .collect();
     let current_classes: BTreeSet<String> = current
-        .class_levels
+        .class_levels()
         .iter()
         .map(|entry| entry.class_id.clone())
         .collect();
@@ -295,7 +297,7 @@ pub fn validate_bundle(characters: &[NativeSaveEnvelope]) -> BundleReport {
     let mut report = BundleReport::default();
     for envelope in characters {
         let id = envelope.character.id.clone();
-        if envelope.schema > SAVE_SCHEMA {
+        if envelope.schema != SAVE_SCHEMA {
             report.unsupported.push(id.clone());
         }
         if envelope.application_version != APPLICATION_VERSION {
@@ -400,6 +402,23 @@ impl CharacterRepository {
             let _ = fs::remove_dir_all(&redo);
         }
         fs::rename(&temporary, &final_path)?;
+        Ok(())
+    }
+
+    /// Rolling replacement for the static workbench. No history or backup copy.
+    pub fn replace_current(&self, envelope: &NativeSaveEnvelope) -> Result<(), BuilderError> {
+        let mut projected = envelope.clone();
+        projected.character.refresh_build_projection().map_err(BuilderError::DerivedUnavailable)?;
+        let envelope = &projected;
+        fs::create_dir_all(&self.root)?;
+        let id = sanitize_id(&envelope.character.id)?;
+        let path = self.path_for(&id)?;
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        let temporary = path.with_file_name(format!(".{id}.json.tmp"));
+        fs::write(&temporary, serde_json::to_vec_pretty(envelope)?)?;
+        fs::rename(temporary, path)?;
         Ok(())
     }
 
@@ -620,13 +639,14 @@ impl CharacterRepository {
             return Err(BuilderError::NotFound(id.to_string()));
         }
         let bytes = fs::read(path)?;
-        let envelope: NativeSaveEnvelope = serde_json::from_slice(&bytes)?;
-        if envelope.schema > SAVE_SCHEMA {
+        let mut envelope: NativeSaveEnvelope = serde_json::from_slice(&bytes)?;
+        if envelope.schema != SAVE_SCHEMA {
             return Err(BuilderError::UnsupportedSchema {
                 found: envelope.schema,
                 max: SAVE_SCHEMA,
             });
         }
+        envelope.character.refresh_build_projection().map_err(BuilderError::DerivedUnavailable)?;
         Ok(envelope)
     }
 
@@ -678,7 +698,7 @@ impl CharacterRepository {
 pub fn summary(envelope: &NativeSaveEnvelope) -> CharacterSummary {
     let total_level = envelope.character.total_level();
     let mut class_ids: Vec<String> = Vec::new();
-    for entry in &envelope.character.class_levels {
+    for entry in &envelope.character.class_levels() {
         if !class_ids
             .iter()
             .any(|id| id.eq_ignore_ascii_case(&entry.class_id))
@@ -725,7 +745,7 @@ pub fn sanitize_id(value: &str) -> Result<String, BuilderError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pcgen_engine::DraftClassLevel;
+    use pcgen_import::PcgClassLevel as DraftClassLevel;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn temp_root() -> PathBuf {
@@ -741,13 +761,13 @@ mod tests {
             id: id.to_string(),
             name: name.to_string(),
             race_id: "Human".to_string(),
-            class_levels: vec![DraftClassLevel {
+            advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
                 class_id: "Fighter".to_string(),
                 level,
                 hit_points_gained: 0,
                 hit_points_by_level: Vec::new(),
                 experience_gained: 0,
-            }],
+            }]),
             ..CharacterDraft::default()
         }
     }

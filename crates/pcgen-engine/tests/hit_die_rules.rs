@@ -6,7 +6,8 @@
 //! suffix or a `%` silently returned `None` and the override was ignored:
 //! `8|CLASS.TYPE=Monster` is plainly an 8, and it did nothing.
 
-use pcgen_engine::{CharacterDraft, DraftClassLevel, Engine};
+use pcgen_engine::{CharacterDraft, Engine};
+use pcgen_import::PcgClassLevel as DraftClassLevel;
 use pcgen_ir::{lower_records, RawRecord, RawTag, SourceRef};
 
 fn record(category: &str, name: &str, tags: &[(&str, &str)]) -> RawRecord {
@@ -53,13 +54,23 @@ fn hit_points(hitdie: Option<&str>) -> i32 {
     if hitdie.is_some() {
         draft.templates = vec!["T".to_string()];
     }
-    draft.class_levels.push(DraftClassLevel {
-        class_id: "Monster".to_string(),
-        level: 3,
-        hit_points_gained: 0,
-        hit_points_by_level: vec![],
-        experience_gained: 0,
-    });
+    draft.advancement.extend(
+        pcgen_import::advancement_from_class_levels(&[DraftClassLevel {
+            class_id: "Monster".to_string(),
+            level: 3,
+            hit_points_gained: 0,
+            hit_points_by_level: vec![],
+            experience_gained: 0,
+        }])
+        .into_iter()
+        .map({
+            let offset = draft.total_level();
+            move |mut frame| {
+                frame.character_level += offset;
+                frame
+            }
+        }),
+    );
     engine.evaluate(&draft).hit_points
 }
 

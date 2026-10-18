@@ -1,0 +1,74 @@
+{
+  "Staff of Fire": {
+    "kind": "staff",
+    "caster_level": 8,
+    "casting_track": "Warmage",
+    "charges": 50,
+    "powers": {
+      "Burning Hands": {
+        "spell": "Burning Hands",
+        "spell_list": "Wizard",
+        "base_charges": 1,
+        "heightened_level": null
+      },
+      "Fireball": {
+        "spell": "Fireball",
+        "spell_list": "Wizard",
+        "base_charges": 1,
+        "heightened_level": null
+      },
+      "Wall of Fire": {
+        "spell": "Wall of Fire",
+        "spell_list": "Wizard",
+        "base_charges": 2,
+        "heightened_level": null
+      }
+    }
+  },
+  "Staff of Frost": {
+    "kind": "staff",
+    "caster_level": 10,
+    "casting_track": "Warmage",
+    "charges": 50,
+    "powers": {
+      "Ice Storm": {
+        "spell": "Ice Storm",
+        "spell_list": "Wizard",
+        "base_charges": 1,
+        "heightened_level": null
+      },
+      "Wall of Ice": {
+        "spell": "Wall of Ice",
+        "spell_list": "Wizard",
+        "base_charges": 1,
+        "heightened_level": null
+      },
+      "Cone of Cold": {
+        "spell": "Cone of Cold",
+        "spell_list": "Wizard",
+        "base_charges": 2,
+        "heightened_level": null
+      }
+    }
+  },
+  "Staff of Life": {
+    "kind": "staff",
+    "caster_level": 13,
+    "casting_track": "Warmage",
+    "charges": 50,
+    "powers": {
+      "Heal": {
+        "spell": "Heal",
+        "spell_list": "Cleric",
+        "base_charges": 1,
+        "heightened_level": null
+      },
+      "Resurrection": {
+        "spell": "Resurrection",
+        "spell_list": "Cleric",
+        "base_charges": 5,
+        "heightened_level": null
+      }
+    }
+  }
+}

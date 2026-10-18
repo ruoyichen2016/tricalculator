@@ -12,12 +12,12 @@
 //! self-referential fixed point; they still contribute to the final snapshot.
 
 use crate::draft::CharacterDraft;
-use crate::engine::{effective_class_levels, evaluate_class_formula, stat_modifier_for_pack};
-use crate::progression::ClassProgress;
-use pcgen_core::domain::ClassDefinition;
-use pcgen_core::gestalt::{plan_gestalt, ClassProgressSource};
+use crate::engine::effective_class_levels;
+use crate::progression::{class_value, ProgressSource};
+use pcgen_core::gestalt::plan_gestalt;
 use pcgen_core::CompiledRulePack;
 use pcgen_core::{EntityCategory, GestaltPolicy, SaveKind};
+use pcgen_formula::FormulaError;
 use std::collections::BTreeMap;
 
 /// Final displayed BAB: class progression/formula + external BASEAB modifiers.
@@ -26,15 +26,15 @@ pub fn compute_bab(
     draft: &CharacterDraft,
     variables: &BTreeMap<String, i32>,
     external_modifiers: &BTreeMap<String, i32>,
-) -> i32 {
-    let mut bab = class_bab(pack, draft, variables);
+) -> Result<i32, FormulaError> {
+    let mut bab = class_bab(pack, draft, variables)?;
     for (target, value) in external_modifiers {
         let upper = target.to_ascii_uppercase();
         if upper == "BAB" || upper.contains("BASEAB") {
             bab += *value;
         }
     }
-    bab
+    Ok(bab)
 }
 
 /// Stable BAB used for `PRETOTALAB` during effect predicate evaluation.
@@ -47,11 +47,12 @@ pub fn derive_prereq_bab(
     pack: &CompiledRulePack,
     draft: &CharacterDraft,
     active_indexes: &[usize],
-) -> i32 {
+    variables: &BTreeMap<String, i32>,
+) -> Result<i32, FormulaError> {
     let (baseab, epicab) = static_bab_modifiers(pack, active_indexes);
-    let mut bab = compute_bab(pack, draft, &BTreeMap::new(), &baseab);
+    let mut bab = compute_bab(pack, draft, variables, &baseab)?;
     bab += epicab;
-    bab
+    Ok(bab)
 }
 
 /// The largest base attack bonus any single class contributes, for `PREUATT`.
@@ -70,31 +71,23 @@ pub fn derive_prereq_bab(
 /// so a Fighter 4 / Wizard 4 has 4 here, not the 6 their levels add up to.
 /// `effective_class_levels` also covers advancement lanes, so a gestalt draft
 /// takes the maximum over its lanes — an analogue PCGen has no counterpart for.
-pub fn max_class_bab(pack: &CompiledRulePack, draft: &CharacterDraft) -> i32 {
-    let total_level = draft.total_level();
+pub fn max_class_bab(
+    pack: &CompiledRulePack,
+    draft: &CharacterDraft,
+    variables: &BTreeMap<String, i32>,
+) -> Result<i32, FormulaError> {
     let mut best = 0;
     for entry in effective_class_levels(pack, draft) {
-        let Some(class) = find_class(pack, &entry.class_id) else {
-            continue;
-        };
-        let progression = find_progression(pack, &entry.class_id);
-        let bab = class
-            .base_attack_formula
-            .as_deref()
-            .map(|formula| {
-                evaluate_class_formula(
-                    formula,
-                    &entry.class_id,
-                    entry.level,
-                    total_level,
-                    &BTreeMap::new(),
-                )
-            })
-            .or_else(|| progression.map(|progress| progress.bab(entry.level)))
-            .unwrap_or(0);
-        best = best.max(bab);
+        best = best.max(class_value(
+            pack,
+            &entry.class_id,
+            entry.level,
+            draft.total_level(),
+            None,
+            variables,
+        )?);
     }
-    best
+    Ok(best)
 }
 
 /// Stable base save totals used by `PRECHECKBASE` during predicate
@@ -103,62 +96,83 @@ pub fn max_class_bab(pack: &CompiledRulePack, draft: &CharacterDraft) -> i32 {
 pub fn derive_base_saves(
     pack: &CompiledRulePack,
     draft: &CharacterDraft,
-) -> BTreeMap<SaveKind, i32> {
+    variables: &BTreeMap<String, i32>,
+) -> Result<BTreeMap<SaveKind, i32>, FormulaError> {
     let mut totals = BTreeMap::new();
+    if draft.is_gestalt() {
+        let plan = gestalt_progression(pack, draft, variables)?;
+        for frame in &plan.frames {
+            *totals.entry(SaveKind::Fortitude).or_insert(0) += frame.fortitude_increment;
+            *totals.entry(SaveKind::Reflex).or_insert(0) += frame.reflex_increment;
+            *totals.entry(SaveKind::Will).or_insert(0) += frame.will_increment;
+        }
+        return Ok(totals);
+    }
     for entry in effective_class_levels(pack, draft) {
-        let Some(progression) = find_progression(pack, &entry.class_id) else {
-            continue;
-        };
         for kind in [SaveKind::Fortitude, SaveKind::Reflex, SaveKind::Will] {
-            *totals.entry(kind).or_insert(0) += progression.save(entry.level, kind);
+            *totals.entry(kind).or_insert(0) += class_value(
+                pack,
+                &entry.class_id,
+                entry.level,
+                draft.total_level(),
+                Some(kind),
+                variables,
+            )?;
         }
     }
-    totals
+    Ok(totals)
 }
 
 fn class_bab(
     pack: &CompiledRulePack,
     draft: &CharacterDraft,
     variables: &BTreeMap<String, i32>,
-) -> i32 {
+) -> Result<i32, FormulaError> {
     if draft.is_gestalt() {
-        let int_mod = draft.stats.get("INT").copied().unwrap_or(10);
-        let plan = plan_gestalt(
-            &draft.advancement,
-            &PackProgressSource { pack },
-            stat_modifier_for_pack(pack, "INT", int_mod),
-            &GestaltPolicy::default(),
-        );
-        return plan
+        let plan = gestalt_progression(pack, draft, variables)?;
+        return Ok(plan
             .frames
             .iter()
             .map(|frame| frame.base_attack_bonus_increment)
-            .sum();
+            .sum());
     }
 
-    let total_level = draft.total_level();
-    let mut bab = 0;
-    for entry in effective_class_levels(pack, draft) {
-        let Some(class) = find_class(pack, &entry.class_id) else {
-            continue;
-        };
-        let progression = find_progression(pack, &entry.class_id);
-        bab += class
-            .base_attack_formula
-            .as_deref()
-            .map(|formula| {
-                evaluate_class_formula(
-                    formula,
+    effective_class_levels(pack, draft)
+        .iter()
+        .try_fold(0, |total, entry| {
+            Ok(total
+                + class_value(
+                    pack,
                     &entry.class_id,
                     entry.level,
-                    total_level,
+                    draft.total_level(),
+                    None,
                     variables,
-                )
-            })
-            .or_else(|| progression.map(|progress| progress.bab(entry.level)))
-            .unwrap_or(0);
+                )?)
+        })
+}
+
+fn gestalt_progression(
+    pack: &CompiledRulePack,
+    draft: &CharacterDraft,
+    variables: &BTreeMap<String, i32>,
+) -> Result<pcgen_core::gestalt::GestaltPlan, FormulaError> {
+    let source = ProgressSource {
+        pack,
+        race_id: &draft.race_id,
+        variables,
+        total_level: draft.total_level(),
+        diagnostics: Default::default(),
+    };
+    // BAB and base saves do not depend on the character's Intelligence.
+    let plan = plan_gestalt(&draft.advancement, &source, 0, &GestaltPolicy::default());
+    if let Some(message) = source.diagnostics.into_inner().into_iter().next() {
+        return Err(FormulaError {
+            message,
+            position: 0,
+        });
     }
-    bab
+    Ok(plan)
 }
 
 /// Unconditional numeric BASEAB/EPICAB modifiers on directly active entities.
@@ -258,73 +272,5 @@ fn contains_total_bab(predicate: &pcgen_core::Predicate) -> bool {
         }
         Predicate::Not(item) => contains_total_bab(item),
         _ => false,
-    }
-}
-
-fn normalize_key(value: &str) -> String {
-    value.trim().to_ascii_lowercase().replace(' ', "_")
-}
-
-fn find_class<'a>(pack: &'a CompiledRulePack, class_id: &str) -> Option<&'a ClassDefinition> {
-    let wanted = normalize_key(class_id);
-    pack.classes.get(class_id).or_else(|| {
-        pack.classes
-            .iter()
-            .find(|(key, _)| key.eq_ignore_ascii_case(class_id) || normalize_key(key) == wanted)
-            .map(|(_, class)| class)
-    })
-}
-
-fn find_progression<'a>(pack: &'a CompiledRulePack, class_id: &str) -> Option<&'a ClassProgress> {
-    let wanted = normalize_key(class_id);
-    pack.progressions.get(class_id).or_else(|| {
-        pack.progressions
-            .iter()
-            .find(|(key, _)| key.eq_ignore_ascii_case(class_id) || normalize_key(key) == wanted)
-            .map(|(_, progression)| progression)
-    })
-}
-
-/// Minimal `ClassProgressSource` for gestalt BAB derivation without an Engine.
-struct PackProgressSource<'a> {
-    pack: &'a CompiledRulePack,
-}
-
-impl ClassProgressSource for PackProgressSource<'_> {
-    fn base_attack_bonus(&self, class_id: &str, class_level: u32) -> Option<i32> {
-        find_progression(self.pack, class_id).map(|progress| progress.bab(class_level))
-    }
-
-    fn base_save(&self, class_id: &str, class_level: u32, kind: SaveKind) -> Option<i32> {
-        find_progression(self.pack, class_id).map(|progress| progress.save(class_level, kind))
-    }
-
-    fn skill_points(
-        &self,
-        class_id: &str,
-        intelligence_modifier: i32,
-        first_level: bool,
-    ) -> Option<u32> {
-        find_progression(self.pack, class_id).map(|progress| {
-            let base = if first_level {
-                progress.first_level_skill_points
-            } else {
-                progress.skill_points_per_level
-            };
-            (base as i32 + intelligence_modifier).max(1) as u32
-        })
-    }
-
-    fn class_skills(&self, class_id: &str) -> Option<Vec<String>> {
-        find_progression(self.pack, class_id).map(|progress| progress.class_skills.clone())
-    }
-
-    fn features_up_to_level(&self, class_id: &str, level: u32) -> Option<Vec<String>> {
-        // The grants live on the class; the progression used to carry a copy.
-        find_class(self.pack, class_id).map(|class| class.feature_rows_up_to(level))
-    }
-
-    fn gestalt_slot_cost(&self, class_id: &str) -> Option<pcgen_core::PrestigeSlotCost> {
-        find_class(self.pack, class_id).and_then(|class| class.gestalt_slot_cost)
     }
 }

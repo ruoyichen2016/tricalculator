@@ -392,7 +392,6 @@ dependencies = [
  "pcgen-core",
  "pcgen-engine",
  "pcgen-import",
- "pcgen-ir",
  "serde",
  "serde_json",
  "thiserror",
@@ -432,6 +431,7 @@ dependencies = [
  "pcgen-import",
  "pcgen-ir",
  "serde",
+ "serde_json",
  "thiserror",
 ]
 

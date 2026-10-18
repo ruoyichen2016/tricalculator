@@ -15,7 +15,7 @@
 //! > paladin level minus 3.
 
 use pcgen_core::{AdvancementFrame, AdvancementLane, LaneId};
-use pcgen_engine::{CharacterDraft, DraftClassLevel, Engine};
+use pcgen_engine::{CharacterDraft, Engine};
 use pcgen_ir::CompiledRulePack;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -60,22 +60,8 @@ fn draft(class_levels: &[(&str, u32)]) -> CharacterDraft {
         });
     }
 
-    // `class_levels` drives which class abilities are active; `advancement`
-    // alone only carries base attack bonus and saves.
-    let class_levels = class_levels
-        .iter()
-        .map(|(class_id, levels)| DraftClassLevel {
-            class_id: (*class_id).to_string(),
-            level: *levels,
-            hit_points_gained: 0,
-            hit_points_by_level: Vec::new(),
-            experience_gained: 0,
-        })
-        .collect();
-
     CharacterDraft {
         advancement: frames,
-        class_levels,
         stats: BTreeMap::new(),
         ..Default::default()
     }

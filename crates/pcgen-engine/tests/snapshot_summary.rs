@@ -1,5 +1,6 @@
-use pcgen_engine::{CharacterDraft, DraftClassLevel, Engine};
+use pcgen_engine::{CharacterDraft, Engine};
 use pcgen_import::compile_pcc;
+use pcgen_import::PcgClassLevel as DraftClassLevel;
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -25,13 +26,13 @@ fn mini_fighter_snapshot_matches_expected_core_values() {
             ("WIS".to_string(), 10),
             ("CHA".to_string(), 10),
         ]),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Fighter".to_string(),
             level: 2,
             hit_points_gained: 16,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         skills: BTreeMap::from([("Climb".to_string(), 4.0)]),
         ..CharacterDraft::default()
     };

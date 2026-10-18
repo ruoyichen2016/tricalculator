@@ -63,39 +63,194 @@ pub struct ClassInteraction {
     pub exchange_level: Option<pcgen_core::ExchangeLevel>,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+/// Validity applies to the complete derived result until field-level dependency
+/// validity is available. Diagnostics must never coexist with usable partial
+/// numbers at an output boundary.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum SnapshotValidity<'a> {
+    Available,
+    Unavailable { reasons: &'a [String] },
+}
+
+impl CharacterSnapshot {
+    pub fn is_available(&self) -> bool {
+        self.diagnostics.is_empty()
+    }
+
+    pub fn validity(&self) -> SnapshotValidity<'_> {
+        if self.is_available() {
+            SnapshotValidity::Available
+        } else {
+            SnapshotValidity::Unavailable {
+                reasons: &self.diagnostics,
+            }
+        }
+    }
+
+    /// Read a computed candidate only after checking the entire evaluation.
+    pub fn available<T>(&self, value: T) -> Option<T> {
+        self.is_available().then_some(value)
+    }
+}
+
+// Serialize at the model boundary, so JSON exports and direct API serialization
+// cannot accidentally publish partial candidates. Identity and entered level
+// remain readable; all computed fields are null when evaluation is unavailable.
+impl Serialize for CharacterSnapshot {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let mut output = serializer.serialize_struct("CharacterSnapshot", 80)?;
+        output.serialize_field("validity", &self.validity())?;
+        output.serialize_field("rule_gaps", &self.rule_gaps)?;
+        output.serialize_field("spell_access", &self.available(&self.spell_access))?;
+        output.serialize_field("draft_id", &self.draft_id)?;
+        output.serialize_field("name", &self.name)?;
+        output.serialize_field("race_id", &self.race_id)?;
+        output.serialize_field("creature_type", &self.available(&self.creature_type))?;
+        output.serialize_field("body_immunities", &self.available(&self.body_immunities))?;
+        output.serialize_field("total_level", &self.total_level)?;
+        output.serialize_field("size_rank", &self.available(&self.size_rank))?;
+        output.serialize_field("stats", &self.available(&self.stats))?;
+        output.serialize_field("hit_points", &self.available(&self.hit_points))?;
+        output.serialize_field("skill_points", &self.available(&self.skill_points))?;
+        output.serialize_field("feat_slots", &self.available(&self.feat_slots))?;
+        output.serialize_field(
+            "base_attack_bonus",
+            &self.available(&self.base_attack_bonus),
+        )?;
+        output.serialize_field("melee_attack", &self.available(&self.melee_attack))?;
+        output.serialize_field("ranged_attack", &self.available(&self.ranged_attack))?;
+        output.serialize_field("grapple_attack", &self.available(&self.grapple_attack))?;
+        output.serialize_field(
+            "class_interactions",
+            &self.available(&self.class_interactions),
+        )?;
+        output.serialize_field("prohibited_costs", &self.available(&self.prohibited_costs))?;
+        output.serialize_field("initiative", &self.available(&self.initiative))?;
+        output.serialize_field("armor_class", &self.available(&self.armor_class))?;
+        output.serialize_field("armor_bonus", &self.available(&self.armor_bonus))?;
+        output.serialize_field("shield_bonus", &self.available(&self.shield_bonus))?;
+        output.serialize_field("touch_ac", &self.available(&self.touch_ac))?;
+        output.serialize_field("flat_footed_ac", &self.available(&self.flat_footed_ac))?;
+        output.serialize_field("saves", &self.available(&self.saves))?;
+        output.serialize_field("skills", &self.available(&self.skills))?;
+        output.serialize_field("attack_bonuses", &self.available(&self.attack_bonuses))?;
+        output.serialize_field("caster_levels", &self.available(&self.caster_levels))?;
+        output.serialize_field(
+            "caster_level_bonus",
+            &self.available(&self.caster_level_bonus),
+        )?;
+        output.serialize_field(
+            "explicit_prepared_count",
+            &self.available(&self.explicit_prepared_count),
+        )?;
+        output.serialize_field("spell_dcs", &self.available(&self.spell_dcs))?;
+        output.serialize_field("spell_slots", &self.available(&self.spell_slots))?;
+        output.serialize_field("known_limits", &self.available(&self.known_limits))?;
+        output.serialize_field("prepared_spells", &self.available(&self.prepared_spells))?;
+        output.serialize_field(
+            "spell_power_types",
+            &self.available(&self.spell_power_types),
+        )?;
+        output.serialize_field("max_spell_level", &self.available(&self.max_spell_level))?;
+        output.serialize_field("has_spellbook", &self.available(&self.has_spellbook))?;
+        output.serialize_field(
+            "prohibited_spells",
+            &self.available(&self.prohibited_spells),
+        )?;
+        output.serialize_field("power_points", &self.available(&self.power_points))?;
+        output.serialize_field(
+            "manifester_levels",
+            &self.available(&self.manifester_levels),
+        )?;
+        output.serialize_field("powers_known", &self.available(&self.powers_known))?;
+        output.serialize_field("ability_lists", &self.available(&self.ability_lists))?;
+        output.serialize_field("ability_pools", &self.available(&self.ability_pools))?;
+        output.serialize_field(
+            "ability_pool_usage",
+            &self.available(&self.ability_pool_usage),
+        )?;
+        output.serialize_field(
+            "repeatable_abilities",
+            &self.available(&self.repeatable_abilities),
+        )?;
+        output.serialize_field("languages", &self.available(&self.languages))?;
+        output.serialize_field("class_choices", &self.available(&self.class_choices))?;
+        output.serialize_field("deity_domains", &self.available(&self.deity_domains))?;
+        output.serialize_field("vision", &self.available(&self.vision))?;
+        output.serialize_field("damage_reduction", &self.available(&self.damage_reduction))?;
+        output.serialize_field("spell_resistance", &self.available(&self.spell_resistance))?;
+        output.serialize_field("natural_attacks", &self.available(&self.natural_attacks))?;
+        output.serialize_field("reach_feet", &self.available(&self.reach_feet))?;
+        output.serialize_field("reach_mult", &self.available(&self.reach_mult))?;
+        output.serialize_field("unarmed_damage", &self.available(&self.unarmed_damage))?;
+        output.serialize_field("unarmed_mult", &self.available(&self.unarmed_mult))?;
+        output.serialize_field("attack_cycle", &self.available(&self.attack_cycle))?;
+        output.serialize_field("movement", &self.available(&self.movement))?;
+        output.serialize_field("equipment", &self.available(&self.equipment))?;
+        output.serialize_field("companions", &self.available(&self.companions))?;
+        output.serialize_field("gestalt", &self.available(&self.gestalt))?;
+        output.serialize_field("faith_decisions", &self.available(&self.faith_decisions))?;
+        output.serialize_field("domain_spells", &self.available(&self.domain_spells))?;
+        output.serialize_field("spell_effects", &self.available(&self.spell_effects))?;
+        output.serialize_field(
+            "applied_spell_effects",
+            &self.available(&self.applied_spell_effects),
+        )?;
+        output.serialize_field("variant_effects", &self.available(&self.variant_effects))?;
+        output.serialize_field("explanations", &self.available(&self.explanations))?;
+        output.serialize_field("diagnostics", &self.diagnostics)?;
+        output.serialize_field("variables", &self.available(&self.variables))?;
+        output.serialize_field(
+            "external_modifiers",
+            &self.available(&self.external_modifiers),
+        )?;
+        output.serialize_field("active_abilities", &self.available(&self.active_abilities))?;
+        output.serialize_field("choices", &self.available(&self.choices))?;
+        output.serialize_field("choice_bindings", &self.available(&self.choice_bindings))?;
+        output.serialize_field("active_states", &self.available(&self.active_states))?;
+        output.serialize_field(
+            "unresolved_choices",
+            &self.available(&self.unresolved_choices),
+        )?;
+        output.serialize_field("applied_effects", &self.available(&self.applied_effects))?;
+        output.serialize_field("provenance", &self.available(&self.provenance))?;
+        output.serialize_field("turning", &self.available(&self.turning))?;
+        output.serialize_field("uncanny_dodge", &self.available(&self.uncanny_dodge))?;
+        output.end()
+    }
+}
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct CharacterSnapshot {
+    pub creature_type: Option<String>,
+    pub body_immunities: Vec<pcgen_core::class_play::BodyImmunity>,
+    /// Known unimplemented native rules; distinct from numeric evaluation failures.
+    pub spell_access: BTreeMap<String, Vec<crate::magic::AccessibleSpell>>,
+    pub rule_gaps: BTreeMap<String, String>,
     pub draft_id: String,
     pub name: String,
     pub race_id: String,
     pub total_level: u32,
     /// Canonical size rank used for size-derived values (`SIZENUM` aware).
-    #[serde(default)]
     pub size_rank: usize,
     pub stats: BTreeMap<String, i32>,
     pub hit_points: i32,
     /// Total skill points from class levels, including first-level
     /// `SKILLMULT` and race `XTRASKILLPTSPERLVL`.
-    #[serde(default)]
     pub skill_points: i32,
     /// Feat slots derived from class `LEVELSPERFEAT` / default progression.
-    #[serde(default)]
     pub feat_slots: u32,
     pub base_attack_bonus: i32,
     /// Primary melee attack total (BAB + STR + size); see L3b-4 scope note.
-    #[serde(default)]
     pub melee_attack: i32,
     /// Primary ranged attack total (BAB + DEX + size).
-    #[serde(default)]
     pub ranged_attack: i32,
     /// Grapple total (BAB + STR + special size modifier).
-    #[serde(default)]
     pub grapple_attack: i32,
     /// `EXCLASS` / `EXCHANGELEVEL` metadata for active classes.
-    #[serde(default)]
     pub class_interactions: Vec<ClassInteraction>,
     /// `PROHIBITCOST` catalog keyed by source record key.
-    #[serde(default)]
     pub prohibited_costs: BTreeMap<String, i32>,
     pub initiative: i32,
     pub armor_class: i32,
@@ -104,38 +259,26 @@ pub struct CharacterSnapshot {
     pub touch_ac: i32,
     pub flat_footed_ac: i32,
     pub saves: BTreeMap<String, i32>,
-    #[serde(default)]
     pub skills: BTreeMap<String, i32>,
     /// Typed attack bonus totals keyed by canonical target (e.g.
     /// `COMBAT.TOHIT`, `WEAPON.TOHIT`, `WEAPONPROF=Longbow.TOHIT`).
-    #[serde(default)]
     pub attack_bonuses: BTreeMap<String, i32>,
-    #[serde(default)]
     pub caster_levels: BTreeMap<String, i32>,
     /// Max caster level contribution from active domain grants such as
     /// ``DOMAINGRANTS:You cast law spells at +1 caster level.``.
-    #[serde(default)]
     pub caster_level_bonus: i32,
     /// Prepared spell count from `BOOK:Prepared*` only; the `prepared_spells`
     /// map keeps the broader spell-effect activation semantics.
-    #[serde(default)]
     pub explicit_prepared_count: u32,
-    #[serde(default)]
     pub spell_dcs: BTreeMap<String, i32>,
-    #[serde(default)]
     pub spell_slots: BTreeMap<String, u32>,
-    #[serde(default)]
     pub known_limits: BTreeMap<String, u32>,
-    #[serde(default)]
     pub prepared_spells: BTreeMap<String, u32>,
     /// Arcane / Divine / Psionic powers the character can cast.
-    #[serde(default)]
     pub spell_power_types: BTreeSet<SpellPowerType>,
     /// Highest spell level with a slot, per power type.
-    #[serde(default)]
     pub max_spell_level: BTreeMap<SpellPowerType, u32>,
     /// Character has a spellbook-using class.
-    #[serde(default)]
     pub has_spellbook: bool,
     /// Spell prohibitions that apply to this character.
     ///
@@ -144,118 +287,76 @@ pub struct CharacterSnapshot {
     /// express. A 3.5e Wizard must forbid two schools, and a Cleric of an evil
     /// deity does not cast Good spells; until this existed the picker offered
     /// both anyway.
-    #[serde(default)]
     pub prohibited_spells: Vec<pcgen_core::ProhibitedSpell>,
-    #[serde(default)]
     pub power_points: BTreeMap<String, i32>,
-    #[serde(default)]
     pub manifester_levels: BTreeMap<String, i32>,
     /// Psionic powers available/known per manifester class at current level.
-    #[serde(default)]
     pub powers_known: BTreeMap<String, Vec<String>>,
     /// `ABILITYLIST` membership keyed by ability-category id.
-    #[serde(default)]
     pub ability_lists: BTreeMap<String, Vec<String>>,
     /// `POOL` points keyed by ability-category id, resolved from variables.
-    #[serde(default)]
     pub ability_pools: BTreeMap<String, i32>,
     /// Pool spending per ability category.
-    #[serde(default)]
     pub ability_pool_usage: BTreeMap<String, AbilityPoolUsage>,
     /// Ability ids marked repeatable via `STACK` / `MULT`.
-    #[serde(default)]
     pub repeatable_abilities: Vec<String>,
     /// Known languages, sorted.
-    #[serde(default)]
     pub languages: Vec<String>,
     /// Subclass `CHOICE:` expressions keyed by class id.
-    #[serde(default)]
     pub class_choices: BTreeMap<String, String>,
     /// Deity-allowed domain catalog (`DEITYDOMAINS`), validation only.
-    #[serde(default)]
     pub deity_domains: Vec<String>,
     /// Creature vision modes from race + active templates (`VISION`).
-    #[serde(default)]
     pub vision: Vec<String>,
     /// Damage reduction entries from race + active templates (`DR`).
-    #[serde(default)]
     pub damage_reduction: Vec<String>,
     /// Spell resistance from race + active templates (`SR`).
-    #[serde(default)]
     pub spell_resistance: Option<i32>,
     /// Natural attack entries from race + active templates (`NATURALATTACKS`).
-    #[serde(default)]
     pub natural_attacks: Vec<String>,
     /// Natural reach in feet (`REACH`).
-    #[serde(default)]
     pub reach_feet: Option<i32>,
     /// Reach multiplier (`REACHMULT`).
-    #[serde(default)]
     pub reach_mult: Option<i32>,
     /// Unarmed damage progression entries (`UDAM`).
-    #[serde(default)]
     pub unarmed_damage: Vec<String>,
     /// Unarmed damage multiplier (`UMULT`).
-    #[serde(default)]
     pub unarmed_mult: Option<i32>,
     /// Iterative attack cycle entries (`ATTACKCYCLE`).
-    #[serde(default)]
     pub attack_cycle: Vec<String>,
     /// Movement modes in feet (lower-cased mode -> rate), after race + active
     /// `MOVECLONE` expansion.
-    #[serde(default)]
     pub movement: BTreeMap<String, u32>,
     /// Resolved equipment definitions after base-item / EQMOD resolution.
-    #[serde(default)]
     pub equipment: Vec<pcgen_core::EquipmentDefinition>,
     /// Derived companion states (familiar / special mount / ...).
-    #[serde(default)]
     pub companions: Vec<CompanionSnapshot>,
-    #[serde(default)]
     pub gestalt: Option<GestaltPlan>,
-    #[serde(default)]
     pub faith_decisions: Vec<FaithDecision>,
-    #[serde(default)]
     pub domain_spells: BTreeMap<String, Vec<DomainSpell>>,
     /// Character-facing spell effect summary: domain spells, prepared spells.
-    #[serde(default)]
     pub spell_effects: Vec<String>,
     /// Numeric spell effects that were applied to AC / saves / stats /
     /// skills, keyed by `"<target>:<spell>"`.
-    #[serde(default)]
     pub applied_spell_effects: BTreeMap<String, Vec<SpellEffectApplication>>,
-    #[serde(default)]
     pub variant_effects: BTreeMap<String, Vec<String>>,
-    #[serde(default)]
     pub explanations: BTreeMap<String, Vec<Contribution>>,
-    #[serde(default)]
     pub diagnostics: Vec<String>,
-    #[serde(default)]
     pub variables: BTreeMap<String, i32>,
-    #[serde(default)]
     pub external_modifiers: BTreeMap<String, i32>,
-    #[serde(default)]
     pub active_abilities: Vec<String>,
-    #[serde(default)]
     pub choices: BTreeMap<String, String>,
     /// Choice values bound to the entity that owned the `CHOOSE`.
-    #[serde(default)]
     pub choice_bindings: BTreeMap<String, Vec<String>>,
     /// Explicitly activated temporary states.
-    #[serde(default)]
     pub active_states: Vec<String>,
-    #[serde(default)]
     pub unresolved_choices: Vec<String>,
-    #[serde(default)]
     pub applied_effects: usize,
     /// Build provenance: rule-pack fingerprint plus upstream data revision.
-    #[serde(default)]
     pub provenance: BuildProvenance,
     /// Turn/rebuke undead state; `None` when no class grants the ability.
-    #[serde(default)]
     pub turning: Option<TurningSnapshot>,
     /// Uncanny dodge state; `None` when no class grants it.
-    #[serde(default)]
     pub uncanny_dodge: Option<UncannyDodgeSnapshot>,
 }
 

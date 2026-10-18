@@ -1,8 +1,10 @@
 //! Deterministic runtime engine.
 
-use crate::draft::{CharacterDraft, DraftClassLevel};
+use crate::bonuses::{stacked_components, BonusGroup, BonusPolicy};
+
+use crate::draft::{CharacterDraft, ClassLevelSummary};
 use crate::effects::apply_effects;
-use crate::progression::ClassProgress;
+use crate::progression::{find_progression, ClassProgress, ProgressSource};
 use crate::snapshot::CharacterSnapshot;
 use pcgen_core::domain::{ClassDefinition, EquipmentDefinition, RaceDefinition};
 use pcgen_core::CompiledRulePack;
@@ -10,7 +12,7 @@ use pcgen_core::{
     evaluate_faith, plan_gestalt, AdvancementLane, DivineTrack, FaithPolicy, GestaltPolicy, LaneId,
     SaveKind, VariantDefinition,
 };
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 
 type SpellcastingMaps = (
     BTreeMap<String, i32>,
@@ -57,62 +59,23 @@ impl Engine {
         self
     }
 
-    fn ability_pool_usage(
-        &self,
-        draft: &CharacterDraft,
-        pools: &BTreeMap<String, i32>,
-    ) -> BTreeMap<String, crate::snapshot::AbilityPoolUsage> {
-        let mut usage = BTreeMap::new();
-        for (category_id, category) in &self.pack.ability_categories {
-            let Some(pool) = pools.get(category_id).copied() else {
-                continue;
-            };
-            let mut selection_counts: BTreeMap<String, u32> = BTreeMap::new();
-            for (_, key) in &draft.abilities {
-                let key_norm = normalized_name(key);
-                let explicit = category
-                    .ability_list
-                    .iter()
-                    .any(|member| normalized_name(member) == key_norm);
-                let inferred = category.ability_list.is_empty()
-                    && self.pack.abilities.values().any(|ability| {
-                        (ability.id == key_norm || normalized_name(&ability.name) == key_norm)
-                            && ability.category.as_deref().is_some_and(|ability_category| {
-                                category.category.as_deref().is_some_and(|pool_category| {
-                                    ability_category.eq_ignore_ascii_case(pool_category)
-                                })
-                            })
-                    });
-                if explicit || inferred {
-                    *selection_counts.entry(key.clone()).or_insert(0) += 1;
-                }
-            }
-            let mut selected: Vec<String> = selection_counts.keys().cloned().collect();
-            selected.sort();
-            let spent = selection_counts.values().sum::<u32>() as i32;
-            usage.insert(
-                category_id.clone(),
-                crate::snapshot::AbilityPoolUsage {
-                    pool,
-                    spent,
-                    remaining: (pool - spent).max(0),
-                    selected,
-                    selection_counts,
-                },
-            );
-        }
-        usage
-    }
-
     /// Ability-score modifiers for all core stats, honouring typed `STATMOD`
     /// formulas where present.
-    fn ability_modifiers(&self, stats: &BTreeMap<String, i32>) -> BTreeMap<String, i32> {
+    fn ability_modifiers(
+        &self,
+        stats: &BTreeMap<String, i32>,
+        diagnostics: &mut Vec<String>,
+    ) -> BTreeMap<String, i32> {
         let mut modifiers = BTreeMap::new();
         for stat in ["STR", "DEX", "CON", "INT", "WIS", "CHA"] {
             let score = stats.get(stat).copied().unwrap_or(10);
             modifiers.insert(
                 stat.to_string(),
-                stat_modifier_for_pack(&self.pack, stat, score),
+                crate::derived::report(
+                    stat_modifier_for_pack(&self.pack, stat, score),
+                    diagnostics,
+                )
+                .unwrap_or_default(),
             );
         }
         modifiers
@@ -184,11 +147,30 @@ impl Engine {
     }
 
     pub fn evaluate(&self, draft: &CharacterDraft) -> CharacterSnapshot {
+        if draft.build_history.is_some() {
+            return match draft.materialized() { Ok(d) => self.evaluate(&d), Err(error) => CharacterSnapshot {diagnostics: vec![error], ..Default::default()} };
+        }
         let mut diagnostics = Vec::new();
+        diagnostics.extend(crate::class_features::validate_class_choices(
+            &self.pack, draft,
+        ));
         let effect_state = apply_effects(&self.pack, draft);
         diagnostics.extend(effect_state.diagnostics.clone());
+        if let Err(error) = crate::class_features::validate_replacements(&self.pack, draft) {
+            diagnostics.push(error);
+        }
+        if let Err(error) = crate::class_features::validate_sudden_feats(&self.pack, draft) {
+            diagnostics.push(error);
+        }
+        for class in effective_class_levels(&self.pack, draft) {
+            if let Err(error) =
+                crate::class_features::learned_spells(&self.pack, draft, &class.class_id)
+            {
+                diagnostics.push(error);
+            }
+        }
         let class_levels = effective_class_levels(&self.pack, draft);
-        let mut stats = draft.stats.clone();
+        let mut stats = crate::feature_resolution::encounter_base_stats(draft);
         if let Some(race) = self.race(&draft.race_id) {
             for (stat, adjustment) in &race.ability_adjustments {
                 *stats.entry(stat.clone()).or_insert(10) += adjustment;
@@ -208,6 +190,9 @@ impl Engine {
             }
         }
         self.apply_stat_minimums(&mut stats, draft, &effect_state);
+        for (key, n) in &mut stats {
+            *n = crate::combat::modified_score(&draft.class_play, "self", key, *n);
+        }
         let size_rank = self.size_rank(&draft.race_id);
         let size_modifier = size_modifier_from_rank(size_rank);
         let total_level = if draft.is_gestalt() {
@@ -215,7 +200,10 @@ impl Engine {
         } else {
             class_levels.iter().map(|entry| entry.level).sum()
         };
-        let stat_mods = self.ability_modifiers(&stats);
+        let mut stat_mods = self.ability_modifiers(&stats, &mut diagnostics);
+        if draft.class_play.necromancy.lich {
+            stat_mods.insert("CON".into(), 0);
+        }
         let con_mod = stat_mods.get("CON").copied().unwrap_or(0);
         let dex_mod = stat_mods.get("DEX").copied().unwrap_or(0);
         let equipment = self.resolve_equipment(draft, &mut diagnostics);
@@ -226,12 +214,36 @@ impl Engine {
             None => dex_mod,
         };
         let gestalt = if draft.is_gestalt() {
-            Some(plan_gestalt(
-                &draft.advancement,
-                self,
+            let mut frames = draft.advancement.clone();
+            for lane in frames.iter_mut().flat_map(|frame| &mut frame.lanes) {
+                if lane.hit_points_gained.is_none() {
+                    lane.hit_points_gained = Some(self.hit_points_for_entry(
+                        draft,
+                        &ClassLevelSummary {
+                            class_id: lane.class_id.clone(),
+                            level: 1,
+                            hit_points_by_level: vec![None],
+                            experience_gained: 0,
+                        },
+                        0,
+                    ));
+                }
+            }
+            let source = ProgressSource {
+                pack: &self.pack,
+                race_id: &draft.race_id,
+                variables: &effect_state.variables,
+                total_level,
+                diagnostics: Default::default(),
+            };
+            let plan = plan_gestalt(
+                &frames,
+                &source,
                 stat_mods.get("INT").copied().unwrap_or(0),
                 &GestaltPolicy::default(),
-            ))
+            );
+            diagnostics.extend(source.diagnostics.into_inner());
+            Some(plan)
         } else {
             None
         };
@@ -290,7 +302,35 @@ impl Engine {
         });
         let mut all_typed_bonuses = effect_state.typed_bonuses.clone();
         all_typed_bonuses.extend(all_spell_typed_bonuses.iter().cloned());
-        let (effect_ac, effect_touch, effect_flat) = ac_bonus_components(&all_typed_bonuses);
+        if let Some(rage) = &draft.class_play.encounter.rage {
+            all_typed_bonuses.push(crate::effects::TypedBonus {
+                target: "SAVE.Will".into(),
+                value: rage.will_bonus,
+                bonus_type: Some("Morale".into()),
+                stack_key: None,
+            });
+        }
+        if let Some(c) = draft
+            .class_play
+            .tactics
+            .fighting
+            .as_ref()
+            .filter(|c| c.expires > draft.class_play.encounter.seconds)
+        {
+            all_typed_bonuses.push(crate::effects::TypedBonus {
+                target: "SAVE.Will".into(),
+                value: c.bonus,
+                bonus_type: Some("Morale".into()),
+                stack_key: None,
+            });
+        }
+        let (mut effect_ac, mut effect_touch, mut effect_flat) =
+            ac_bonus_components(&all_typed_bonuses);
+        if draft.class_play.encounter.rage.is_some() {
+            effect_ac -= 2;
+            effect_touch -= 2;
+            effect_flat -= 2;
+        }
         let armor_class = 10 + armor_bonus + shield_bonus + dex_bonus + size_modifier + effect_ac;
         let touch_ac = 10 + dex_mod + size_modifier + effect_touch;
         let flat_footed_dex = if retain_dex_flat_footed {
@@ -336,6 +376,8 @@ impl Engine {
                 .sum()
         };
 
+        let negative_levels = crate::necromancy::negative_levels(&draft.class_play, "self");
+        let hit_points = hit_points - negative_levels * 5;
         let mut saves = if let Some(plan) = &gestalt {
             let mut saves = BTreeMap::new();
             for (kind, key) in [
@@ -360,61 +402,13 @@ impl Engine {
             let mut fort = save_ability_modifier(&stat_mods, SaveKind::Fortitude);
             let mut reflex = save_ability_modifier(&stat_mods, SaveKind::Reflex);
             let mut will = save_ability_modifier(&stat_mods, SaveKind::Will);
-            for entry in &class_levels {
-                let Some(class) = self.class(&entry.class_id) else {
-                    diagnostics.push(format!(
-                        "missing progression for class `{}`",
-                        entry.class_id
-                    ));
-                    continue;
-                };
-                let progress = self.progression(&entry.class_id);
-                fort += class
-                    .fortitude_formula
-                    .as_deref()
-                    .map(|formula| {
-                        evaluate_class_formula(
-                            formula,
-                            &entry.class_id,
-                            entry.level,
-                            total_level,
-                            &effect_state.variables,
-                        )
-                    })
-                    .or_else(|| {
-                        progress.map(|progress| progress.save(entry.level, SaveKind::Fortitude))
-                    })
-                    .unwrap_or(0);
-                reflex += class
-                    .reflex_formula
-                    .as_deref()
-                    .map(|formula| {
-                        evaluate_class_formula(
-                            formula,
-                            &entry.class_id,
-                            entry.level,
-                            total_level,
-                            &effect_state.variables,
-                        )
-                    })
-                    .or_else(|| {
-                        progress.map(|progress| progress.save(entry.level, SaveKind::Reflex))
-                    })
-                    .unwrap_or(0);
-                will += class
-                    .will_formula
-                    .as_deref()
-                    .map(|formula| {
-                        evaluate_class_formula(
-                            formula,
-                            &entry.class_id,
-                            entry.level,
-                            total_level,
-                            &effect_state.variables,
-                        )
-                    })
-                    .or_else(|| progress.map(|progress| progress.save(entry.level, SaveKind::Will)))
-                    .unwrap_or(0);
+            if let Some(base) = crate::derived::report(
+                crate::bab::derive_base_saves(&self.pack, draft, &effect_state.variables),
+                &mut diagnostics,
+            ) {
+                fort += base.get(&SaveKind::Fortitude).copied().unwrap_or_default();
+                reflex += base.get(&SaveKind::Reflex).copied().unwrap_or_default();
+                will += base.get(&SaveKind::Will).copied().unwrap_or_default();
             }
             let mut saves = BTreeMap::new();
             saves.insert("Fortitude".to_string(), fort);
@@ -426,17 +420,26 @@ impl Engine {
             *saves.entry(save).or_insert(0) += total;
         }
 
-        let base_attack_bonus = crate::bab::compute_bab(
-            &self.pack,
-            draft,
-            &effect_state.variables,
-            &effect_state.external_modifiers,
-        );
+        let base_attack_bonus = crate::derived::report(
+            crate::bab::compute_bab(
+                &self.pack,
+                draft,
+                &effect_state.variables,
+                &effect_state.external_modifiers,
+            ),
+            &mut diagnostics,
+        )
+        .unwrap_or_default();
 
         // Recompute ability modifiers for skill math using post-spell stats:
         // `stat_mods` was computed before spell STAT bonuses were folded.
-        let skill_stat_mods = self.ability_modifiers(&stats);
-        let mut skills = self.skills(draft, &skill_stat_mods, armor_check_penalty);
+        let skill_stat_mods = self.ability_modifiers(&stats, &mut diagnostics);
+        let mut skills = self.skills(
+            draft,
+            &skill_stat_mods,
+            armor_check_penalty,
+            &mut diagnostics,
+        );
         for (skill, total) in stacked_components(&all_typed_bonuses, skill_bonus_components) {
             // Apply typed skill bonuses.  Skills already tracked by the draft
             // are updated in place; untrained-but-usable skills that only
@@ -455,9 +458,54 @@ impl Engine {
                 skills.insert(skill.clone(), base + total);
             }
         }
-        let attack_bonuses = stacked_components(&all_typed_bonuses, attack_bonus_targets);
-        let (caster_levels, spell_dcs, spell_slots, known_limits, prepared_spells) =
-            self.spellcasting(draft, &class_levels, &stat_mods);
+        let condition_penalty =
+            if crate::combat::condition(&draft.class_play, "self", "sickened") {
+                2
+            } else {
+                0
+            } + if crate::combat::condition(&draft.class_play, "self", "panicked") {
+                2
+            } else {
+                0
+            };
+        for n in saves.values_mut() {
+            *n -= negative_levels + condition_penalty;
+        }
+        for n in skills.values_mut() {
+            *n -= negative_levels + condition_penalty;
+        }
+        let mut attack_bonuses = stacked_components(&all_typed_bonuses, attack_bonus_targets);
+        if let Some(c) = draft
+            .class_play
+            .tactics
+            .fighting
+            .as_ref()
+            .filter(|c| c.expires > draft.class_play.encounter.seconds)
+        {
+            attack_bonuses.insert(format!("TARGET.{}.TOHIT.MORALE", c.target), c.bonus);
+            attack_bonuses.insert(format!("TARGET.{}.DAMAGE.MORALE", c.target), c.bonus);
+        }
+        if negative_levels > 0 {
+            *attack_bonuses.entry("ALL".into()).or_default() -= negative_levels;
+        }
+        let (mut caster_levels, spell_dcs, mut spell_slots, known_limits, prepared_spells) =
+            self.spellcasting(draft, &class_levels, &stat_mods, &mut diagnostics);
+        for loss in draft
+            .class_play
+            .necromancy
+            .negative_levels
+            .iter()
+            .filter(|n| n.target == "self")
+        {
+            if let Some(key) = &loss.lost_slot {
+                if let Some(cap) = spell_slots.get_mut(key) {
+                    *cap = cap.saturating_sub(1);
+                }
+            }
+        }
+        for n in caster_levels.values_mut() {
+            *n = (*n - negative_levels).max(0);
+        }
         let (power_points, manifester_levels, powers_known) =
             self.psionics(&class_levels, &stat_mods);
         let skill_points = if let Some(plan) = &gestalt {
@@ -468,7 +516,7 @@ impl Engine {
         } else {
             self.total_skill_points(draft, &class_levels, &stat_mods)
         };
-        let feat_slots = self.feat_slots(&class_levels);
+        let feat_slots = self.feat_slots(total_level, &class_levels);
         let class_interactions = class_levels
             .iter()
             .filter_map(|entry| {
@@ -500,20 +548,15 @@ impl Engine {
             .iter()
             .map(|(id, category)| (id.clone(), category.ability_list.clone()))
             .collect();
-        let ability_pools: BTreeMap<String, i32> = self
-            .pack
-            .ability_categories
-            .iter()
-            .filter_map(|(id, category)| {
-                category.pool.as_ref().map(|pool| {
-                    (
-                        id.clone(),
-                        effect_state.variables.get(pool).copied().unwrap_or(0),
-                    )
-                })
-            })
-            .collect();
-        let ability_pool_usage = self.ability_pool_usage(draft, &ability_pools);
+        let ability_pools = crate::pools::ability_pools(
+            &self.pack,
+            &effect_state,
+            draft,
+            feat_slots,
+            &mut diagnostics,
+        );
+        let ability_pool_usage =
+            crate::pools::ability_pool_usage(&self.pack, draft, &ability_pools);
         for (category_id, usage) in &ability_pool_usage {
             if usage.spent > usage.pool {
                 diagnostics.push(format!(
@@ -571,9 +614,13 @@ impl Engine {
             unarmed_mult,
             attack_cycle,
             move_clone,
-        } = self.creature_traits(draft, &effect_state);
+        } = self.creature_traits(draft, &effect_state, &mut diagnostics);
         let movement = resolve_movement(&practiced_movement(draft, &effect_state), &move_clone);
-        let companions = self.companions(draft, &effect_state.variables);
+        let mut master_variables = effect_state.variables.clone();
+        if !effect_state.unresolved_derived.contains("BAB") {
+            master_variables.insert("BAB".into(), base_attack_bonus);
+        }
+        let companions = self.companions(draft, &master_variables, &mut diagnostics);
         let mut spell_effects = Vec::new();
         for (domain, spells) in &domain_spells {
             for spell in spells {
@@ -631,11 +678,63 @@ impl Engine {
         let grapple_attack =
             base_attack_bonus + strength_mod + grapple_size_modifier_from_rank(size_rank);
         let caster_level_bonus = self.domain_caster_level_bonus(draft);
-        let turning = self.turning(draft, &effect_state.variables);
+        let turning = self.turning(draft, &effect_state.variables, &stat_mods);
         let uncanny_dodge =
             self.uncanny_dodge(&effect_state.active_abilities, &effect_state.variables);
-        let prohibited_spells = self.prohibited_spells(draft, &effect_state);
+        let mut prohibited_spells = self.prohibited_spells(draft, &effect_state);
+        match crate::magic::native_prohibited_schools(&self.pack, draft) {
+            Ok(schools) => {
+                for school in schools {
+                    if prohibited_spells.iter().any(|p|matches!(&p.target,pcgen_core::ProhibitionTarget::School(s) if s.eq_ignore_ascii_case(&school))) { diagnostics.push(format!("Focused Studies must add a new prohibited school: {school}")); }
+                else { prohibited_spells.push(pcgen_core::ProhibitedSpell{target:pcgen_core::ProhibitionTarget::School(school),condition:None}); }
+                }
+            }
+            Err(error) => diagnostics.push(error),
+        }
+        let mut spell_access = BTreeMap::new();
+        for track in caster_levels
+            .keys()
+            .filter(|id| crate::magic::class_magic(&self.pack, id).is_some())
+        {
+            match self.spell_catalog(draft, track) {
+                Ok(catalog) => {
+                    spell_access.insert(track.clone(), catalog);
+                }
+                Err(error) => diagnostics.push(format!("{track} spell access: {error}")),
+            }
+        }
+        let rule_gaps = self
+            .pack
+            .entities
+            .iter()
+            .filter_map(|entity| {
+                let pending = entity.facts.get("NativeRulePending")?;
+                let selected = match entity.category {
+                    pcgen_core::EntityCategory::Class => class_levels
+                        .iter()
+                        .any(|level| level.class_id.eq_ignore_ascii_case(&entity.name)),
+                    pcgen_core::EntityCategory::Feat | pcgen_core::EntityCategory::Ability => {
+                        draft.abilities.iter().any(|(_, key)| {
+                            key.eq_ignore_ascii_case(&entity.name)
+                                || key.eq_ignore_ascii_case(&entity.id.key)
+                        })
+                    }
+                    _ => false,
+                };
+                selected.then(|| (entity.id.as_string(), pending.clone()))
+            })
+            .collect();
         let mut snapshot = CharacterSnapshot {
+            creature_type: effect_state.race_creature_type.clone(),
+            body_immunities: if effect_state.race_creature_type.as_deref() == Some("undead") {
+                pcgen_core::class_play::TargetBody::Undead
+                    .immunities()
+                    .to_vec()
+            } else {
+                vec![]
+            },
+            rule_gaps,
+            spell_access,
             draft_id: draft.id.clone(),
             name: draft.name.clone(),
             race_id: draft.race_id.clone(),
@@ -713,6 +812,12 @@ impl Engine {
             choice_bindings: effect_state.choice_bindings,
             active_states: {
                 let mut states = draft.active_states.clone();
+                if draft.class_play.encounter.rage.is_some() {
+                    states.push("Raging".into());
+                }
+                if draft.class_play.encounter.fatigued {
+                    states.push("Fatigued".into());
+                }
                 states.sort();
                 states.dedup();
                 states
@@ -736,6 +841,7 @@ impl Engine {
         &self,
         draft: &CharacterDraft,
         effect_state: &crate::effects::EffectState,
+        diagnostics: &mut Vec<String>,
     ) -> CreatureTraitAccumulator {
         let mut merged = CreatureTraitAccumulator::default();
         let class_levels = effective_class_levels(&self.pack, draft);
@@ -744,12 +850,29 @@ impl Engine {
             if !entity_is_active_for_traits(entity, draft, effect_state, &class_levels) {
                 continue;
             }
-            merge_creature_traits(&entity.traits, &mut merged, draft, effect_state);
+            merge_creature_traits(
+                &entity.traits,
+                &mut merged,
+                draft,
+                effect_state,
+                &entity.id.key,
+                diagnostics,
+            );
         }
         for traits in self.equipmod_traits(draft) {
-            merge_creature_traits(&traits, &mut merged, draft, effect_state);
+            merge_creature_traits(
+                &traits,
+                &mut merged,
+                draft,
+                effect_state,
+                "equipment modifier",
+                diagnostics,
+            );
         }
 
+        if draft.class_play.necromancy.lich {
+            merged.vision.push("Darkvision (60 feet)".into());
+        }
         merged.vision.sort();
         merged.vision.dedup();
         // Same-type reductions do not stack: keep the highest per bypass type.
@@ -804,15 +927,25 @@ impl Engine {
             }
         }
         if draft.is_gestalt() {
+            let state = apply_effects(&self.pack, draft);
+            diagnostics.extend(state.diagnostics.clone());
+            let source = ProgressSource {
+                pack: &self.pack,
+                race_id: &draft.race_id,
+                variables: &state.variables,
+                total_level: draft.total_level(),
+                diagnostics: Default::default(),
+            };
             let plan = plan_gestalt(
                 &draft.advancement,
-                self,
-                self.ability_modifiers(&draft.stats)
+                &source,
+                self.ability_modifiers(&draft.stats, &mut diagnostics)
                     .get("INT")
                     .copied()
                     .unwrap_or(0),
                 &GestaltPolicy::default(),
             );
+            diagnostics.extend(source.diagnostics.into_inner());
             for diagnostic in &plan.diagnostics {
                 if diagnostic.code.starts_with("gestalt.prestige_")
                     || diagnostic.code == "gestalt.dual_progression"
@@ -1048,65 +1181,20 @@ impl Engine {
         })
     }
 
-    /// Returns all variants attached to a lane: archetype first, then
-    /// substitution-level.  Both may coexist on the same lane.
     fn variants_for(&self, lane: &AdvancementLane, class_id: &str) -> Vec<&VariantDefinition> {
-        let mut ids: Vec<&str> = Vec::new();
-        if let Some(id) = lane.archetype.as_deref() {
-            ids.push(id);
-        }
-        if let Some(id) = lane.substitution_level.as_deref() {
-            if !ids.iter().any(|existing| existing.eq_ignore_ascii_case(id)) {
-                ids.push(id);
-            }
-        }
-        ids.into_iter()
-            .filter_map(|id| {
-                self.pack.variants.get(id).or_else(|| {
-                    self.pack
-                        .variants
-                        .iter()
-                        .find(|(key, _)| key.eq_ignore_ascii_case(id))
-                        .map(|(_, variant)| variant)
-                })
-            })
-            .filter(|variant| {
-                variant
-                    .applies_to
-                    .as_deref()
-                    .is_none_or(|applies| applies.eq_ignore_ascii_case(class_id))
-            })
-            .collect()
+        crate::progression::variants_for(&self.pack, lane, class_id)
     }
 
     fn race(&self, race_id: &str) -> Option<&RaceDefinition> {
-        self.pack.races.get(race_id).or_else(|| {
-            self.pack
-                .races
-                .iter()
-                .find(|(key, _)| key.eq_ignore_ascii_case(race_id))
-                .map(|(_, race)| race)
-        })
+        crate::progression::find_race(&self.pack, race_id)
     }
 
     pub fn progression(&self, class_id: &str) -> Option<&ClassProgress> {
-        self.pack.progressions.get(class_id).or_else(|| {
-            self.pack
-                .progressions
-                .iter()
-                .find(|(key, _)| key.eq_ignore_ascii_case(class_id))
-                .map(|(_, progression)| progression)
-        })
+        crate::progression::find_progression(&self.pack, class_id)
     }
 
     fn class(&self, class_id: &str) -> Option<&ClassDefinition> {
-        self.pack.classes.get(class_id).or_else(|| {
-            self.pack
-                .classes
-                .iter()
-                .find(|(key, _)| key.eq_ignore_ascii_case(class_id))
-                .map(|(_, class)| class)
-        })
+        crate::progression::find_class(&self.pack, class_id)
     }
 
     fn resolve_equipment(
@@ -1206,6 +1294,7 @@ impl Engine {
         draft: &CharacterDraft,
         stat_mods: &BTreeMap<String, i32>,
         armor_check_penalty: i32,
+        diagnostics: &mut Vec<String>,
     ) -> BTreeMap<String, i32> {
         let mut skills = BTreeMap::new();
         for (name, ranks) in &draft.skills {
@@ -1218,11 +1307,29 @@ impl Engine {
                     })
                     .map(|(_, skill)| skill)
             });
-            let ability_mod = definition
-                .and_then(|skill| skill.key_stat.as_deref())
-                .and_then(|key_stat| stat_mods.get(&key_stat.to_ascii_uppercase()).copied())
-                .unwrap_or(0);
-            let armor_penalty = if definition.is_some_and(|skill| skill.armor_check) {
+            let Some(definition) = definition else {
+                diagnostics.push(format!("Skill definition unavailable: {name}"));
+                continue;
+            };
+            let Some(ability_mod) = definition
+                .key_stat
+                .as_deref()
+                .and_then(|key| stat_mods.get(&key.to_ascii_uppercase()).copied())
+            else {
+                diagnostics.push(format!("Skill key ability unavailable: {name}"));
+                continue;
+            };
+            let ability_mod =
+                if draft.class_play.necromancy.lich && name.eq_ignore_ascii_case("Concentration") {
+                    stat_mods.get("CHA").copied().unwrap_or(0)
+                } else {
+                    ability_mod
+                };
+            if !ranks.is_finite() || *ranks < 0.0 || *ranks > i32::MAX as f64 - 10000.0 {
+                diagnostics.push(format!("Invalid skill ranks: {name}"));
+                continue;
+            }
+            let armor_penalty = if definition.armor_check {
                 armor_check_penalty
             } else {
                 0
@@ -1237,7 +1344,7 @@ impl Engine {
 
     /// 0-rank base total for a skill that can be used untrained, or `None`
     /// when the skill is unknown or trained-only.
-    fn untrained_skill_base(
+    pub(crate) fn untrained_skill_base(
         &self,
         skill: &str,
         stat_mods: &BTreeMap<String, i32>,
@@ -1250,8 +1357,7 @@ impl Engine {
         let ability_mod = definition
             .key_stat
             .as_deref()
-            .and_then(|key_stat| stat_mods.get(&key_stat.to_ascii_uppercase()).copied())
-            .unwrap_or(0);
+            .and_then(|key_stat| stat_mods.get(&key_stat.to_ascii_uppercase()).copied())?;
         let armor_penalty = if definition.armor_check {
             armor_check_penalty
         } else {
@@ -1279,7 +1385,7 @@ impl Engine {
         0
     }
 
-    fn skill(&self, name: &str) -> Option<&pcgen_core::SkillDefinition> {
+    pub(crate) fn skill(&self, name: &str) -> Option<&pcgen_core::SkillDefinition> {
         self.pack.skills.get(name).or_else(|| {
             self.pack
                 .skills
@@ -1311,7 +1417,7 @@ impl Engine {
                 .class(class_id)
                 .is_some_and(|class| class.spellcasting_ability.is_some())
             && draft
-                .class_levels
+                .class_levels()
                 .iter()
                 .any(|entry| entry.class_id.eq_ignore_ascii_case(class_id))
     }
@@ -1319,48 +1425,15 @@ impl Engine {
     fn spellcasting(
         &self,
         draft: &CharacterDraft,
-        class_levels: &[DraftClassLevel],
+        class_levels: &[ClassLevelSummary],
         stat_mods: &BTreeMap<String, i32>,
+        diagnostics: &mut Vec<String>,
     ) -> SpellcastingMaps {
         let mut caster_levels = BTreeMap::new();
         let mut spell_slots = BTreeMap::new();
         let mut known_limits = BTreeMap::new();
 
-        // PRC `ADD:SPELLCASTER|Arcane/Divine` levels stack onto an existing
-        // base casting track instead of creating a separate track.
-        let mut advanced_arcane = 0u32;
-        let mut advanced_divine = 0u32;
-        let mut advanced_any = 0u32;
-        for entry in class_levels {
-            let Some(class) = self.class(&entry.class_id) else {
-                continue;
-            };
-            let advance_count = class
-                .level_spellcaster_advance
-                .keys()
-                .filter(|level| **level <= entry.level)
-                .count() as u32;
-            let mut arcane = false;
-            let mut divine = false;
-            let mut any = false;
-            for value in class.level_spellcaster_advance.values().flatten() {
-                let upper = value.to_ascii_uppercase();
-                if upper.contains("PSIONIC") {
-                    continue;
-                }
-                arcane |= upper.contains("ARCANE");
-                divine |= upper.contains("DIVINE");
-                any |= upper.contains("SPELLCASTER");
-            }
-            if arcane {
-                advanced_arcane += advance_count;
-            } else if divine {
-                advanced_divine += advance_count;
-            } else if any {
-                advanced_any += advance_count;
-            }
-        }
-        let mut any_applied = false;
+        let tracks = crate::magic::casting_levels(&self.pack, draft, diagnostics);
 
         for entry in class_levels {
             let Some(class) = self.class(&entry.class_id) else {
@@ -1385,29 +1458,31 @@ impl Engine {
             if class.is_prestige && advances_caster {
                 continue;
             }
-            let power_advance = match class.spell_power {
-                pcgen_core::SpellPowerType::Arcane => advanced_arcane,
-                pcgen_core::SpellPowerType::Divine => advanced_divine,
-                _ => 0,
+            let Some(&effective_level) = tracks.get(&class.id) else {
+                continue;
             };
-            let any_advance = if !any_applied && power_advance == 0 {
-                any_applied = true;
-                advanced_any
+            let cl = if let Some(formula) = crate::magic::class_magic(&self.pack, &class.id)
+                .and_then(|m| m.caster_level_formula.as_ref())
+            {
+                let vars = std::collections::HashMap::from([(
+                    "CASTINGLEVEL".into(),
+                    effective_level as i32,
+                )]);
+                match pcgen_formula::Formula::parse(formula).and_then(|f| f.eval_i32(&vars)) {
+                    Ok(n) if n >= 0 => n,
+                    Ok(_) => {
+                        diagnostics.push(format!("{}: negative caster level", class.id));
+                        continue;
+                    }
+                    Err(e) => {
+                        diagnostics.push(format!("{} caster level: {e}", class.id));
+                        continue;
+                    }
+                }
             } else {
-                0
+                effective_level as i32
             };
-            let variant_advance = draft.advancement.iter().any(|frame| {
-                frame.lanes.iter().any(|lane| {
-                    lane.class_id.eq_ignore_ascii_case(&class.id)
-                        && self
-                            .variants_for(lane, &class.id)
-                            .iter()
-                            .any(|variant| variant.spellcaster_advance)
-                })
-            });
-            let effective_level =
-                entry.level + power_advance + any_advance + u32::from(variant_advance);
-            caster_levels.insert(class.id.clone(), effective_level as i32);
+            caster_levels.insert(class.id.clone(), cl);
             if let Some(slots) = class.spell_slots.get(&effective_level) {
                 for (level, count) in slots.iter().enumerate() {
                     spell_slots.insert(format!("{}|{}", class.id, level), *count);
@@ -1441,7 +1516,7 @@ impl Engine {
 
         let mut spell_dcs = BTreeMap::new();
         let mut prepared_spells = BTreeMap::new();
-        for spell in &draft.spells {
+        for spell in draft.spells.iter().chain(&draft.preparations) {
             let class_id = spell.class_id.clone().or_else(|| {
                 class_levels.iter().find_map(|entry| {
                     self.class(&entry.class_id)
@@ -1453,8 +1528,8 @@ impl Engine {
                 continue;
             };
             let class = self.class(&class_id);
-            let stat = class
-                .and_then(|class| class.spellcasting_ability.clone())
+            let stat = crate::magic::policy_dc_ability(&self.pack, &class_id).cloned()
+                .or_else(|| class.and_then(|class| class.spellcasting_ability.clone()))
                 .unwrap_or_else(|| "CHA".to_string());
             let level = if spell.level > 0 {
                 spell.level
@@ -1471,10 +1546,11 @@ impl Engine {
             };
             let dc = 10 + level as i32 + stat_mods.get(&stat).copied().unwrap_or(0);
             spell_dcs.insert(format!("{}|{}", spell.name, class_id), dc);
-            if spell.times_memorized > 0 {
+            let copies=draft.prepared_copies(&class_id,&spell.name).unwrap_or(0);
+            if copies > 0 {
                 prepared_spells.insert(
                     format!("{}|{}", class_id, spell.name),
-                    spell.times_memorized,
+                    copies,
                 );
             }
         }
@@ -1489,7 +1565,7 @@ impl Engine {
 
     fn psionics(
         &self,
-        class_levels: &[DraftClassLevel],
+        class_levels: &[ClassLevelSummary],
         stat_mods: &BTreeMap<String, i32>,
     ) -> PsionicMaps {
         let mut base_tracks: BTreeMap<String, u32> = BTreeMap::new();
@@ -1615,7 +1691,7 @@ impl Engine {
             for effect in effects {
                 let (target, value) = match &effect.action {
                     pcgen_core::EffectAction::Modify { modifier } => {
-                        (modifier.target.clone(), modifier.value.floor() as i32)
+                        (modifier.target.clone(), modifier.value)
                     }
                     _ => continue,
                 };
@@ -1639,7 +1715,7 @@ impl Engine {
                             target: target.clone(),
                             value: 0,
                         });
-                entry.value += value;
+                entry.value += value.floor() as i32;
             }
         }
         bonus_values.into_values().collect()
@@ -1653,28 +1729,9 @@ impl Engine {
     fn hit_points_for_entry(
         &self,
         draft: &CharacterDraft,
-        entry: &DraftClassLevel,
+        entry: &ClassLevelSummary,
         con_mod: i32,
     ) -> i32 {
-        if !entry.hit_points_by_level.is_empty() {
-            let all_zero = entry.hit_points_by_level.iter().all(|roll| *roll == 0);
-            return entry
-                .hit_points_by_level
-                .iter()
-                .map(|roll| {
-                    let adjusted = *roll + con_mod;
-                    if all_zero {
-                        adjusted.max(0)
-                    } else {
-                        adjusted.max(1)
-                    }
-                })
-                .sum();
-        }
-        if entry.hit_points_gained != 0 {
-            let raw = entry.hit_points_gained + con_mod * entry.level as i32;
-            return raw.max(entry.level as i32);
-        }
         let class_die = self
             .class(&entry.class_id)
             .and_then(|class| parse_hit_die(&class.hit_die));
@@ -1685,13 +1742,17 @@ impl Engine {
                 .filter(|class| class.is_monster)
                 .and_then(|class| parse_hit_die(&class.hit_die)),
         };
-        if let Some(die) = die {
-            let per_level = (die / 2 + 1 + con_mod).max(1);
-            return per_level * entry.level as i32;
-        }
-        // Preserve the legacy zero-HD / zero-rolls behavior for classes
-        // without an explicit HITDIE override or monster hit die.
-        (con_mod * entry.level as i32).max(0)
+        (0..entry.level as usize)
+            .map(|level| {
+                let roll = entry.hit_points_by_level.get(level).copied().flatten();
+                let base = roll.unwrap_or_else(|| die.map(|value| value / 2 + 1).unwrap_or(0));
+                if base == 0 {
+                    con_mod.max(0)
+                } else {
+                    (base + con_mod).max(1)
+                }
+            })
+            .sum()
     }
 
     fn hit_die_override(&self, draft: &CharacterDraft, class_id: &str) -> Option<HitDieRule> {
@@ -1723,40 +1784,49 @@ impl Engine {
     fn total_skill_points(
         &self,
         draft: &CharacterDraft,
-        class_levels: &[DraftClassLevel],
+        class_levels: &[ClassLevelSummary],
         stat_mods: &BTreeMap<String, i32>,
     ) -> i32 {
         let int_mod = stat_mods.get("INT").copied().unwrap_or(0);
-        let race_extra = self
-            .race(&draft.race_id)
-            .and_then(|race| race.extra_skill_points_per_level)
-            .unwrap_or(0) as i32;
-        let race_mult = self
-            .race(&draft.race_id)
-            .and_then(|race| race.skill_multiplier);
+        let first_class = draft
+            .advancement
+            .first()
+            .and_then(|frame| frame.lanes.first())
+            .map(|lane| normalized_name(&lane.class_id));
         let mut total = 0;
-        let mut first = true;
         for entry in class_levels {
-            let Some(progression) = self.progression(&entry.class_id) else {
-                continue;
-            };
-            let normal = (progression.skill_points_per_level as i32 + race_extra + int_mod).max(1);
-            if first {
-                let first_base = if let Some(multiplier) = race_mult {
-                    progression
-                        .skill_points_per_level
-                        .saturating_mul(multiplier)
-                } else {
-                    progression.first_level_skill_points
-                };
-                total += (first_base as i32 + int_mod).max(1);
-                total += normal * entry.level.saturating_sub(1) as i32;
-                first = false;
-            } else {
-                total += normal * entry.level as i32;
+            let normal = self
+                .skill_points_for_level(&draft.race_id, &entry.class_id, int_mod, false)
+                .unwrap_or(0) as i32;
+            total += normal * entry.level as i32;
+            if entry.level > 0
+                && first_class.as_deref() == Some(normalized_name(&entry.class_id).as_str())
+            {
+                total += self
+                    .skill_points_for_level(&draft.race_id, &entry.class_id, int_mod, true)
+                    .unwrap_or(0) as i32
+                    - normal;
             }
         }
         total
+    }
+
+    /// RSRD: apply the minimum before racial points, then multiply the whole
+    /// award at character level one (never again on entering another class).
+    fn skill_points_for_level(
+        &self,
+        race_id: &str,
+        class_id: &str,
+        intelligence_modifier: i32,
+        first_level: bool,
+    ) -> Option<u32> {
+        let progression = self.progression(class_id)?;
+        Some(crate::progression::skill_points_for_level(
+            progression,
+            self.race(race_id),
+            intelligence_modifier,
+            first_level,
+        ))
     }
 
     /// Uncanny dodge and improved uncanny dodge.
@@ -1819,34 +1889,70 @@ impl Engine {
         &self,
         draft: &CharacterDraft,
         variables: &BTreeMap<String, i32>,
+        stat_mods: &BTreeMap<String, i32>,
     ) -> Option<crate::snapshot::TurningSnapshot> {
-        let level = variables.get("TurnLevelBase").copied().unwrap_or(0);
+        let native_level: u32 = effective_class_levels(&self.pack, draft)
+            .iter()
+            .filter(|l| {
+                crate::magic::class_magic(&self.pack, &l.class_id)
+                    .is_some_and(|m| m.turning_from_level.is_some_and(|n| l.level >= n))
+            })
+            .map(|l| l.level)
+            .sum();
+        let level = variables.get("TurnLevelBase").copied().unwrap_or(0) + native_level as i32;
         if level <= 0 {
             return None;
         }
-        let (mode, note) = match crate::snapshot::alignment_morality(&draft.alignment) {
-            Some(true) => (crate::snapshot::TurningMode::Turn, None),
-            Some(false) => (crate::snapshot::TurningMode::Rebuke, None),
-            None => {
-                // A neutral character follows her deity, but the RSRD omits
-                // deities as closed content, so the answer is not in the pack.
-                // Report the choice rather than inventing an alignment.
-                let note = if draft.alignment.trim().is_empty() {
-                    "character alignment is not set, so turn or rebuke cannot be decided"
-                        .to_string()
-                } else {
-                    "the SRD decides a neutral cleric's turning by her deity's alignment, and \
-                     this pack carries no deities (the RSRD omits them as closed content)"
-                        .to_string()
-                };
-                (crate::snapshot::TurningMode::Choice, Some(note))
+        let forced = effective_class_levels(&self.pack, draft)
+            .iter()
+            .filter_map(|l| {
+                crate::magic::class_magic(&self.pack, &l.class_id)
+                    .filter(|m| m.turning_from_level.is_some_and(|n| l.level >= n))
+                    .and_then(|m| m.turning_mode)
+            })
+            .next();
+        let (mode, note) = match (forced, variables.get("TurnLevelBase").copied().unwrap_or(0)) {
+            (Some(pcgen_core::magic::TurningModeRule::Rebuke), 0) => {
+                (crate::snapshot::TurningMode::Rebuke, None)
             }
+            (Some(pcgen_core::magic::TurningModeRule::Turn), 0) => {
+                (crate::snapshot::TurningMode::Turn, None)
+            }
+            _ => match crate::snapshot::alignment_morality(&draft.alignment) {
+                Some(true) => (crate::snapshot::TurningMode::Turn, None),
+                Some(false) => (crate::snapshot::TurningMode::Rebuke, None),
+                None => {
+                    // A neutral character follows her deity, but the RSRD omits
+                    // deities as closed content, so the answer is not in the pack.
+                    // Report the choice rather than inventing an alignment.
+                    let note = if draft.alignment.trim().is_empty() {
+                        "character alignment is not set, so turn or rebuke cannot be decided"
+                            .to_string()
+                    } else {
+                        "the SRD decides a neutral cleric's turning by her deity's alignment, and \
+                     this pack carries no deities (the RSRD omits them as closed content)"
+                            .to_string()
+                    };
+                    (crate::snapshot::TurningMode::Choice, Some(note))
+                }
+            },
         };
         Some(crate::snapshot::TurningSnapshot {
             level: level.max(0) as u32,
             mode,
-            times_per_day: variables.get("TurnTimesBase").copied().unwrap_or(0),
-            damage_bonus: variables.get("TurnDamagePlusBase").copied().unwrap_or(0),
+            times_per_day: if native_level > 0 {
+                variables
+                    .get("TurnTimesBase")
+                    .copied()
+                    .unwrap_or(3 + stat_mods.get("CHA").copied()?)
+            } else {
+                variables.get("TurnTimesBase").copied()?
+            },
+            damage_bonus: if native_level > 0 {
+                level + stat_mods.get("CHA").copied()?
+            } else {
+                variables.get("TurnDamagePlusBase").copied()?
+            },
             note,
         })
     }
@@ -1864,8 +1970,7 @@ impl Engine {
     /// the per-class progressions instead — as this previously did — over-
     /// grants: a Fighter 1 / Wizard 1 has a character level of 2 and therefore
     /// one general feat, not one per class.
-    fn feat_slots(&self, class_levels: &[DraftClassLevel]) -> u32 {
-        let character_level: u32 = class_levels.iter().map(|entry| entry.level).sum();
+    fn feat_slots(&self, character_level: u32, class_levels: &[ClassLevelSummary]) -> u32 {
         if character_level == 0 {
             return 0;
         }
@@ -1908,6 +2013,7 @@ impl Engine {
         &self,
         draft: &CharacterDraft,
         variables: &BTreeMap<String, i32>,
+        diagnostics: &mut Vec<String>,
     ) -> Vec<crate::snapshot::CompanionSnapshot> {
         let mut models = Vec::new();
         for companion in &draft.companions {
@@ -1920,11 +2026,18 @@ impl Engine {
             // master level is the variable, not whatever the caller passed.
             // `FamiliarLVL` is set from `SorcererLVL` and `WizardLVL`, and
             // those accumulate, which is what makes the two classes stack.
-            let effective_master_level = self
+            let effective_master_level = match self
                 .companion_master_variable(&companion.companion_type)
-                .and_then(|name| variables.get(&name).copied())
-                .filter(|level| *level > 0)
-                .map_or(companion.master_level, |level| level as u32);
+            {
+                Some(name) => match variables.get(&name).copied() {
+                    Some(level) if level >= 0 => level as u32,
+                    _ => {
+                        diagnostics.push(format!("companion `{}` master-level variable `{name}` unavailable; companion omitted", companion.companion_type));
+                        continue;
+                    }
+                },
+                None => companion.master_level,
+            };
             let mut model = crate::snapshot::CompanionSnapshot {
                 companion_type: companion.companion_type.clone(),
                 master_level: effective_master_level,
@@ -1946,10 +2059,19 @@ impl Engine {
                         continue;
                     }
                     if let Some(raw) = &definition.spell_resistance {
-                        if let Some(value) = evaluate_companion_sr(
-                            raw,
-                            definition.master_level,
-                            effective_master_level,
+                        if let Some(value) = crate::derived::report(
+                            evaluate_companion_formula(raw, effective_master_level, variables)
+                                .map_err(|error| {
+                                    crate::derived::context(
+                                        error,
+                                        &format!(
+                                            "companion `{}` row `{}` SR",
+                                            companion.companion_type, definition.id
+                                        ),
+                                        raw,
+                                    )
+                                }),
+                            diagnostics,
                         ) {
                             model.spell_resistance = Some(
                                 model
@@ -1966,17 +2088,31 @@ impl Engine {
                     }
                     merge_companion_traits(&definition.traits, &mut model.traits);
                     for bonus in &definition.bonuses {
-                        let Some(value) =
-                            evaluate_companion_formula(&bonus.formula, effective_master_level)
-                        else {
+                        let Some(value) = crate::derived::report(
+                            evaluate_companion_formula(
+                                &bonus.formula,
+                                effective_master_level,
+                                variables,
+                            )
+                            .map_err(|error| {
+                                crate::derived::context(
+                                    error,
+                                    &format!(
+                                        "companion `{}` row `{}` target `{}`",
+                                        companion.companion_type, definition.id, bonus.target
+                                    ),
+                                    &bonus.formula,
+                                )
+                            }),
+                            diagnostics,
+                        ) else {
                             continue;
                         };
                         let target = bonus.target.to_ascii_uppercase();
                         if target == "COMBAT.AC" || target == "AC" {
-                            model.armor_class_bonus += value.floor() as i32;
+                            model.armor_class_bonus += value;
                         } else if let Some(stat) = target.strip_prefix("STAT.") {
-                            *model.stat_adjustments.entry(stat.to_string()).or_insert(0) +=
-                                value.floor() as i32;
+                            *model.stat_adjustments.entry(stat.to_string()).or_insert(0) += value;
                         }
                     }
                 }
@@ -2004,25 +2140,19 @@ impl Engine {
     }
 }
 
-/// Evaluate a companion `SR:` expression.
-///
-/// The RSRD data uses `mastervar("SpecialMountLVL")+5` and plain constants.
-/// `mastervar` is resolved to the companion's master level.
-fn evaluate_companion_sr(raw: &str, _row_level: u32, master_level: u32) -> Option<i32> {
-    evaluate_companion_formula(raw, master_level).map(|value| value.floor() as i32)
-}
-
-fn evaluate_companion_formula(formula: &str, master_level: u32) -> Option<f64> {
-    // The formula arrives normalised: `mastervar("X")` became `MasterLevel` at
-    // lowering.  This used to be a regex here, which meant the engine still
-    // read PCGen syntax while evaluating.
-    let mut scope: std::collections::HashMap<String, pcgen_formula::Value> =
-        std::collections::HashMap::new();
-    scope.insert(
-        pcgen_core::formula_vocab::MASTER_LEVEL.to_string(),
-        pcgen_formula::Value::Int(i64::from(master_level)),
-    );
-    pcgen_formula::evaluate_f64(formula, &scope).ok()
+fn evaluate_companion_formula(
+    formula: &str,
+    master_level: u32,
+    variables: &BTreeMap<String, i32>,
+) -> Result<i32, pcgen_formula::FormulaError> {
+    pcgen_formula::evaluate_scoped_floor_i32(
+        formula,
+        variables,
+        &[(
+            pcgen_core::formula_vocab::MASTER_LEVEL.to_string(),
+            master_level as i32,
+        )],
+    )
 }
 
 fn companion_row_matches(
@@ -2109,71 +2239,6 @@ fn merge_companion_traits(
             merged.spell_resistance = Some(raw.clone());
         }
     }
-}
-
-impl pcgen_core::ClassProgressSource for Engine {
-    fn base_attack_bonus(&self, class_id: &str, class_level: u32) -> Option<i32> {
-        self.progression(class_id).map(|p| p.bab(class_level))
-    }
-
-    fn base_save(&self, class_id: &str, class_level: u32, kind: SaveKind) -> Option<i32> {
-        self.progression(class_id)
-            .map(|p| p.save(class_level, kind))
-    }
-
-    fn skill_points(
-        &self,
-        class_id: &str,
-        intelligence_modifier: i32,
-        first_level: bool,
-    ) -> Option<u32> {
-        self.progression(class_id).map(|p| {
-            let base = if first_level {
-                p.first_level_skill_points
-            } else {
-                p.skill_points_per_level
-            };
-            (base as i32 + intelligence_modifier).max(1) as u32
-        })
-    }
-
-    fn class_skills(&self, class_id: &str) -> Option<Vec<String>> {
-        self.progression(class_id).map(|p| p.class_skills.clone())
-    }
-
-    fn gestalt_slot_cost(&self, class_id: &str) -> Option<pcgen_core::PrestigeSlotCost> {
-        self.class(class_id)
-            .and_then(|class| class.gestalt_slot_cost)
-    }
-
-    fn features_up_to_level(&self, class_id: &str, level: u32) -> Option<Vec<String>> {
-        // The grants live on the class; the progression used to carry a copy.
-        self.class(class_id)
-            .map(|class| class.feature_rows_up_to(level))
-    }
-
-    fn features_for_class(&self, lane: &AdvancementLane, class_id: &str) -> Option<Vec<String>> {
-        let base = self.features_up_to_level(class_id, lane.class_level)?;
-        let variants = self.variants_for(lane, class_id);
-        // Level-aware: a variant's `GRANTS` may name the level it is gained at
-        // (`Weapon Training|PRECLASS:1,Fighter=5`), which must not surface at
-        // 1st level.
-        Some(variants.iter().fold(base, |features, variant| {
-            variant.apply_to_features_at_level(features, lane.class_level)
-        }))
-    }
-
-    fn class_skills_for_lane(&self, lane: &AdvancementLane, class_id: &str) -> Option<Vec<String>> {
-        let mut skills = self.class_skills(class_id)?;
-        for variant in self.variants_for(lane, class_id) {
-            skills.extend(variant.class_skills.iter().cloned());
-        }
-        Some(skills)
-    }
-}
-
-pub fn validate(_pack: &CompiledRulePack, _draft: &CharacterDraft) -> Vec<String> {
-    Vec::new()
 }
 
 fn parse_hit_die(value: &str) -> Option<i32> {
@@ -2284,35 +2349,10 @@ fn parse_hit_die_rule(value: &str) -> Option<HitDieRule> {
 pub(crate) fn effective_class_levels(
     pack: &CompiledRulePack,
     draft: &CharacterDraft,
-) -> Vec<DraftClassLevel> {
-    let mut levels: BTreeMap<String, DraftClassLevel> = BTreeMap::new();
-    if !draft.class_levels.is_empty() {
-        for entry in &draft.class_levels {
-            push_level(
-                &mut levels,
-                &entry.class_id,
-                entry.level,
-                entry.hit_points_gained,
-                entry.experience_gained,
-            );
-            if !entry.hit_points_by_level.is_empty() {
-                if let Some(existing) = levels.get_mut(&normalized_name(&entry.class_id)) {
-                    existing.hit_points_by_level = entry.hit_points_by_level.clone();
-                }
-            }
-        }
-    } else {
-        for frame in &draft.advancement {
-            for lane in &frame.lanes {
-                push_level(
-                    &mut levels,
-                    &lane.class_id,
-                    lane.class_level,
-                    lane.hit_points_gained,
-                    lane.experience_gained,
-                );
-            }
-        }
+) -> Vec<ClassLevelSummary> {
+    let mut levels: BTreeMap<String, ClassLevelSummary> = BTreeMap::new();
+    for entry in draft.class_levels() {
+        levels.insert(normalized_name(&entry.class_id), entry);
     }
 
     // `ADDLEVEL` grants extra class levels without changing the base draft.
@@ -2342,10 +2382,9 @@ pub(crate) fn effective_class_levels(
             continue;
         }
         let key = normalized_name(&target);
-        let entry = levels.entry(key).or_insert_with(|| DraftClassLevel {
+        let entry = levels.entry(key).or_insert_with(|| ClassLevelSummary {
             class_id: target.clone(),
             level: 0,
-            hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
         });
@@ -2353,26 +2392,6 @@ pub(crate) fn effective_class_levels(
     }
 
     levels.into_values().collect()
-}
-
-fn push_level(
-    levels: &mut BTreeMap<String, DraftClassLevel>,
-    class_id: &str,
-    level: u32,
-    hit_points_gained: i32,
-    experience_gained: i32,
-) {
-    let key = normalized_name(class_id);
-    let entry = levels.entry(key).or_insert_with(|| DraftClassLevel {
-        class_id: class_id.to_string(),
-        level: 0,
-        hit_points_gained: 0,
-        hit_points_by_level: Vec::new(),
-        experience_gained: 0,
-    });
-    entry.level = entry.level.max(level);
-    entry.hit_points_gained += hit_points_gained;
-    entry.experience_gained += experience_gained;
 }
 
 fn find_template<'a>(
@@ -2388,23 +2407,17 @@ fn find_template<'a>(
     })
 }
 
-fn find_progression<'a>(pack: &'a CompiledRulePack, class_id: &str) -> Option<&'a ClassProgress> {
-    let wanted = normalized_name(class_id);
-    pack.progressions.get(class_id).or_else(|| {
-        pack.progressions
-            .iter()
-            .find(|(key, _)| key.eq_ignore_ascii_case(class_id) || normalized_name(key) == wanted)
-            .map(|(_, progression)| progression)
-    })
-}
-
 pub(crate) fn stat_modifier(score: i32) -> i32 {
     (score - 10).div_euclid(2)
 }
 
 /// Resolve one ability-score modifier, honouring a typed `STATMOD` formula
 /// when the compiled pack defines one for `stat`.
-pub(crate) fn stat_modifier_for_pack(pack: &CompiledRulePack, stat: &str, score: i32) -> i32 {
+pub(crate) fn stat_modifier_for_pack(
+    pack: &CompiledRulePack,
+    stat: &str,
+    score: i32,
+) -> Result<i32, pcgen_formula::FormulaError> {
     let wanted = stat.trim().to_ascii_uppercase();
     let definition = pack.stats.get(&wanted).or_else(|| {
         pack.stats.iter().find_map(|(key, definition)| {
@@ -2416,14 +2429,13 @@ pub(crate) fn stat_modifier_for_pack(pack: &CompiledRulePack, stat: &str, score:
     });
     if let Some(formula) = definition.and_then(|definition| definition.modifier_formula.as_deref())
     {
-        let mut variables = HashMap::new();
-        variables.insert("SCORE".to_string(), score);
-        variables.insert("score".to_string(), score);
-        if let Ok(value) = pcgen_formula::evaluate_f64(formula, &variables) {
-            return value.floor() as i32;
-        }
+        let variables =
+            BTreeMap::from([("SCORE".to_string(), score), ("score".to_string(), score)]);
+        return pcgen_formula::evaluate_scoped_floor_i32(formula, &variables, &[]).map_err(
+            |error| crate::derived::context(error, &format!("stat `{stat}` STATMOD"), formula),
+        );
     }
-    stat_modifier(score)
+    Ok(stat_modifier(score))
 }
 
 pub(crate) fn save_ability_modifier(stat_mods: &BTreeMap<String, i32>, kind: SaveKind) -> i32 {
@@ -2493,6 +2505,8 @@ fn merge_creature_traits(
     merged: &mut CreatureTraitAccumulator,
     draft: &CharacterDraft,
     state: &crate::effects::EffectState,
+    owner: &str,
+    diagnostics: &mut Vec<String>,
 ) {
     merged.vision.extend(traits.vision.iter().cloned());
     // Each entry carries its own gate (`5/Magic|PRELEVEL:MIN=4`).  Passing the
@@ -2537,12 +2551,14 @@ fn merge_creature_traits(
         );
     }
     if let Some(raw) = &traits.spell_resistance {
-        let value = raw
-            .chars()
-            .filter(|ch| ch.is_ascii_digit())
-            .collect::<String>()
-            .parse::<i32>()
-            .ok();
+        let value = crate::derived::report(
+            pcgen_formula::Formula::parse(raw)
+                .and_then(|formula| formula.eval_i32(state))
+                .map_err(|error| {
+                    crate::derived::context(error, &format!("creature `{owner}` SR"), raw)
+                }),
+            diagnostics,
+        );
         if let Some(value) = value {
             merged.spell_resistance = Some(
                 merged
@@ -2557,7 +2573,7 @@ fn entity_is_active_for_traits(
     entity: &pcgen_core::CompiledEntity,
     draft: &CharacterDraft,
     effect_state: &crate::effects::EffectState,
-    class_levels: &[DraftClassLevel],
+    class_levels: &[ClassLevelSummary],
 ) -> bool {
     match &entity.category {
         pcgen_core::EntityCategory::Race => {
@@ -2709,138 +2725,6 @@ fn attack_bonus_targets(bonus: &crate::effects::TypedBonus) -> Vec<String> {
     }
 }
 
-/// How a `TYPE=` expression makes a bonus stack.
-///
-/// PCGen's bonus documentation gives four kinds:
-///
-/// ```text
-/// Typeless            no TYPE=          always added
-/// Standard            TYPE=name         only the highest of the same type counts
-/// .REPLACE            TYPE=name.REPLACE counted together, then compared with
-///                                       the standards, highest wins
-/// .STACK              TYPE=name.STACK   stacks with itself and is added on top
-/// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum BonusPolicy {
-    /// No type, or a type PCGen treats as untyped: always summed.
-    Typeless,
-    /// `TYPE=name` — the highest value of that type wins.
-    Standard,
-    /// `TYPE=name.REPLACE` — summed, then compared with the standards.
-    Replace,
-    /// `TYPE=name.STACK` — summed and added on top of the rest.
-    Stack,
-}
-
-impl BonusPolicy {
-    fn of(stack_key: Option<&str>, bonus_type: &str) -> Self {
-        if stack_key.is_some_and(|key| key.eq_ignore_ascii_case("stack")) {
-            return BonusPolicy::Stack;
-        }
-        if stack_key.is_some_and(|key| key.eq_ignore_ascii_case("nonstack")) {
-            return BonusPolicy::Standard;
-        }
-        if bonus_type.contains("stack") {
-            return BonusPolicy::Stack;
-        }
-        if bonus_type.contains("replace") {
-            return BonusPolicy::Replace;
-        }
-        if is_stacking_bonus_type(bonus_type) {
-            BonusPolicy::Typeless
-        } else {
-            BonusPolicy::Standard
-        }
-    }
-
-    /// The group a bonus competes within. `.REPLACE` and standard bonuses of the
-    /// same base type compete, so they share a group; `.STACK` and typeless
-    /// bonuses are additive and get their own.
-    fn group(self, bonus_type: &str) -> String {
-        let base = bonus_type
-            .trim_end_matches(".replace")
-            .trim_end_matches(".stack")
-            .trim();
-        match self {
-            BonusPolicy::Typeless => format!("untyped:{base}"),
-            BonusPolicy::Standard | BonusPolicy::Replace => format!("typed:{base}"),
-            BonusPolicy::Stack => format!("stack:{base}"),
-        }
-    }
-}
-
-/// Accumulates the bonuses that compete within one group.
-#[derive(Debug, Clone, Copy, Default)]
-struct BonusGroup {
-    /// Highest standard value seen.
-    standard: Option<i32>,
-    /// Sum of the `.REPLACE` values, which are counted together.
-    replace: Option<i32>,
-    /// Sum of the `.STACK` values.
-    stack: i32,
-}
-
-impl BonusGroup {
-    fn add(&mut self, policy: BonusPolicy, value: i32) {
-        match policy {
-            BonusPolicy::Standard => {
-                self.standard = Some(match self.standard {
-                    Some(old) => choose_non_stacking(old, value),
-                    None => value,
-                });
-            }
-            BonusPolicy::Replace => {
-                self.replace = Some(self.replace.unwrap_or(0) + value);
-            }
-            BonusPolicy::Stack => self.stack += value,
-            BonusPolicy::Typeless => {
-                self.standard = Some(self.standard.unwrap_or(0) + value);
-            }
-        }
-    }
-
-    /// The `.REPLACE` total competes with the standards; `.STACK` is added on.
-    fn total(self) -> i32 {
-        let base = match (self.standard, self.replace) {
-            (Some(standard), Some(replace)) => choose_non_stacking(standard, replace),
-            (Some(standard), None) => standard,
-            (None, Some(replace)) => replace,
-            (None, None) => 0,
-        };
-        base + self.stack
-    }
-}
-
-fn stacked_components<F>(
-    bonuses: &[crate::effects::TypedBonus],
-    mut components: F,
-) -> BTreeMap<String, i32>
-where
-    F: FnMut(&crate::effects::TypedBonus) -> Vec<String>,
-{
-    let mut groups: BTreeMap<(String, String), BonusGroup> = BTreeMap::new();
-    for bonus in bonuses {
-        let bonus_type = bonus
-            .bonus_type
-            .as_deref()
-            .unwrap_or("")
-            .to_ascii_lowercase();
-        let policy = BonusPolicy::of(bonus.stack_key.as_deref(), &bonus_type);
-        let group_key = policy.group(&bonus_type);
-        for component in components(bonus) {
-            groups
-                .entry((component, group_key.clone()))
-                .or_default()
-                .add(policy, bonus.value);
-        }
-    }
-    let mut totals: BTreeMap<String, i32> = BTreeMap::new();
-    for ((component, _), group) in groups {
-        *totals.entry(component).or_insert(0) += group.total();
-    }
-    totals
-}
-
 fn ac_bonus_components(bonuses: &[crate::effects::TypedBonus]) -> (i32, i32, i32) {
     let mut groups: BTreeMap<String, (String, BonusGroup)> = BTreeMap::new();
     for bonus in bonuses {
@@ -2883,27 +2767,6 @@ fn ac_bonus_components(bonuses: &[crate::effects::TypedBonus]) -> (i32, i32, i32
         }
     }
     (armor_class, touch_ac, flat_footed_ac)
-}
-
-fn is_stacking_bonus_type(bonus_type: &str) -> bool {
-    bonus_type.is_empty()
-        || bonus_type == "untyped"
-        || bonus_type == "type"
-        || bonus_type.contains("stack")
-        || bonus_type.contains("dodge")
-        || bonus_type.contains("circumstance")
-}
-
-fn choose_non_stacking(old: i32, new: i32) -> i32 {
-    if old >= 0 && new >= 0 {
-        old.max(new)
-    } else if old <= 0 && new <= 0 {
-        old.min(new)
-    } else if new.abs() > old.abs() {
-        new
-    } else {
-        old
-    }
 }
 
 fn apply_external_modifiers(snapshot: &mut CharacterSnapshot, modifiers: &BTreeMap<String, i32>) {
@@ -2974,7 +2837,7 @@ fn collect_divine_tracks(draft: &CharacterDraft) -> Vec<DivineTrack> {
     }
     if tracks.is_empty() && (draft.deity.is_some() || !draft.domains.is_empty()) {
         let class_id = draft
-            .class_levels
+            .class_levels()
             .first()
             .map(|entry| entry.class_id.clone())
             .unwrap_or_else(|| "Divine".to_string());
@@ -2987,111 +2850,4 @@ fn collect_divine_tracks(draft: &CharacterDraft) -> Vec<DivineTrack> {
         });
     }
     tracks
-}
-
-/// Evaluate a class progression formula.
-///
-/// The formula is already in the runtime vocabulary — lowering translated
-/// PCGen's `CL` / `TL` / `classlevel(...)` into [`pcgen_core::formula_vocab`]
-/// names — so there are no tokens to substitute here, only values to publish.
-/// That is also why `CL` is now correct for a multiclass character: the class it
-/// names was decided where the formula was written, not guessed from whichever
-/// record the engine happened to be evaluating.
-pub fn evaluate_class_formula(
-    formula: &str,
-    class_id: &str,
-    class_level: u32,
-    total_level: u32,
-    variables: &BTreeMap<String, i32>,
-) -> i32 {
-    let mut scope: std::collections::HashMap<String, pcgen_formula::Value> = variables
-        .iter()
-        .map(|(name, value)| (name.clone(), pcgen_formula::Value::Int(i64::from(*value))))
-        .collect();
-    scope.insert(
-        pcgen_core::formula_vocab::class_level_variable(class_id),
-        pcgen_formula::Value::Int(i64::from(class_level)),
-    );
-    scope.insert(
-        pcgen_core::formula_vocab::CHARACTER_LEVEL.to_string(),
-        pcgen_formula::Value::Int(i64::from(total_level)),
-    );
-    pcgen_formula::evaluate_f64(formula, &scope)
-        .map(|value| value as i32)
-        .unwrap_or(0)
-}
-
-#[cfg(test)]
-mod class_formula_tests {
-    use super::evaluate_class_formula;
-    use std::collections::BTreeMap;
-
-    fn variables() -> BTreeMap<String, i32> {
-        let mut variables = BTreeMap::new();
-        variables.insert("Foo".to_string(), 7);
-        variables
-    }
-
-    #[test]
-    fn class_formulas_are_evaluated_in_the_runtime_vocabulary() {
-        // The formulas here are what lowering produces: PCGen's `CL`, `TL` and
-        // `classlevel(...)` have already become `ClassLevel_*` and
-        // `CharacterLevel`.  Evaluating them is now a variable lookup.
-        let variables = variables();
-        let class = "Wizard";
-        assert_eq!(
-            evaluate_class_formula(
-                &pcgen_core::formula_vocab::class_level_variable(class),
-                class,
-                5,
-                9,
-                &variables,
-            ),
-            5
-        );
-        assert_eq!(
-            evaluate_class_formula(
-                &format!(
-                    "{}/2+2",
-                    pcgen_core::formula_vocab::class_level_variable(class)
-                ),
-                class,
-                5,
-                9,
-                &variables,
-            ),
-            4
-        );
-        assert_eq!(
-            evaluate_class_formula(
-                &format!("{}*2", pcgen_core::formula_vocab::CHARACTER_LEVEL),
-                class,
-                5,
-                9,
-                &variables,
-            ),
-            18
-        );
-        // A plain variable resolves from the map.
-        assert_eq!(evaluate_class_formula("Foo+3", class, 5, 9, &variables), 10);
-        // An unknown variable resolves to 0 rather than failing.
-        assert_eq!(
-            evaluate_class_formula("Missing", class, 5, 9, &variables),
-            0
-        );
-    }
-
-    #[test]
-    fn class_formula_is_stable_across_calls() {
-        let variables = variables();
-        let formula = pcgen_core::formula_vocab::class_level_variable("Cleric");
-        let first = evaluate_class_formula(&formula, "Cleric", 5, 9, &variables);
-        for _ in 0..50 {
-            assert_eq!(
-                evaluate_class_formula(&formula, "Cleric", 5, 9, &variables),
-                first,
-                "formula `{formula}` changed across calls"
-            );
-        }
-    }
 }

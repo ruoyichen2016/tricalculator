@@ -24,8 +24,8 @@ pub enum Predicate {
     /// Keeping the effect with an explicit `Unsupported` condition is less
     /// destructive than dropping the effect: the raw predicate text survives
     /// in the IR and appears in `CompiledEntity::unsupported_tags`.  The
-    /// engine treats the condition as satisfied, so an unknown gate is visible
-    /// as a possibly over-applied bonus rather than a silently missing one.
+    /// engine propagates an unknown condition through boolean operators and
+    /// reports unresolved active effects instead of assuming it is satisfied.
     Unsupported {
         raw: String,
     },
@@ -762,22 +762,23 @@ pub enum EffectAction {
         condition: Option<Predicate>,
         source: Provenance,
     },
-    /// `BONUS:VAR|A,B|expr` — assign to one or more runtime variables.
-    ///
-    /// PCGen wrote this as a `VAR.` target prefix with a comma-separated name
-    /// list inside the string, which the engine had to parse.  Two defects came
-    /// from that: the list was not split (so `A,B` became one variable named
-    /// `A,B` and neither `A` nor `B` was set), and the prefix put PCGen syntax
-    /// in the engine where the architecture guard could not see it.  Naming the
-    /// variables as a list makes both unrepresentable.
+    /// Add one formula contribution to each named, defined runtime variable.
+    /// Preserve type and stacking policy just as for other numeric bonuses.
     ModifyVariable {
         names: Vec<String>,
         expression: String,
+        bonus_type: Option<String>,
+        stack_key: Option<String>,
         condition: Option<Predicate>,
         source: Provenance,
     },
     Grant {
         entity: EntityId,
+    },
+    /// Grant abilities matching a type within one category.
+    GrantByType {
+        category: String,
+        type_tag: String,
     },
     GrantTag {
         tag: String,
@@ -903,6 +904,14 @@ pub struct AlternateWeaponProfile {
 /// family (weapon / armor / spell subclass/cost tags).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct EntityMetadata {
+    #[serde(default)]
+    pub sudden_rule: Option<crate::magic::SpellRule>,
+    #[serde(default)]
+    pub class_magic: Option<crate::magic::ClassMagic>,
+    #[serde(default)]
+    pub spell_rule: Option<crate::magic::SpellRule>,
+    #[serde(default)]
+    pub metamagic_cost: Option<crate::magic::MetamagicCost>,
     #[serde(default)]
     pub alternate_weapon: AlternateWeaponProfile,
     /// Raw `WEAPONBONUS` entries, e.g. `TYPE=Simple` or specific names.
@@ -1577,9 +1586,9 @@ impl RuleCoverage {
                 EffectAction::ModifyFormula { .. } | EffectAction::ModifyVariable { .. } => {
                     self.formula_effects += 1
                 }
-                EffectAction::Grant { .. } | EffectAction::GrantTag { .. } => {
-                    self.grant_effects += 1
-                }
+                EffectAction::Grant { .. }
+                | EffectAction::GrantByType { .. }
+                | EffectAction::GrantTag { .. } => self.grant_effects += 1,
                 EffectAction::Choose { .. } => self.choose_effects += 1,
                 EffectAction::GrantSpecialAbility { .. } => self.grant_effects += 1,
                 EffectAction::DeclareVariable { .. }

@@ -141,13 +141,15 @@ fn a_qualified_sa_is_only_granted_when_its_prerequisite_holds() {
         race_id: "Test Race".to_string(),
         abilities: vec![("FEAT".to_string(), "Gated Feat".to_string())],
         // 15 character levels: `PRELEVEL:MIN=15` is a total-level gate.
-        class_levels: vec![pcgen_engine::DraftClassLevel {
-            class_id: "Fighter".to_string(),
-            level: 15,
-            hit_points_gained: 0,
-            hit_points_by_level: Vec::new(),
-            experience_gained: 0,
-        }],
+        advancement: pcgen_import::advancement_from_class_levels(&vec![
+            pcgen_import::PcgClassLevel {
+                class_id: "Fighter".to_string(),
+                level: 15,
+                hit_points_gained: 0,
+                hit_points_by_level: Vec::new(),
+                experience_gained: 0,
+            },
+        ]),
         ..CharacterDraft::default()
     };
     assert!(apply_effects(&pack, &draft).variables.contains_key("Gated"));

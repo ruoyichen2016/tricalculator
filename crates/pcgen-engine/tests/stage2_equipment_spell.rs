@@ -1,6 +1,7 @@
 //! Stage 2: equipment alternate profiles / proficiencies and spell residue.
 
-use pcgen_engine::{CharacterDraft, DraftClassLevel, Engine};
+use pcgen_engine::{CharacterDraft, Engine};
+use pcgen_import::PcgClassLevel as DraftClassLevel;
 use pcgen_ir::{lower_records, RawRecord, RawTag, SourceRef};
 
 fn record(category: &str, name: &str, tags: &[(&str, &str)]) -> RawRecord {
@@ -114,13 +115,13 @@ fn preweaponprof_uses_class_weapon_bonus_state() {
         .contains_key("WEAPONBONUS"));
     let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
         race_id: "Human".to_string(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Fighter".to_string(),
             level: 1,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         ..CharacterDraft::default()
     });
     assert_eq!(snapshot.variables.get("HasLongsword"), Some(&1));
@@ -158,13 +159,13 @@ fn added_domains_with_pretemplate_condition_reach_snapshot() {
         .contains_key("ADDDOMAINS"));
     let draft = CharacterDraft {
         race_id: "Human".to_string(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Cleric".to_string(),
             level: 1,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         templates: vec!["Vampire".to_string()],
         ..CharacterDraft::default()
     };
@@ -265,13 +266,13 @@ fn auto_weaponprof_grant_feeds_preweaponprof_state() {
     );
     let snapshot = Engine::new(pack).evaluate(&CharacterDraft {
         race_id: "Human".to_string(),
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: "Ranger".to_string(),
             level: 1,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         ..CharacterDraft::default()
     });
     assert_eq!(snapshot.variables.get("HasLongbow"), Some(&1));

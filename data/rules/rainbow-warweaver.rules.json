@@ -1,0 +1,4292 @@
+{
+  "format": "gladius.rules/1",
+  "ruleset": "35e",
+  "base_campaign": "../../../raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/_rsrd_basics.pcc",
+  "sources": {
+    "ca": {
+      "title": "Complete Arcane",
+      "reference": "data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/complete_arcane/car_classes.lst",
+      "locator": "pp.10\u201313; feats pp.81\u201383; Warmage spell list pp.90\u201391; native spell definitions from named car_spells.lst records; p.13 Warmage Edge and Armored Mage; https://dnd.arkalseif.info/classes/warmage/index.html; Sudden feats pp.83-84: separate daily uses; class duplicate rewards at levels 7, 10, 15, 20.; spell list pp.90\u201391: all six final entries are level 9 (corrects the old LST 10\u201314 error); Mass Fire Shield spell entry."
+    },
+    "cd": {
+      "title": "Complete Divine",
+      "reference": "data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/complete_divine/cd_classes.lst",
+      "locator": "pp.54\u201358; Divine Metamagic p.80; Rainbow Servant uses the spellcasting prose, not the conflicting table; p.20 Extra Domains; pp.54-55 Grow Wings and detection; p.56 Exorcism; Extra Domains p.20 does not provide a noncleric effective-level conversion. Air uses SRD elemental turning; noncleric HD resolution requires an explicit table ruling."
+    },
+    "pgf": {
+      "title": "Player\u2019s Guide to Faer\u00fbn",
+      "reference": "https://arkalseif.info/classes/players-guide-to-faerun--22/incantatrix/index.html",
+      "locator": "Players Guide to Faerun pp.61-62; complete ten-level class progression and metamagic features."
+    },
+    "ros": {
+      "title": "Races of Stone",
+      "reference": "data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/races_of_stone/rs_feats.lst",
+      "locator": "p.138"
+    },
+    "rotd": {
+      "title": "Races of the Dragon",
+      "reference": "data/packs/custom/original/pcgen-BahamutDragon-master/data/35e/wizards_of_the_coast/supplement/races_of_the_dragon/rdr_feats.lst",
+      "locator": "p.101"
+    },
+    "rsrd": {
+      "title": "Revised SRD",
+      "reference": "../raw/pcgen-master/data/35e/wizards_of_the_coast/rsrd/basics/rsrd_feats.lst",
+      "locator": "named feat records; named spell descriptions and Good/Law domain granted powers; spell-like abilities default caster level equals HD Protection from Energy energy choice; Enlarge Person / Reduce Person lack harmless designation."
+    },
+    "hob": {
+      "title": "Heroes of Battle",
+      "reference": "https://manuals.plus/m/5bc5aa94531deba890e9cadd873b0844db3ff7ef5ac2d636e3bf0f4e33c4e1c9.pdf",
+      "locator": "pp.112-113: formation, recipient restrictions, per-recipient costs, dormant duration and ordered move-action release; Craft (Weaving) specialization uses SRD Craft (INT, usable untrained) Named membership checked at formation; target legality and geometry checked on cast/release; held objects are not tapestry targets."
+    },
+    "ua": {
+      "title": "Unearthed Arcana / SRD Character Flaws",
+      "reference": "https://www.d20srd.org/srd/variant/buildingCharacters/characterFlaws.htm",
+      "locator": "Character flaws: up to two at creation; Inattentive and Poor Reflexes"
+    },
+    "faq": {
+      "title": "D&D Frequently Asked Questions v3.5 (2008-06-30)",
+      "reference": "https://www.d20pfsrd.com/wp-content/uploads/sites/12/2017/01/Main35FAQv06302008.pdf",
+      "locator": "p.29 Warmage/Rainbow Servant automatic cleric spell knowledge; p.46 Versatile Spellcaster with metamagic above normally available levels. Does not explicitly settle Earth Spell virtual-slot interaction."
+    },
+    "targeting": {
+      "title": "Revised SRD: targeting",
+      "reference": "https://www.d20srd.org/srd/magicOverview/spellDescriptions.htm",
+      "locator": "Targeting, range and line of effect; spell-trigger class-list eligibility; item and wielder caster levels, save DCs and charges."
+    },
+    "trigger_items": {
+      "title": "Revised SRD: trigger items",
+      "reference": "https://www.d20srd.org/srd/magicItems/magicItemBasics.htm",
+      "locator": "Targeting, range and line of effect; spell-trigger class-list eligibility; item and wielder caster levels, save DCs and charges."
+    },
+    "staffs": {
+      "title": "Revised SRD: staffs",
+      "reference": "https://www.d20srd.org/srd/magicItems/staffs.htm",
+      "locator": "SRD Staffs: shared 50-charge pool; Fire, Frost and Life powers and base costs; stored heightened powers use their effective spell level. Incantatrix PGtF pp.61\u201362: base cost plus additional metamagic charges; Improved Metamagic reduces each adjustment by one, minimum one."
+    },
+    "spell_defenses": {
+      "title": "Revised SRD: saving throws and spell resistance",
+      "reference": "https://www.d20srd.org/srd/magicOverview/spellDescriptions.htm",
+      "locator": "Saving Throw; Spell Resistance; spell entries Fireball, Burning Hands, Cone of Cold; Special Abilities / Spell Resistance: one check per casting per creature."
+    },
+    "staff_spells": {
+      "title": "Revised SRD: Fire and Frost staff spells",
+      "reference": "https://www.d20srd.org/srd/magicItems/staffs.htm",
+      "locator": "Burning Hands, Fireball, Cone of Cold: damage caps and Reflex half/SR. Wall of Fire, Wall of Ice, Ice Storm: duration/range/shape and variable effects for metamagic. Wall formation/breach/radiation and mixed damage remain distinct events."
+    },
+    "encounter_defenses": {
+      "title": "SRD and Rules Compendium",
+      "reference": "https://www.d20srd.org/srd/spells/acidArrow.htm",
+      "locator": "Acid Arrow initial ranged touch hit then recurring damage, CL18 cap; Rogue evasion; Injury and Death; Rules Compendium p.48 energy immunity and resistance per attack, highest applicable resistance. https://www.orkerhulen.dk/Core%20books/Rules%20Compendium.pdf"
+    }
+  },
+  "rules": [
+    {
+      "id": "35e:ca:class:warmage",
+      "source": "ca",
+      "key": "Warmage",
+      "name": "Warmage",
+      "requirements": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 6,
+        "max_level": 20,
+        "prestige": false,
+        "attack": "half",
+        "fortitude": "poor",
+        "reflex": "poor",
+        "will": "good",
+        "skill_points": 2,
+        "class_skills": [
+          "Concentration",
+          "TYPE.Craft",
+          "Intimidate",
+          "Knowledge (Arcana)",
+          "Knowledge (History)",
+          "TYPE.Profession",
+          "Spellcraft"
+        ],
+        "advancement": [],
+        "casting": {
+          "ability": "CHA",
+          "mode": "spontaneous",
+          "power": "arcane",
+          "slots": [
+            {
+              "level": 1,
+              "slots": [
+                5,
+                3
+              ]
+            },
+            {
+              "level": 2,
+              "slots": [
+                6,
+                4
+              ]
+            },
+            {
+              "level": 3,
+              "slots": [
+                6,
+                5
+              ]
+            },
+            {
+              "level": 4,
+              "slots": [
+                6,
+                6,
+                3
+              ]
+            },
+            {
+              "level": 5,
+              "slots": [
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 6,
+              "slots": [
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 7,
+              "slots": [
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 8,
+              "slots": [
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 9,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 10,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 11,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 12,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 13,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 14,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 15,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 16,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 17,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 18,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 19,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 20,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                5
+              ]
+            }
+          ]
+        },
+        "magic": {
+          "knows_entire_list": true,
+          "edge_ability": "INT",
+          "armored_casting": {
+            "light_from_level": 1,
+            "medium_from_level": 8,
+            "light_shield": true
+          },
+          "progression": [
+            {
+              "level": 1,
+              "name": "Armored Mage",
+              "summary": "Ignore light armor and light shield spell failure for Warmage casting."
+            },
+            {
+              "level": 1,
+              "name": "Warmage Edge",
+              "summary": "INT bonus to spell damage; once per casting or damaging round."
+            },
+            {
+              "level": 3,
+              "name": "Advanced Learning",
+              "summary": "Choose a Wizard evocation no higher than the highest spell level already known."
+            },
+            {
+              "level": 6,
+              "name": "Advanced Learning",
+              "summary": "Choose one additional Wizard evocation."
+            },
+            {
+              "level": 7,
+              "name": "Sudden Empower",
+              "summary": "One use per day; no slot or casting-time increase. If already possessed, choose another metamagic feat."
+            },
+            {
+              "level": 8,
+              "name": "Armored Mage (medium)",
+              "summary": "Medium armor spell failure is also ignored."
+            },
+            {
+              "level": 10,
+              "name": "Sudden Enlarge",
+              "summary": "One use per day; duplicate grant permits a replacement metamagic feat."
+            },
+            {
+              "level": 11,
+              "name": "Advanced Learning",
+              "summary": "Choose one additional Wizard evocation."
+            },
+            {
+              "level": 15,
+              "name": "Sudden Widen",
+              "summary": "One use per day; duplicate grant permits a replacement metamagic feat."
+            },
+            {
+              "level": 16,
+              "name": "Advanced Learning",
+              "summary": "Choose one additional Wizard evocation."
+            },
+            {
+              "level": 20,
+              "name": "Sudden Maximize",
+              "summary": "One use per day; duplicate grant permits a replacement metamagic feat."
+            }
+          ],
+          "advanced_learning": {
+            "levels": [
+              3,
+              6,
+              11,
+              16
+            ],
+            "lists": [
+              "Wizard"
+            ],
+            "schools": [
+              "Evocation"
+            ]
+          },
+          "sudden_grants": [
+            {
+              "level": 7,
+              "feat": "Sudden Empower",
+              "rule": "empower"
+            },
+            {
+              "level": 10,
+              "feat": "Sudden Enlarge",
+              "rule": "enlarge"
+            },
+            {
+              "level": 15,
+              "feat": "Sudden Widen",
+              "rule": "widen"
+            },
+            {
+              "level": 20,
+              "feat": "Sudden Maximize",
+              "rule": "maximize"
+            }
+          ],
+          "proficiencies": [
+            {
+              "level": 1,
+              "weapon_groups": [
+                "Simple"
+              ],
+              "armor": [
+                "light"
+              ],
+              "shields": [
+                "light"
+              ]
+            },
+            {
+              "level": 8,
+              "weapon_groups": [],
+              "armor": [
+                "medium"
+              ],
+              "shields": []
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "35e:cd:class:rainbow_servant",
+      "source": "cd",
+      "key": "Rainbow Servant",
+      "name": "Rainbow Servant",
+      "requirements": [
+        {
+          "skill_ranks": {
+            "specs": [
+              {
+                "name": "Knowledge (Arcana)",
+                "min_ranks": 4
+              }
+            ],
+            "min_count": 1
+          }
+        },
+        {
+          "spell_type": {
+            "specs": [
+              {
+                "spell_type": "Arcane",
+                "min_level": 3
+              }
+            ],
+            "count": 1
+          }
+        },
+        {
+          "alignment": {
+            "allowed": [
+              "LG",
+              "NG",
+              "LN",
+              "TN"
+            ]
+          }
+        }
+      ],
+      "pending": [],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 4,
+        "max_level": 10,
+        "prestige": true,
+        "attack": "half",
+        "fortitude": "poor",
+        "reflex": "poor",
+        "will": "good",
+        "skill_points": 2,
+        "class_skills": [
+          "Concentration",
+          "TYPE.Craft",
+          "Diplomacy",
+          "Knowledge (Arcana)",
+          "Knowledge (The Planes)",
+          "TYPE.Profession",
+          "Sense Motive",
+          "Spellcraft"
+        ],
+        "advancement": [
+          {
+            "level": 1,
+            "scope": "arcane"
+          },
+          {
+            "level": 2,
+            "scope": "arcane"
+          },
+          {
+            "level": 3,
+            "scope": "arcane"
+          },
+          {
+            "level": 4,
+            "scope": "arcane"
+          },
+          {
+            "level": 5,
+            "scope": "arcane"
+          },
+          {
+            "level": 6,
+            "scope": "arcane"
+          },
+          {
+            "level": 7,
+            "scope": "arcane"
+          },
+          {
+            "level": 8,
+            "scope": "arcane"
+          },
+          {
+            "level": 9,
+            "scope": "arcane"
+          },
+          {
+            "level": 10,
+            "scope": "arcane"
+          }
+        ],
+        "magic": {
+          "list_access": [
+            {
+              "at_level": 10,
+              "list": "Cleric",
+              "divine_unless_on": [
+                "Wizard",
+                "Sorcerer",
+                "Bard"
+              ]
+            }
+          ],
+          "entry_states": [
+            "visited_couatl_temple"
+          ],
+          "wings": {
+            "at_level": 4,
+            "speed_feet": 60,
+            "minutes_per_level": 1,
+            "maneuverability": "Good"
+          },
+          "detections": [
+            {
+              "at_level": 1,
+              "spell": "Detect Evil",
+              "spell_level": 1
+            },
+            {
+              "at_level": 7,
+              "spell": "Detect Chaos",
+              "spell_level": 1
+            },
+            {
+              "at_level": 10,
+              "spell": "Detect Thoughts",
+              "spell_level": 2
+            }
+          ],
+          "descriptor_bonuses": [
+            {
+              "at_level": 1,
+              "descriptor": "Good",
+              "caster_level": 1
+            },
+            {
+              "at_level": 7,
+              "descriptor": "Lawful",
+              "caster_level": 1
+            }
+          ],
+          "progression": [
+            {
+              "level": 1,
+              "name": "Detect Evil",
+              "summary": "At-will spell-like ability."
+            },
+            {
+              "level": 1,
+              "name": "Good Domain",
+              "summary": "Granted power and domain spell access; Good spells gain +1 CL."
+            },
+            {
+              "level": 4,
+              "name": "Air Domain",
+              "summary": "Domain spell access and a separate pool for earth turning / air rebuking."
+            },
+            {
+              "level": 4,
+              "name": "Grow Wings",
+              "summary": "60-foot good flight; one minute per actual class level daily; no restrictive clothing, armor or grapple."
+            },
+            {
+              "level": 7,
+              "name": "Detect Chaos",
+              "summary": "At-will spell-like ability."
+            },
+            {
+              "level": 7,
+              "name": "Law Domain",
+              "summary": "Granted power and domain spell access; Lawful spells gain +1 CL."
+            },
+            {
+              "level": 10,
+              "name": "Detect Thoughts",
+              "summary": "At-will spell-like ability; CHA-based save DC."
+            },
+            {
+              "level": 10,
+              "name": "Cleric Spell Access",
+              "summary": "Cleric list access without extra slots; divine unless also on Wizard/Sorcerer/Bard list."
+            }
+          ],
+          "domains": [
+            {
+              "level": 1,
+              "domain": "Good",
+              "spells": {
+                "Protection from Evil": 1,
+                "Aid": 2,
+                "Magic Circle against Evil": 3,
+                "Holy Smite": 4,
+                "Dispel Evil": 5,
+                "Blade Barrier": 6,
+                "Holy Word": 7,
+                "Holy Aura": 8,
+                "Summon Monster IX": 9
+              }
+            },
+            {
+              "level": 4,
+              "domain": "Air",
+              "spells": {
+                "Obscuring Mist": 1,
+                "Wind Wall": 2,
+                "Gaseous Form": 3,
+                "Air Walk": 4,
+                "Control Winds": 5,
+                "Chain Lightning": 6,
+                "Control Weather": 7,
+                "Whirlwind": 8,
+                "Elemental Swarm": 9
+              }
+            },
+            {
+              "level": 7,
+              "domain": "Law",
+              "spells": {
+                "Protection from Chaos": 1,
+                "Calm Emotions": 2,
+                "Magic Circle against Chaos": 3,
+                "Order's Wrath": 4,
+                "Dispel Chaos": 5,
+                "Hold Monster": 6,
+                "Dictum": 7,
+                "Shield of Law": 8,
+                "Summon Monster IX": 9
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "35e:cd:class:sacred_exorcist",
+      "source": "cd",
+      "key": "Sacred Exorcist",
+      "name": "Sacred Exorcist",
+      "requirements": [
+        {
+          "alignment": {
+            "allowed": [
+              "LG",
+              "NG",
+              "CG"
+            ]
+          }
+        },
+        {
+          "skill_ranks": {
+            "specs": [
+              {
+                "name": "Knowledge (The Planes)",
+                "min_ranks": 10
+              },
+              {
+                "name": "Knowledge (Religion)",
+                "min_ranks": 7
+              }
+            ],
+            "min_count": 2
+          }
+        }
+      ],
+      "pending": [],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 8,
+        "max_level": 10,
+        "prestige": true,
+        "attack": "three_quarter",
+        "fortitude": "poor",
+        "reflex": "poor",
+        "will": "good",
+        "skill_points": 2,
+        "class_skills": [
+          "Concentration",
+          "TYPE.Craft",
+          "Heal",
+          "Intimidate",
+          "Knowledge (Arcana)",
+          "Knowledge (The Planes)",
+          "Knowledge (Religion)",
+          "TYPE.Profession",
+          "Spellcraft"
+        ],
+        "advancement": [
+          {
+            "level": 1,
+            "scope": "any"
+          },
+          {
+            "level": 2,
+            "scope": "any"
+          },
+          {
+            "level": 3,
+            "scope": "any"
+          },
+          {
+            "level": 4,
+            "scope": "any"
+          },
+          {
+            "level": 5,
+            "scope": "any"
+          },
+          {
+            "level": 6,
+            "scope": "any"
+          },
+          {
+            "level": 7,
+            "scope": "any"
+          },
+          {
+            "level": 8,
+            "scope": "any"
+          },
+          {
+            "level": 9,
+            "scope": "any"
+          },
+          {
+            "level": 10,
+            "scope": "any"
+          }
+        ],
+        "magic": {
+          "turning_from_level": 1,
+          "entry_states": [
+            "sacred_exorcist_ordination"
+          ],
+          "entry_spells_any": [
+            "Dismissal",
+            "Dispel Evil"
+          ],
+          "exorcism_from_level": 1,
+          "progression": [
+            {
+              "level": 1,
+              "name": "Exorcism",
+              "summary": "Full-round class-level + CHA check against 10 + possessor HD + CHA."
+            },
+            {
+              "level": 1,
+              "name": "Turn Undead",
+              "summary": "Stack actual turning class levels; 3 + CHA uses daily."
+            },
+            {
+              "level": 2,
+              "name": "Resist Possession",
+              "summary": "Sacred +4 saves against possession, +2 dispels against possession; sacred +2 saves against evil outsider/undead charm or compulsion."
+            },
+            {
+              "level": 2,
+              "name": "Detect Evil",
+              "summary": "At-will spell-like ability."
+            },
+            {
+              "level": 3,
+              "name": "Chosen Foe +1",
+              "summary": "Choose undead or evil outsiders; competence on five social/perception skills and bonus on SR checks."
+            },
+            {
+              "level": 4,
+              "name": "Dispel Evil 1/week",
+              "summary": "Spell-like ability."
+            },
+            {
+              "level": 5,
+              "name": "Consecrated Presence",
+              "summary": "Moving 20-foot consecrate aura; interacts with desecrate."
+            },
+            {
+              "level": 6,
+              "name": "Chosen Foe +2",
+              "summary": "Increase the selected foe bonuses to +2."
+            },
+            {
+              "level": 7,
+              "name": "Dispel Evil 2/week",
+              "summary": "Second weekly use."
+            },
+            {
+              "level": 8,
+              "name": "Holy Aura 1/day",
+              "summary": "Spell-like ability."
+            },
+            {
+              "level": 9,
+              "name": "Chosen Foe +3",
+              "summary": "Increase the selected foe bonuses to +3."
+            },
+            {
+              "level": 10,
+              "name": "Dispel Evil 3/week",
+              "summary": "Third weekly use."
+            }
+          ],
+          "sacred_features": true,
+          "detections": [
+            {
+              "at_level": 2,
+              "spell": "Detect Evil",
+              "spell_level": 1
+            }
+          ],
+          "sacred_spells": [
+            {
+              "spell": "Dispel Evil",
+              "spell_level": 5,
+              "period": "week",
+              "tiers": [
+                {
+                  "level": 4,
+                  "uses": 1
+                },
+                {
+                  "level": 7,
+                  "uses": 2
+                },
+                {
+                  "level": 10,
+                  "uses": 3
+                }
+              ]
+            },
+            {
+              "spell": "Holy Aura",
+              "spell_level": 8,
+              "period": "day",
+              "tiers": [
+                {
+                  "level": 8,
+                  "uses": 1
+                }
+              ]
+            }
+          ],
+          "proficiencies": [
+            {
+              "level": 1,
+              "weapon_groups": [
+                "Simple"
+              ],
+              "armor": [],
+              "shields": []
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "35e:hob:class:war_weaver",
+      "source": "hob",
+      "key": "War Weaver",
+      "name": "War Weaver",
+      "requirements": [
+        {
+          "skill_ranks": {
+            "specs": [
+              {
+                "name": "Craft (Weaving)",
+                "min_ranks": 6
+              },
+              {
+                "name": "Knowledge (Arcana)",
+                "min_ranks": 6
+              }
+            ],
+            "min_count": 2
+          }
+        },
+        {
+          "ability_requirement": {
+            "category": "FEAT",
+            "wanted": [
+              {
+                "kind": "name",
+                "value": "Enlarge Spell"
+              }
+            ],
+            "excluded": [],
+            "min_count": 1
+          }
+        },
+        {
+          "spell_type": {
+            "specs": [
+              {
+                "spell_type": "Arcane",
+                "min_level": 3
+              }
+            ],
+            "count": 1
+          }
+        }
+      ],
+      "pending": [],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 4,
+        "max_level": 5,
+        "prestige": true,
+        "attack": "half",
+        "fortitude": "poor",
+        "reflex": "poor",
+        "will": "good",
+        "skill_points": 2,
+        "class_skills": [
+          "Concentration",
+          "TYPE.Craft",
+          "Knowledge (Arcana)",
+          "TYPE.Profession",
+          "Spellcraft"
+        ],
+        "advancement": [
+          {
+            "level": 2,
+            "scope": "arcane"
+          },
+          {
+            "level": 3,
+            "scope": "arcane"
+          },
+          {
+            "level": 4,
+            "scope": "arcane"
+          },
+          {
+            "level": 5,
+            "scope": "arcane"
+          }
+        ],
+        "magic": {
+          "tapestry_from_level": 1,
+          "enlarged_tapestry_level": 5,
+          "progression": [
+            {
+              "level": 1,
+              "name": "Eldritch Tapestry",
+              "summary": "10 minutes, Craft (Weaving) DC 15; living willing allies up to arcane casting ability bonus; lasts 24 hours."
+            },
+            {
+              "level": 2,
+              "name": "Quiescent Weaving 1",
+              "summary": "One stored spell; release all in casting order as a move action."
+            },
+            {
+              "level": 3,
+              "name": "Quiescent Weaving 2",
+              "summary": "Two stored spells."
+            },
+            {
+              "level": 4,
+              "name": "Quiescent Weaving 3",
+              "summary": "Three stored spells."
+            },
+            {
+              "level": 5,
+              "name": "Quiescent Weaving 4",
+              "summary": "Four stored spells."
+            },
+            {
+              "level": 5,
+              "name": "Enlarged Tapestry",
+              "summary": "Touch becomes Close, Close becomes Medium, Medium becomes Long."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "35e:pgf:class:incantatrix",
+      "source": "pgf",
+      "key": "Incantatrix",
+      "name": "Incantatrix",
+      "requirements": [
+        {
+          "ability_requirement": {
+            "category": "FEAT",
+            "wanted": [
+              {
+                "kind": "name",
+                "value": "Iron Will"
+              }
+            ],
+            "excluded": [],
+            "min_count": 1
+          }
+        },
+        {
+          "ability_requirement": {
+            "category": "FEAT",
+            "wanted": [
+              {
+                "kind": "type",
+                "value": "Metamagic"
+              }
+            ],
+            "excluded": [],
+            "min_count": 1
+          }
+        },
+        {
+          "skill_ranks": {
+            "specs": [
+              {
+                "name": "Concentration",
+                "min_ranks": 4
+              },
+              {
+                "name": "Knowledge (Arcana)",
+                "min_ranks": 8
+              },
+              {
+                "name": "Spellcraft",
+                "min_ranks": 8
+              }
+            ],
+            "min_count": 3
+          }
+        },
+        {
+          "spell_type": {
+            "specs": [
+              {
+                "spell_type": "Arcane",
+                "min_level": 3
+              }
+            ],
+            "count": 1
+          }
+        }
+      ],
+      "pending": [],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 4,
+        "max_level": 10,
+        "prestige": true,
+        "attack": "half",
+        "fortitude": "poor",
+        "reflex": "poor",
+        "will": "good",
+        "skill_points": 2,
+        "class_skills": [
+          "Concentration",
+          "TYPE.Craft",
+          "Heal",
+          "Intimidate",
+          "Knowledge (Arcana)",
+          "Knowledge (The Planes)",
+          "TYPE.Profession",
+          "Spellcraft"
+        ],
+        "advancement": [
+          {
+            "level": 1,
+            "scope": "arcane"
+          },
+          {
+            "level": 2,
+            "scope": "arcane"
+          },
+          {
+            "level": 3,
+            "scope": "arcane"
+          },
+          {
+            "level": 4,
+            "scope": "arcane"
+          },
+          {
+            "level": 5,
+            "scope": "arcane"
+          },
+          {
+            "level": 6,
+            "scope": "arcane"
+          },
+          {
+            "level": 7,
+            "scope": "arcane"
+          },
+          {
+            "level": 8,
+            "scope": "arcane"
+          },
+          {
+            "level": 9,
+            "scope": "arcane"
+          },
+          {
+            "level": 10,
+            "scope": "arcane"
+          }
+        ],
+        "feat_pools": [
+          {
+            "id": "incantatrix_metamagic",
+            "name": "Incantatrix Metamagic",
+            "levels": [
+              1,
+              4,
+              7,
+              10
+            ],
+            "allowed_types": [
+              "Metamagic"
+            ]
+          }
+        ],
+        "magic": {
+          "school_choice": {
+            "at_level": 1,
+            "choice_key": "Incantatrix.FocusedStudies",
+            "allowed": [
+              "Conjuration",
+              "Enchantment",
+              "Evocation",
+              "Illusion",
+              "Necromancy",
+              "Transmutation"
+            ]
+          },
+          "entry_forbidden_schools": [
+            "Abjuration"
+          ],
+          "metamagic_features": [
+            {
+              "mode": "cooperative",
+              "at_level": 2,
+              "dc_base": 18,
+              "dc_per_spell_level": 3,
+              "uses_base": 3,
+              "uses_ability": "INT",
+              "action": "Readied standard action",
+              "excluded": [
+                "silent",
+                "still",
+                "quicken"
+              ],
+              "source": "Players Guide to Faerun, p.62: Cooperative Metamagic"
+            },
+            {
+              "mode": "effect",
+              "at_level": 3,
+              "dc_base": 18,
+              "dc_per_spell_level": 3,
+              "uses_base": 3,
+              "uses_ability": "INT",
+              "action": "Full-round action",
+              "excluded": [
+                "silent",
+                "still",
+                "quicken"
+              ],
+              "source": "Players Guide to Faerun, p.62: Metamagic Effect"
+            }
+          ],
+          "progression": [
+            {
+              "level": 1,
+              "name": "Focused Studies",
+              "summary": "Additional prohibited school, excluding Abjuration and Divination."
+            },
+            {
+              "level": 1,
+              "name": "Bonus Metamagic Feat",
+              "summary": "Choose one metamagic feat whose prerequisites are met."
+            },
+            {
+              "level": 2,
+              "name": "Cooperative Metamagic",
+              "summary": "Readied standard action; adjacent willing ally; Spellcraft DC 18 + 3 times modified level; 3 + INT daily uses."
+            },
+            {
+              "level": 3,
+              "name": "Metamagic Effect",
+              "summary": "Full-round action; adjacent or within an existing effect; separate 3 + INT daily uses."
+            },
+            {
+              "level": 4,
+              "name": "Bonus Metamagic Feat",
+              "summary": "One additional metamagic feat."
+            },
+            {
+              "level": 5,
+              "name": "Metamagic Spell Trigger",
+              "summary": "Appropriate item creation feat required; additional item charges equal adjusted metamagic cost."
+            },
+            {
+              "level": 6,
+              "name": "Seize Concentration",
+              "summary": "Within 30 feet; willing transfer or opposed CL checks; divine caster +2."
+            },
+            {
+              "level": 7,
+              "name": "Instant Metamagic 1/day",
+              "summary": "One feat, no extra slot or casting time; adjusted slot must be castable."
+            },
+            {
+              "level": 7,
+              "name": "Bonus Metamagic Feat",
+              "summary": "One additional metamagic feat."
+            },
+            {
+              "level": 8,
+              "name": "Snatch Spell",
+              "summary": "Control a non-concentration controllable effect within 30 feet; opposed CL check."
+            },
+            {
+              "level": 9,
+              "name": "Instant Metamagic 2/day",
+              "summary": "Second daily use."
+            },
+            {
+              "level": 10,
+              "name": "Improved Metamagic",
+              "summary": "Reduce each positive metamagic adjustment by one, minimum +1; also applies to class abilities."
+            },
+            {
+              "level": 10,
+              "name": "Bonus Metamagic Feat",
+              "summary": "One additional metamagic feat."
+            }
+          ],
+          "improved_metamagic": 10,
+          "instant_metamagic": [
+            {
+              "level": 7,
+              "uses": 1
+            },
+            {
+              "level": 9,
+              "uses": 2
+            }
+          ],
+          "trigger_from_level": 5,
+          "seize_from_level": 6,
+          "snatch_from_level": 8
+        }
+      }
+    },
+    {
+      "id": "35e:rsrd:feat:heighten_spell",
+      "source": "rsrd",
+      "key": "Heighten Spell",
+      "name": "Heighten Spell",
+      "replaces_base": true,
+      "requirements": [],
+      "effects": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Metamagic"
+        ],
+        "spell_rule": "heighten"
+      }
+    },
+    {
+      "id": "35e:ros:feat:earth_sense",
+      "source": "ros",
+      "key": "Earth Sense",
+      "name": "Earth Sense",
+      "replaces_base": false,
+      "requirements": [
+        {
+          "not": {
+            "race_matches": {
+              "min_count": 1,
+              "specs": [
+                {
+                  "kind": "subtype",
+                  "value": "Air"
+                },
+                {
+                  "kind": "subtype",
+                  "value": "Aquatic"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "stat": {
+            "max": null,
+            "min": 13,
+            "stat": "CON"
+          }
+        },
+        {
+          "stat": {
+            "stat": "WIS",
+            "min": 13,
+            "max": null
+          }
+        }
+      ],
+      "effects": [],
+      "pending": [
+        "Earth Sense: situational spell transformation/action semantics are not yet executable."
+      ],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "General"
+        ]
+      }
+    },
+    {
+      "id": "35e:ros:feat:earth_spell",
+      "source": "ros",
+      "key": "Earth Spell",
+      "name": "Earth Spell",
+      "replaces_base": false,
+      "requirements": [
+        {
+          "ability_requirement": {
+            "category": "FEAT",
+            "excluded": [],
+            "min_count": 2,
+            "wanted": [
+              {
+                "kind": "name",
+                "value": "Earth Sense"
+              },
+              {
+                "kind": "name",
+                "value": "Heighten Spell"
+              }
+            ]
+          }
+        },
+        {
+          "stat": {
+            "max": null,
+            "min": 13,
+            "stat": "CON"
+          }
+        },
+        {
+          "stat": {
+            "stat": "WIS",
+            "min": 13,
+            "max": null
+          }
+        }
+      ],
+      "effects": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "General"
+        ],
+        "spell_rule": "earth"
+      }
+    },
+    {
+      "id": "35e:rotd:feat:versatile_spellcaster",
+      "source": "rotd",
+      "key": "Versatile Spellcaster",
+      "name": "Versatile Spellcaster",
+      "replaces_base": false,
+      "requirements": [
+        {
+          "all": []
+        }
+      ],
+      "effects": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "General"
+        ],
+        "spell_rule": "versatile"
+      }
+    },
+    {
+      "id": "35e:rsrd:feat:extend_spell",
+      "source": "rsrd",
+      "key": "Extend Spell",
+      "name": "Extend Spell",
+      "replaces_base": true,
+      "requirements": [],
+      "effects": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Metamagic"
+        ],
+        "spell_rule": "extend",
+        "metamagic_cost": {
+          "slot_increase": 1,
+          "casting_only": false
+        }
+      }
+    },
+    {
+      "id": "35e:rsrd:feat:iron_will",
+      "source": "rsrd",
+      "key": "Iron Will",
+      "name": "Iron Will",
+      "replaces_base": true,
+      "requirements": [],
+      "effects": [
+        {
+          "phase": "feat",
+          "condition": null,
+          "source": {
+            "source": "Revised SRD, Iron Will",
+            "line": 74,
+            "rule_id": "35e:rsrd:feat:iron_will",
+            "reason": "Will save bonus"
+          },
+          "action": {
+            "action": "modify_formula",
+            "target": "SAVE.Will",
+            "expression": "2",
+            "bonus_type": null,
+            "stack_key": null,
+            "condition": null,
+            "source": {
+              "source": "Revised SRD, Iron Will",
+              "line": 74,
+              "rule_id": "35e:rsrd:feat:iron_will",
+              "reason": "Will save bonus"
+            }
+          }
+        }
+      ],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "General"
+        ]
+      }
+    },
+    {
+      "id": "35e:rsrd:feat:enlarge_spell",
+      "source": "rsrd",
+      "key": "Enlarge Spell",
+      "name": "Enlarge Spell",
+      "replaces_base": true,
+      "requirements": [],
+      "effects": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Metamagic"
+        ],
+        "spell_rule": "enlarge",
+        "metamagic_cost": {
+          "slot_increase": 1,
+          "casting_only": false
+        }
+      }
+    },
+    {
+      "id": "35e:rsrd:feat:persistent_spell",
+      "source": "rsrd",
+      "key": "Persistent Spell",
+      "name": "Persistent Spell",
+      "replaces_base": true,
+      "requirements": [
+        {
+          "ability_requirement": {
+            "category": "FEAT",
+            "wanted": [
+              {
+                "kind": "name",
+                "value": "Extend Spell"
+              }
+            ],
+            "excluded": [],
+            "min_count": 1
+          }
+        }
+      ],
+      "effects": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Metamagic"
+        ],
+        "spell_rule": "persistent",
+        "metamagic_cost": {
+          "slot_increase": 6,
+          "casting_only": false
+        }
+      }
+    },
+    {
+      "id": "35e:cd:feat:divine_metamagic",
+      "source": "cd",
+      "key": "Divine Metamagic",
+      "name": "Divine Metamagic",
+      "replaces_base": false,
+      "requirements": [],
+      "effects": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Divine"
+        ],
+        "repeatable": true,
+        "choice": {
+          "category": "FEAT",
+          "types": [
+            "Metamagic"
+          ]
+        },
+        "spell_rule": "divine_metamagic"
+      }
+    },
+    {
+      "id": "35e:ca:feat:sanctum_spell",
+      "source": "ca",
+      "key": "Sanctum Spell",
+      "name": "Sanctum Spell",
+      "replaces_base": false,
+      "requirements": [
+        {
+          "ability_requirement": {
+            "category": "FEAT",
+            "excluded": [],
+            "min_count": 1,
+            "wanted": [
+              {
+                "kind": "type",
+                "value": "Metamagic"
+              }
+            ]
+          }
+        }
+      ],
+      "effects": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Metamagic"
+        ],
+        "spell_rule": "sanctum",
+        "metamagic_cost": {
+          "slot_increase": 0,
+          "casting_only": false
+        }
+      }
+    },
+    {
+      "id": "35e:ua:feat:inattentive",
+      "source": "ua",
+      "key": "Inattentive",
+      "name": "Inattentive",
+      "requirements": [],
+      "effects": [
+        {
+          "phase": "feat",
+          "condition": null,
+          "source": {
+            "source": "SRD Character Flaws",
+            "line": 0,
+            "rule_id": "35e:ua:feat:inattentive",
+            "reason": "Inattentive"
+          },
+          "action": {
+            "action": "modify_formula",
+            "target": "ABILITYPOOL.FEAT",
+            "expression": "1",
+            "bonus_type": null,
+            "stack_key": null,
+            "condition": null,
+            "source": {
+              "source": "SRD Character Flaws",
+              "line": 0,
+              "rule_id": "35e:ua:feat:inattentive",
+              "reason": "Inattentive"
+            }
+          }
+        },
+        {
+          "phase": "feat",
+          "condition": null,
+          "source": {
+            "source": "SRD Character Flaws",
+            "line": 0,
+            "rule_id": "35e:ua:feat:inattentive",
+            "reason": "Inattentive"
+          },
+          "action": {
+            "action": "modify_formula",
+            "target": "SKILL.Listen",
+            "expression": "-4",
+            "bonus_type": null,
+            "stack_key": null,
+            "condition": null,
+            "source": {
+              "source": "SRD Character Flaws",
+              "line": 0,
+              "rule_id": "35e:ua:feat:inattentive",
+              "reason": "Inattentive"
+            }
+          }
+        },
+        {
+          "phase": "feat",
+          "condition": null,
+          "source": {
+            "source": "SRD Character Flaws",
+            "line": 0,
+            "rule_id": "35e:ua:feat:inattentive",
+            "reason": "Inattentive"
+          },
+          "action": {
+            "action": "modify_formula",
+            "target": "SKILL.Spot",
+            "expression": "-4",
+            "bonus_type": null,
+            "stack_key": null,
+            "condition": null,
+            "source": {
+              "source": "SRD Character Flaws",
+              "line": 0,
+              "rule_id": "35e:ua:feat:inattentive",
+              "reason": "Inattentive"
+            }
+          }
+        }
+      ],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Flaw"
+        ]
+      }
+    },
+    {
+      "id": "35e:ua:feat:poor_reflexes",
+      "source": "ua",
+      "key": "Poor Reflexes",
+      "name": "Poor Reflexes",
+      "requirements": [],
+      "effects": [
+        {
+          "phase": "feat",
+          "condition": null,
+          "source": {
+            "source": "SRD Character Flaws",
+            "line": 0,
+            "rule_id": "35e:ua:feat:poor_reflexes",
+            "reason": "Poor Reflexes"
+          },
+          "action": {
+            "action": "modify_formula",
+            "target": "ABILITYPOOL.FEAT",
+            "expression": "1",
+            "bonus_type": null,
+            "stack_key": null,
+            "condition": null,
+            "source": {
+              "source": "SRD Character Flaws",
+              "line": 0,
+              "rule_id": "35e:ua:feat:poor_reflexes",
+              "reason": "Poor Reflexes"
+            }
+          }
+        },
+        {
+          "phase": "feat",
+          "condition": null,
+          "source": {
+            "source": "SRD Character Flaws",
+            "line": 0,
+            "rule_id": "35e:ua:feat:poor_reflexes",
+            "reason": "Poor Reflexes"
+          },
+          "action": {
+            "action": "modify_formula",
+            "target": "SAVE.Reflex",
+            "expression": "-3",
+            "bonus_type": null,
+            "stack_key": null,
+            "condition": null,
+            "source": {
+              "source": "SRD Character Flaws",
+              "line": 0,
+              "rule_id": "35e:ua:feat:poor_reflexes",
+              "reason": "Poor Reflexes"
+            }
+          }
+        }
+      ],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Flaw"
+        ]
+      }
+    },
+    {
+      "id": "35e:rsrd:feat:empower_spell",
+      "source": "rsrd",
+      "key": "Empower Spell",
+      "name": "Empower Spell",
+      "replaces_base": true,
+      "requirements": [],
+      "effects": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Metamagic"
+        ],
+        "spell_rule": "empower",
+        "metamagic_cost": {
+          "slot_increase": 2,
+          "casting_only": false
+        }
+      }
+    },
+    {
+      "id": "35e:rsrd:feat:maximize_spell",
+      "source": "rsrd",
+      "key": "Maximize Spell",
+      "name": "Maximize Spell",
+      "replaces_base": true,
+      "requirements": [],
+      "effects": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Metamagic"
+        ],
+        "spell_rule": "maximize",
+        "metamagic_cost": {
+          "slot_increase": 3,
+          "casting_only": false
+        }
+      }
+    },
+    {
+      "id": "35e:rsrd:feat:silent_spell",
+      "source": "rsrd",
+      "key": "Silent Spell",
+      "name": "Silent Spell",
+      "replaces_base": true,
+      "requirements": [],
+      "effects": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Metamagic"
+        ],
+        "spell_rule": "silent",
+        "metamagic_cost": {
+          "slot_increase": 1,
+          "casting_only": true
+        }
+      }
+    },
+    {
+      "id": "35e:rsrd:feat:still_spell",
+      "source": "rsrd",
+      "key": "Still Spell",
+      "name": "Still Spell",
+      "replaces_base": true,
+      "requirements": [],
+      "effects": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Metamagic"
+        ],
+        "spell_rule": "still",
+        "metamagic_cost": {
+          "slot_increase": 1,
+          "casting_only": true
+        }
+      }
+    },
+    {
+      "id": "35e:rsrd:feat:quicken_spell",
+      "source": "rsrd",
+      "key": "Quicken Spell",
+      "name": "Quicken Spell",
+      "replaces_base": true,
+      "requirements": [],
+      "effects": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Metamagic"
+        ],
+        "spell_rule": "quicken",
+        "metamagic_cost": {
+          "slot_increase": 4,
+          "casting_only": true
+        }
+      }
+    },
+    {
+      "id": "35e:rsrd:feat:widen_spell",
+      "source": "rsrd",
+      "key": "Widen Spell",
+      "name": "Widen Spell",
+      "replaces_base": true,
+      "requirements": [],
+      "effects": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Metamagic"
+        ],
+        "spell_rule": "widen",
+        "metamagic_cost": {
+          "slot_increase": 3,
+          "casting_only": false
+        }
+      }
+    },
+    {
+      "id": "35e:ca:feat:sudden_empower",
+      "source": "ca",
+      "key": "Sudden Empower",
+      "name": "Sudden Empower",
+      "replaces_base": false,
+      "requirements": [
+        {
+          "ability_requirement": {
+            "category": "FEAT",
+            "wanted": [
+              {
+                "kind": "type",
+                "value": "Metamagic"
+              }
+            ],
+            "excluded": [],
+            "min_count": 1
+          }
+        }
+      ],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Metamagic"
+        ],
+        "sudden_rule": "empower"
+      }
+    },
+    {
+      "id": "35e:ca:feat:sudden_enlarge",
+      "source": "ca",
+      "key": "Sudden Enlarge",
+      "name": "Sudden Enlarge",
+      "replaces_base": false,
+      "requirements": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Metamagic"
+        ],
+        "sudden_rule": "enlarge"
+      }
+    },
+    {
+      "id": "35e:ca:feat:sudden_extend",
+      "source": "ca",
+      "key": "Sudden Extend",
+      "name": "Sudden Extend",
+      "replaces_base": false,
+      "requirements": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Metamagic"
+        ],
+        "sudden_rule": "extend"
+      }
+    },
+    {
+      "id": "35e:ca:feat:sudden_maximize",
+      "source": "ca",
+      "key": "Sudden Maximize",
+      "name": "Sudden Maximize",
+      "replaces_base": false,
+      "requirements": [
+        {
+          "ability_requirement": {
+            "category": "FEAT",
+            "wanted": [
+              {
+                "kind": "type",
+                "value": "Metamagic"
+              }
+            ],
+            "excluded": [],
+            "min_count": 1
+          }
+        }
+      ],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Metamagic"
+        ],
+        "sudden_rule": "maximize"
+      }
+    },
+    {
+      "id": "35e:ca:feat:sudden_quicken",
+      "source": "ca",
+      "key": "Sudden Quicken",
+      "name": "Sudden Quicken",
+      "replaces_base": false,
+      "requirements": [
+        {
+          "ability_requirement": {
+            "category": "FEAT",
+            "wanted": [
+              {
+                "kind": "name",
+                "value": "Quicken Spell"
+              },
+              {
+                "kind": "name",
+                "value": "Sudden Empower"
+              },
+              {
+                "kind": "name",
+                "value": "Sudden Extend"
+              },
+              {
+                "kind": "name",
+                "value": "Sudden Maximize"
+              },
+              {
+                "kind": "name",
+                "value": "Sudden Silent"
+              },
+              {
+                "kind": "name",
+                "value": "Sudden Still"
+              }
+            ],
+            "excluded": [],
+            "min_count": 6
+          }
+        }
+      ],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Metamagic"
+        ],
+        "sudden_rule": "quicken"
+      }
+    },
+    {
+      "id": "35e:ca:feat:sudden_silent",
+      "source": "ca",
+      "key": "Sudden Silent",
+      "name": "Sudden Silent",
+      "replaces_base": false,
+      "requirements": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Metamagic"
+        ],
+        "sudden_rule": "silent"
+      }
+    },
+    {
+      "id": "35e:ca:feat:sudden_still",
+      "source": "ca",
+      "key": "Sudden Still",
+      "name": "Sudden Still",
+      "replaces_base": false,
+      "requirements": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Metamagic"
+        ],
+        "sudden_rule": "still"
+      }
+    },
+    {
+      "id": "35e:ca:feat:sudden_widen",
+      "source": "ca",
+      "key": "Sudden Widen",
+      "name": "Sudden Widen",
+      "replaces_base": false,
+      "requirements": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "feat",
+        "types": [
+          "Metamagic"
+        ],
+        "sudden_rule": "widen"
+      }
+    }
+  ],
+  "spells": [
+    {
+      "id": "Absorption",
+      "name": "Absorption",
+      "school": "Abjuration",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 9,
+        "Wizard": 9
+      },
+      "profile": {
+        "range": "personal",
+        "duration": "10 minutes/level or until expended",
+        "instantaneous": null
+      }
+    },
+    {
+      "id": "Accuracy",
+      "name": "Accuracy",
+      "school": "Transmutation",
+      "descriptors": [],
+      "class_levels": {},
+      "profile": {
+        "range": "touch",
+        "duration": "10 minutes/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Aiming at the Target",
+      "name": "Aiming at the Target",
+      "school": "Abjuration",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "profile": {
+        "range": "personal",
+        "duration": "Concentration, up to 20 minutes",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Animate Fire",
+      "name": "Animate Fire",
+      "school": "Transmutation",
+      "descriptors": [
+        "Fire"
+      ],
+      "class_levels": {
+        "Druid": 2
+      },
+      "profile": {
+        "range": "close",
+        "duration": "Concentration, up to 1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Animate Water",
+      "name": "Animate Water",
+      "school": "Transmutation",
+      "descriptors": [
+        "Water"
+      ],
+      "class_levels": {
+        "Druid": 1
+      },
+      "profile": {
+        "range": "close",
+        "duration": "Concentration, up to 1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Animate Wood",
+      "name": "Animate Wood",
+      "school": "Transmutation",
+      "descriptors": [],
+      "class_levels": {
+        "Druid": 1
+      },
+      "profile": {
+        "range": "touch",
+        "duration": "Concentration, up to 1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Anticipate Teleportation",
+      "name": "Anticipate Teleportation",
+      "school": "Abjuration",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "profile": {
+        "range": "unknown",
+        "duration": "1 hour/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Anticipate Teleportation (Greater)",
+      "name": "Anticipate Teleportation, Greater",
+      "school": "Abjuration",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 8,
+        "Wizard": 8
+      },
+      "profile": {
+        "range": "unknown",
+        "duration": "24 hours",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Arc of Lightning",
+      "name": "Arc of Lightning",
+      "school": "Conjuration",
+      "descriptors": [
+        "Electricity"
+      ],
+      "class_levels": {
+        "Druid": 4,
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "profile": {
+        "range": "close",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Arrow of Bone",
+      "name": "Arrow of Bone",
+      "school": "Necromancy",
+      "descriptors": [
+        "Death"
+      ],
+      "class_levels": {
+        "Sorcerer": 6,
+        "Wizard": 6
+      },
+      "profile": {
+        "range": "touch",
+        "duration": "8 hours, or until discharged",
+        "instantaneous": null
+      }
+    },
+    {
+      "id": "Assay Resistance",
+      "name": "Assay Resistance",
+      "school": "Divination",
+      "descriptors": [],
+      "class_levels": {
+        "Cleric": 4,
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "profile": {
+        "range": "personal",
+        "duration": "1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Backbiter",
+      "name": "Backbiter",
+      "school": "Necromancy",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 1,
+        "Wizard": 1
+      },
+      "profile": {
+        "range": "close",
+        "duration": "1 round/level, or until discharged",
+        "instantaneous": null
+      }
+    },
+    {
+      "id": "Bands of Steel",
+      "name": "Bands of Steel",
+      "school": "Conjuration",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "profile": {
+        "range": "medium",
+        "duration": "1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Blackfire",
+      "name": "Blackfire",
+      "school": "Necromancy",
+      "descriptors": [
+        "Evil"
+      ],
+      "class_levels": {
+        "Sorcerer": 8,
+        "Wizard": 8
+      },
+      "profile": {
+        "range": "medium",
+        "duration": "1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Blades of Fire",
+      "name": "Blades of Fire",
+      "school": "Conjuration",
+      "descriptors": [
+        "Fire"
+      ],
+      "class_levels": {
+        "Ranger": 2,
+        "Sorcerer": 2,
+        "Wizard": 2
+      },
+      "profile": {
+        "range": "touch",
+        "duration": "1 round",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Blast of Flame",
+      "name": "Blast of Flame",
+      "school": "Conjuration",
+      "descriptors": [
+        "Fire"
+      ],
+      "class_levels": {
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "profile": {
+        "range": "unknown",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Blink (Greater)",
+      "name": "Blink, Greater",
+      "school": "Transmutation",
+      "descriptors": [],
+      "class_levels": {
+        "Bard": 5,
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "profile": {
+        "range": "personal",
+        "duration": "1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Blistering Radiance",
+      "name": "Blistering Radiance",
+      "school": "Evocation",
+      "descriptors": [
+        "Fire",
+        "Light"
+      ],
+      "class_levels": {
+        "Sorcerer": 4,
+        "Wizard": 4,
+        "Cleric": 5
+      },
+      "profile": {
+        "range": "long",
+        "duration": "1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Brilliant Blade",
+      "name": "Brilliant Blade",
+      "school": "Transmutation",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 6,
+        "Wizard": 6,
+        "Cleric": 8
+      },
+      "profile": {
+        "range": "close",
+        "duration": "1 minute/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Burning Blood",
+      "name": "Burning Blood",
+      "school": "Necromancy",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "profile": {
+        "range": "medium",
+        "duration": "1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Chameleon",
+      "name": "Chameleon",
+      "school": "Illusion",
+      "descriptors": [],
+      "class_levels": {
+        "Druid": 2
+      },
+      "profile": {
+        "range": "touch",
+        "duration": "1 hour/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Corpse Candle",
+      "name": "Corpse Candle",
+      "school": "Conjuration",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "profile": {
+        "range": "close",
+        "duration": "1 minute/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Darkvision (Mass)",
+      "name": "Darkvision, Mass",
+      "school": "Transmutation",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "profile": {
+        "range": "unknown",
+        "duration": "1 hour/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Defenestrating Sphere",
+      "name": "Defenestrating Sphere",
+      "school": "Evocation",
+      "descriptors": [
+        "Air"
+      ],
+      "class_levels": {
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "profile": {
+        "range": "medium",
+        "duration": "1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Discern Shapechanger",
+      "name": "Discern Shapechanger",
+      "school": "Divination",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "profile": {
+        "range": "personal",
+        "duration": "1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Duelward",
+      "name": "Duelward",
+      "school": "Abjuration",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "profile": {
+        "range": "personal",
+        "duration": "1 round/level, or until discharged",
+        "instantaneous": null
+      }
+    },
+    {
+      "id": "Earthen Grasp",
+      "name": "Earthen Grasp",
+      "school": "Transmutation",
+      "descriptors": [
+        "Earth"
+      ],
+      "class_levels": {
+        "Sorcerer": 2,
+        "Wizard": 2
+      },
+      "profile": {
+        "range": "close",
+        "duration": "2 rounds/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Emerald Flame Fist",
+      "name": "Emerald Flame Fist",
+      "school": "Evocation",
+      "descriptors": [
+        "Fire"
+      ],
+      "class_levels": {
+        "Sorcerer": 7,
+        "Wizard": 7
+      },
+      "profile": {
+        "range": "touch",
+        "duration": "1 round/level; see text",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Energy Immunity",
+      "name": "Energy Immunity",
+      "school": "Abjuration",
+      "descriptors": [],
+      "class_levels": {
+        "Cleric": 6,
+        "Druid": 6,
+        "Sorcerer": 7,
+        "Wizard": 7
+      },
+      "profile": {
+        "range": "touch",
+        "duration": "24 hours",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Enhance Familiar",
+      "name": "Enhance Familiar",
+      "school": "Universal",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "profile": {
+        "range": "touch",
+        "duration": "1 hour/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Familiar Pocket",
+      "name": "Familiar Pocket",
+      "school": "Universal",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 2,
+        "Wizard": 2
+      },
+      "profile": {
+        "range": "touch",
+        "duration": "1 hour/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Fiendform",
+      "name": "Fiendform",
+      "school": "Transmutation",
+      "descriptors": [
+        "Evil"
+      ],
+      "class_levels": {
+        "Sorcerer": 6,
+        "Wizard": 6
+      },
+      "profile": {
+        "range": "personal",
+        "duration": "1 minute/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Fire Shield (Mass)",
+      "name": "Fire Shield, Mass",
+      "school": "Evocation",
+      "descriptors": [
+        "Fire",
+        "Cold"
+      ],
+      "class_levels": {
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "profile": {
+        "range": "close",
+        "duration": "1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Fire Shuriken",
+      "name": "Fire Shuriken",
+      "school": "Evocation",
+      "descriptors": [
+        "Fire"
+      ],
+      "class_levels": {
+        "Assassin": 2
+      },
+      "profile": {
+        "range": "unknown",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Fireburst",
+      "name": "Fireburst",
+      "school": "Evocation",
+      "descriptors": [
+        "Fire"
+      ],
+      "class_levels": {
+        "Sorcerer": 2,
+        "Wizard": 2
+      },
+      "profile": {
+        "range": "unknown",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Fireburst (Greater)",
+      "name": "Fireburst, Greater",
+      "school": "Evocation",
+      "descriptors": [
+        "Fire"
+      ],
+      "class_levels": {
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "profile": {
+        "range": "unknown",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Fist of Stone",
+      "name": "Fist of Stone",
+      "school": "Transmutation",
+      "descriptors": [
+        "Earth"
+      ],
+      "class_levels": {
+        "Sorcerer": 1,
+        "Wizard": 1
+      },
+      "profile": {
+        "range": "personal",
+        "duration": "1 minute",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Flensing",
+      "name": "Flensing",
+      "school": "Transmutation",
+      "descriptors": [
+        "Evil"
+      ],
+      "class_levels": {
+        "Sorcerer": 8,
+        "Wizard": 8
+      },
+      "profile": {
+        "range": "close",
+        "duration": "Up to 4 rounds; see text",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Fly (Mass)",
+      "name": "Fly, Mass",
+      "school": "Transmutation",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "profile": {
+        "range": "close",
+        "duration": "1 minute/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Force Whip",
+      "name": "Force Whip",
+      "school": "Evocation",
+      "descriptors": [
+        "Sonic",
+        "Mind-Affecting"
+      ],
+      "class_levels": {
+        "Bard": 2
+      },
+      "profile": {
+        "range": "touch",
+        "duration": "1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Fortify Familiar",
+      "name": "Fortify Familiar",
+      "school": "Universal",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "profile": {
+        "range": "touch",
+        "duration": "1 hour/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Freezing Fog",
+      "name": "Freezing Fog",
+      "school": "Conjuration",
+      "descriptors": [
+        "Cold"
+      ],
+      "class_levels": {
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "profile": {
+        "range": "medium",
+        "duration": "1 min./level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Ghostform",
+      "name": "Ghostform",
+      "school": "Transmutation",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 8,
+        "Wizard": 8
+      },
+      "profile": {
+        "range": "personal",
+        "duration": "1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Hail of Stone",
+      "name": "Hail of Stone",
+      "school": "Conjuration",
+      "descriptors": [
+        "Earth"
+      ],
+      "class_levels": {},
+      "profile": {
+        "range": "medium",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Heart of Stone",
+      "name": "Heart of Stone",
+      "school": "Necromancy",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 8,
+        "Wizard": 8
+      },
+      "profile": {
+        "range": "personal",
+        "duration": "1 year",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Heart Ripper",
+      "name": "Heart Ripper",
+      "school": "Necromancy",
+      "descriptors": [],
+      "class_levels": {
+        "Assassin": 4
+      },
+      "profile": {
+        "range": "close",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Ice Knife",
+      "name": "Ice Knife",
+      "school": "Conjuration",
+      "descriptors": [
+        "Cold"
+      ],
+      "class_levels": {
+        "Assassin": 2
+      },
+      "profile": {
+        "range": "long",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Illusory Pit",
+      "name": "Illusory Pit",
+      "school": "Illusion",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 6,
+        "Wizard": 6
+      },
+      "profile": {
+        "range": "medium",
+        "duration": "Concentration + 1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Imbue Familiar with Spell Ability",
+      "name": "Imbue Familiar with Spell Ability",
+      "school": "Universal",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 6,
+        "Wizard": 6
+      },
+      "profile": {
+        "range": "touch",
+        "duration": "1 hour/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Hidden Lodge",
+      "name": "Leomund's Hidden Lodge",
+      "school": "Conjuration",
+      "descriptors": [],
+      "class_levels": {
+        "Bard": 5,
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "profile": {
+        "range": "close",
+        "duration": "24 hours",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Low-Light Vision",
+      "name": "Low-Light Vision",
+      "school": "Transmutation",
+      "descriptors": [],
+      "class_levels": {
+        "Assassin": 1,
+        "Ranger": 1,
+        "Sorcerer": 1,
+        "Wizard": 1
+      },
+      "profile": {
+        "range": "touch",
+        "duration": "1 hour/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Mage Armor (Greater)",
+      "name": "Mage Armor, Greater",
+      "school": "Conjuration",
+      "descriptors": [
+        "Force"
+      ],
+      "class_levels": {
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "profile": {
+        "range": "touch",
+        "duration": "1 hour/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Orb of Acid",
+      "name": "Orb of Acid",
+      "school": "Conjuration",
+      "descriptors": [
+        "Acid"
+      ],
+      "class_levels": {
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "profile": {
+        "range": "close",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Orb of Acid (Lesser)",
+      "name": "Orb of Acid, Lesser",
+      "school": "Conjuration",
+      "descriptors": [
+        "Acid"
+      ],
+      "class_levels": {
+        "Sorcerer": 1,
+        "Wizard": 1
+      },
+      "profile": {
+        "range": "close",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Orb of Cold",
+      "name": "Orb of Cold",
+      "school": "Conjuration",
+      "descriptors": [
+        "Cold"
+      ],
+      "class_levels": {
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "profile": {
+        "range": "close",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Orb of Cold (Lesser)",
+      "name": "Orb of Cold, Lesser",
+      "school": "Conjuration",
+      "descriptors": [
+        "Cold"
+      ],
+      "class_levels": {
+        "Sorcerer": 1,
+        "Wizard": 1
+      },
+      "profile": {
+        "range": "close",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Orb of Electricity",
+      "name": "Orb of Electricity",
+      "school": "Conjuration",
+      "descriptors": [
+        "Electricity"
+      ],
+      "class_levels": {
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "profile": {
+        "range": "close",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Orb of Electricity (Lesser)",
+      "name": "Orb of Electricity, Lesser",
+      "school": "Conjuration",
+      "descriptors": [
+        "Electricity"
+      ],
+      "class_levels": {
+        "Sorcerer": 1,
+        "Wizard": 1
+      },
+      "profile": {
+        "range": "close",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Orb of Fire",
+      "name": "Orb of Fire",
+      "school": "Conjuration",
+      "descriptors": [
+        "Fire"
+      ],
+      "class_levels": {
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "profile": {
+        "range": "close",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Orb of Fire (Lesser)",
+      "name": "Orb of Fire, Lesser",
+      "school": "Conjuration",
+      "descriptors": [
+        "Fire"
+      ],
+      "class_levels": {
+        "Sorcerer": 1,
+        "Wizard": 1
+      },
+      "profile": {
+        "range": "close",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Orb of Force",
+      "name": "Orb of Force",
+      "school": "Conjuration",
+      "descriptors": [
+        "Force"
+      ],
+      "class_levels": {
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "profile": {
+        "range": "medium",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Orb of Sound",
+      "name": "Orb of Sound",
+      "school": "Conjuration",
+      "descriptors": [
+        "Sonic"
+      ],
+      "class_levels": {
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "profile": {
+        "range": "close",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Orb of Sound (Lesser)",
+      "name": "Orb of Sound, Lesser",
+      "school": "Conjuration",
+      "descriptors": [
+        "Sonic"
+      ],
+      "class_levels": {
+        "Sorcerer": 1,
+        "Wizard": 1
+      },
+      "profile": {
+        "range": "close",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Dispelling Screen",
+      "name": "Otiluke's Dispelling Screen",
+      "school": "Abjuration",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "profile": {
+        "range": "close",
+        "duration": "1 minute/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Dispelling Screen (Greater)",
+      "name": "Otiluke's Dispelling Screen, Greater",
+      "school": "Abjuration",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 7,
+        "Wizard": 7
+      },
+      "profile": {
+        "range": "close",
+        "duration": "1 minute/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Phantasmal Assailants",
+      "name": "Phantasmal Assailants",
+      "school": "Illusion",
+      "descriptors": [
+        "Fear",
+        "Mind-Affecting"
+      ],
+      "class_levels": {
+        "Sorcerer": 2,
+        "Wizard": 2
+      },
+      "profile": {
+        "range": "close",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Prismatic Ray",
+      "name": "Prismatic Ray",
+      "school": "Evocation",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "profile": {
+        "range": "medium",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Programmed Amnesia",
+      "name": "Programmed Amnesia",
+      "school": "Enchantment",
+      "descriptors": [
+        "Mind-Affecting"
+      ],
+      "class_levels": {
+        "Sorcerer": 9,
+        "Wizard": 9
+      },
+      "profile": {
+        "range": "close",
+        "duration": "Permanent",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Reaving Dispel",
+      "name": "Reaving Dispel",
+      "school": "Abjuration",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 9,
+        "Wizard": 9
+      },
+      "profile": {
+        "range": "medium",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Reciprocal Gyre",
+      "name": "Reciprocal Gyre",
+      "school": "Abjuration",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "profile": {
+        "range": "medium",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Refusal",
+      "name": "Refusal",
+      "school": "Abjuration",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "profile": {
+        "range": "medium",
+        "duration": "1 hour/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Repair Critical Damage",
+      "name": "Repair Critical Damage",
+      "school": "Transmutation",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "profile": {
+        "range": "touch",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Repair Light Damage",
+      "name": "Repair Light Damage",
+      "school": "Transmutation",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 1,
+        "Wizard": 1
+      },
+      "profile": {
+        "range": "touch",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Repair Minor Damage",
+      "name": "Repair Minor Damage",
+      "school": "Transmutation",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 0,
+        "Wizard": 0
+      },
+      "profile": {
+        "range": "touch",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Repair Moderate Damage",
+      "name": "Repair Moderate Damage",
+      "school": "Transmutation",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 2,
+        "Wizard": 2
+      },
+      "profile": {
+        "range": "touch",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Repair Serious Damage",
+      "name": "Repair Serious Damage",
+      "school": "Transmutation",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "profile": {
+        "range": "touch",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Resist Energy (Mass)",
+      "name": "Resist Energy, Mass",
+      "school": "Abjuration",
+      "descriptors": [],
+      "class_levels": {
+        "Cleric": 3,
+        "Druid": 3,
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "profile": {
+        "range": "close",
+        "duration": "10 minute/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Resonating Bolt",
+      "name": "Resonating Bolt",
+      "school": "Evocation",
+      "descriptors": [
+        "Sonic"
+      ],
+      "class_levels": {
+        "Sorcerer": 3,
+        "Wizard": 3,
+        "Bard": 4
+      },
+      "profile": {
+        "range": "unknown",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Ring of Blades",
+      "name": "Ring of Blades",
+      "school": "Conjuration",
+      "descriptors": [],
+      "class_levels": {
+        "Cleric": 3
+      },
+      "profile": {
+        "range": "personal",
+        "duration": "1 minute/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Servant Horde",
+      "name": "Servant Horde",
+      "school": "Conjuration",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "profile": {
+        "range": "close",
+        "duration": "1 hour/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Shadow Binding",
+      "name": "Shadow Binding",
+      "school": "Illusion",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "profile": {
+        "range": "close",
+        "duration": "1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Sign of Sealing",
+      "name": "Sign of Sealing",
+      "school": "Abjuration",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "profile": {
+        "range": "close",
+        "duration": "Permanent",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Sign of Sealing (Greater)",
+      "name": "Sign of Sealing, Greater",
+      "school": "Abjuration",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 6,
+        "Wizard": 6
+      },
+      "profile": {
+        "range": "close",
+        "duration": "Permanent",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Sphere of Ultimate Destruction",
+      "name": "Sphere of Ultimate Destruction",
+      "school": "Conjuration",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 9,
+        "Wizard": 9
+      },
+      "profile": {
+        "range": "medium",
+        "duration": "1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Spiritwall",
+      "name": "Spiritwall",
+      "school": "Necromancy",
+      "descriptors": [
+        "Fear",
+        "Mind-Affecting"
+      ],
+      "class_levels": {
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "profile": {
+        "range": "unknown",
+        "duration": "1 minute/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Stony Grasp",
+      "name": "Stony Grasp",
+      "school": "Transmutation",
+      "descriptors": [
+        "Earth"
+      ],
+      "class_levels": {
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "profile": {
+        "range": "close",
+        "duration": "1 rounds/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Summon Elemental Monolith",
+      "name": "Summon Elemental Monolith",
+      "school": "Conjuration",
+      "descriptors": [
+        "See Text"
+      ],
+      "class_levels": {
+        "Cleric": 9,
+        "Druid": 9,
+        "Sorcerer": 9,
+        "Wizard": 9
+      },
+      "profile": {
+        "range": "medium",
+        "duration": "Concentration, up to 1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Superior Invisibility",
+      "name": "Superior Invisibility",
+      "school": "Illusion",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 9,
+        "Wizard": 9
+      },
+      "profile": {
+        "range": "unknown",
+        "duration": "1 hour/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Swim",
+      "name": "Swim",
+      "school": "Transmutation",
+      "descriptors": [
+        "Water"
+      ],
+      "class_levels": {
+        "Druid": 2,
+        "Sorcerer": 2,
+        "Wizard": 2
+      },
+      "profile": {
+        "range": "medium",
+        "duration": "10 minute/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Sword of Darkness",
+      "name": "Sword of Darkness",
+      "school": "Evocation",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 7,
+        "Wizard": 7
+      },
+      "profile": {
+        "range": "medium",
+        "duration": "1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Sword of Deception",
+      "name": "Sword of Deception",
+      "school": "Evocation",
+      "descriptors": [],
+      "class_levels": {
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "profile": {
+        "range": "medium",
+        "duration": "1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Thornskin",
+      "name": "Thornskin",
+      "school": "Transmutation",
+      "descriptors": [],
+      "class_levels": {
+        "Druid": 3
+      },
+      "profile": {
+        "range": "personal",
+        "duration": "1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Transfix",
+      "name": "Transfix",
+      "school": "Enchantment",
+      "descriptors": [
+        "Mind-Affecting"
+      ],
+      "class_levels": {
+        "Sorcerer": 6,
+        "Wizard": 6
+      },
+      "profile": {
+        "range": "medium",
+        "duration": "1 hour/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Transmute Rock to Lava",
+      "name": "Transmute Rock to Lava",
+      "school": "Transmutation",
+      "descriptors": [
+        "Earth",
+        "Fire"
+      ],
+      "class_levels": {
+        "Druid": 9,
+        "Sorcerer": 9,
+        "Wizard": 9
+      },
+      "profile": {
+        "range": "medium",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Unluck",
+      "name": "Unluck",
+      "school": "Divination",
+      "descriptors": [],
+      "class_levels": {
+        "Bard": 4,
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "profile": {
+        "range": "close",
+        "duration": "1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Vitriolic Sphere",
+      "name": "Vitriolic Sphere",
+      "school": "Conjuration",
+      "descriptors": [
+        "Acid"
+      ],
+      "class_levels": {
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "profile": {
+        "range": "long",
+        "duration": "Instantaneous; See text",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Wall of Gloom",
+      "name": "Wall of Gloom",
+      "school": "Illusion",
+      "descriptors": [
+        "Darkness",
+        "Fear",
+        "Mind-Affecting"
+      ],
+      "class_levels": {
+        "Sorcerer": 2,
+        "Wizard": 2
+      },
+      "profile": {
+        "range": "medium",
+        "duration": "Concentration + 1 round/level",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Whirling Blade",
+      "name": "Whirling Blade",
+      "school": "Transmutation",
+      "descriptors": [],
+      "class_levels": {
+        "Bard": 2,
+        "Sorcerer": 2,
+        "Wizard": 2
+      },
+      "profile": {
+        "range": "unknown",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Withering Palm",
+      "name": "Withering Palm",
+      "school": "Necromancy",
+      "descriptors": [],
+      "class_levels": {
+        "Cleric": 7
+      },
+      "profile": {
+        "range": "touch",
+        "duration": "Instantaneous",
+        "instantaneous": true
+      }
+    },
+    {
+      "id": "Wood Rot",
+      "name": "Wood Rot",
+      "school": "Transmutation",
+      "descriptors": [],
+      "class_levels": {
+        "Druid": 5
+      },
+      "profile": {
+        "range": "touch",
+        "duration": "See Text",
+        "instantaneous": false
+      }
+    },
+    {
+      "id": "Haboob",
+      "name": "Haboob",
+      "school": "Conjuration",
+      "descriptors": [
+        "Air",
+        "Earth"
+      ],
+      "class_levels": {
+        "Cleric": 3,
+        "Druid": 3,
+        "Ranger": 3,
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "profile": {
+        "range": "medium",
+        "duration": "(CASTERLEVEL) minutes",
+        "instantaneous": false
+      }
+    }
+  ],
+  "spell_lists": {
+    "Warmage": {
+      "Acid Splash": 0,
+      "Disrupt Undead": 0,
+      "Light": 0,
+      "Ray of Frost": 0,
+      "Accuracy": 1,
+      "Burning Hands": 1,
+      "Chill Touch": 1,
+      "Fist of Stone": 1,
+      "Hail of Stone": 1,
+      "Magic Missile": 1,
+      "Orb of Acid (Lesser)": 1,
+      "Orb of Cold (Lesser)": 1,
+      "Orb of Electricity (Lesser)": 1,
+      "Orb of Fire (Lesser)": 1,
+      "Orb of Sound (Lesser)": 1,
+      "Shocking Grasp": 1,
+      "True Strike": 1,
+      "Blades of Fire": 2,
+      "Continual Flame": 2,
+      "Fire Trap": 2,
+      "Fireburst": 2,
+      "Flaming Sphere": 2,
+      "Ice Knife": 2,
+      "Acid Arrow": 2,
+      "Pyrotechnics": 2,
+      "Scorching Ray": 2,
+      "Whirling Blade": 2,
+      "Shatter": 2,
+      "Fire Shield": 3,
+      "Fireball": 3,
+      "Flame Arrow": 3,
+      "Gust of Wind": 3,
+      "Ice Storm": 3,
+      "Lightning Bolt": 3,
+      "Poison": 3,
+      "Ring of Blades": 3,
+      "Sleet Storm": 3,
+      "Stinking Cloud": 3,
+      "Blast of Flame": 4,
+      "Contagion": 4,
+      "Black Tentacles": 4,
+      "Orb of Acid": 4,
+      "Orb of Cold": 4,
+      "Orb of Electricity": 4,
+      "Orb of Fire": 4,
+      "Orb of Force": 4,
+      "Orb of Sound": 4,
+      "Phantasmal Killer": 4,
+      "Shout": 4,
+      "Wall of Fire": 4,
+      "Arc of Lightning": 5,
+      "Cloudkill": 5,
+      "Cone of Cold": 5,
+      "Fire Shield (Mass)": 5,
+      "Fireburst (Greater)": 5,
+      "Flame Strike": 5,
+      "Prismatic Ray": 5,
+      "Acid Fog": 6,
+      "Blade Barrier": 6,
+      "Chain Lightning": 6,
+      "Circle of Death": 6,
+      "Disintegrate": 6,
+      "Fire Seeds": 6,
+      "Freezing Sphere": 6,
+      "Transformation": 6,
+      "Delayed Blast Fireball": 7,
+      "Earthquake": 7,
+      "Finger of Death": 7,
+      "Fire Storm": 7,
+      "Mage's Sword": 7,
+      "Prismatic Spray": 7,
+      "Sunbeam": 7,
+      "Waves of Exhaustion": 7,
+      "Horrid Wilting": 8,
+      "Incendiary Cloud": 8,
+      "Polar Ray": 8,
+      "Prismatic Wall": 8,
+      "Scintillating Pattern": 8,
+      "Shout (Greater)": 8,
+      "Sunburst": 8,
+      "Elemental Swarm": 9,
+      "Implosion": 9,
+      "Meteor Swarm": 9,
+      "Prismatic Sphere": 9,
+      "Wail of the Banshee": 9,
+      "Weird": 9
+    }
+  },
+  "spell_profiles": {
+    "Divine Power": {
+      "range": "personal",
+      "duration": "1 round/level",
+      "instantaneous": false,
+      "discharged": false,
+      "targets_creatures": true,
+      "harmless_or_willing": true,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": false,
+      "targeting": {
+        "living_only": false,
+        "allied_only": false,
+        "creature_types": [],
+        "max_pair_distance_feet": null,
+        "choices": [],
+        "requires_willing": false
+      },
+      "spellguard_defensive": true
+    },
+    "Righteous Might": {
+      "range": "personal",
+      "duration": "1 round/level",
+      "instantaneous": false,
+      "discharged": false,
+      "targets_creatures": true,
+      "harmless_or_willing": true,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": false,
+      "targeting": {
+        "living_only": false,
+        "allied_only": false,
+        "creature_types": [],
+        "max_pair_distance_feet": null,
+        "choices": [],
+        "requires_willing": false
+      }
+    },
+    "Heal": {
+      "range": "touch",
+      "duration": "Instantaneous",
+      "instantaneous": true,
+      "discharged": false,
+      "targets_creatures": true,
+      "harmless_or_willing": true,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "targeting": {
+        "living_only": false,
+        "allied_only": false,
+        "creature_types": [],
+        "max_pair_distance_feet": null,
+        "choices": [],
+        "requires_willing": false
+      }
+    },
+    "Magic Missile": {
+      "range": "medium",
+      "duration": "Instantaneous",
+      "instantaneous": true,
+      "discharged": false,
+      "targets_creatures": true,
+      "harmless_or_willing": false,
+      "variable_numeric_effect": true,
+      "hit_point_damage": true,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "damage": {
+        "dice": "1",
+        "die_sides": 4,
+        "flat": "1",
+        "packets": "min(floor((CASTERLEVEL+1)/2),5)",
+        "area": false
+      }
+    },
+    "Wall of Force": {
+      "range": "close",
+      "duration": "1 round/level",
+      "instantaneous": false,
+      "discharged": false,
+      "harmless_or_willing": false,
+      "targets_creatures": false,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": false
+    },
+    "Wall of Fire": {
+      "range": "medium",
+      "duration": "Concentration + 1 round/level",
+      "instantaneous": false,
+      "discharged": false,
+      "targets_creatures": false,
+      "harmless_or_willing": false,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": true,
+      "variable_numeric_effect": true,
+      "widenable": false
+    },
+    "Cloudkill": {
+      "range": "medium",
+      "duration": "1 minute/level",
+      "instantaneous": false,
+      "discharged": false,
+      "variable_numeric_effect": true,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": false
+    },
+    "Chain Lightning": {
+      "range": "long",
+      "duration": "Instantaneous",
+      "instantaneous": true,
+      "discharged": false,
+      "variable_numeric_effect": true,
+      "hit_point_damage": true,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0
+    },
+    "Stoneskin": {
+      "range": "touch",
+      "duration": "10 minutes/level or until discharged",
+      "instantaneous": false,
+      "discharged": true,
+      "targets_creatures": true,
+      "harmless_or_willing": true,
+      "somatic": true,
+      "material_cost_gp": 250,
+      "xp_cost": 0,
+      "hit_point_damage": false,
+      "variable_numeric_effect": false,
+      "targeting": {
+        "living_only": false,
+        "allied_only": false,
+        "creature_types": [],
+        "max_pair_distance_feet": null,
+        "choices": [],
+        "requires_willing": false
+      }
+    },
+    "Bull's Strength": {
+      "range": "touch",
+      "duration": "1 minute/level",
+      "instantaneous": false,
+      "discharged": false,
+      "targets_creatures": true,
+      "harmless_or_willing": true,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": false,
+      "variable_numeric_effect": false,
+      "targeting": {
+        "living_only": false,
+        "allied_only": false,
+        "creature_types": [],
+        "max_pair_distance_feet": null,
+        "choices": [],
+        "requires_willing": false
+      }
+    },
+    "Shield of Faith": {
+      "range": "touch",
+      "duration": "1 minute/level",
+      "instantaneous": false,
+      "discharged": false,
+      "targets_creatures": true,
+      "harmless_or_willing": true,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": false,
+      "variable_numeric_effect": false,
+      "targeting": {
+        "living_only": false,
+        "allied_only": false,
+        "creature_types": [],
+        "max_pair_distance_feet": null,
+        "choices": [],
+        "requires_willing": false
+      }
+    },
+    "Protection from Evil": {
+      "range": "touch",
+      "duration": "1 minute/level",
+      "instantaneous": false,
+      "discharged": false,
+      "targets_creatures": true,
+      "harmless_or_willing": true,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": false,
+      "variable_numeric_effect": false,
+      "targeting": {
+        "living_only": false,
+        "allied_only": false,
+        "creature_types": [],
+        "max_pair_distance_feet": null,
+        "choices": [],
+        "requires_willing": false
+      }
+    },
+    "Fireball": {
+      "range": "long",
+      "duration": "Instantaneous",
+      "instantaneous": true,
+      "discharged": false,
+      "targets_creatures": false,
+      "harmless_or_willing": false,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": true,
+      "variable_numeric_effect": true,
+      "damage": {
+        "dice": "min(CASTERLEVEL,10)",
+        "die_sides": 6,
+        "flat": "0",
+        "packets": "1",
+        "area": true
+      },
+      "widenable": true,
+      "defense": {
+        "save": "reflex",
+        "on_save": "half",
+        "harmless": false,
+        "spell_resistance": true
+      },
+      "energy": "fire"
+    },
+    "Fire Shield, Mass": {
+      "range": "close",
+      "duration": "1 round/level (D)",
+      "instantaneous": false,
+      "discharged": false,
+      "harmless_or_willing": true,
+      "targets_creatures": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "somatic": true,
+      "hit_point_damage": true,
+      "variable_numeric_effect": true,
+      "widenable": false,
+      "targeting": {
+        "living_only": false,
+        "allied_only": true,
+        "creature_types": [],
+        "max_pair_distance_feet": 30,
+        "choices": [
+          "warm",
+          "chill"
+        ],
+        "requires_willing": false
+      }
+    },
+    "Protection from Energy": {
+      "range": "touch",
+      "duration": "10 minutes/level or until discharged",
+      "instantaneous": false,
+      "discharged": true,
+      "targets_creatures": true,
+      "harmless_or_willing": true,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": false,
+      "variable_numeric_effect": false,
+      "targeting": {
+        "living_only": false,
+        "allied_only": false,
+        "creature_types": [],
+        "max_pair_distance_feet": null,
+        "choices": [
+          "acid",
+          "cold",
+          "electricity",
+          "fire",
+          "sonic"
+        ],
+        "requires_willing": false
+      }
+    },
+    "Enlarge Person": {
+      "range": "close",
+      "duration": "1 minute/level",
+      "instantaneous": false,
+      "discharged": false,
+      "targets_creatures": true,
+      "harmless_or_willing": false,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": false,
+      "variable_numeric_effect": false,
+      "targeting": {
+        "living_only": false,
+        "allied_only": false,
+        "creature_types": [
+          "humanoid"
+        ],
+        "max_pair_distance_feet": null,
+        "choices": [],
+        "requires_willing": false
+      }
+    },
+    "Reduce Person": {
+      "range": "close",
+      "duration": "1 minute/level",
+      "instantaneous": false,
+      "discharged": false,
+      "targets_creatures": true,
+      "harmless_or_willing": false,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": false,
+      "variable_numeric_effect": false,
+      "targeting": {
+        "living_only": false,
+        "allied_only": false,
+        "creature_types": [
+          "humanoid"
+        ],
+        "max_pair_distance_feet": null,
+        "choices": [],
+        "requires_willing": false
+      }
+    },
+    "Burning Hands": {
+      "defense": {
+        "save": "reflex",
+        "on_save": "half",
+        "harmless": false,
+        "spell_resistance": true
+      },
+      "range": "fixed",
+      "fixed_range_feet": 15,
+      "duration": "Instantaneous",
+      "instantaneous": true,
+      "discharged": false,
+      "targets_creatures": false,
+      "harmless_or_willing": false,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": true,
+      "variable_numeric_effect": true,
+      "widenable": true,
+      "damage": {
+        "dice": "min(CASTERLEVEL,5)",
+        "die_sides": 6,
+        "flat": "0",
+        "packets": "1",
+        "area": true
+      },
+      "energy": "fire"
+    },
+    "Cone of Cold": {
+      "defense": {
+        "save": "reflex",
+        "on_save": "half",
+        "harmless": false,
+        "spell_resistance": true
+      },
+      "range": "fixed",
+      "fixed_range_feet": 60,
+      "duration": "Instantaneous",
+      "instantaneous": true,
+      "discharged": false,
+      "targets_creatures": false,
+      "harmless_or_willing": false,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": true,
+      "variable_numeric_effect": true,
+      "widenable": true,
+      "damage": {
+        "dice": "min(CASTERLEVEL,15)",
+        "die_sides": 6,
+        "flat": "0",
+        "packets": "1",
+        "area": true
+      },
+      "energy": "cold"
+    },
+    "Wall of Ice": {
+      "range": "medium",
+      "duration": "1 minute/level",
+      "instantaneous": false,
+      "discharged": false,
+      "targets_creatures": false,
+      "harmless_or_willing": false,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": true,
+      "variable_numeric_effect": true,
+      "widenable": false
+    },
+    "Ice Storm": {
+      "range": "long",
+      "duration": "1 full round",
+      "instantaneous": false,
+      "discharged": false,
+      "targets_creatures": false,
+      "harmless_or_willing": false,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": true,
+      "variable_numeric_effect": true,
+      "widenable": true
+    },
+    "Acid Arrow": {
+      "range": "long",
+      "duration": "1 round + 1 round per three levels",
+      "instantaneous": false,
+      "discharged": false,
+      "targets_creatures": false,
+      "harmless_or_willing": false,
+      "somatic": true,
+      "material_cost_gp": 0,
+      "xp_cost": 0,
+      "hit_point_damage": true,
+      "variable_numeric_effect": true,
+      "widenable": false,
+      "energy": "acid",
+      "recurring_rounds": "1+floor(min(CASTERLEVEL,18)/3)",
+      "damage": {
+        "dice": "2",
+        "die_sides": 4,
+        "flat": "0",
+        "packets": "1",
+        "area": false
+      },
+      "defense": {
+        "save": "none",
+        "on_save": "none",
+        "harmless": false,
+        "spell_resistance": false
+      }
+    }
+  },
+  "skills": [
+    {
+      "id": "Craft (Weaving)",
+      "name": "Craft (Weaving)",
+      "type_tags": [
+        "Craft",
+        "Intelligence"
+      ],
+      "key_stat": "INT",
+      "armor_check": false,
+      "trained_only": false
+    }
+  ],
+  "includes": [
+    "fixed-list-casters.rules.json",
+    "core-classes.rules.json",
+    "phb2-classes.rules.json",
+    "martial-classes.rules.json",
+    "incarnum-classes.rules.json",
+    "joker-classes.rules.json"
+  ]
+}

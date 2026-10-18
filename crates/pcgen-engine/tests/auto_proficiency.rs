@@ -6,7 +6,8 @@
 //! as weapon proficiency *names* and the gate was never evaluated — a
 //! 12th-level character was granted martial proficiency it should not have.
 
-use pcgen_engine::{apply_effects, CharacterDraft, DraftClassLevel};
+use pcgen_engine::{apply_effects, CharacterDraft};
+use pcgen_import::PcgClassLevel as DraftClassLevel;
 use pcgen_ir::{lower_records, RawRecord, RawTag, SourceRef};
 
 fn record(category: &str, name: &str, tags: &[(&str, &str)]) -> RawRecord {
@@ -49,13 +50,23 @@ fn martial_proficiencies(auto: &str, level: u32) -> Vec<String> {
         abilities: vec![("Special Ability".to_string(), "Source".to_string())],
         ..CharacterDraft::default()
     };
-    draft.class_levels.push(DraftClassLevel {
-        class_id: "Fighter".to_string(),
-        level,
-        hit_points_gained: 0,
-        hit_points_by_level: vec![],
-        experience_gained: 0,
-    });
+    draft.advancement.extend(
+        pcgen_import::advancement_from_class_levels(&[DraftClassLevel {
+            class_id: "Fighter".to_string(),
+            level,
+            hit_points_gained: 0,
+            hit_points_by_level: vec![],
+            experience_gained: 0,
+        }])
+        .into_iter()
+        .map({
+            let offset = draft.total_level();
+            move |mut frame| {
+                frame.character_level += offset;
+                frame
+            }
+        }),
+    );
     apply_effects(&pack, &draft)
         .weapon_proficiencies
         .into_iter()

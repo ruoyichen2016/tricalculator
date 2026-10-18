@@ -5,8 +5,8 @@ use pcgen_builder::{
     CreateRequest, CreateSpell, LevelUpLane, LevelUpRequest, NativeSaveEnvelope,
 };
 use pcgen_core::{AdvancementFrame, AdvancementLane};
-use pcgen_engine::{CharacterDraft, ClassProgress, DraftClassLevel, DraftSpell, Engine};
-use pcgen_import::PcgDraft;
+use pcgen_engine::{CharacterDraft, ClassProgress, Engine};
+use pcgen_import::draft_from_pcg;
 use pcgen_import::{compile_pcc, lower_records, parse_pcg_draft_file};
 use pcgen_output::{render, render_json, render_text, OutputFormat};
 use std::collections::BTreeMap;
@@ -339,7 +339,6 @@ fn demo_draft() -> CharacterDraft {
             ("WIS".to_string(), 10),
             ("CHA".to_string(), 10),
         ]),
-        class_levels: Vec::new(),
         advancement: vec![AdvancementFrame::new(
             1,
             vec![
@@ -363,6 +362,7 @@ fn demo_draft() -> CharacterDraft {
         deity: None,
         domains: Vec::new(),
         deity_domains: Vec::new(),
+        ..CharacterDraft::default()
     }
 }
 
@@ -1474,64 +1474,4 @@ fn top_counts(
     entries.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(b.0)));
     entries.truncate(limit);
     entries
-}
-
-/// Convert a parsed PCGen `.pcg` draft into the engine's `CharacterDraft`.
-///
-/// This used to live in `pcgen-engine`; it moved to the CLI adapter so the
-/// engine no longer depends on `pcgen-import`.  PCGen `PcgDraft` is a
-/// compatibility type, so the conversion is an application-boundary concern.
-fn draft_from_pcg(draft: PcgDraft) -> CharacterDraft {
-    CharacterDraft {
-        id: format!("pcg:{}", draft.name),
-        name: draft.name,
-        race_id: draft.race_id,
-        campaign: draft.campaign,
-        alignment: draft.alignment,
-        gender: draft.gender,
-        character_type: if draft.character_type.trim().is_empty() {
-            pcgen_engine::default_character_type()
-        } else {
-            draft.character_type
-        },
-        stats: draft.stats,
-        class_levels: draft
-            .class_levels
-            .into_iter()
-            .map(|entry| DraftClassLevel {
-                class_id: entry.class_id,
-                level: entry.level,
-                hit_points_gained: entry.hit_points_gained,
-                hit_points_by_level: entry.hit_points_by_level,
-                experience_gained: entry.experience_gained,
-            })
-            .collect(),
-        advancement: draft.advancement,
-        skills: draft.skills,
-        spells: draft
-            .spells
-            .into_iter()
-            .map(|spell| DraftSpell {
-                name: spell.name,
-                level: spell.level,
-                class_id: spell.class_id,
-                times_memorized: spell.times_memorized,
-                book: spell.book,
-            })
-            .collect(),
-        equipment: draft.equipment,
-        equipment_modifiers: draft.equipment_modifiers,
-        equipment_base_items: draft.equipment_base_items,
-        equipment_display_names: draft.equipment_display_names,
-        equip_slots: draft.equip_slots,
-        abilities: draft.abilities,
-        templates: draft.templates,
-        active_states: Vec::new(),
-        choices: draft.choices,
-        companions: Vec::new(),
-        class_subclasses: draft.class_subclasses,
-        deity: draft.deity,
-        domains: draft.domains,
-        deity_domains: draft.deity_domains,
-    }
 }

@@ -5,8 +5,8 @@
 //! field for field, and the engine produces the same numbers from it, then the
 //! load path no longer needs the translator.
 
-use pcgen_core::{AdvancementFrame, AdvancementLane, LaneId};
-use pcgen_engine::{CharacterDraft, DraftClassLevel, Engine};
+use pcgen_engine::{CharacterDraft, Engine};
+use pcgen_import::PcgClassLevel as DraftClassLevel;
 use pcgen_ir::rulepack::CompiledRulePack;
 use pcgen_transpile::{read_pack, write_pack};
 use std::collections::BTreeMap;
@@ -46,17 +46,13 @@ fn both_paths() -> Option<(CompiledRulePack, CompiledRulePack, usize)> {
 
 fn draft(class: &str, level: u32) -> CharacterDraft {
     CharacterDraft {
-        advancement: vec![AdvancementFrame {
-            character_level: level,
-            lanes: vec![AdvancementLane::new(LaneId::primary(), class, level, 0, 0)],
-        }],
-        class_levels: vec![DraftClassLevel {
+        advancement: pcgen_import::advancement_from_class_levels(&vec![DraftClassLevel {
             class_id: class.to_string(),
             level,
             hit_points_gained: 0,
             hit_points_by_level: Vec::new(),
             experience_gained: 0,
-        }],
+        }]),
         stats: BTreeMap::new(),
         ..Default::default()
     }
@@ -121,8 +117,8 @@ fn whole_pack_round_trips() {
             "level grants for {id}"
         );
         assert!(
-            after.base_attack_formula.is_none(),
-            "the formula should not survive into the persisted pack"
+            after.base_attack_formula == before.base_attack_formula,
+            "source formula must survive the persisted pack"
         );
     }
 

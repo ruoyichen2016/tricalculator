@@ -1,0 +1,1936 @@
+{
+  "format": "gladius.module/1",
+  "sources": {
+    "phb2": {
+      "title": "Player's Handbook II",
+      "reference": "https://dtdnd.neocities.org/books/player/PlayersHandbookII.pdf",
+      "locator": "Beguiler pp.6-11; table 1-1 and complete printed spell list. Printed list Whelming Burst is the Whelming Blast entry (p.127); canonical list spelling retained."
+    },
+    "hoh": {
+      "title": "Heroes of Horror",
+      "reference": "https://mlpol.net/images/src/138D9E2A8D86E0A8701361F9659BA777-8114614.pdf",
+      "locator": "Dread Necromancer pp.84-87, table 5-2; spells pp.125-133. Spontaneous (corrects LST MEMORIZE:YES); no cantrips. Death Ward printed at both levels 3 and 4; the lower listed access is retained."
+    },
+    "srd-afflictions": {
+      "title": "Revised SRD: Special Abilities",
+      "reference": "https://www.d20srd.org/srd/specialAbilities.htm",
+      "locator": "Ability score loss, disease table and recovery, energy drain and negative levels, level loss."
+    },
+    "srd-undead-control": {
+      "title": "Revised SRD: Turning and necromancy",
+      "reference": "https://www.d20srd.org/srd/combat/specialAttacks.htm#turnOrRebukeUndead",
+      "locator": "Rebuking; Animate Dead and Control Undead spell entries; skeleton and zombie templates; Desecrate."
+    }
+  },
+  "rules": [
+    {
+      "id": "35e:phb2:class:beguiler",
+      "source": "phb2",
+      "key": "Beguiler",
+      "name": "Beguiler",
+      "requirements": [],
+      "pending": [],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 6,
+        "max_level": 20,
+        "prestige": false,
+        "attack": "half",
+        "fortitude": "poor",
+        "reflex": "poor",
+        "will": "good",
+        "skill_points": 6,
+        "class_skills": [
+          "Appraise",
+          "Balance",
+          "Bluff",
+          "Climb",
+          "Concentration",
+          "Decipher Script",
+          "Diplomacy",
+          "Disable Device",
+          "Disguise",
+          "Escape Artist",
+          "Forgery",
+          "Gather Information",
+          "Hide",
+          "Jump",
+          "Knowledge (Arcana)",
+          "Knowledge (Local)",
+          "Listen",
+          "Move Silently",
+          "Open Lock",
+          "TYPE.Profession",
+          "Search",
+          "Sense Motive",
+          "Sleight of Hand",
+          "Speak Language",
+          "Spellcraft",
+          "Spot",
+          "Swim",
+          "Tumble",
+          "Use Magic Device"
+        ],
+        "advancement": [],
+        "casting": {
+          "ability": "INT",
+          "mode": "spontaneous",
+          "power": "arcane",
+          "slots": [
+            {
+              "level": 1,
+              "slots": [
+                5,
+                3
+              ]
+            },
+            {
+              "level": 2,
+              "slots": [
+                6,
+                4
+              ]
+            },
+            {
+              "level": 3,
+              "slots": [
+                6,
+                5
+              ]
+            },
+            {
+              "level": 4,
+              "slots": [
+                6,
+                6,
+                3
+              ]
+            },
+            {
+              "level": 5,
+              "slots": [
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 6,
+              "slots": [
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 7,
+              "slots": [
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 8,
+              "slots": [
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 9,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 10,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 11,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 12,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 13,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 14,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 15,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 16,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 17,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 18,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 19,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 20,
+              "slots": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                5
+              ]
+            }
+          ]
+        },
+        "magic": {
+          "knows_entire_list": true,
+          "first_spell_level": 0,
+          "advanced_learning": {
+            "levels": [
+              3,
+              7,
+              11,
+              15,
+              19
+            ],
+            "lists": [
+              "Wizard",
+              "Sorcerer"
+            ],
+            "schools": [
+              "Enchantment",
+              "Illusion"
+            ]
+          },
+          "armored_casting": {
+            "light_from_level": 1,
+            "medium_from_level": 21,
+            "light_shield": false
+          },
+          "proficiencies": [
+            {
+              "level": 1,
+              "weapon_groups": [
+                "Simple",
+                "Hand Crossbow",
+                "Rapier",
+                "Shortbow",
+                "Short Sword"
+              ],
+              "armor": [
+                "light"
+              ],
+              "shields": []
+            }
+          ],
+          "progression": [
+            {
+              "level": 1,
+              "name": "Armored Mage; Trapfinding",
+              "summary": ""
+            },
+            {
+              "level": 2,
+              "name": "Cloaked Casting +1 DC; Surprise Casting",
+              "summary": ""
+            },
+            {
+              "level": 3,
+              "name": "Advanced Learning",
+              "summary": ""
+            },
+            {
+              "level": 5,
+              "name": "Silent Spell",
+              "summary": ""
+            },
+            {
+              "level": 6,
+              "name": "Surprise Casting: move / swift with Improved Feint",
+              "summary": ""
+            },
+            {
+              "level": 7,
+              "name": "Advanced Learning",
+              "summary": ""
+            },
+            {
+              "level": 8,
+              "name": "Cloaked Casting +2 SR check",
+              "summary": ""
+            },
+            {
+              "level": 10,
+              "name": "Still Spell",
+              "summary": ""
+            },
+            {
+              "level": 11,
+              "name": "Advanced Learning",
+              "summary": ""
+            },
+            {
+              "level": 14,
+              "name": "Cloaked Casting +2 DC",
+              "summary": ""
+            },
+            {
+              "level": 15,
+              "name": "Advanced Learning",
+              "summary": ""
+            },
+            {
+              "level": 19,
+              "name": "Advanced Learning",
+              "summary": ""
+            },
+            {
+              "level": 20,
+              "name": "Cloaked Casting bypasses SR",
+              "summary": ""
+            }
+          ],
+          "feature_values": [
+            {
+              "at_level": 2,
+              "name": "Cloaked Casting",
+              "values": {
+                "save_dc_bonus": "if(CLASSLEVEL>=14,2,1)",
+                "penetration_bonus": "if(CLASSLEVEL>=8,2,0)",
+                "bypass_sr": "if(CLASSLEVEL>=20,1,0)"
+              }
+            },
+            {
+              "at_level": 2,
+              "name": "Surprise Casting",
+              "values": {
+                "feint_move_action": "if(CLASSLEVEL>=6,1,0)"
+              },
+              "resolution": {
+                "kind": "surprise_feint"
+              }
+            }
+          ],
+          "cloaked_casting": true,
+          "bonus_feats": [
+            {
+              "level": 5,
+              "feat": "Silent Spell"
+            },
+            {
+              "level": 10,
+              "feat": "Still Spell"
+            }
+          ]
+        }
+      },
+      "effects": []
+    },
+    {
+      "id": "35e:hoh:class:dread_necromancer",
+      "source": "hoh",
+      "key": "Dread Necromancer",
+      "name": "Dread Necromancer",
+      "requirements": [
+        {
+          "alignment": {
+            "allowed": [
+              "LN",
+              "TN",
+              "CN",
+              "LE",
+              "NE",
+              "CE"
+            ]
+          }
+        }
+      ],
+      "pending": [],
+      "mechanics": {
+        "kind": "class",
+        "hit_die": 6,
+        "max_level": 20,
+        "prestige": false,
+        "attack": "half",
+        "fortitude": "poor",
+        "reflex": "poor",
+        "will": "good",
+        "skill_points": 2,
+        "class_skills": [
+          "Bluff",
+          "Concentration",
+          "TYPE.Craft",
+          "Decipher Script",
+          "Disguise",
+          "Hide",
+          "Intimidate",
+          "Knowledge (Arcana)",
+          "Knowledge (Religion)",
+          "TYPE.Profession",
+          "Spellcraft"
+        ],
+        "advancement": [],
+        "casting": {
+          "ability": "CHA",
+          "mode": "spontaneous",
+          "power": "arcane",
+          "slots": [
+            {
+              "level": 1,
+              "slots": [
+                0,
+                3
+              ]
+            },
+            {
+              "level": 2,
+              "slots": [
+                0,
+                4
+              ]
+            },
+            {
+              "level": 3,
+              "slots": [
+                0,
+                5
+              ]
+            },
+            {
+              "level": 4,
+              "slots": [
+                0,
+                6,
+                3
+              ]
+            },
+            {
+              "level": 5,
+              "slots": [
+                0,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 6,
+              "slots": [
+                0,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 7,
+              "slots": [
+                0,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 8,
+              "slots": [
+                0,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 9,
+              "slots": [
+                0,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 10,
+              "slots": [
+                0,
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 11,
+              "slots": [
+                0,
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 12,
+              "slots": [
+                0,
+                6,
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 13,
+              "slots": [
+                0,
+                6,
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 14,
+              "slots": [
+                0,
+                6,
+                6,
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 15,
+              "slots": [
+                0,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 16,
+              "slots": [
+                0,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 17,
+              "slots": [
+                0,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 18,
+              "slots": [
+                0,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                5,
+                3
+              ]
+            },
+            {
+              "level": 19,
+              "slots": [
+                0,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                4
+              ]
+            },
+            {
+              "level": 20,
+              "slots": [
+                0,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                6,
+                5
+              ]
+            }
+          ]
+        },
+        "magic": {
+          "knows_entire_list": true,
+          "first_spell_level": 1,
+          "advanced_learning": {
+            "levels": [
+              4,
+              8,
+              12,
+              16,
+              20
+            ],
+            "lists": [
+              "Cleric",
+              "Wizard"
+            ],
+            "schools": [
+              "Necromancy"
+            ]
+          },
+          "armored_casting": {
+            "light_from_level": 1,
+            "medium_from_level": 21,
+            "light_shield": false
+          },
+          "proficiencies": [
+            {
+              "level": 1,
+              "weapon_groups": [
+                "Simple"
+              ],
+              "armor": [
+                "light"
+              ],
+              "shields": []
+            }
+          ],
+          "progression": [
+            {
+              "level": 1,
+              "name": "Charnel Touch; Rebuke Undead; Light Armor; One Martial Weapon",
+              "summary": ""
+            },
+            {
+              "level": 2,
+              "name": "Lich Body DR 2 / bludgeoning and magic",
+              "summary": ""
+            },
+            {
+              "level": 3,
+              "name": "Negative Energy Burst 1/day",
+              "summary": ""
+            },
+            {
+              "level": 4,
+              "name": "Advanced Learning; Mental Bastion +2",
+              "summary": ""
+            },
+            {
+              "level": 5,
+              "name": "Fear Aura",
+              "summary": ""
+            },
+            {
+              "level": 6,
+              "name": "Scabrous Touch 1/day",
+              "summary": ""
+            },
+            {
+              "level": 7,
+              "name": "Lich Body DR 4; Improved Familiar",
+              "summary": ""
+            },
+            {
+              "level": 8,
+              "name": "Advanced Learning; Negative Energy Burst 2/day; Undead Mastery",
+              "summary": ""
+            },
+            {
+              "level": 9,
+              "name": "Negative Energy Resistance +4",
+              "summary": ""
+            },
+            {
+              "level": 10,
+              "name": "Light Fortification 25%",
+              "summary": ""
+            },
+            {
+              "level": 11,
+              "name": "Lich Body DR 6; Scabrous Touch 2/day",
+              "summary": ""
+            },
+            {
+              "level": 12,
+              "name": "Advanced Learning; Enervating Touch",
+              "summary": ""
+            },
+            {
+              "level": 13,
+              "name": "Negative Energy Burst 3/day",
+              "summary": ""
+            },
+            {
+              "level": 14,
+              "name": "Mental Bastion +4",
+              "summary": ""
+            },
+            {
+              "level": 15,
+              "name": "Lich Body DR 8",
+              "summary": ""
+            },
+            {
+              "level": 16,
+              "name": "Advanced Learning; Scabrous Touch 3/day",
+              "summary": ""
+            },
+            {
+              "level": 17,
+              "name": "Enervating Touch improved; Fortification 50%",
+              "summary": ""
+            },
+            {
+              "level": 18,
+              "name": "Negative Energy Burst 4/day",
+              "summary": ""
+            },
+            {
+              "level": 19,
+              "name": "Craft Wondrous Item",
+              "summary": ""
+            },
+            {
+              "level": 20,
+              "name": "Advanced Learning; Humanoid Lich Transformation",
+              "summary": ""
+            }
+          ],
+          "feature_values": [
+            {
+              "at_level": 1,
+              "name": "Charnel Touch",
+              "values": {
+                "damage_d8": "1",
+                "damage_flat": "floor(CLASSLEVEL/4)",
+                "undead_healing": "1+floor(CLASSLEVEL/4)",
+                "range_feet": "0",
+                "per_round": "1",
+                "dice": "1",
+                "flat": "floor(CLASSLEVEL/4)"
+              },
+              "resolution": {
+                "kind": "vitality",
+                "energy": "negative",
+                "self_only": false,
+                "touch": true,
+                "radius_feet": null,
+                "dice_sides": 8,
+                "save": "none",
+                "points": false,
+                "cap_half": false
+              }
+            },
+            {
+              "at_level": 2,
+              "name": "Lich Body",
+              "values": {
+                "damage_reduction": "if(CLASSLEVEL>=15,8,if(CLASSLEVEL>=11,6,if(CLASSLEVEL>=7,4,2)))"
+              }
+            },
+            {
+              "at_level": 3,
+              "name": "Negative Energy Burst",
+              "values": {
+                "damage_d4": "CLASSLEVEL",
+                "radius_feet": "5",
+                "will_dc": "10+floor(CLASSLEVEL/2)+CHA",
+                "dice": "CLASSLEVEL",
+                "flat": "0",
+                "save_dc": "10+floor(CLASSLEVEL/2)+CHA"
+              },
+              "daily_uses": "1+floor((CLASSLEVEL-3)/5)",
+              "resolution": {
+                "kind": "vitality",
+                "energy": "negative",
+                "self_only": false,
+                "touch": false,
+                "radius_feet": 5,
+                "dice_sides": 4,
+                "save": "will",
+                "points": false,
+                "cap_half": false
+              }
+            },
+            {
+              "at_level": 4,
+              "name": "Mental Bastion",
+              "values": {
+                "sleep_stun_poison_paralysis_disease_save_bonus": "if(CLASSLEVEL>=14,4,2)"
+              }
+            },
+            {
+              "at_level": 5,
+              "name": "Fear Aura",
+              "values": {
+                "will_dc": "10+floor(CLASSLEVEL/2)+CHA",
+                "radius_feet": "5",
+                "successful_save_immunity_hours": "24"
+              },
+              "resolution": {
+                "kind": "fear_aura",
+                "radius_feet": 5
+              }
+            },
+            {
+              "at_level": 6,
+              "name": "Scabrous Touch",
+              "values": {
+                "initial_fortitude_dc": "10+floor(CLASSLEVEL/2)+CHA"
+              },
+              "daily_uses": "1+floor((CLASSLEVEL-6)/5)"
+            },
+            {
+              "at_level": 8,
+              "name": "Undead Mastery",
+              "values": {
+                "created_str_enhancement": "4",
+                "created_dex_enhancement": "4",
+                "created_hp_per_hd": "2",
+                "animate_dead_control_hd": "(4+max(CHA,0))*CLASSLEVEL",
+                "control_undead_hd": "(2+max(CHA,0))*CLASSLEVEL"
+              }
+            },
+            {
+              "at_level": 9,
+              "name": "Negative Energy Resistance",
+              "values": {
+                "save_bonus": "4"
+              }
+            },
+            {
+              "at_level": 10,
+              "name": "Fortification",
+              "values": {
+                "percent": "if(CLASSLEVEL>=17,50,25)"
+              }
+            },
+            {
+              "at_level": 12,
+              "name": "Enervating Touch",
+              "values": {
+                "negative_levels_per_touch": "2",
+                "removal_save_dc": "10+floor(CLASSLEVEL/2)+CHA"
+              },
+              "daily_uses": "if(CLASSLEVEL>=17,CLASSLEVEL,floor(CLASSLEVEL/2))"
+            },
+            {
+              "at_level": 20,
+              "name": "Lich Transformation",
+              "values": {
+                "rerolled_hit_die": "12",
+                "constitution_score_removed": "1",
+                "phylactery_gp": "0",
+                "phylactery_xp": "0"
+              }
+            }
+          ],
+          "turning_from_level": 1,
+          "bonus_feats": [
+            {
+              "level": 19,
+              "feat": "Craft Wondrous Item"
+            }
+          ],
+          "turning_mode": "rebuke",
+          "diseases": [
+            {
+              "name": "Blinding Sickness",
+              "dc": 16,
+              "damage": {
+                "STR": 4
+              },
+              "blindness": true,
+              "drain": false
+            },
+            {
+              "name": "Cackle Fever",
+              "dc": 16,
+              "damage": {
+                "WIS": 6
+              },
+              "blindness": false,
+              "drain": false
+            },
+            {
+              "name": "Filth Fever",
+              "dc": 12,
+              "damage": {
+                "DEX": 3,
+                "CON": 3
+              },
+              "blindness": false,
+              "drain": false
+            },
+            {
+              "name": "Mindfire",
+              "dc": 12,
+              "damage": {
+                "INT": 4
+              },
+              "blindness": false,
+              "drain": false
+            },
+            {
+              "name": "Red Ache",
+              "dc": 15,
+              "damage": {
+                "STR": 6
+              },
+              "blindness": false,
+              "drain": false
+            },
+            {
+              "name": "Shakes",
+              "dc": 13,
+              "damage": {
+                "DEX": 8
+              },
+              "blindness": false,
+              "drain": false
+            },
+            {
+              "name": "Slimy Doom",
+              "dc": 14,
+              "damage": {
+                "CON": 4
+              },
+              "blindness": false,
+              "drain": true
+            }
+          ]
+        }
+      },
+      "effects": []
+    }
+  ],
+  "spells": [
+    {
+      "id": "Rouse",
+      "name": "Rouse",
+      "school": "Enchantment",
+      "subschool": "Compulsion",
+      "descriptors": [
+        "Mind-Affecting"
+      ],
+      "class_levels": {
+        "Beguiler": 1,
+        "Duskblade": 1,
+        "Sorcerer": 1,
+        "Wizard": 1
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Whelm",
+      "name": "Whelm",
+      "school": "Enchantment",
+      "subschool": "Compulsion",
+      "descriptors": [
+        "Mind-Affecting"
+      ],
+      "class_levels": {
+        "Beguiler": 1,
+        "Sorcerer": 1,
+        "Wizard": 1
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Blinding Color Surge",
+      "name": "Blinding Color Surge",
+      "school": "Illusion",
+      "subschool": "Glamer",
+      "descriptors": [],
+      "class_levels": {
+        "Beguiler": 2,
+        "Sorcerer": 2,
+        "Wizard": 2
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Stay the Hand",
+      "name": "Stay the Hand",
+      "school": "Enchantment",
+      "subschool": "Charm",
+      "descriptors": [
+        "Mind-Affecting"
+      ],
+      "class_levels": {
+        "Bard": 1,
+        "Beguiler": 2,
+        "Cleric": 2,
+        "Sorcerer": 2,
+        "Wizard": 2
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": false,
+        "casting_time": "immediate"
+      }
+    },
+    {
+      "id": "Vertigo",
+      "name": "Vertigo",
+      "school": "Illusion",
+      "subschool": "Phantasm",
+      "descriptors": [
+        "Fear",
+        "Mind-Affecting"
+      ],
+      "class_levels": {
+        "Bard": 2,
+        "Beguiler": 2,
+        "Sorcerer": 2,
+        "Wizard": 2
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Whelming Burst",
+      "name": "Whelming Burst",
+      "school": "Enchantment",
+      "subschool": "Compulsion",
+      "descriptors": [
+        "Mind-Affecting"
+      ],
+      "class_levels": {
+        "Beguiler": 2,
+        "Sorcerer": 2,
+        "Wizard": 2
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": []
+    },
+    {
+      "id": "Crown of Veils",
+      "name": "Crown of Veils",
+      "school": "Illusion",
+      "subschool": "Figment",
+      "descriptors": [],
+      "class_levels": {
+        "Bard": 2,
+        "Beguiler": 3,
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Halt",
+      "name": "Halt",
+      "school": "Transmutation",
+      "subschool": null,
+      "descriptors": [],
+      "class_levels": {
+        "Bard": 3,
+        "Beguiler": 3,
+        "Duskblade": 3,
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": false,
+        "casting_time": "immediate"
+      }
+    },
+    {
+      "id": "Hesitate",
+      "name": "Hesitate",
+      "school": "Enchantment",
+      "subschool": "Compulsion",
+      "descriptors": [
+        "Mind-Affecting"
+      ],
+      "class_levels": {
+        "Bard": 3,
+        "Beguiler": 3,
+        "Cleric": 3,
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "immediate"
+      }
+    },
+    {
+      "id": "Inevitable Defeat",
+      "name": "Inevitable Defeat",
+      "school": "Enchantment",
+      "subschool": "Compulsion",
+      "descriptors": [
+        "Mind-Affecting"
+      ],
+      "class_levels": {
+        "Beguiler": 3,
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Legion of Sentinels",
+      "name": "Legion of Sentinels",
+      "school": "Illusion",
+      "subschool": "Shadow",
+      "descriptors": [],
+      "class_levels": {
+        "Beguiler": 3,
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Vertigo Field",
+      "name": "Vertigo Field",
+      "school": "Illusion",
+      "subschool": "Pattern",
+      "descriptors": [],
+      "class_levels": {
+        "Beguiler": 3,
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Mirror Image (Greater)",
+      "name": "Mirror Image (Greater)",
+      "school": "Illusion",
+      "subschool": "Figment",
+      "descriptors": [],
+      "class_levels": {
+        "Bard": 4,
+        "Beguiler": 4,
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "immediate"
+      }
+    },
+    {
+      "id": "Whelm (Mass)",
+      "name": "Whelm (Mass)",
+      "school": "Enchantment",
+      "subschool": "Compulsion",
+      "descriptors": [
+        "Mind-Affecting"
+      ],
+      "class_levels": {
+        "Beguiler": 4,
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Phantom Battle",
+      "name": "Phantom Battle",
+      "school": "Illusion",
+      "subschool": "Figment",
+      "descriptors": [],
+      "class_levels": {
+        "Bard": 3,
+        "Beguiler": 4,
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Friend to Foe",
+      "name": "Friend to Foe",
+      "school": "Illusion",
+      "subschool": "Phantasm",
+      "descriptors": [
+        "Mind-Affecting"
+      ],
+      "class_levels": {
+        "Bard": 5,
+        "Beguiler": 5,
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Incite Riot",
+      "name": "Incite Riot",
+      "school": "Enchantment",
+      "subschool": null,
+      "descriptors": [
+        "Mind-Affecting"
+      ],
+      "class_levels": {
+        "Bard": 5,
+        "Beguiler": 5,
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": false,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Etherealness (Swift)",
+      "name": "Etherealness (Swift)",
+      "school": "Transmutation",
+      "subschool": null,
+      "descriptors": [],
+      "class_levels": {
+        "Beguiler": 5,
+        "Cleric": 5,
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "swift"
+      }
+    },
+    {
+      "id": "Overwhelm",
+      "name": "Overwhelm",
+      "school": "Enchantment",
+      "subschool": "Compulsion",
+      "descriptors": [
+        "Mind-Affecting"
+      ],
+      "class_levels": {
+        "Beguiler": 6,
+        "Sorcerer": 6,
+        "Wizard": 6
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Bestow Wound",
+      "name": "Bestow Wound",
+      "school": "Transmutation",
+      "subschool": null,
+      "descriptors": [],
+      "class_levels": {
+        "Dread Necromancer": 1,
+        "Sorcerer": 1,
+        "Wizard": 1
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": []
+    },
+    {
+      "id": "Summon Undead I",
+      "name": "Summon Undead I",
+      "school": "Conjuration",
+      "subschool": "Summoning",
+      "descriptors": [
+        "Evil"
+      ],
+      "class_levels": {
+        "Blackguard": 1,
+        "Cleric": 1,
+        "Dread Necromancer": 1,
+        "Sorcerer": 1,
+        "Wizard": 1
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "full_round"
+      }
+    },
+    {
+      "id": "Summon Undead II",
+      "name": "Summon Undead II",
+      "school": "Conjuration",
+      "subschool": "Summoning",
+      "descriptors": [
+        "Evil"
+      ],
+      "class_levels": {
+        "Blackguard": 2,
+        "Cleric": 2,
+        "Dread Necromancer": 2,
+        "Sorcerer": 2,
+        "Wizard": 2
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "full_round"
+      }
+    },
+    {
+      "id": "Summon Undead III",
+      "name": "Summon Undead III",
+      "school": "Conjuration",
+      "subschool": "Summoning",
+      "descriptors": [
+        "Evil"
+      ],
+      "class_levels": {
+        "Blackguard": 3,
+        "Cleric": 3,
+        "Dread Necromancer": 3,
+        "Sorcerer": 3,
+        "Wizard": 3
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "full_round"
+      }
+    },
+    {
+      "id": "Summon Undead IV",
+      "name": "Summon Undead IV",
+      "school": "Conjuration",
+      "subschool": "Summoning",
+      "descriptors": [
+        "Evil"
+      ],
+      "class_levels": {
+        "Blackguard": 4,
+        "Cleric": 4,
+        "Dread Necromancer": 4,
+        "Sorcerer": 4,
+        "Wizard": 4
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "full_round"
+      }
+    },
+    {
+      "id": "Fire in the Blood",
+      "name": "Fire in the Blood",
+      "school": "Transmutation",
+      "subschool": null,
+      "descriptors": [],
+      "class_levels": {
+        "Cleric": 5
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": []
+    },
+    {
+      "id": "Oath of Blood",
+      "name": "Oath of Blood",
+      "school": "Necromancy",
+      "subschool": null,
+      "descriptors": [],
+      "class_levels": {
+        "Cleric": 5,
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": []
+    },
+    {
+      "id": "Summon Undead V",
+      "name": "Summon Undead V",
+      "school": "Conjuration",
+      "subschool": "Summoning",
+      "descriptors": [
+        "Evil"
+      ],
+      "class_levels": {
+        "Cleric": 5,
+        "Dread Necromancer": 5,
+        "Sorcerer": 5,
+        "Wizard": 5
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "full_round"
+      }
+    },
+    {
+      "id": "Harm (Greater)",
+      "name": "Harm (Greater)",
+      "school": "Necromancy",
+      "subschool": null,
+      "descriptors": [],
+      "class_levels": {
+        "Cleric": 7,
+        "Dread Necromancer": 7
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": []
+    },
+    {
+      "id": "Vile Death",
+      "name": "Vile Death",
+      "school": "Conjuration",
+      "subschool": "Calling",
+      "descriptors": [
+        "Evil"
+      ],
+      "class_levels": {
+        "Dread Necromancer": 7,
+        "Cleric": 9,
+        "Sorcerer": 9,
+        "Wizard": 9
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    },
+    {
+      "id": "Imprison Soul",
+      "name": "Imprison Soul",
+      "school": "Necromancy",
+      "subschool": null,
+      "descriptors": [
+        "Evil"
+      ],
+      "class_levels": {
+        "Cleric": 9,
+        "Dread Necromancer": 9
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": []
+    },
+    {
+      "id": "Harm (Mass)",
+      "name": "Harm (Mass)",
+      "school": "Necromancy",
+      "subschool": null,
+      "descriptors": [],
+      "class_levels": {
+        "Dread Necromancer": 9
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": []
+    },
+    {
+      "id": "Plague of Undead",
+      "name": "Plague of Undead",
+      "school": "Necromancy",
+      "subschool": null,
+      "descriptors": [
+        "Evil"
+      ],
+      "class_levels": {
+        "Cleric": 9,
+        "Dread Necromancer": 9,
+        "Sorcerer": 9,
+        "Wizard": 9
+      },
+      "level": 0,
+      "is_psionic": false,
+      "domains": [],
+      "variants": [],
+      "profile": {
+        "somatic": true,
+        "casting_time": "standard"
+      }
+    }
+  ],
+  "spell_lists": {
+    "Beguiler": {
+      "Dancing Lights": 0,
+      "Daze": 0,
+      "Detect Magic": 0,
+      "Ghost Sound": 0,
+      "Message": 0,
+      "Open/Close": 0,
+      "Read Magic": 0,
+      "Charm Person": 1,
+      "Color Spray": 1,
+      "Comprehend Languages": 1,
+      "Detect Secret Doors": 1,
+      "Disguise Self": 1,
+      "Expeditious Retreat": 1,
+      "Hypnotism": 1,
+      "Mage Armor": 1,
+      "Obscuring Mist": 1,
+      "Rouse": 1,
+      "Silent Image": 1,
+      "Sleep": 1,
+      "Undetectable Alignment": 1,
+      "Whelm": 1,
+      "Blinding Color Surge": 2,
+      "Blur": 2,
+      "Daze Monster": 2,
+      "Detect Thoughts": 2,
+      "Fog Cloud": 2,
+      "Glitterdust": 2,
+      "Hypnotic Pattern": 2,
+      "Invisibility": 2,
+      "Knock": 2,
+      "Minor Image": 2,
+      "Mirror Image": 2,
+      "Misdirection": 2,
+      "See Invisibility": 2,
+      "Silence": 2,
+      "Spider Climb": 2,
+      "Stay the Hand": 2,
+      "Touch of Idiocy": 2,
+      "Vertigo": 2,
+      "Whelming Burst": 2,
+      "Arcane Sight": 3,
+      "Clairaudience/Clairvoyance": 3,
+      "Crown of Veils": 3,
+      "Deep Slumber": 3,
+      "Dispel Magic": 3,
+      "Displacement": 3,
+      "Glibness": 3,
+      "Halt": 3,
+      "Haste": 3,
+      "Hesitate": 3,
+      "Hold Person": 3,
+      "Inevitable Defeat": 3,
+      "Invisibility Sphere": 3,
+      "Legion of Sentinels": 3,
+      "Major Image": 3,
+      "Nondetection": 3,
+      "Slow": 3,
+      "Suggestion": 3,
+      "Vertigo Field": 3,
+      "Zone of Silence": 3,
+      "Charm Monster": 4,
+      "Confusion": 4,
+      "Crushing Despair": 4,
+      "Freedom of Movement": 4,
+      "Invisibility (Greater)": 4,
+      "Mirror Image (Greater)": 4,
+      "Locate Creature": 4,
+      "Whelm (Mass)": 4,
+      "Phantom Battle": 4,
+      "Rainbow Pattern": 4,
+      "Solid Fog": 4,
+      "Break Enchantment": 5,
+      "Dominate Person": 5,
+      "Feeblemind": 5,
+      "Friend to Foe": 5,
+      "Hold Monster": 5,
+      "Incite Riot": 5,
+      "Mind Fog": 5,
+      "Telepathic Bond": 5,
+      "Seeming": 5,
+      "Sending": 5,
+      "Etherealness (Swift)": 5,
+      "Dispel Magic (Greater)": 6,
+      "Suggestion (Mass)": 6,
+      "Mislead": 6,
+      "Overwhelm": 6,
+      "Repulsion": 6,
+      "Shadow Walk": 6,
+      "True Seeing": 6,
+      "Veil": 6,
+      "Ethereal Jaunt": 7,
+      "Arcane Sight (Greater)": 7,
+      "Hold Person (Mass)": 7,
+      "Invisibility (Mass)": 7,
+      "Phase Door": 7,
+      "Power Word Blind": 7,
+      "Project Image": 7,
+      "Spell Turning": 7,
+      "Demand": 8,
+      "Discern Location": 8,
+      "Mind Blank": 8,
+      "Moment of Prescience": 8,
+      "Power Word Stun": 8,
+      "Scintillating Pattern": 8,
+      "Screen": 8,
+      "Dominate Monster": 9,
+      "Etherealness": 9,
+      "Foresight": 9,
+      "Hold Monster (Mass)": 9,
+      "Power Word Kill": 9,
+      "Time Stop": 9
+    },
+    "Dread Necromancer": {
+      "Bane": 1,
+      "Bestow Wound": 1,
+      "Cause Fear": 1,
+      "Chill Touch": 1,
+      "Detect Magic": 1,
+      "Detect Undead": 1,
+      "Doom": 1,
+      "Hide from Undead": 1,
+      "Inflict Light Wounds": 1,
+      "Ray of Enfeeblement": 1,
+      "Summon Undead I": 1,
+      "Undetectable Alignment": 1,
+      "Blindness/Deafness": 2,
+      "Command Undead": 2,
+      "Darkness": 2,
+      "Death Knell": 2,
+      "False Life": 2,
+      "Gentle Repose": 2,
+      "Ghoul Touch": 2,
+      "Inflict Moderate Wounds": 2,
+      "Scare": 2,
+      "Spectral Hand": 2,
+      "Summon Swarm": 2,
+      "Summon Undead II": 2,
+      "Crushing Despair": 3,
+      "Death Ward": 3,
+      "Halt Undead": 3,
+      "Inflict Serious Wounds": 3,
+      "Ray of Exhaustion": 3,
+      "Speak with Dead": 3,
+      "Summon Undead III": 3,
+      "Vampiric Touch": 3,
+      "Animate Dead": 4,
+      "Bestow Curse": 4,
+      "Contagion": 4,
+      "Dispel Magic": 4,
+      "Enervation": 4,
+      "Black Tentacles": 4,
+      "Fear": 4,
+      "Giant Vermin": 4,
+      "Inflict Critical Wounds": 4,
+      "Phantasmal Killer": 4,
+      "Poison": 4,
+      "Summon Undead IV": 4,
+      "Blight": 5,
+      "Cloudkill": 5,
+      "Fire in the Blood": 5,
+      "Dispel Magic (Greater)": 5,
+      "Insect Plague": 5,
+      "Planar Binding (Lesser)": 5,
+      "Magic Jar": 5,
+      "Inflict Light Wounds (Mass)": 5,
+      "Nightmare": 5,
+      "Oath of Blood": 5,
+      "Slay Living": 5,
+      "Summon Undead V": 5,
+      "Undeath to Death": 5,
+      "Unhallow": 5,
+      "Waves of Fatigue": 5,
+      "Acid Fog": 6,
+      "Circle of Death": 6,
+      "Create Undead": 6,
+      "Eyebite": 6,
+      "Geas/Quest": 6,
+      "Harm": 6,
+      "Inflict Moderate Wounds (Mass)": 6,
+      "Planar Binding": 6,
+      "Waves of Exhaustion": 6,
+      "Control Undead": 7,
+      "Destruction": 7,
+      "Finger of Death": 7,
+      "Harm (Greater)": 7,
+      "Inflict Serious Wounds (Mass)": 7,
+      "Song of Discord": 7,
+      "Vile Death": 7,
+      "Create Greater Undead": 8,
+      "Horrid Wilting": 8,
+      "Inflict Critical Wounds (Mass)": 8,
+      "Symbol of Death": 8,
+      "Energy Drain": 9,
+      "Imprison Soul": 9,
+      "Harm (Mass)": 9,
+      "Plague of Undead": 9,
+      "Wail of the Banshee": 9
+    }
+  }
+}

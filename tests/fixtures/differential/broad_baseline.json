@@ -46,18 +46,47 @@
         },
         "ability_pool_usage": {
           "atest": {
-            "pool": 0,
-            "remaining": 0,
+            "pool": 5,
+            "remaining": 5,
             "selection_counts": {},
             "spent": 0
           },
           "exotic_weapon_choice": {
-            "pool": 0,
+            "pool": 1,
             "remaining": 0,
             "selection_counts": {
               "exotic_weapon_proficiency": 1
             },
             "spent": 1
+          },
+          "feat": {
+            "pool": 2,
+            "remaining": 0,
+            "selection_counts": {
+              "add_feat_class_level": 1,
+              "add_feat_class_line": 1,
+              "add_feat_deity": 1,
+              "add_feat_domain": 1,
+              "alice_~_armor_prof": 1,
+              "alice_~_class_skill": 1,
+              "alice_~_cross_class_test": 1,
+              "alice_~_equipment": 1,
+              "alice_~_language": 1,
+              "alice_~_shield_prof": 1,
+              "alice_~_spellknown_test": 1,
+              "alice_~_spelllevel_test": 1,
+              "alice_~_test_31": 1,
+              "alice_~_weapon_prof": 1,
+              "exotic_weapon_proficiency": 1,
+              "global_~_choose_cskill": 1,
+              "global_~_cskill": 1,
+              "test_choose_armorprof": 1,
+              "test_choose_deity_pantheon_elf": 1,
+              "test_choose_weapon_focus_ability": 1,
+              "weapon_finesse": 1,
+              "weapon_focus": 1
+            },
+            "spent": 22
           },
           "salient_divine_ability": {
             "pool": 0,
@@ -67,8 +96,9 @@
           }
         },
         "ability_pools": {
-          "atest": 0,
-          "exotic_weapon_choice": 0,
+          "atest": 5,
+          "exotic_weapon_choice": 1,
+          "feat": 2,
           "salient_divine_ability": 0
         },
         "choice_bindings": {
@@ -794,6 +824,12 @@
             "selection_counts": {},
             "spent": 0
           },
+          "feat": {
+            "pool": 3,
+            "remaining": 3,
+            "selection_counts": {},
+            "spent": 0
+          },
           "open_minded_skill": {
             "pool": 0,
             "remaining": 0,
@@ -810,6 +846,7 @@
         "ability_pools": {
           "favored_enemy": 0,
           "favored_enemy_bonus": 0,
+          "feat": 3,
           "open_minded_skill": 0,
           "salient_divine_ability": 0
         },
@@ -1112,33 +1149,54 @@
         },
         "ability_pool_usage": {
           "atest": {
-            "pool": 0,
-            "remaining": 0,
-            "selection_counts": {
-              "bob_test_~_bonus_var_in_a_chooser": 1,
-              "grant_template_chosen": 1
-            },
-            "spent": 2
+            "pool": 5,
+            "remaining": 5,
+            "selection_counts": {},
+            "spent": 0
           },
           "exotic_weapon_choice": {
-            "pool": 0,
+            "pool": 1,
             "remaining": 0,
             "selection_counts": {
               "exotic_weapon_proficiency": 1
             },
             "spent": 1
           },
+          "feat": {
+            "pool": 2,
+            "remaining": 0,
+            "selection_counts": {
+              "ability_a": 1,
+              "ability_d": 1,
+              "ability_f": 1,
+              "bob_test_feat_choose_spelllevel_arcane": 1,
+              "bob_test_feat_choose_spells_monkee": 1,
+              "bob_~_test_31": 1,
+              "exotic_weapon_proficiency": 1,
+              "test-72": 1,
+              "weapon_focus": 1
+            },
+            "spent": 9
+          },
           "salient_divine_ability": {
             "pool": 0,
             "remaining": 0,
             "selection_counts": {},
             "spent": 0
+          },
+          "test_choosers": {
+            "pool": 3,
+            "remaining": 3,
+            "selection_counts": {},
+            "spent": 0
           }
         },
         "ability_pools": {
-          "atest": 0,
-          "exotic_weapon_choice": 0,
-          "salient_divine_ability": 0
+          "atest": 5,
+          "exotic_weapon_choice": 1,
+          "feat": 2,
+          "salient_divine_ability": 0,
+          "test_choosers": 3
         },
         "choice_bindings": {
           "bob_test_feat_choose_spelllevel_arcane": [
@@ -1651,18 +1709,34 @@
         },
         "ability_pool_usage": {
           "atest": {
-            "pool": 0,
-            "remaining": 0,
+            "pool": 5,
+            "remaining": 5,
             "selection_counts": {},
             "spent": 0
           },
           "exotic_weapon_choice": {
-            "pool": 0,
+            "pool": 1,
             "remaining": 0,
             "selection_counts": {
               "exotic_weapon_proficiency": 1
             },
             "spent": 1
+          },
+          "feat": {
+            "pool": 2,
+            "remaining": 0,
+            "selection_counts": {
+              "add_feat_race": 1,
+              "add_feat_skill": 1,
+              "add_feat_template": 1,
+              "charlie_~_bonus_stat_base_spell_known_stat_~_colon": 1,
+              "charlie_~_bonus_stat_base_spell_stat_~_colon": 1,
+              "charlie_~_test_31": 1,
+              "charlie_~_test_32": 1,
+              "exotic_weapon_proficiency": 1,
+              "weapon_focus": 1
+            },
+            "spent": 9
           },
           "salient_divine_ability": {
             "pool": 0,
@@ -1672,8 +1746,9 @@
           }
         },
         "ability_pools": {
-          "atest": 0,
-          "exotic_weapon_choice": 0,
+          "atest": 5,
+          "exotic_weapon_choice": 1,
+          "feat": 2,
           "salient_divine_ability": 0
         },
         "choice_bindings": {
@@ -2340,32 +2415,33 @@
           "favored_enemy": {
             "pool": 0,
             "remaining": 0,
-            "selection_counts": {
-              "cleave": 1,
-              "improved_bull_rush": 1,
-              "power_attack": 1
-            },
-            "spent": 3
+            "selection_counts": {},
+            "spent": 0
           },
           "favored_enemy_bonus": {
             "pool": 0,
             "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "feat": {
+            "pool": 6,
+            "remaining": 0,
             "selection_counts": {
+              "awesome_blow": 1,
               "cleave": 1,
               "improved_bull_rush": 1,
+              "improved_overrun": 1,
+              "iron_will": 1,
               "power_attack": 1
             },
-            "spent": 3
+            "spent": 6
           },
           "open_minded_skill": {
             "pool": 0,
             "remaining": 0,
-            "selection_counts": {
-              "cleave": 1,
-              "improved_bull_rush": 1,
-              "power_attack": 1
-            },
-            "spent": 3
+            "selection_counts": {},
+            "spent": 0
           },
           "salient_divine_ability": {
             "pool": 0,
@@ -2377,6 +2453,7 @@
         "ability_pools": {
           "favored_enemy": 0,
           "favored_enemy_bonus": 0,
+          "feat": 6,
           "open_minded_skill": 0,
           "salient_divine_ability": 0
         },
@@ -2679,16 +2756,32 @@
         },
         "ability_pool_usage": {
           "atest": {
-            "pool": 0,
-            "remaining": 0,
+            "pool": 5,
+            "remaining": 5,
             "selection_counts": {},
             "spent": 0
           },
           "exotic_weapon_choice": {
-            "pool": 0,
-            "remaining": 0,
+            "pool": 1,
+            "remaining": 1,
             "selection_counts": {},
             "spent": 0
+          },
+          "feat": {
+            "pool": 2,
+            "remaining": 0,
+            "selection_counts": {
+              "autofeat_parentthingytype1": 1,
+              "autofeat_parentthingytype2": 1,
+              "autofeat_parentthingytype3": 1,
+              "autofeat_parentthingytype8": 1,
+              "choose_feat_selection": 1,
+              "parentthingytype1": 1,
+              "parentthingytype2": 1,
+              "parentthingytype3": 1,
+              "parentthingytype8": 1
+            },
+            "spent": 9
           },
           "salient_divine_ability": {
             "pool": 0,
@@ -2698,8 +2791,9 @@
           }
         },
         "ability_pools": {
-          "atest": 0,
-          "exotic_weapon_choice": 0,
+          "atest": 5,
+          "exotic_weapon_choice": 1,
+          "feat": 2,
           "salient_divine_ability": 0
         },
         "choice_bindings": {
@@ -3182,16 +3276,30 @@
         },
         "ability_pool_usage": {
           "atest": {
-            "pool": 0,
-            "remaining": 0,
+            "pool": 5,
+            "remaining": 5,
             "selection_counts": {},
             "spent": 0
           },
           "exotic_weapon_choice": {
-            "pool": 0,
-            "remaining": 0,
+            "pool": 1,
+            "remaining": 1,
             "selection_counts": {},
             "spent": 0
+          },
+          "feat": {
+            "pool": 2,
+            "remaining": 0,
+            "selection_counts": {
+              "autofeat_parentthingytype4": 1,
+              "autofeat_parentthingytype5": 1,
+              "autofeat_parentthingytype9": 1,
+              "choose_feat_selection": 1,
+              "parentthingytype4": 1,
+              "parentthingytype5": 1,
+              "parentthingytype9": 1
+            },
+            "spent": 7
           },
           "salient_divine_ability": {
             "pool": 0,
@@ -3201,8 +3309,9 @@
           }
         },
         "ability_pools": {
-          "atest": 0,
-          "exotic_weapon_choice": 0,
+          "atest": 5,
+          "exotic_weapon_choice": 1,
+          "feat": 2,
           "salient_divine_ability": 0
         },
         "choice_bindings": {
@@ -3685,16 +3794,28 @@
         },
         "ability_pool_usage": {
           "atest": {
-            "pool": 0,
-            "remaining": 0,
+            "pool": 5,
+            "remaining": 5,
             "selection_counts": {},
             "spent": 0
           },
           "exotic_weapon_choice": {
-            "pool": 0,
-            "remaining": 0,
+            "pool": 1,
+            "remaining": 1,
             "selection_counts": {},
             "spent": 0
+          },
+          "feat": {
+            "pool": 2,
+            "remaining": 0,
+            "selection_counts": {
+              "autofeat_parentthingytype6": 1,
+              "autofeat_parentthingytype7": 1,
+              "choose_feat_selection": 1,
+              "parentthingytype6": 1,
+              "parentthingytype7": 1
+            },
+            "spent": 5
           },
           "salient_divine_ability": {
             "pool": 0,
@@ -3704,8 +3825,9 @@
           }
         },
         "ability_pools": {
-          "atest": 0,
-          "exotic_weapon_choice": 0,
+          "atest": 5,
+          "exotic_weapon_choice": 1,
+          "feat": 2,
           "salient_divine_ability": 0
         },
         "choice_bindings": {
@@ -4184,14 +4306,20 @@
         },
         "ability_pool_usage": {
           "atest": {
-            "pool": 0,
-            "remaining": 0,
+            "pool": 5,
+            "remaining": 5,
             "selection_counts": {},
             "spent": 0
           },
           "exotic_weapon_choice": {
-            "pool": 0,
-            "remaining": 0,
+            "pool": 1,
+            "remaining": 1,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "feat": {
+            "pool": 1,
+            "remaining": 1,
             "selection_counts": {},
             "spent": 0
           },
@@ -4203,8 +4331,9 @@
           }
         },
         "ability_pools": {
-          "atest": 0,
-          "exotic_weapon_choice": 0,
+          "atest": 5,
+          "exotic_weapon_choice": 1,
+          "feat": 1,
           "salient_divine_ability": 0
         },
         "choice_bindings": {},
@@ -4677,14 +4806,20 @@
         },
         "ability_pool_usage": {
           "atest": {
-            "pool": 0,
-            "remaining": 0,
+            "pool": 5,
+            "remaining": 5,
             "selection_counts": {},
             "spent": 0
           },
           "exotic_weapon_choice": {
-            "pool": 0,
-            "remaining": 0,
+            "pool": 1,
+            "remaining": 1,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "feat": {
+            "pool": 2,
+            "remaining": 2,
             "selection_counts": {},
             "spent": 0
           },
@@ -4696,8 +4831,9 @@
           }
         },
         "ability_pools": {
-          "atest": 0,
-          "exotic_weapon_choice": 0,
+          "atest": 5,
+          "exotic_weapon_choice": 1,
+          "feat": 2,
           "salient_divine_ability": 0
         },
         "choice_bindings": {},
@@ -5170,18 +5306,29 @@
         },
         "ability_pool_usage": {
           "atest": {
-            "pool": 0,
-            "remaining": 0,
-            "selection_counts": {
-              "grant_template_chosen": 1
-            },
-            "spent": 1
-          },
-          "exotic_weapon_choice": {
-            "pool": 0,
-            "remaining": 0,
+            "pool": 5,
+            "remaining": 5,
             "selection_counts": {},
             "spent": 0
+          },
+          "exotic_weapon_choice": {
+            "pool": 1,
+            "remaining": 1,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "feat": {
+            "pool": 2,
+            "remaining": 0,
+            "selection_counts": {
+              "targetedability_~_weaponprof": 1,
+              "test-74": 1,
+              "test-75": 1,
+              "test-76": 1,
+              "test-77": 1,
+              "test-78": 1
+            },
+            "spent": 6
           },
           "salient_divine_ability": {
             "pool": 0,
@@ -5191,8 +5338,9 @@
           }
         },
         "ability_pools": {
-          "atest": 0,
-          "exotic_weapon_choice": 0,
+          "atest": 5,
+          "exotic_weapon_choice": 1,
+          "feat": 2,
           "salient_divine_ability": 0
         },
         "choice_bindings": {
@@ -5675,18 +5823,29 @@
         },
         "ability_pool_usage": {
           "atest": {
-            "pool": 0,
-            "remaining": 0,
-            "selection_counts": {
-              "test-66a": 1
-            },
-            "spent": 1
-          },
-          "exotic_weapon_choice": {
-            "pool": 0,
-            "remaining": 0,
+            "pool": 5,
+            "remaining": 5,
             "selection_counts": {},
             "spent": 0
+          },
+          "exotic_weapon_choice": {
+            "pool": 1,
+            "remaining": 1,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "feat": {
+            "pool": 3,
+            "remaining": 0,
+            "selection_counts": {
+              "test-64a": 1,
+              "test-66b": 1,
+              "test-67": 1,
+              "test63a": 1,
+              "test63b": 1,
+              "test63c": 1
+            },
+            "spent": 6
           },
           "salient_divine_ability": {
             "pool": 0,
@@ -5696,8 +5855,9 @@
           }
         },
         "ability_pools": {
-          "atest": 0,
-          "exotic_weapon_choice": 0,
+          "atest": 5,
+          "exotic_weapon_choice": 1,
+          "feat": 3,
           "salient_divine_ability": 0
         },
         "choice_bindings": {
@@ -6363,26 +6523,35 @@
           "favored_enemy": {
             "pool": 0,
             "remaining": 0,
-            "selection_counts": {
-              "combat_reflexes": 1
-            },
-            "spent": 1
+            "selection_counts": {},
+            "spent": 0
           },
           "favored_enemy_bonus": {
             "pool": 0,
             "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "feat": {
+            "pool": 3,
+            "remaining": 1,
             "selection_counts": {
-              "combat_reflexes": 1
+              "combat_reflexes": 1,
+              "improved_initiative": 1
             },
-            "spent": 1
+            "spent": 2
+          },
+          "fighter_feat": {
+            "pool": 2,
+            "remaining": 2,
+            "selection_counts": {},
+            "spent": 0
           },
           "open_minded_skill": {
             "pool": 0,
             "remaining": 0,
-            "selection_counts": {
-              "combat_reflexes": 1
-            },
-            "spent": 1
+            "selection_counts": {},
+            "spent": 0
           },
           "salient_divine_ability": {
             "pool": 0,
@@ -6394,6 +6563,8 @@
         "ability_pools": {
           "favored_enemy": 0,
           "favored_enemy_bonus": 0,
+          "feat": 3,
+          "fighter_feat": 2,
           "open_minded_skill": 0,
           "salient_divine_ability": 0
         },
@@ -6885,6 +7056,18 @@
             "selection_counts": {},
             "spent": 0
           },
+          "feat": {
+            "pool": 5,
+            "remaining": 5,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "fighter_feat": {
+            "pool": 6,
+            "remaining": 6,
+            "selection_counts": {},
+            "spent": 0
+          },
           "open_minded_skill": {
             "pool": 0,
             "remaining": 0,
@@ -6901,6 +7084,8 @@
         "ability_pools": {
           "favored_enemy": 0,
           "favored_enemy_bonus": 0,
+          "feat": 5,
+          "fighter_feat": 6,
           "open_minded_skill": 0,
           "salient_divine_ability": 0
         },
@@ -7394,6 +7579,18 @@
             "selection_counts": {},
             "spent": 0
           },
+          "feat": {
+            "pool": 4,
+            "remaining": 4,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "fighter_feat": {
+            "pool": 4,
+            "remaining": 4,
+            "selection_counts": {},
+            "spent": 0
+          },
           "open_minded_skill": {
             "pool": 0,
             "remaining": 0,
@@ -7405,13 +7602,22 @@
             "remaining": 0,
             "selection_counts": {},
             "spent": 0
+          },
+          "turn_undead": {
+            "pool": 1,
+            "remaining": 1,
+            "selection_counts": {},
+            "spent": 0
           }
         },
         "ability_pools": {
           "favored_enemy": 0,
           "favored_enemy_bonus": 0,
+          "feat": 4,
+          "fighter_feat": 4,
           "open_minded_skill": 0,
-          "salient_divine_ability": 0
+          "salient_divine_ability": 0,
+          "turn_undead": 1
         },
         "choice_bindings": {},
         "choices": {},
@@ -7739,16 +7945,37 @@
         },
         "ability_pool_usage": {
           "atest": {
-            "pool": 0,
-            "remaining": 0,
+            "pool": 5,
+            "remaining": 5,
             "selection_counts": {},
             "spent": 0
           },
           "exotic_weapon_choice": {
-            "pool": 0,
-            "remaining": 0,
+            "pool": 1,
+            "remaining": 1,
             "selection_counts": {},
             "spent": 0
+          },
+          "feat": {
+            "pool": 1,
+            "remaining": 0,
+            "selection_counts": {
+              "test-61_ability": 1,
+              "test-61_add_ability": 1,
+              "test-61_add_ability_cost_2": 1,
+              "test-61_add_ability_tough": 1,
+              "test-61_add_abilityb": 1,
+              "test-61_add_feat": 1,
+              "test-61_add_feat_cost_2": 1,
+              "test-61_add_feat_tough": 1,
+              "test-61_add_featb": 1,
+              "test-75": 1,
+              "test-76__add_skill": 1,
+              "toughness": 1,
+              "toughness_b": 1,
+              "weapon_focus": 1
+            },
+            "spent": 14
           },
           "salient_divine_ability": {
             "pool": 0,
@@ -7758,8 +7985,9 @@
           }
         },
         "ability_pools": {
-          "atest": 0,
-          "exotic_weapon_choice": 0,
+          "atest": 5,
+          "exotic_weapon_choice": 1,
+          "feat": 1,
           "salient_divine_ability": 0
         },
         "choice_bindings": {
@@ -8245,18 +8473,44 @@
         },
         "ability_pool_usage": {
           "atest": {
-            "pool": 0,
-            "remaining": 0,
-            "selection_counts": {
-              "test-66a": 1
-            },
-            "spent": 1
-          },
-          "exotic_weapon_choice": {
-            "pool": 0,
-            "remaining": 0,
+            "pool": 5,
+            "remaining": 5,
             "selection_counts": {},
             "spent": 0
+          },
+          "exotic_weapon_choice": {
+            "pool": 1,
+            "remaining": 1,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "feat": {
+            "pool": 4,
+            "remaining": 0,
+            "selection_counts": {
+              "dodge": 1,
+              "test-57-ability-1": 1,
+              "test-57-ability-2": 1,
+              "test-57-ability-4": 1,
+              "test-57-ability-6": 1,
+              "test-57-ability-7": 1,
+              "test-57_apply_a1": 1,
+              "test-57_apply_a2": 1,
+              "test-57_apply_a3_featselector": 1,
+              "test-57_apply_a3_myaddingfeat": 1,
+              "test-57_apply_a4": 1,
+              "test-57_apply_a5_featselector": 1,
+              "test-57_apply_a5_myaddingfeat": 1,
+              "test-57_apply_a6": 1,
+              "test-57_apply_a7": 1,
+              "test-57_apply_a8_myselectablefeat": 1,
+              "test-57_apply_a8_tobeadded": 1,
+              "test-57_apply_a9_myotherfeat_(is_also_cool)": 1,
+              "test-57_apply_a9_tobeadded": 1,
+              "test-65": 1,
+              "test-66b": 1
+            },
+            "spent": 21
           },
           "salient_divine_ability": {
             "pool": 0,
@@ -8266,8 +8520,9 @@
           }
         },
         "ability_pools": {
-          "atest": 0,
-          "exotic_weapon_choice": 0,
+          "atest": 5,
+          "exotic_weapon_choice": 1,
+          "feat": 4,
           "salient_divine_ability": 0
         },
         "choice_bindings": {
@@ -8959,9 +9214,34 @@
             "selection_counts": {},
             "spent": 0
           },
+          "feat": {
+            "pool": 2,
+            "remaining": 0,
+            "selection_counts": {
+              "expanded_knowledge": 1,
+              "extend_power": 1,
+              "psicrystal_affinity": 1,
+              "psicrystal_containment": 1,
+              "speed_of_thought": 1,
+              "twin_power": 1
+            },
+            "spent": 6
+          },
           "open_minded_skill": {
             "pool": 0,
             "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "psicrystal_personality": {
+            "pool": 1,
+            "remaining": 1,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "psion_feat": {
+            "pool": 2,
+            "remaining": 2,
             "selection_counts": {},
             "spent": 0
           },
@@ -8975,7 +9255,10 @@
         "ability_pools": {
           "favored_enemy": 0,
           "favored_enemy_bonus": 0,
+          "feat": 2,
           "open_minded_skill": 0,
+          "psicrystal_personality": 1,
+          "psion_feat": 2,
           "salient_divine_ability": 0
         },
         "choice_bindings": {
@@ -9295,8 +9578,17 @@
           ],
           "wizard_feat": []
         },
-        "ability_pool_usage": {},
-        "ability_pools": {},
+        "ability_pool_usage": {
+          "feat": {
+            "pool": 2,
+            "remaining": 2,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
+        "ability_pools": {
+          "feat": 2
+        },
         "choice_bindings": {},
         "choices": {},
         "deity_domains": [
@@ -9462,8 +9754,19 @@
           ],
           "wizard_feat": []
         },
-        "ability_pool_usage": {},
-        "ability_pools": {},
+        "ability_pool_usage": {
+          "feat": {
+            "pool": 1,
+            "remaining": 0,
+            "selection_counts": {
+              "skill_focus": 1
+            },
+            "spent": 1
+          }
+        },
+        "ability_pools": {
+          "feat": 1
+        },
         "choice_bindings": {
           "skill_focus": [
             "Climb"
@@ -9612,8 +9915,35 @@
           ],
           "wizard_feat": []
         },
-        "ability_pool_usage": {},
-        "ability_pools": {},
+        "ability_pool_usage": {
+          "elf_proficiency_choice": {
+            "pool": 1,
+            "remaining": 0,
+            "selection_counts": {
+              "elf_weapon_choice": 1
+            },
+            "spent": 1
+          },
+          "feat": {
+            "pool": 1,
+            "remaining": 0,
+            "selection_counts": {
+              "extra_turning": 1
+            },
+            "spent": 1
+          },
+          "turn_undead": {
+            "pool": 1,
+            "remaining": 1,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
+        "ability_pools": {
+          "elf_proficiency_choice": 1,
+          "feat": 1,
+          "turn_undead": 1
+        },
         "choice_bindings": {
           "elf_weapon_choice": [
             "Longsword"
@@ -9812,8 +10142,24 @@
           ],
           "wizard_feat": []
         },
-        "ability_pool_usage": {},
-        "ability_pools": {},
+        "ability_pool_usage": {
+          "feat": {
+            "pool": 2,
+            "remaining": 2,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "fighter_feat": {
+            "pool": 3,
+            "remaining": 3,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
+        "ability_pools": {
+          "feat": 2,
+          "fighter_feat": 3
+        },
         "choice_bindings": {},
         "choices": {},
         "deity_domains": [],
@@ -9956,8 +10302,17 @@
           ],
           "wizard_feat": []
         },
-        "ability_pool_usage": {},
-        "ability_pools": {},
+        "ability_pool_usage": {
+          "feat": {
+            "pool": 3,
+            "remaining": 3,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
+        "ability_pools": {
+          "feat": 3
+        },
         "choice_bindings": {},
         "choices": {},
         "deity_domains": [],
@@ -10100,8 +10455,24 @@
           ],
           "wizard_feat": []
         },
-        "ability_pool_usage": {},
-        "ability_pools": {},
+        "ability_pool_usage": {
+          "feat": {
+            "pool": 1,
+            "remaining": 1,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "wizard_feat": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
+        "ability_pools": {
+          "feat": 1,
+          "wizard_feat": 0
+        },
         "choice_bindings": {},
         "choices": {},
         "deity_domains": [
@@ -10267,8 +10638,24 @@
           ],
           "wizard_feat": []
         },
-        "ability_pool_usage": {},
-        "ability_pools": {},
+        "ability_pool_usage": {
+          "feat": {
+            "pool": 1,
+            "remaining": 1,
+            "selection_counts": {},
+            "spent": 0
+          },
+          "wizard_feat": {
+            "pool": 0,
+            "remaining": 0,
+            "selection_counts": {},
+            "spent": 0
+          }
+        },
+        "ability_pools": {
+          "feat": 1,
+          "wizard_feat": 0
+        },
         "choice_bindings": {},
         "choices": {},
         "deity_domains": [],

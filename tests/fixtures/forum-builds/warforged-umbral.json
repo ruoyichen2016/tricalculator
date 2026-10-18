@@ -1,0 +1,147 @@
+{
+  "name": "Warforged Umbral Disciple forum case",
+  "levels": [
+    "Ranger",
+    "Ranger",
+    "Sneak Attack Fighter",
+    "Totemist",
+    "Totemist",
+    "Umbral Disciple",
+    "Umbral Disciple",
+    "Umbral Disciple",
+    "Umbral Disciple",
+    "Umbral Disciple",
+    "Umbral Disciple",
+    "Umbral Disciple",
+    "Umbral Disciple",
+    "Umbral Disciple",
+    "Umbral Disciple",
+    "Incandescent Champion",
+    "Warblade",
+    "Incandescent Champion",
+    "Incandescent Champion",
+    "Warblade"
+  ],
+  "feats": [
+    [
+      1,
+      "Mithral Body"
+    ],
+    [
+      3,
+      "Jaws of Death"
+    ],
+    [
+      6,
+      "Bonus Essentia"
+    ],
+    [
+      9,
+      "Craven"
+    ],
+    [
+      12,
+      "Staggering Strike"
+    ],
+    [
+      15,
+      "Second Slam"
+    ],
+    [
+      18,
+      "Bonus Essentia"
+    ]
+  ],
+  "training": {
+    "acquisitions": [
+      {
+        "character_level": 17,
+        "source_class": "Warblade",
+        "track": "Warblade",
+        "maneuver": "Leading The Charge",
+        "replaces": null
+      },
+      {
+        "character_level": 17,
+        "source_class": "Warblade",
+        "track": "Warblade",
+        "maneuver": "Sudden Leap",
+        "replaces": null
+      },
+      {
+        "character_level": 17,
+        "source_class": "Warblade",
+        "track": "Warblade",
+        "maneuver": "Dancing Mongoose",
+        "replaces": null
+      },
+      {
+        "character_level": 17,
+        "source_class": "Warblade",
+        "track": "Warblade",
+        "maneuver": "Pouncing Charge",
+        "replaces": null
+      },
+      {
+        "character_level": 20,
+        "source_class": "Warblade",
+        "track": "Warblade",
+        "maneuver": "White Raven Tactics",
+        "replaces": null
+      }
+    ],
+    "readied_advances": {}
+  },
+  "probe_stats": {
+    "STR": 14,
+    "DEX": 14,
+    "CON": 14,
+    "INT": 12,
+    "WIS": 8,
+    "CHA": 8
+  },
+  "probe_alignment": "NG",
+  "loadout": {
+    "shaped": [
+      "Blink Shirt",
+      "Wormtail Belt",
+      "Totem Avatar"
+    ],
+    "binds": {
+      "Blink Shirt": "Totem"
+    },
+    "investments": {
+      "Kiss of the Shadows": 3,
+      "Embrace of Shadow": 2,
+      "Sight of the Eyeless": 2,
+      "Soulchilling Strike": 2,
+      "Incandescent Strike": 2,
+      "Blink Shirt": 2,
+      "Fast Healing": 1
+    }
+  },
+  "turn": {
+    "actions": [
+      {
+        "kind": "pouncing_charge",
+        "feet": 20,
+        "path_clear": true
+      }
+    ],
+    "readied": [
+      "Sudden Leap",
+      "Pouncing Charge",
+      "White Raven Tactics"
+    ],
+    "gloves": true,
+    "slam_available": true,
+    "target_feet": 20,
+    "denied_dex": true,
+    "flanking": false,
+    "precision_immune": false,
+    "target_concealment": false,
+    "healing_rounds_spent": 0,
+    "dual_wield": true,
+    "soulchilling_used_this_round": false
+  }
+}

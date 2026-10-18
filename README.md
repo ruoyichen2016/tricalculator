@@ -3,7 +3,7 @@
 PCGen-Rust 是围绕统一 Rule IR、`CharacterDraft` / `CharacterSnapshot`
 边界和确定性引擎重构的新架构。
 
-旧实现完整保存在 [`../reference/pcgen-rust-archive`](../reference/pcgen-rust-archive)。
+本实验项目采用滚动更新；不维护旧版本兼容或备份分支。
 
 ## 许可
 
@@ -45,9 +45,9 @@ PCGen-Rust 是围绕统一 Rule IR、`CharacterDraft` / `CharacterSnapshot`
 |---|---|
 | `pcgen-core` | ID、精确有理数、Rule IR、Advancement、Gestalt、图算法、`EntityCategory`/`ChoiceKind` |
 | `pcgen-formula` | 公式解析与求值 |
-| `pcgen-ir` | 运行时 IR：RawRecord、PatchOperation、typed definitions、`PcgDraft`、CompiledRulePack、降低 pass |
+| `pcgen-ir` | 源规则编译：RawRecord、PatchOperation、typed lowering 与公式方言转换 |
 | `pcgen-import` | PCGen 文件格式：`.pcc` 图、`.lst` tokenize、`.pcg` 读写 |
-| `pcgen-engine` | `CharacterDraft → Engine → CharacterSnapshot`（只依赖 `pcgen-ir`） |
+| `pcgen-engine` | `CharacterDraft → Engine → CharacterSnapshot`（领域输入来自 `pcgen-core`，公式使用 `pcgen-formula`） |
 | `pcgen-builder` | 原生存档 envelope、角色仓库、建卡/升级应用服务 |
 | `pcgen-output` | Snapshot text/json 渲染 |
 | `pcgen-cli` | `pcgen` 命令行 |
@@ -55,19 +55,12 @@ PCGen-Rust 是围绕统一 Rule IR、`CharacterDraft` / `CharacterSnapshot`
 
 ## 构建与测试
 
-仓库内测试与 mini 门禁不依赖外部数据：
+本项目滚动更新，以 raw 语义为准，Java 仅供参考。不默认运行全量测试或规则门禁；按修改范围选择编译检查、定向场景和 Web 操作验证。旧存档不迁移，架构以 [ARCHITECTURE.md](ARCHITECTURE.md) 为准。
 
 ```bash
-CARGO_HOME="$PWD/.cargo-home" cargo test --workspace
-python3 scripts/coverage_gate.py --allow-skip
-```
-
-真实数据测试与差分门禁需要固定版本的 PCGen 测试数据：
-
-```bash
-bash scripts/fetch_testdata.sh      # 固定 commit，写入 <workspace>/raw/pcgen-master
-bash scripts/check_testdata.sh      # 校验必需文件与 blob hash
-python3 scripts/coverage_gate.py    # 严格模式：跳过真实数据门禁即失败
+cargo build -p pcgen-web
+# 需要验证升级改动时可单独运行：
+cargo test -p pcgen-builder --lib level_up
 ```
 
 本地 Web GUI（无需外部数据即可启动服务）：
@@ -77,10 +70,21 @@ cargo run -p pcgen-web -- --data-root ../raw/pcgen-master --cohort-root .
 # 浏览器打开 http://127.0.0.1:8787
 ```
 
+GUI 主导航为 **Character → Build → Spellcasting → Encounter → Rules → Cases**，全部使用英文静态普通表单。
+
+- `/build` 按等级记录取得顺序；没有历史的角色显示 Missing Evidence，不从最终专长反推资格。
+- `/spellcasting` 按施法职业选择法术，分开处理已知法术、当天准备和资源支出。
+- `/cases` 统一查看三个极端案例，原始构筑与实验假设分开显示。
+- `/classes` 分别显示数据、资格检查和效果执行的覆盖情况。
+- `/editor` 用于创建角色；启用取得历史后，职业与选择改在 Build 编辑。高级施法工具保留在 `/workbench`。
+
 API：
 
 ```text
-GET  /                 # 简单页面
+GET  /                 # Character 概况
+GET/POST /build        # 取得历史与逐级资格
+GET/POST /spellcasting # 施法轨道、准备、预览与执行
+GET  /cases           # 原案、主张、证据与实验入口
 GET  /api/health
 GET  /api/curated      # curated cohort 列表 + repeatable abilities
 POST /api/recalculate  # { "pcc", "pcg", "overrides": { choices, abilities,
@@ -350,3 +354,35 @@ target/debug/pcgen list-variants --pcc <pcc> --class Fighter
 
 真实 PCGen 数据解析与完整角色计算正在按 [`MIGRATION.md`](MIGRATION.md) 从
 archive 迁移。
+
+### Static local workbench
+
+Build and clean intermediate compiler files with `scripts/build-web.sh`, then run:
+
+```sh
+./dist/bin/pcgen-web --data-root ../raw/pcgen-master --cohort-root . --characters-root characters
+```
+
+Open `/classes` for full class-level reference tables, `/editor` for the static
+character studio, `/class-play` for committed casting, class resources, tapestry, Air and spell-control actions, and
+`/` for casting previews. These pages use ordinary HTML
+forms and do not request browser scripts. The editor overwrites the current
+character; it does not create backup/history copies. Feat, skill, spell, equipment and class-choice inputs use ordinary form rows.
+Noncleric Air-domain effective levels require an explicit table ruling; the
+resource pool itself is implemented. See `ARCHITECTURE.md` for model boundaries.
+
+Scene actors now use named recipients, positions, footprint, touch reach and environmental paths. Tapestry legality and spell-trigger CL/DC/charge calculations run on the server through static forms; no blanket target-legality checkbox is used.
+
+Multi-power staffs share one charge pool. Static item forms support SRD presets, custom powers and combined Incantatrix metamagic. Ordinary casts and item activations record CL/DC for atomic save/SR, energy defenses, evasion and encounter HP resolution. Acid Arrow now advances through bounded damage rounds; seized concentration responds to damage; see `ARCHITECTURE.md` for current effect boundaries.
+
+
+The shared class library now includes all eleven SRD core base classes, Beguiler and Dread Necromancer, alongside the existing Warmage and prestige classes. Beguiler has 111 printed list entries; Dread Necromancer has 84 distinct entries and no cantrips. The editor reads this registry directly. RAW sources, tested mechanics and remaining encounter-action boundaries are documented in `ARCHITECTURE.md`.
+
+PHB II expansion adds Dragon Shaman, Duskblade and Knight (21 registered classes).
+The encounter desk has static, atomic forms for negative-energy touch/burst,
+fear aura, Surprise Casting, class healing and Rage; Duskblade Quick Cast shares
+normal casting and resource payment. Early-entry reports distinguish strict RAW
+qualification from an explicit virtual-slot ruling. See `ARCHITECTURE.md` for
+which rules execute and which still need state transitions.
+
+当前单职业动作增量：Dread Necromancer 的 Scabrous/Enervating Touch、疾病与负向等级生命周期、亡灵创建/控制和巫妖转化；Dragon Shaman 吐息；Duskblade 引导；Knight 三类挑战。页面使用英文静态普通表单。具体支持边界见 [ARCHITECTURE.md](ARCHITECTURE.md#persistent-afflictions-and-tactical-actions)。

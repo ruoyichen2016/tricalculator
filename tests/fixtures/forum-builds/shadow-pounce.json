@@ -1,0 +1,443 @@
+{
+  "name": "Madly Pouncing RKV - original forum proposal",
+  "levels": [
+    "Cleric",
+    "Cleric",
+    "Cleric",
+    "Crusader",
+    "Swordsage",
+    "Crinti Shadow Marauder",
+    "Crinti Shadow Marauder",
+    "Crinti Shadow Marauder",
+    "Crinti Shadow Marauder",
+    "Crinti Shadow Marauder",
+    "Swashbuckler",
+    "Ruby Knight Vindicator",
+    "Ruby Knight Vindicator",
+    "Ruby Knight Vindicator",
+    "Ruby Knight Vindicator",
+    "Ruby Knight Vindicator",
+    "Ruby Knight Vindicator",
+    "Ruby Knight Vindicator",
+    "Swordsage",
+    "Swordsage"
+  ],
+  "alignment": "N",
+  "deity": "Wee Jas",
+  "domains": [
+    "Undeath",
+    "Magic"
+  ],
+  "stats": {
+    "STR": 18,
+    "DEX": 32,
+    "CON": 16,
+    "INT": 16,
+    "WIS": 18,
+    "CHA": 22
+  },
+  "feats": [
+    [
+      1,
+      "Two-Weapon Fighting"
+    ],
+    [
+      1,
+      "Mounted Combat"
+    ],
+    [
+      1,
+      "Stealthy"
+    ],
+    [
+      1,
+      "Extra Turning"
+    ],
+    [
+      3,
+      "Extra Turning"
+    ],
+    [
+      5,
+      "Weapon Focus (Short Sword)"
+    ],
+    [
+      6,
+      "Shadow Blade"
+    ],
+    [
+      8,
+      "Ride-By Attack"
+    ],
+    [
+      9,
+      "Improved Two-Weapon Fighting"
+    ],
+    [
+      11,
+      "Weapon Finesse"
+    ],
+    [
+      12,
+      "Greater Two-Weapon Fighting"
+    ],
+    [
+      15,
+      "Craven"
+    ],
+    [
+      18,
+      "Extra Turning"
+    ]
+  ],
+  "training": {
+    "acquisitions": [
+      {
+        "character_level": 4,
+        "source_class": "Crusader",
+        "track": "Crusader",
+        "maneuver": "Martial Spirit"
+      },
+      {
+        "character_level": 4,
+        "source_class": "Crusader",
+        "track": "Crusader",
+        "maneuver": "Crusader's Strike"
+      },
+      {
+        "character_level": 4,
+        "source_class": "Crusader",
+        "track": "Crusader",
+        "maneuver": "Charging Minotaur"
+      },
+      {
+        "character_level": 4,
+        "source_class": "Crusader",
+        "track": "Crusader",
+        "maneuver": "Stone Bones"
+      },
+      {
+        "character_level": 4,
+        "source_class": "Crusader",
+        "track": "Crusader",
+        "maneuver": "Vanguard Strike"
+      },
+      {
+        "character_level": 4,
+        "source_class": "Crusader",
+        "track": "Crusader",
+        "maneuver": "Douse The Flames"
+      },
+      {
+        "character_level": 5,
+        "source_class": "Swordsage",
+        "track": "Swordsage",
+        "maneuver": "Island of Blades"
+      },
+      {
+        "character_level": 5,
+        "source_class": "Swordsage",
+        "track": "Swordsage",
+        "maneuver": "Burning Blade"
+      },
+      {
+        "character_level": 5,
+        "source_class": "Swordsage",
+        "track": "Swordsage",
+        "maneuver": "Burning Brand"
+      },
+      {
+        "character_level": 5,
+        "source_class": "Swordsage",
+        "track": "Swordsage",
+        "maneuver": "Shadow Jaunt"
+      },
+      {
+        "character_level": 5,
+        "source_class": "Swordsage",
+        "track": "Swordsage",
+        "maneuver": "Cloak of Deception"
+      },
+      {
+        "character_level": 5,
+        "source_class": "Swordsage",
+        "track": "Swordsage",
+        "maneuver": "Flashing Sun"
+      },
+      {
+        "character_level": 5,
+        "source_class": "Swordsage",
+        "track": "Swordsage",
+        "maneuver": "Clinging Shadow Strike"
+      },
+      {
+        "character_level": 12,
+        "source_class": "Ruby Knight Vindicator",
+        "track": "Swordsage",
+        "maneuver": "Assassin's Stance"
+      },
+      {
+        "character_level": 13,
+        "source_class": "Ruby Knight Vindicator",
+        "track": "Crusader",
+        "maneuver": "Divine Surge"
+      },
+      {
+        "character_level": 15,
+        "source_class": "Ruby Knight Vindicator",
+        "track": "Swordsage",
+        "maneuver": "Shadow Stride"
+      },
+      {
+        "character_level": 17,
+        "source_class": "Ruby Knight Vindicator",
+        "track": "Crusader",
+        "maneuver": "Aura of Chaos"
+      },
+      {
+        "character_level": 17,
+        "source_class": "Ruby Knight Vindicator",
+        "track": "Crusader",
+        "maneuver": "Divine Surge, Greater"
+      },
+      {
+        "character_level": 19,
+        "source_class": "Swordsage",
+        "track": "Swordsage",
+        "maneuver": "Fiery Assault"
+      },
+      {
+        "character_level": 19,
+        "source_class": "Swordsage",
+        "track": "Swordsage",
+        "maneuver": "Inferno Blade"
+      },
+      {
+        "character_level": 20,
+        "source_class": "Swordsage",
+        "track": "Swordsage",
+        "maneuver": "Shadow Blink"
+      }
+    ],
+    "readied_advances": {
+      "16": "Swordsage"
+    }
+  },
+  "plan": {
+    "readied": {
+      "Swordsage": [
+        "Inferno Blade",
+        "Shadow Jaunt",
+        "Shadow Stride",
+        "Shadow Blink"
+      ],
+      "Crusader": [
+        "Crusader's Strike",
+        "Charging Minotaur",
+        "Stone Bones",
+        "Vanguard Strike",
+        "Douse The Flames"
+      ]
+    },
+    "granted": [
+      "Crusader's Strike",
+      "Stone Bones"
+    ],
+    "stance": "Assassin's Stance",
+    "actions": [
+      {
+        "action": "initiate",
+        "track": "Swordsage",
+        "maneuver": "Inferno Blade"
+      },
+      {
+        "action": "initiate",
+        "track": "Swordsage",
+        "maneuver": "Shadow Jaunt"
+      },
+      {
+        "action": "impetus"
+      },
+      {
+        "action": "belt",
+        "charges": 3
+      },
+      {
+        "action": "full_attack"
+      },
+      {
+        "action": "initiate",
+        "track": "Swordsage",
+        "maneuver": "Shadow Stride"
+      },
+      {
+        "action": "impetus"
+      },
+      {
+        "action": "initiate",
+        "track": "Swordsage",
+        "maneuver": "Shadow Blink"
+      },
+      {
+        "action": "impetus"
+      },
+      {
+        "action": "recovery",
+        "track": "Swordsage",
+        "maneuver": "Shadow Blink"
+      },
+      {
+        "action": "impetus"
+      },
+      {
+        "action": "initiate",
+        "track": "Swordsage",
+        "maneuver": "Shadow Blink"
+      },
+      {
+        "action": "impetus"
+      },
+      {
+        "action": "recovery",
+        "track": "Swordsage",
+        "maneuver": "Shadow Blink"
+      },
+      {
+        "action": "impetus"
+      },
+      {
+        "action": "initiate",
+        "track": "Swordsage",
+        "maneuver": "Shadow Blink"
+      },
+      {
+        "action": "impetus"
+      },
+      {
+        "action": "recovery",
+        "track": "Swordsage",
+        "maneuver": "Shadow Blink"
+      },
+      {
+        "action": "impetus"
+      },
+      {
+        "action": "initiate",
+        "track": "Swordsage",
+        "maneuver": "Shadow Blink"
+      },
+      {
+        "action": "impetus"
+      },
+      {
+        "action": "recovery",
+        "track": "Swordsage",
+        "maneuver": "Shadow Blink"
+      },
+      {
+        "action": "impetus"
+      },
+      {
+        "action": "initiate",
+        "track": "Swordsage",
+        "maneuver": "Shadow Blink"
+      },
+      {
+        "action": "impetus"
+      },
+      {
+        "action": "recovery",
+        "track": "Swordsage",
+        "maneuver": "Shadow Blink"
+      },
+      {
+        "action": "impetus"
+      },
+      {
+        "action": "initiate",
+        "track": "Swordsage",
+        "maneuver": "Shadow Blink"
+      },
+      {
+        "action": "impetus"
+      },
+      {
+        "action": "recovery",
+        "track": "Swordsage",
+        "maneuver": "Shadow Blink"
+      },
+      {
+        "action": "impetus"
+      },
+      {
+        "action": "initiate",
+        "track": "Swordsage",
+        "maneuver": "Shadow Blink"
+      },
+      {
+        "action": "impetus"
+      },
+      {
+        "action": "recovery",
+        "track": "Swordsage",
+        "maneuver": "Shadow Blink"
+      },
+      {
+        "action": "impetus"
+      },
+      {
+        "action": "initiate",
+        "track": "Swordsage",
+        "maneuver": "Shadow Blink"
+      },
+      {
+        "action": "impetus"
+      },
+      {
+        "action": "recovery",
+        "track": "Swordsage",
+        "maneuver": "Shadow Blink"
+      },
+      {
+        "action": "impetus"
+      },
+      {
+        "action": "initiate",
+        "track": "Swordsage",
+        "maneuver": "Shadow Blink"
+      },
+      {
+        "action": "impetus"
+      },
+      {
+        "action": "recovery",
+        "track": "Swordsage",
+        "maneuver": "Shadow Blink"
+      },
+      {
+        "action": "impetus"
+      },
+      {
+        "action": "initiate",
+        "track": "Swordsage",
+        "maneuver": "Shadow Blink"
+      }
+    ],
+    "nightstick": true,
+    "haste": true,
+    "denied_dex": true,
+    "flanking": false,
+    "precision_immune": false,
+    "fire_resistance": 0,
+    "fire_immune": false,
+    "deadly_precision_mic": false,
+    "weapon_enhancement": 5,
+    "teleport_destination_clear": true,
+    "destination_visible": true,
+    "destination_line_of_effect": true,
+    "target_visible_before": true,
+    "target_in_reach_after": true,
+    "free_impetus_ruling": null,
+    "teleport_distance_feet": 50
+  }
+}

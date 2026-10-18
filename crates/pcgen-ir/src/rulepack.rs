@@ -144,9 +144,18 @@ pub fn lower_records(
                     None => unsupported_tags.push(format!("{}:{}", tag.name, tag.value)),
                 }
             } else if upper == "ABILITY" || upper == "AUTO" {
-                match lower_grant(record, tag) {
-                    Some(effect) => effects.push(effect),
-                    None => unsupported_tags.push(format!("{}:{}", tag.name, tag.value)),
+                let values = if upper == "ABILITY" {
+                    expand_ability_grants(&tag.value)
+                } else {
+                    vec![tag.value.clone()]
+                };
+                for value in values {
+                    let mut row = tag.clone();
+                    row.value = value;
+                    match lower_grant(record, &row) {
+                        Some(effect) => effects.push(effect),
+                        None => unsupported_tags.push(format!("{}:{}", row.name, row.value)),
+                    }
                 }
             } else if upper == "CHOOSE" {
                 match lower_choose(tag) {
@@ -242,6 +251,7 @@ pub fn lower_records(
         .map(|entity| entity.effects.len())
         .sum();
     let pack = CompiledRulePack {
+        maneuvers: Default::default(),
         header: CompiledPackHeader {
             game_mode,
             sources,
@@ -452,8 +462,7 @@ pub fn lower_bonus_effect(
     // `classlevel(...)`.  `classlevel("APPLIEDAS=NONEPIC")` in particular means
     // "this class's level", which is exactly the information that is available
     // now and was guesswork at runtime.
-    let raw_value =
-        pcgen_core::formula_vocab::normalize_pcgen_formula(parts.get(value_index)?, owner);
+    let raw_value = crate::formula::normalize_pcgen_formula(parts.get(value_index)?, owner);
     let mut bonus_type = None;
     let mut stack_key = None;
     let mut conditions = Vec::new();
@@ -471,8 +480,8 @@ pub fn lower_bonus_effect(
             });
         } else if crate::tags::is_predicate_tag(part) {
             // Keep an unreadable gate as a first-class condition instead of
-            // dropping the whole bonus.  The engine treats `Unsupported` as
-            // satisfied and the raw text is reported through
+            // dropping the whole bonus. The engine keeps `Unsupported` unknown;
+            // the raw text is also reported through
             // `CompiledEntity::unsupported_tags` by the caller.
             conditions.push(
                 parse_predicate(part, "").unwrap_or_else(|| Predicate::Unsupported {
@@ -487,7 +496,7 @@ pub fn lower_bonus_effect(
         _ => Some(Predicate::All(conditions)),
     };
 
-    // `BONUS:VAR|A,B|expr` becomes an explicit variable assignment.  The name
+    // `BONUS:VAR|A,B|expr` becomes a typed variable contribution.  The name
     // list is split here, where the tag is still in front of us.
     if first.eq_ignore_ascii_case("VAR") {
         let names: Vec<String> = parts
@@ -506,6 +515,8 @@ pub fn lower_bonus_effect(
             action: EffectAction::ModifyVariable {
                 names,
                 expression: raw_value,
+                bonus_type,
+                stack_key,
                 condition,
                 source: provenance.clone(),
             },
@@ -607,6 +618,31 @@ pub(crate) struct GrantShape<'a> {
 ///
 /// Returns `None` when the row names no feature, which is the one case that
 /// cannot be represented.
+pub(crate) fn expand_ability_grants(value: &str) -> Vec<String> {
+    let parts: Vec<_> = value.split('|').map(str::trim).collect();
+    if parts.len() < 3
+        || !["AUTOMATIC", "VIRTUAL", "NORMAL"]
+            .iter()
+            .any(|mode| parts[1].eq_ignore_ascii_case(mode))
+    {
+        return vec![value.into()];
+    }
+    let guards: Vec<_> = parts[2..]
+        .iter()
+        .copied()
+        .filter(|p| crate::tags::is_predicate_tag(p))
+        .collect();
+    parts[2..]
+        .iter()
+        .copied()
+        .filter(|p| !p.is_empty() && !crate::tags::is_predicate_tag(p))
+        .map(|feature| {
+            let mut row = vec![parts[0], parts[1], feature];
+            row.extend(guards.iter().copied());
+            row.join("|")
+        })
+        .collect()
+}
 pub(crate) fn parse_grant_shape(value: &str) -> Option<GrantShape<'_>> {
     let parts: Vec<&str> = value.split('|').map(str::trim).collect();
     let mut mode = GrantMode::Automatic;
@@ -623,7 +659,6 @@ pub(crate) fn parse_grant_shape(value: &str) -> Option<GrantShape<'_>> {
                 && !part.eq_ignore_ascii_case("AUTOMATIC")
                 && !part.eq_ignore_ascii_case("VIRTUAL")
                 && !part.eq_ignore_ascii_case("NORMAL")
-                && !part.starts_with("TYPE=")
                 && !crate::tags::is_predicate_tag(part)
         })
         .collect();
@@ -753,8 +788,15 @@ fn lower_grant(record: &RawRecord, tag: &crate::source::RawTag) -> Option<Effect
     Some(Effect {
         phase: EffectPhase::Global,
         condition,
-        action: EffectAction::Grant {
-            entity: EntityId::new("pcgen", record.source.source_id.clone(), category, key),
+        action: if let Some(type_tag) = key.strip_prefix("TYPE=") {
+            EffectAction::GrantByType {
+                category,
+                type_tag: type_tag.to_string(),
+            }
+        } else {
+            EffectAction::Grant {
+                entity: EntityId::new("pcgen", record.source.source_id.clone(), category, key),
+            }
         },
         source: Provenance::new(
             record.source.path.display().to_string(),

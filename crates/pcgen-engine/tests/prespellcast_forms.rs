@@ -13,7 +13,8 @@
 //! is a *string*: `TYPE=Arcane=1` names a spell type no class has and is false
 //! rather than unreadable.
 
-use pcgen_engine::{apply_effects, CharacterDraft, DraftClassLevel};
+use pcgen_engine::{apply_effects, CharacterDraft};
+use pcgen_import::PcgClassLevel as DraftClassLevel;
 use pcgen_ir::{lower_records, RawRecord, RawTag, SourceRef};
 
 fn record(category: &str, name: &str, tags: &[(&str, &str)]) -> RawRecord {
@@ -80,16 +81,18 @@ fn gated(gate: &str, class_levels: &[(&str, u32)]) -> bool {
     );
     let draft = CharacterDraft {
         race_id: "Test Race".to_string(),
-        class_levels: class_levels
-            .iter()
-            .map(|(class_id, level)| DraftClassLevel {
-                class_id: (*class_id).to_string(),
-                level: *level,
-                hit_points_gained: 0,
-                hit_points_by_level: Vec::new(),
-                experience_gained: 0,
-            })
-            .collect(),
+        advancement: pcgen_import::advancement_from_class_levels(
+            &class_levels
+                .iter()
+                .map(|(class_id, level)| DraftClassLevel {
+                    class_id: (*class_id).to_string(),
+                    level: *level,
+                    hit_points_gained: 0,
+                    hit_points_by_level: Vec::new(),
+                    experience_gained: 0,
+                })
+                .collect::<Vec<_>>(),
+        ),
         abilities: vec![("FEAT".to_string(), "Gated Feat".to_string())],
         ..CharacterDraft::default()
     };

@@ -53,7 +53,9 @@ pub struct AdvancementLane {
     pub class_id: String,
     /// Level within the class at this character level (1-based).
     pub class_level: u32,
-    pub hit_points_gained: i32,
+    /// None means no roll was supplied; zero is an explicit zero roll.
+    #[serde(default)]
+    pub hit_points_gained: Option<i32>,
     #[serde(default)]
     pub experience_gained: i32,
     /// Classes whose progression this lane advances.
@@ -91,7 +93,7 @@ impl AdvancementLane {
             lane_id: lane_id.into(),
             class_id: class_id.into(),
             class_level,
-            hit_points_gained,
+            hit_points_gained: Some(hit_points_gained),
             experience_gained,
             advances: Vec::new(),
             archetype: None,
@@ -213,7 +215,10 @@ impl AdvancementFrame {
     }
 
     pub fn hit_points(&self) -> i32 {
-        self.lanes.iter().map(|lane| lane.hit_points_gained).sum()
+        self.lanes
+            .iter()
+            .map(|lane| lane.hit_points_gained.unwrap_or(0))
+            .sum()
     }
 
     pub fn experience(&self) -> i32 {

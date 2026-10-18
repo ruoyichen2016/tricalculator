@@ -1,0 +1,75 @@
+{
+  "name": "The Joker",
+  "levels": [
+    "Favored Soul",
+    "Favored Soul",
+    "Favored Soul",
+    "Favored Soul",
+    "Church Inquisitor",
+    "Exalted Arcanist",
+    "War Weaver",
+    "War Weaver",
+    "War Weaver",
+    "War Weaver",
+    "War Weaver",
+    "Spellguard of Silverymoon",
+    "Spellguard of Silverymoon",
+    "Spellguard of Silverymoon",
+    "Spellguard of Silverymoon",
+    "Sacred Exorcist",
+    "Incantatrix",
+    "Incantatrix",
+    "Incantatrix",
+    "Incantatrix"
+  ],
+  "feats": [
+    [
+      1,
+      "Sanctum Spell"
+    ],
+    [
+      1,
+      "Magical Training"
+    ],
+    [
+      1,
+      "Precocious Apprentice"
+    ],
+    [
+      1,
+      "Consecrate Spell"
+    ],
+    [
+      3,
+      "Purify Spell"
+    ],
+    [
+      6,
+      "Enlarge Spell"
+    ],
+    [
+      9,
+      "Extend Spell"
+    ],
+    [
+      12,
+      "Persistent Spell"
+    ],
+    [
+      15,
+      "Divine Metamagic (Persistent Spell)"
+    ],
+    [
+      17,
+      "Repeat Spell"
+    ],
+    [
+      18,
+      "Practiced Spellcaster (Favored Soul)"
+    ],
+    [
+      20,
+      "Unspecified bonus metamagic feat"
+    ]
+  ]
+}

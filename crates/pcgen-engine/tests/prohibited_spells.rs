@@ -5,7 +5,8 @@
 //! parsed and never consulted, so the spell picker offered schools the character
 //! had forbidden.
 
-use pcgen_engine::{CharacterDraft, DraftClassLevel, Engine};
+use pcgen_engine::{CharacterDraft, Engine};
+use pcgen_import::PcgClassLevel as DraftClassLevel;
 use pcgen_ir::{lower_records, RawRecord, RawTag, SourceRef};
 
 fn record(category: &str, name: &str, tags: &[(&str, &str)]) -> RawRecord {
@@ -61,13 +62,23 @@ fn wizard_records() -> Vec<RawRecord> {
 
 fn wizard(draft: &mut CharacterDraft) {
     draft.race_id = "Human".to_string();
-    draft.class_levels.push(DraftClassLevel {
-        class_id: "Wizard".to_string(),
-        level: 1,
-        hit_points_gained: 0,
-        hit_points_by_level: vec![],
-        experience_gained: 0,
-    });
+    draft.advancement.extend(
+        pcgen_import::advancement_from_class_levels(&[DraftClassLevel {
+            class_id: "Wizard".to_string(),
+            level: 1,
+            hit_points_gained: 0,
+            hit_points_by_level: vec![],
+            experience_gained: 0,
+        }])
+        .into_iter()
+        .map({
+            let offset = draft.total_level();
+            move |mut frame| {
+                frame.character_level += offset;
+                frame
+            }
+        }),
+    );
 }
 
 #[test]
@@ -143,13 +154,23 @@ fn an_alignment_prohibition_uses_the_deity_alignment() {
             ..CharacterDraft::default()
         };
         draft.race_id = "Human".to_string();
-        draft.class_levels.push(DraftClassLevel {
-            class_id: "Cleric".to_string(),
-            level: 1,
-            hit_points_gained: 0,
-            hit_points_by_level: vec![],
-            experience_gained: 0,
-        });
+        draft.advancement.extend(
+            pcgen_import::advancement_from_class_levels(&[DraftClassLevel {
+                class_id: "Cleric".to_string(),
+                level: 1,
+                hit_points_gained: 0,
+                hit_points_by_level: vec![],
+                experience_gained: 0,
+            }])
+            .into_iter()
+            .map({
+                let offset = draft.total_level();
+                move |mut frame| {
+                    frame.character_level += offset;
+                    frame
+                }
+            }),
+        );
         engine.evaluate(&draft).prohibited_spells
     };
 
