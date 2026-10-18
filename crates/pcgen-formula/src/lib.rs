@@ -978,52 +978,6 @@ fn collect_variables(expr: &Expr, out: &mut BTreeSet<String>) {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn vars() -> HashMap<String, Value> {
-        HashMap::from([
-            ("STR".to_string(), Value::Int(16)),
-            ("LEVEL".to_string(), Value::Int(4)),
-            ("NAME".to_string(), Value::String("Aria".to_string())),
-        ])
-    }
-
-    #[test]
-    fn arithmetic_precedence() {
-        assert_eq!(evaluate("1 + 2 * 3", &()).unwrap(), Value::Int(7));
-        assert_eq!(evaluate("(1 + 2) * 3", &()).unwrap(), Value::Int(9));
-        assert_eq!(evaluate("2 ^ 3 ^ 2", &()).unwrap(), Value::Float(512.0));
-        assert_eq!(evaluate("-3 + 5", &()).unwrap(), Value::Int(2));
-        assert_eq!(evaluate("10 / 3", &()).unwrap(), Value::Int(3));
-        assert_eq!(evaluate("10 % 3", &()).unwrap(), Value::Int(1));
-    }
-
-    #[test]
-    fn variables_and_functions() {
-        let context = vars();
-        assert_eq!(evaluate("STR + LEVEL", &context).unwrap(), Value::Int(20));
-        assert_eq!(
-            evaluate("max(STR, 4 * LEVEL)", &context).unwrap(),
-            Value::Int(16)
-        );
-        assert_eq!(
-            evaluate("if(LEVEL > 3, 10, 0)", &context).unwrap(),
-            Value::Int(10)
-        );
-        let formula = Formula::parse("STR + LEVEL * 2").unwrap();
-        assert_eq!(formula.eval_i64(&context).unwrap(), 24);
-    }
-
-    #[test]
-    fn errors() {
-        assert!(Formula::parse("1 +").is_err());
-        assert!(evaluate("MISSING + 1", &()).is_err());
-        assert!(evaluate("1 / 0", &()).is_err());
-    }
-}
-
 /// Evaluate a formula with an explicit class/character scope. No source dialect
 /// or engine dependency is required here; callers supply domain variable names.
 pub fn evaluate_scoped_i32(
@@ -1070,4 +1024,50 @@ fn evaluate_scoped_numeric_i32(
         },
         floor,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn vars() -> HashMap<String, Value> {
+        HashMap::from([
+            ("STR".to_string(), Value::Int(16)),
+            ("LEVEL".to_string(), Value::Int(4)),
+            ("NAME".to_string(), Value::String("Aria".to_string())),
+        ])
+    }
+
+    #[test]
+    fn arithmetic_precedence() {
+        assert_eq!(evaluate("1 + 2 * 3", &()).unwrap(), Value::Int(7));
+        assert_eq!(evaluate("(1 + 2) * 3", &()).unwrap(), Value::Int(9));
+        assert_eq!(evaluate("2 ^ 3 ^ 2", &()).unwrap(), Value::Float(512.0));
+        assert_eq!(evaluate("-3 + 5", &()).unwrap(), Value::Int(2));
+        assert_eq!(evaluate("10 / 3", &()).unwrap(), Value::Int(3));
+        assert_eq!(evaluate("10 % 3", &()).unwrap(), Value::Int(1));
+    }
+
+    #[test]
+    fn variables_and_functions() {
+        let context = vars();
+        assert_eq!(evaluate("STR + LEVEL", &context).unwrap(), Value::Int(20));
+        assert_eq!(
+            evaluate("max(STR, 4 * LEVEL)", &context).unwrap(),
+            Value::Int(16)
+        );
+        assert_eq!(
+            evaluate("if(LEVEL > 3, 10, 0)", &context).unwrap(),
+            Value::Int(10)
+        );
+        let formula = Formula::parse("STR + LEVEL * 2").unwrap();
+        assert_eq!(formula.eval_i64(&context).unwrap(), 24);
+    }
+
+    #[test]
+    fn errors() {
+        assert!(Formula::parse("1 +").is_err());
+        assert!(evaluate("MISSING + 1", &()).is_err());
+        assert!(evaluate("1 / 0", &()).is_err());
+    }
 }

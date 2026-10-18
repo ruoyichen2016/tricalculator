@@ -24,15 +24,16 @@ impl Engine {
             ("Resources",format!("Pay {} slot(s) of level {}; {} turning attempts. Current saved resource counters used.",r.paid_slots,r.paid_slot_level,r.turning_cost)),
             ("Action",format!("{:?}. {}. Encounter-wide action expenditure is not automatically tracked by this operation.",r.action_cost,r.casting_time_note)),
             ("Targets",if request.tapestry{"Tapestry membership, target restrictions and geometry checked".into()}else{"No tapestry requested; effect-specific recipient resolution remains separate".into()}),
-        ] {steps.push(RuleDecision{level:d.total_level(),subject:subject.into(),status:DecisionStatus::Satisfied,explanation:text,source:None});}
+        ] {steps.push(RuleDecision{level:d.total_level(),subject:subject.into(),status:DecisionStatus::Satisfied,tags:Vec::new(),explanation:text,source:None});}
         if r.action_cost.is_none() {
-            steps.push(RuleDecision {level:d.total_level(),subject:"Action timing".into(),status:DecisionStatus::NotImplemented,explanation:"Exact action cost is unavailable or requires a longer/immediate-action timeline".into(),source:None});
+            steps.push(RuleDecision {level:d.total_level(),subject:"Action timing".into(),status:DecisionStatus::NotImplemented,tags:Vec::new(),explanation:"Exact action cost is unavailable or requires a longer/immediate-action timeline".into(),source:None});
         }
         for text in &r.adjudications {
             steps.push(RuleDecision {
                 level: d.total_level(),
                 subject: "Adjudication".into(),
                 status: DecisionStatus::NeedsRuling,
+                tags: Vec::new(),
                 explanation: text.clone(),
                 source: None,
             });

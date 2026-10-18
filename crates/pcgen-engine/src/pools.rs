@@ -183,7 +183,12 @@ pub(crate) fn ability_pool_usage(
                 .iter()
                 .any(|member| normalized_name(member) == key_norm);
             let selected_here = normalized_name(selected_pool) == normalized_name(category_id)
-                || selected_pool.eq_ignore_ascii_case(&category.name);
+                || selected_pool.eq_ignore_ascii_case(&category.name)
+                || (category
+                    .category
+                    .as_deref()
+                    .is_some_and(|c| c.eq_ignore_ascii_case(selected_pool))
+                    && explicit);
             let inferred = category.ability_list.is_empty()
                     // Typed pools (e.g. Fighter Feat) share a category with
                     // general feats, but a selection spends only its chosen pool.

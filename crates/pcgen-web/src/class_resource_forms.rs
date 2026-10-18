@@ -482,7 +482,7 @@ pub(super) fn execute(
     f: &BTreeMap<String, String>,
 ) -> Result<PlayResult, String> {
     match value(f, "op")? {
-        op if op.starts_with("combat_") => super::combat_forms::execute(engine,d,f),
+        op if op.starts_with("combat_") => super::combat_forms::execute(engine, d, f),
         op if op.starts_with("tactical_") => super::tactical_forms::execute(engine, d, f),
         op if op.starts_with("necro_") => super::necromancy_forms::execute(engine, d, f),
         "resolve_feature"

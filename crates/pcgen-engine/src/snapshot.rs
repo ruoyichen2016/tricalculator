@@ -408,8 +408,11 @@ pub fn uncanny_dodge_classes(active_abilities: &[String]) -> (Vec<String>, Vec<S
     for ability in active_abilities {
         let (class_key, ability_key) = match ability.split_once("_~_") {
             Some((class_key, ability_key)) => (class_key, ability_key),
-            None => ("", ability.as_str()),
+            None => continue,
         };
+        if class_key.trim().is_empty() {
+            continue;
+        }
         let target = match ability_key {
             "improved_uncanny_dodge" => &mut improved,
             "uncanny_dodge" => &mut uncanny,

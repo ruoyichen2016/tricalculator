@@ -438,11 +438,20 @@ pub fn app(config: WebConfig) -> Router {
         .route("/workbench", get(workbench::page))
         .route("/editor", get(editor::page).post(editor::save))
         .route("/build", get(build_forms::page).post(build_forms::save))
-        .route("/spellcasting", get(spellcasting_forms::page).post(spellcasting_forms::action))
+        .route(
+            "/spellcasting",
+            get(spellcasting_forms::page).post(spellcasting_forms::action),
+        )
         .route("/cases", get(cases_forms::page))
         .route("/classes", get(library::page))
-        .route("/martial", get(martial_forms::page).post(martial_forms::replay))
-        .route("/incarnum", get(incarnum_forms::page).post(incarnum_forms::replay))
+        .route(
+            "/martial",
+            get(martial_forms::page).post(martial_forms::replay),
+        )
+        .route(
+            "/incarnum",
+            get(incarnum_forms::page).post(incarnum_forms::replay),
+        )
         .route("/joker", get(joker_forms::page).post(joker_forms::replay))
         .route(
             "/class-play",
@@ -2253,13 +2262,13 @@ mod tactical_forms;
 
 mod combat_forms;
 
-mod martial_forms;
 mod incarnum_forms;
 mod joker_forms;
+mod martial_forms;
 
 mod build_forms;
 
-mod spellcasting_forms;
 mod cases_forms;
+mod spellcasting_forms;
 
 mod character_page;

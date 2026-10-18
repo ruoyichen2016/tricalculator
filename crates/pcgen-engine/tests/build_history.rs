@@ -1,4 +1,6 @@
-use pcgen_core::{actions::*, build::*, magic::CastRequest, AdvancementFrame, DraftSpell};
+use pcgen_core::{
+    actions::*, build::*, magic::CastRequest, AdvancementFrame, AdvancementLane, DraftSpell,
+};
 use pcgen_engine::{CharacterDraft, Engine};
 use std::{collections::BTreeMap, path::Path};
 #[test]
@@ -242,4 +244,113 @@ fn chronology_projection_and_atomic_operation_boundaries() {
     illegal_race_hero.race_id = "Dragonborn".into();
     let race_audit = e.audit_build(&illegal_race_hero);
     assert!(race_audit.decisions.iter().any(|d| d.level == 1));
+}
+
+#[test]
+fn gestalt_npc_dual_prestige_generates_npc_tag_and_preserves_evaluation() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let e = Engine::new(
+        pcgen_import::native::compile_database(
+            &root.join("data/rules/rainbow-warweaver.rules.json"),
+        )
+        .unwrap(),
+    );
+    let mut d = CharacterDraft {
+        alignment: "LG".into(),
+        stats: BTreeMap::from([
+            ("STR".into(), 10),
+            ("DEX".into(), 10),
+            ("CON".into(), 14),
+            ("INT".into(), 14),
+            ("WIS".into(), 14),
+            ("CHA".into(), 18),
+        ]),
+        skills: BTreeMap::from([
+            ("Knowledge (Arcana)".into(), 10.0),
+            ("Knowledge (The Planes)".into(), 10.0),
+            ("Knowledge (Religion)".into(), 10.0),
+        ]),
+        ..Default::default()
+    };
+    // 5 levels of Warmage on lane a and lane b
+    for lvl in 1..=5 {
+        d.advancement.push(AdvancementFrame {
+            character_level: lvl,
+            lanes: vec![
+                AdvancementLane::new("a", "Warmage", lvl, 6, 0),
+                AdvancementLane::new("b", "Warmage", lvl, 6, 0),
+            ],
+        });
+    }
+    // Level 6: dual prestige classes: Rainbow Servant and Sacred Exorcist!
+    // Also simultaneously advancing Warmage casting track on both lanes.
+    let mut lane_a = AdvancementLane::new("a", "Rainbow Servant", 1, 6, 0);
+    lane_a.advances.push("Warmage".into());
+    let mut lane_b = AdvancementLane::new("b", "Sacred Exorcist", 1, 8, 0);
+    lane_b.advances.push("Warmage".into());
+
+    d.advancement.push(AdvancementFrame {
+        character_level: 6,
+        lanes: vec![lane_a, lane_b],
+    });
+    d.build_history = Some(BuildHistory {
+        initial_stats: d.stats.clone(),
+        initial_alignment: "LG".into(),
+        recorded_through: 6,
+        events: vec![],
+    });
+
+    // 1. Numerical evaluation must succeed and remain available (not nulled/broken)
+    let snapshot = e.evaluate(&d);
+    assert!(
+        snapshot.is_available(),
+        "Numerical derive must succeed despite dual prestige NPC relaxation: {:?}",
+        snapshot.diagnostics
+    );
+    assert_eq!(snapshot.total_level, 6);
+    // Gestalt diagnostics records the UA p. 72 violation
+    assert!(snapshot
+        .gestalt
+        .as_ref()
+        .expect("Gestalt plan must be present")
+        .diagnostics
+        .iter()
+        .any(|diag| diag.code == "gestalt.dual_prestige_lanes"));
+
+    // 2. Audit check must produce NPC and Gestalt tags
+    let audit = e.audit_build(&d);
+    assert!(
+        audit.tags.contains(&RuleTag::Gestalt),
+        "Audit must be tagged as Gestalt"
+    );
+    assert!(
+        audit.tags.contains(&RuleTag::Npc),
+        "Audit must be tagged as NPC due to dual prestige rule relaxation"
+    );
+    assert!(audit.is_npc(), "audit.is_npc() must return true");
+
+    // 3. Find the specific rule decisions for Level 6 dual prestige and dual casting advancement
+    let dual_prc_decision = audit
+        .decisions
+        .iter()
+        .find(|dec| dec.level == 6 && dec.subject == "Gestalt prestige")
+        .expect("Must have a decision for Gestalt prestige at level 6");
+    assert_eq!(dual_prc_decision.status, DecisionStatus::NeedsRuling);
+    assert!(dual_prc_decision.tags.contains(&RuleTag::Npc));
+    assert!(dual_prc_decision.tags.contains(&RuleTag::Gestalt));
+    assert!(dual_prc_decision
+        .explanation
+        .contains("violates PC Gestalt RAW (UA p.72), relaxed as NPC"));
+
+    let dual_casting_decision = audit
+        .decisions
+        .iter()
+        .find(|dec| dec.level == 6 && dec.subject == "Casting advancement")
+        .expect("Must have a decision for Casting advancement at level 6");
+    assert_eq!(dual_casting_decision.status, DecisionStatus::NeedsRuling);
+    assert!(dual_casting_decision.tags.contains(&RuleTag::Npc));
+    assert!(dual_casting_decision.tags.contains(&RuleTag::Gestalt));
+    assert!(dual_casting_decision.explanation.contains(
+        "advances casting track `Warmage` on multiple lanes simultaneously; relaxed as NPC"
+    ));
 }

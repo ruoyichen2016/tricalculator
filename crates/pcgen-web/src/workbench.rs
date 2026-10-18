@@ -123,7 +123,13 @@ fn render(state: &AppState, query: &PageQuery, result: &str) -> String {
                     .filter(|c| class.level >= c.at_level)
                 {
                     if envelope.character.build_history.is_some() {
-                        let _=write!(out,"<p><a href=\"/build?id={}\">Record {} on the Build page</a></p>",url(&query.id),escape(&choice.choice_key));continue;
+                        let _ = write!(
+                            out,
+                            "<p><a href=\"/build?id={}\">Record {} on the Build page</a></p>",
+                            url(&query.id),
+                            escape(&choice.choice_key)
+                        );
+                        continue;
                     }
                     let _=write!(out,"<form method=\"post\" action=\"/workbench/school\"><input type=\"hidden\" name=\"revision\" value=\"{}\"><input type=\"hidden\" name=\"id\" value=\"{}\"><input type=\"hidden\" name=\"choice_key\" value=\"{}\"><label>Focused Studies: additional prohibited school<select name=\"school\"><option value=\"\">Choose a school</option>",envelope.character.class_play.revision,escape(&query.id),escape(&choice.choice_key));
                     for school in &choice.allowed {
@@ -337,7 +343,10 @@ fn render(state: &AppState, query: &PageQuery, result: &str) -> String {
                 ("Divine Metamagic (Persistent Spell)", "dmm"),
                 ("Eldritch Tapestry", "tapestry"),
                 ("Quiescent Weaving", "quiescent"),
-                ("Spellguard defensive personal arcane spell", "spellguard_touch"),
+                (
+                    "Spellguard defensive personal arcane spell",
+                    "spellguard_touch",
+                ),
             ] {
                 check(&mut out, label, name);
             }
@@ -960,8 +969,8 @@ pub(super) async fn school(
     State(state): State<AppState>,
     Form(form): Form<SchoolForm>,
 ) -> Html<String> {
-    let lock=state.mutation_lock.clone();
-    let _guard=lock.lock().await;
+    let lock = state.mutation_lock.clone();
+    let _guard = lock.lock().await;
     Html(tokio::task::spawn_blocking(move||{
         let result=(||->Result<String,String>{
             let (mut envelope,engine)=super::character_context::load(&state,&form.id)?;

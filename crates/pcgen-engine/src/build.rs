@@ -2,12 +2,29 @@
 use crate::{CharacterDraft, Engine};
 use pcgen_core::{build::*, CompiledEntity, Predicate};
 use serde::Serialize;
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct BuildAudit {
     pub recorded_through: u32,
+    #[serde(default)]
+    pub tags: Vec<RuleTag>,
     pub decisions: Vec<RuleDecision>,
 }
 impl BuildAudit {
+    pub fn is_npc(&self) -> bool {
+        self.tags.contains(&RuleTag::Npc)
+    }
+    pub fn finalize_tags(&mut self, is_gestalt: bool) {
+        let mut all_tags = std::collections::BTreeSet::new();
+        if is_gestalt {
+            all_tags.insert(RuleTag::Gestalt);
+        }
+        for dec in &self.decisions {
+            for tag in &dec.tags {
+                all_tags.insert(*tag);
+            }
+        }
+        self.tags = all_tags.into_iter().collect();
+    }
     pub fn errors(&self) -> Vec<String> {
         self.decisions
             .iter()
@@ -40,6 +57,24 @@ fn decision(
         level,
         subject: subject.into(),
         status,
+        tags: Vec::new(),
+        explanation: explanation.into(),
+        source: source.map(str::to_owned),
+    }
+}
+fn decision_with_tags(
+    level: u32,
+    subject: &str,
+    status: DecisionStatus,
+    tags: Vec<RuleTag>,
+    explanation: impl Into<String>,
+    source: Option<&str>,
+) -> RuleDecision {
+    RuleDecision {
+        level,
+        subject: subject.into(),
+        status,
+        tags,
         explanation: explanation.into(),
         source: source.map(str::to_owned),
     }
@@ -278,10 +313,12 @@ impl Engine {
     pub fn audit_build(&self, d: &CharacterDraft) -> BuildAudit {
         let mut out = BuildAudit {
             recorded_through: 0,
+            tags: Vec::new(),
             decisions: Vec::new(),
         };
         let Some(history) = &d.build_history else {
             out.decisions.push(decision(0,"Build history",DecisionStatus::MissingEvidence,"No acquisition history. Final skills, feats and spells cannot prove earlier prerequisites.",None));
+            out.finalize_tags(d.is_gestalt());
             return out;
         };
         out.recorded_through = history.recorded_through;
@@ -302,6 +339,7 @@ impl Engine {
                 e,
                 None,
             ));
+            out.finalize_tags(d.is_gestalt());
             return out;
         }
         if history.recorded_through < d.total_level() {
@@ -315,7 +353,8 @@ impl Engine {
         }
         if let Some(race_entity) = self.pack.entities.iter().find(|e| {
             e.category == pcgen_core::EntityCategory::Race
-                && (e.id.key.eq_ignore_ascii_case(&d.race_id) || e.name.eq_ignore_ascii_case(&d.race_id))
+                && (e.id.key.eq_ignore_ascii_case(&d.race_id)
+                    || e.name.eq_ignore_ascii_case(&d.race_id))
         }) {
             out.decisions.extend(self.requirements_at(
                 d,
@@ -327,7 +366,8 @@ impl Engine {
         for template in &d.templates {
             if let Some(template_entity) = self.pack.entities.iter().find(|e| {
                 e.category == pcgen_core::EntityCategory::Template
-                    && (e.id.key.eq_ignore_ascii_case(template) || e.name.eq_ignore_ascii_case(template))
+                    && (e.id.key.eq_ignore_ascii_case(template)
+                        || e.name.eq_ignore_ascii_case(template))
             }) {
                 out.decisions.extend(self.requirements_at(
                     d,
@@ -352,10 +392,54 @@ impl Engine {
             let before = d
                 .build_at(n.saturating_sub(1), history.events.len())
                 .unwrap();
+            let prestige_lanes: Vec<_> = frame
+                .lanes
+                .iter()
+                .filter(|l| self.class(&l.class_id).is_some_and(|c| c.is_prestige))
+                .collect();
+            if prestige_lanes.len() >= 2 {
+                let names: Vec<_> = prestige_lanes.iter().map(|l| l.class_id.as_str()).collect();
+                out.decisions.push(decision_with_tags(
+                    n,
+                    "Gestalt prestige",
+                    DecisionStatus::NeedsRuling,
+                    vec![RuleTag::Gestalt, RuleTag::Npc],
+                    format!(
+                        "Level {n} combines multiple prestige classes ({}); violates PC Gestalt RAW (UA p.72), relaxed as NPC",
+                        names.join(", ")
+                    ),
+                    None,
+                ));
+            }
+            let mut tracks_advanced = std::collections::BTreeMap::<String, usize>::new();
+            for lane in &frame.lanes {
+                if let Some(c) = self.class(&lane.class_id) {
+                    if c.spellcasting_ability.is_some() && !c.is_prestige {
+                        *tracks_advanced.entry(c.id.clone()).or_default() += 1;
+                    }
+                }
+                for adv in &lane.advances {
+                    *tracks_advanced.entry(adv.clone()).or_default() += 1;
+                }
+            }
+            for (track, count) in tracks_advanced {
+                if count >= 2 {
+                    out.decisions.push(decision_with_tags(
+                        n,
+                        "Casting advancement",
+                        DecisionStatus::NeedsRuling,
+                        vec![RuleTag::Gestalt, RuleTag::Npc],
+                        format!(
+                            "Level {n} advances casting track `{track}` on multiple lanes simultaneously; relaxed as NPC",
+                        ),
+                        None,
+                    ));
+                }
+            }
             for lane in &frame.lanes {
                 let count = class_counts.entry(&lane.class_id).or_insert(0u32);
                 *count += 1;
-                let Some(c) = self.pack.classes.get(&lane.class_id) else {
+                let Some(c) = self.class(&lane.class_id) else {
                     out.decisions.push(decision(
                         n,
                         &lane.class_id,
@@ -539,6 +623,7 @@ impl Engine {
             }
         }
         out.decisions.push(decision(0,"Coverage",DecisionStatus::NotImplemented,"Chronology, rank caps, class entry and recorded feat prerequisites are audited. Full skill-point budgets, every feat source, known-spell quotas and retraining dependencies are not yet certified.",None));
+        out.finalize_tags(d.is_gestalt());
         out
     }
     /// Adapt an incomplete forum chronology without inventing omitted selections.

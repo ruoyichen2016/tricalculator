@@ -12,17 +12,49 @@ pub(super) struct QueryForm {
     level: u32,
 }
 pub(super) fn decisions(out: &mut String, a: &pcgen_engine::build::BuildAudit, level: Option<u32>) {
-    let _=write!(out,"<p class=\"audit-status\">Build status: <strong>{}</strong>. Derived numbers do not certify legality.</p><div class=\"table-scroll\"><table><thead><tr><th>Level</th><th>Subject</th><th>Status</th><th>Evidence</th></tr></thead><tbody>",a.status().label());
+    let tags_html = if a.tags.is_empty() {
+        String::new()
+    } else {
+        format!(
+            " · Tags: {}",
+            a.tags
+                .iter()
+                .map(|t| format!(
+                    "<span class=\"badge badge-{}\">{}</span>",
+                    t.label().to_lowercase(),
+                    escape(t.label())
+                ))
+                .collect::<Vec<_>>()
+                .join(" ")
+        )
+    };
+    let _=write!(out,"<p class=\"audit-status\">Build status: <strong>{}</strong>{}. Derived numbers do not certify legality.</p><div class=\"table-scroll\"><table><thead><tr><th>Level</th><th>Subject</th><th>Tag</th><th>Status</th><th>Evidence</th></tr></thead><tbody>",a.status().label(), tags_html);
     for d in a
         .decisions
         .iter()
         .filter(|d| level.is_none_or(|n| d.level == n || d.level == 0))
     {
+        let decision_tags = if d.tags.is_empty() {
+            "—".to_string()
+        } else {
+            d.tags
+                .iter()
+                .map(|t| {
+                    format!(
+                        "<span class=\"badge badge-{}\">{}</span>",
+                        t.label().to_lowercase(),
+                        escape(t.label())
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(" ")
+        };
         let _ = write!(
             out,
-            "<tr><td>{}</td><td>{}</td><td><span class=\"decision {:?}\">{}</span></td><td>{}",
+            "<tr><td>{}</td><td>{}</td><td>{}</td><td><span class=\"decision {:?}\">{}</span></td><td>{}",
             d.level,
             escape(&d.subject),
+            decision_tags,
             d.status,
             d.status.label(),
             escape(&d.explanation)

@@ -243,7 +243,15 @@ impl VariableResolver for EffectState {
 
 /// Apply all effects reachable from the draft.
 pub fn apply_effects(pack: &CompiledRulePack, draft: &CharacterDraft) -> EffectState {
-    if draft.build_history.is_some() { return match draft.materialized() { Ok(d) => apply_effects(pack, &d), Err(error) => EffectState {diagnostics:vec![error],..Default::default()} }; }
+    if draft.build_history.is_some() {
+        return match draft.materialized() {
+            Ok(d) => apply_effects(pack, &d),
+            Err(error) => EffectState {
+                diagnostics: vec![error],
+                ..Default::default()
+            },
+        };
+    }
     // Resolve base size from the draft's race so PREBASESIZE* predicates work.
     let base_size = pack
         .races

@@ -488,7 +488,13 @@ pub(crate) fn fund_request(d: &CharacterDraft, request: &mut CastRequest) {
         .get(&key)
         .cloned()
         .unwrap_or_default();
-    request.stored_spells = d.class_play.resources.tapestry.as_ref().map(|t|t.stored.len() as u32).unwrap_or(0);
+    request.stored_spells = d
+        .class_play
+        .resources
+        .tapestry
+        .as_ref()
+        .map(|t| t.stored.len() as u32)
+        .unwrap_or(0);
     request.turning_spent = d.class_play.resources.turning_spent;
     request.instant_spent = d.class_play.resources.instant_spent;
     request.sudden_spent = d.class_play.resources.sudden_spent.clone();

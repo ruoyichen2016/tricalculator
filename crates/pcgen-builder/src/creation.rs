@@ -928,6 +928,7 @@ mod tests {
                 class_skills: vec!["Climb".to_string()],
                 first_level_skill_points: 8,
                 skill_points_per_level: 2,
+                skill_multiplier: 4,
                 ..Default::default()
             };
             pack.progressions.insert(class_id.to_string(), progression);

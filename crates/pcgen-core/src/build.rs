@@ -22,11 +22,27 @@ impl DecisionStatus {
         }
     }
 }
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RuleTag {
+    Npc,
+    Gestalt,
+}
+impl RuleTag {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Npc => "NPC",
+            Self::Gestalt => "Gestalt",
+        }
+    }
+}
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RuleDecision {
     pub level: u32,
     pub subject: String,
     pub status: DecisionStatus,
+    #[serde(default)]
+    pub tags: Vec<RuleTag>,
     pub explanation: String,
     pub source: Option<String>,
 }

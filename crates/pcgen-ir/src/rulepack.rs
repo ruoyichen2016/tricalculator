@@ -576,7 +576,7 @@ fn predicate_has_unsupported(predicate: &Predicate) -> bool {
     }
 }
 
-fn lower_define(tag: &crate::source::RawTag) -> Option<Effect> {
+pub(crate) fn lower_define(tag: &crate::source::RawTag) -> Option<Effect> {
     let (name, expression) = tag.value.split_once('|')?;
     let name = name.trim();
     if name.is_empty() {

@@ -36,7 +36,7 @@ pub(super) fn start(
     anchors: &[(&str, &str)],
 ) -> String {
     let mut out = format!(
-        r##"<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{} · Gladius</title><style>{}</style></head><body><a class="skip-link" href="#main">Skip to content</a><header class="site-header"><a class="brand" href="/?id={}"><span class="brand-mark" aria-hidden="true">G</span> GLADIUS <small>CHARACTER &amp; RULES</small></a><nav class="primary-nav" aria-label="Main navigation">"##,
+        r##"<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{} · Gladius</title><style>{}</style></head><body><a class="skip-link" href="#main">Skip to content</a><header class="site-header"><a class="brand" href="/?id={}"><span class="brand-mark" aria-hidden="true">G</span> GLADIUS <small>Rules workbench</small></a><nav class="primary-nav" aria-label="Main navigation">"##,
         escape(title),
         include_str!("ui/workbench.css"),
         url(id)

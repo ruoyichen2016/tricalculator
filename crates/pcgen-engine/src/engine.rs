@@ -148,7 +148,13 @@ impl Engine {
 
     pub fn evaluate(&self, draft: &CharacterDraft) -> CharacterSnapshot {
         if draft.build_history.is_some() {
-            return match draft.materialized() { Ok(d) => self.evaluate(&d), Err(error) => CharacterSnapshot {diagnostics: vec![error], ..Default::default()} };
+            return match draft.materialized() {
+                Ok(d) => self.evaluate(&d),
+                Err(error) => CharacterSnapshot {
+                    diagnostics: vec![error],
+                    ..Default::default()
+                },
+            };
         }
         let mut diagnostics = Vec::new();
         diagnostics.extend(crate::class_features::validate_class_choices(
@@ -1193,7 +1199,7 @@ impl Engine {
         crate::progression::find_progression(&self.pack, class_id)
     }
 
-    fn class(&self, class_id: &str) -> Option<&ClassDefinition> {
+    pub(crate) fn class(&self, class_id: &str) -> Option<&ClassDefinition> {
         crate::progression::find_class(&self.pack, class_id)
     }
 
@@ -1298,6 +1304,10 @@ impl Engine {
     ) -> BTreeMap<String, i32> {
         let mut skills = BTreeMap::new();
         for (name, ranks) in &draft.skills {
+            if !ranks.is_finite() || *ranks < 0.0 || *ranks > i32::MAX as f64 - 10000.0 {
+                diagnostics.push(format!("Invalid skill ranks: {name}"));
+                continue;
+            }
             let definition = self.pack.skills.get(name).or_else(|| {
                 self.pack
                     .skills
@@ -1307,32 +1317,31 @@ impl Engine {
                     })
                     .map(|(_, skill)| skill)
             });
-            let Some(definition) = definition else {
-                diagnostics.push(format!("Skill definition unavailable: {name}"));
-                continue;
-            };
-            let Some(ability_mod) = definition
-                .key_stat
-                .as_deref()
-                .and_then(|key| stat_mods.get(&key.to_ascii_uppercase()).copied())
-            else {
-                diagnostics.push(format!("Skill key ability unavailable: {name}"));
-                continue;
-            };
-            let ability_mod =
-                if draft.class_play.necromancy.lich && name.eq_ignore_ascii_case("Concentration") {
+            let (ability_mod, armor_penalty) = if let Some(definition) = definition {
+                let mod_val = definition
+                    .key_stat
+                    .as_deref()
+                    .and_then(|key| stat_mods.get(&key.to_ascii_uppercase()).copied())
+                    .unwrap_or_else(|| {
+                        diagnostics.push(format!("Skill key ability unavailable: {name}"));
+                        0
+                    });
+                let mod_val = if draft.class_play.necromancy.lich
+                    && name.eq_ignore_ascii_case("Concentration")
+                {
                     stat_mods.get("CHA").copied().unwrap_or(0)
                 } else {
-                    ability_mod
+                    mod_val
                 };
-            if !ranks.is_finite() || *ranks < 0.0 || *ranks > i32::MAX as f64 - 10000.0 {
-                diagnostics.push(format!("Invalid skill ranks: {name}"));
-                continue;
-            }
-            let armor_penalty = if definition.armor_check {
-                armor_check_penalty
+                let penalty = if definition.armor_check {
+                    armor_check_penalty
+                } else {
+                    0
+                };
+                (mod_val, penalty)
             } else {
-                0
+                diagnostics.push(format!("Skill definition unavailable: {name}"));
+                (0, 0)
             };
             skills.insert(
                 name.clone(),
@@ -1528,7 +1537,8 @@ impl Engine {
                 continue;
             };
             let class = self.class(&class_id);
-            let stat = crate::magic::policy_dc_ability(&self.pack, &class_id).cloned()
+            let stat = crate::magic::policy_dc_ability(&self.pack, &class_id)
+                .cloned()
                 .or_else(|| class.and_then(|class| class.spellcasting_ability.clone()))
                 .unwrap_or_else(|| "CHA".to_string());
             let level = if spell.level > 0 {
@@ -1546,12 +1556,9 @@ impl Engine {
             };
             let dc = 10 + level as i32 + stat_mods.get(&stat).copied().unwrap_or(0);
             spell_dcs.insert(format!("{}|{}", spell.name, class_id), dc);
-            let copies=draft.prepared_copies(&class_id,&spell.name).unwrap_or(0);
+            let copies = draft.prepared_copies(&class_id, &spell.name).unwrap_or(0);
             if copies > 0 {
-                prepared_spells.insert(
-                    format!("{}|{}", class_id, spell.name),
-                    copies,
-                );
+                prepared_spells.insert(format!("{}|{}", class_id, spell.name), copies);
             }
         }
         (
@@ -1855,14 +1862,20 @@ impl Engine {
         // uncanny dodge, unless improved uncanny dodge is already held.
         let improved_from_second_class = improved_classes.is_empty() && uncanny_classes.len() >= 2;
         let improved = !improved_classes.is_empty() || improved_from_second_class;
+        let raw_flanking = variables
+            .get("UncannyDodgeFlankingLevel")
+            .copied()
+            .unwrap_or(0)
+            .max(0) as u32;
+        let flanking_level = if improved {
+            raw_flanking.saturating_sub(4)
+        } else {
+            raw_flanking
+        };
         Some(crate::snapshot::UncannyDodgeSnapshot {
             uncanny_dodge,
             improved,
-            flanking_level: variables
-                .get("UncannyDodgeFlankingLevel")
-                .copied()
-                .unwrap_or(0)
-                .max(0) as u32,
+            flanking_level,
             improved_from_second_class,
             uncanny_dodge_classes: uncanny_classes,
             improved_classes,

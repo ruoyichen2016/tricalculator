@@ -62,7 +62,8 @@ fn render(
         .unwrap_or_default();
     if draft.build_history.is_some() {
         let _=write!(out,"<section><h2>Acquisition history is active</h2><p><a href=\"/build?id={}\">Edit this character on the Build page</a>. Final choices are projected from recorded acquisitions.</p></section>",url(id));
-        super::ui::finish(&mut out,"Acquisition inputs are edited in one place");return out;
+        super::ui::finish(&mut out, "Acquisition inputs are edited in one place");
+        return out;
     }
     let mut values = BTreeMap::new();
     values.insert(
@@ -238,7 +239,9 @@ pub(super) async fn save(
                 "The character changed since this form was opened. Reload before saving.".into(),
             );
         }
-        if draft.build_history.is_some() { return Err("This character uses acquisition history. Edit levels and choices on the Build page.".into()); }
+        if draft.build_history.is_some() {
+            return Err("This character uses acquisition history. Edit levels and choices on the Build page.".into());
+        }
         super::editor_fields::apply(&fields, &mut draft, &engine)?;
 
         if let Some(class) = fields.get("next_class").filter(|c| !c.is_empty()) {

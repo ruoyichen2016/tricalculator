@@ -1226,11 +1226,25 @@ fn parse_substitution_variant(
         format!("substitution level {level}"),
     )
     .with_line(record.source.line);
-    variant.effects = tags(record, "BONUS")
-        .filter_map(|value| {
-            crate::rulepack::lower_bonus_effect(value, EffectPhase::Class, &source, class_id)
-        })
-        .collect();
+    let mut effects = Vec::new();
+    for tag in &record.tags {
+        let upper = tag.name.to_ascii_uppercase();
+        if upper == "BONUS" {
+            if let Some(effect) = crate::rulepack::lower_bonus_effect(
+                &tag.value,
+                EffectPhase::Class,
+                &source,
+                class_id,
+            ) {
+                effects.push(effect);
+            }
+        } else if upper == "DEFINE" || upper == "VAR" {
+            if let Some(effect) = crate::rulepack::lower_define(tag) {
+                effects.push(effect);
+            }
+        }
+    }
+    variant.effects = effects;
     variant.spellcaster_advance =
         tags(record, "ADD").any(|value| value.to_ascii_uppercase().contains("SPELLCASTER"));
     variant

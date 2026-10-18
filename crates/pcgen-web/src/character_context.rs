@@ -16,8 +16,8 @@ pub(super) fn load(
         .as_deref()
         .ok_or("The character has no rule database")?;
     let engine = cached_engine(state, &resolve_path(&state.config.data_root, pcc))?;
-    envelope.rules_fingerprint=engine.pack.header.rules_fingerprint.clone();
-    envelope.data_ref=engine.pack.header.data_ref.clone();
+    envelope.rules_fingerprint = engine.pack.header.rules_fingerprint.clone();
+    envelope.data_ref = engine.pack.header.data_ref.clone();
     Ok((envelope, engine))
 }
 

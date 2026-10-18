@@ -24,7 +24,11 @@ pub(crate) fn skill_points_for_level(
         (progression.skill_points_per_level as i32 + intelligence_modifier).max(1) as u32 + extra;
     let multiplier = if first_level {
         race.and_then(|race| race.skill_multiplier)
-            .unwrap_or(progression.skill_multiplier)
+            .unwrap_or(if progression.skill_multiplier > 0 {
+                progression.skill_multiplier
+            } else {
+                4
+            })
     } else {
         1
     };
@@ -55,29 +59,26 @@ pub(crate) fn class_value(
     if level == 0 {
         return Ok(0);
     }
-    let class = find_class(pack, class_id).ok_or_else(|| FormulaError {
-        message: format!("missing class `{class_id}`"),
-        position: 0,
-    })?;
-    let formula = match save {
-        None => &class.base_attack_formula,
-        Some(SaveKind::Fortitude) => &class.fortitude_formula,
-        Some(SaveKind::Reflex) => &class.reflex_formula,
-        Some(SaveKind::Will) => &class.will_formula,
-    };
-    if let Some(formula) = formula {
-        return evaluate_class_formula(formula, class_id, level, total_level, variables).map_err(
-            |error| {
-                crate::derived::context(
-                    error,
-                    &format!(
-                        "progression {}",
-                        save.map_or("BAB".into(), |kind| format!("{kind:?}"))
-                    ),
-                    formula,
-                )
-            },
-        );
+    if let Some(class) = find_class(pack, class_id) {
+        let formula = match save {
+            None => &class.base_attack_formula,
+            Some(SaveKind::Fortitude) => &class.fortitude_formula,
+            Some(SaveKind::Reflex) => &class.reflex_formula,
+            Some(SaveKind::Will) => &class.will_formula,
+        };
+        if let Some(formula) = formula {
+            return evaluate_class_formula(formula, class_id, level, total_level, variables)
+                .map_err(|error| {
+                    crate::derived::context(
+                        error,
+                        &format!(
+                            "progression {}",
+                            save.map_or("BAB".into(), |kind| format!("{kind:?}"))
+                        ),
+                        formula,
+                    )
+                });
+        }
     }
     let progression = find_progression(pack, class_id).ok_or_else(|| FormulaError {
         message: format!("missing progression for `{class_id}`"),
@@ -207,6 +208,10 @@ impl pcgen_core::ClassProgressSource for ProgressSource<'_> {
 
     fn class_skills(&self, class_id: &str) -> Option<Vec<String>> {
         find_progression(self.pack, class_id).map(|p| p.class_skills.clone())
+    }
+
+    fn is_prestige(&self, class_id: &str) -> bool {
+        find_class(self.pack, class_id).is_some_and(|class| class.is_prestige)
     }
 
     fn gestalt_slot_cost(&self, class_id: &str) -> Option<pcgen_core::PrestigeSlotCost> {

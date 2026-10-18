@@ -32,7 +32,24 @@ pub(super) async fn page(
             let d = &env.character;
             let s = e.evaluate(d);
             let audit = e.audit_build(d);
-            let _=write!(out,"<section><h2>{}</h2><p>{} · {} · Level {}</p><p>Acquisition status: <strong>{}</strong></p><div class=\"metrics\">",escape(&d.name),escape(&d.race_id),escape(&d.alignment),s.total_level,audit.status().label());
+            let tags_badge = if audit.tags.is_empty() {
+                String::new()
+            } else {
+                format!(
+                    " · {}",
+                    audit
+                        .tags
+                        .iter()
+                        .map(|t| format!(
+                            "<span class=\"badge badge-{}\">{}</span>",
+                            t.label().to_lowercase(),
+                            escape(t.label())
+                        ))
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                )
+            };
+            let _=write!(out,"<section><h2>{}</h2><p>{} · {} · Level {}{}</p><p>Acquisition status: <strong>{}</strong></p><div class=\"metrics\">",escape(&d.name),escape(&d.race_id),escape(&d.alignment),s.total_level,tags_badge,audit.status().label());
             for (label, value, path) in [
                 ("Build", format!("{} levels", d.total_level()), "/build"),
                 ("Hit points", s.hit_points.to_string(), "/class-play"),
@@ -62,14 +79,28 @@ pub(super) async fn page(
                 .filter(|c| c.status != pcgen_core::build::DecisionStatus::Satisfied)
                 .take(12)
             {
+                let tag_prefix = if check.tags.is_empty() {
+                    String::new()
+                } else {
+                    format!(
+                        " [{}]",
+                        check
+                            .tags
+                            .iter()
+                            .map(|t| t.label())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    )
+                };
                 let _ = write!(
                     out,
-                    "<li><a href=\"/build?id={}&level={}\">Level {} · {}</a> — {}: {}</li>",
+                    "<li><a href=\"/build?id={}&level={}\">Level {} · {}</a> — {}{}: {}</li>",
                     url(&q.id),
                     check.level.max(1),
                     check.level,
                     escape(&check.subject),
                     check.status.label(),
+                    escape(&tag_prefix),
                     escape(&check.explanation)
                 );
             }

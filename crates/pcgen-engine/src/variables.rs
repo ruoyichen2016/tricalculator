@@ -134,11 +134,8 @@ impl Evaluator<'_> {
     }
 
     fn evaluate_node(&self, name: &str, node: &Node) -> Option<i32> {
-        // raw globalfilesdefine: bonuses without an attached definition have
-        // no effect. Do not evaluate their expressions or invent a definition.
-        if node.definitions.is_empty() && node.initial.is_none() && node.assigned.is_none() {
-            return Some(0);
-        }
+        let is_undefined =
+            node.definitions.is_empty() && node.initial.is_none() && node.assigned.is_none();
         let base = if let Some(value) = node.assigned {
             value
         } else {
@@ -151,9 +148,22 @@ impl Evaluator<'_> {
         };
         let mut bonuses = Vec::new();
         for (expression, bonus_type, stack_key) in &node.bonuses {
+            let value = if is_undefined {
+                let normalized = crate::effects::bind_choices(
+                    &expression.text,
+                    self.ambient,
+                    expression.source.as_deref(),
+                );
+                match Formula::parse(&normalized).and_then(|formula| formula.eval_i32(self)) {
+                    Ok(val) => val,
+                    Err(_) => continue,
+                }
+            } else {
+                self.expression(name, expression)?
+            };
             bonuses.push(TypedBonus {
                 target: name.into(),
-                value: self.expression(name, expression)?,
+                value,
                 bonus_type: bonus_type.clone(),
                 stack_key: stack_key.clone(),
             });

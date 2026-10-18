@@ -47,7 +47,7 @@ pub fn ability_count_variable(category: &str, kind: &str) -> String {
 pub fn ability_count_selectors(name: &str) -> Option<(String, String)> {
     let (a, b) = name.strip_prefix("AbilityCount_")?.split_once('_')?;
     let decode = |s: &str| -> Option<String> {
-        if s.len() % 2 != 0 || !s.bytes().all(|b| b.is_ascii_hexdigit()) {
+        if !s.len().is_multiple_of(2) || !s.bytes().all(|b| b.is_ascii_hexdigit()) {
             return None;
         }
         String::from_utf8(

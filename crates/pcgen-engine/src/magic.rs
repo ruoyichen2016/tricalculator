@@ -57,8 +57,9 @@ pub(crate) fn casting_levels(
                     {
                         return None;
                     }
-                    let matches = kinds.iter().any(|kind| {
-                        let kind = kind.to_ascii_uppercase();
+                    let matches = kinds.iter().any(|raw_kind| {
+                        let upper = raw_kind.to_ascii_uppercase();
+                        let kind = upper.strip_prefix("SPELLCASTER|").unwrap_or(&upper);
                         kind == "ANY"
                             || kind == "SPELLCASTER"
                             || (kind == "ARCANE"

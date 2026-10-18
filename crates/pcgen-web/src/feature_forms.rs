@@ -15,7 +15,7 @@ fn actor_select(out: &mut String, d: &CharacterDraft) {
 }
 pub(super) fn render(out: &mut String, id: &str, d: &CharacterDraft, engine: &Engine) {
     super::necromancy_forms::render(out, id, d, engine);
-    super::combat_forms::render(out,id,d,engine);
+    super::combat_forms::render(out, id, d, engine);
     super::tactical_forms::render(out, id, d, engine);
     out.push_str("<section id=class-abilities><h2>Resolve class abilities</h2><p>Actions update encounter HP and saved resources together. Area abilities include every eligible actor in range; enter all required saves before submitting.</p>");
     for (target, a) in &d.class_play.actors {

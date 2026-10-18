@@ -408,7 +408,10 @@ impl CharacterRepository {
     /// Rolling replacement for the static workbench. No history or backup copy.
     pub fn replace_current(&self, envelope: &NativeSaveEnvelope) -> Result<(), BuilderError> {
         let mut projected = envelope.clone();
-        projected.character.refresh_build_projection().map_err(BuilderError::DerivedUnavailable)?;
+        projected
+            .character
+            .refresh_build_projection()
+            .map_err(BuilderError::DerivedUnavailable)?;
         let envelope = &projected;
         fs::create_dir_all(&self.root)?;
         let id = sanitize_id(&envelope.character.id)?;
@@ -646,7 +649,10 @@ impl CharacterRepository {
                 max: SAVE_SCHEMA,
             });
         }
-        envelope.character.refresh_build_projection().map_err(BuilderError::DerivedUnavailable)?;
+        envelope
+            .character
+            .refresh_build_projection()
+            .map_err(BuilderError::DerivedUnavailable)?;
         Ok(envelope)
     }
 

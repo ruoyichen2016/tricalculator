@@ -105,6 +105,11 @@ pub trait ClassProgressSource {
     fn class_skills(&self, class_id: &str) -> Option<Vec<String>>;
     fn features_up_to_level(&self, class_id: &str, level: u32) -> Option<Vec<String>>;
 
+    /// Whether this class is a prestige class.
+    fn is_prestige(&self, _class_id: &str) -> bool {
+        false
+    }
+
     /// Slot cost metadata for a class; `None` means base-class single lane.
     fn gestalt_slot_cost(&self, _class_id: &str) -> Option<PrestigeSlotCost> {
         None
@@ -310,8 +315,12 @@ fn plan_frame(
     let mut deities = BTreeSet::new();
     let mut feature_seen: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut slot_cost = 0u8;
+    let mut prestige_lanes = Vec::new();
 
     for lane in &frame.lanes {
+        if source.is_prestige(&lane.class_id) {
+            prestige_lanes.push((lane.lane_id.to_string(), lane.class_id.clone()));
+        }
         let advanced_classes = lane.advanced_classes();
         let lane_variant = lane.variant_label();
         if let Some(variant) = &lane_variant {
@@ -490,6 +499,20 @@ fn plan_frame(
         });
     }
 
+    if prestige_lanes.len() > 1 {
+        let names: Vec<_> = prestige_lanes.iter().map(|(_, c)| c.clone()).collect();
+        diagnostics.push(GestaltDiagnostic {
+            code: "gestalt.dual_prestige_lanes".to_string(),
+            message: format!(
+                "frame {} combines multiple prestige classes: {}",
+                frame.character_level,
+                names.join(", ")
+            ),
+            character_level: Some(frame.character_level),
+            lanes: prestige_lanes.into_iter().map(|(id, _)| id).collect(),
+        });
+    }
+
     FramePlanning {
         plan: GestaltFramePlan {
             character_level: frame.character_level,
@@ -614,6 +637,10 @@ mod tests {
                     .map(|level| format!("{class_id} Feature {level}"))
                     .collect(),
             )
+        }
+
+        fn is_prestige(&self, class_id: &str) -> bool {
+            matches!(class_id, "Mystic Theurge" | "Archmage" | "Sacred Exorcist")
         }
 
         fn gestalt_slot_cost(&self, class_id: &str) -> Option<PrestigeSlotCost> {
@@ -749,5 +776,22 @@ mod tests {
         assert_eq!(update.plan.frames[1].hit_points, 8);
         // Unchanged frame remains the same plan object contents.
         assert_eq!(update.plan.frames[0], plan.frames[0]);
+    }
+
+    #[test]
+    fn dual_prestige_classes_in_same_frame_reported() {
+        let frame = AdvancementFrame::new(
+            6,
+            vec![
+                AdvancementLane::new("a", "Archmage", 1, 4, 0),
+                AdvancementLane::new("b", "Sacred Exorcist", 1, 8, 0),
+            ],
+        );
+        let plan = plan_gestalt(&[frame], &FakeSource, 0, &GestaltPolicy::default());
+        assert_eq!(plan.frames[0].hit_points, 8); // Merged best HP (8 vs 4)
+        assert!(plan
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "gestalt.dual_prestige_lanes"));
     }
 }

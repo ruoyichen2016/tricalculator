@@ -69,8 +69,16 @@ pub(super) async fn page(
         for level in 1..=c.max_level {
             let _ = write!(out, "<tr><td>{level}</td><td>");
             for f in m.progression.iter().filter(|f| f.level == level) {
-                let _ = write!(out,"<p class=\"coverage\">Data: {} · Qualification: {} · Execution: {}</p>", f.coverage.data.label(), f.coverage.qualification.label(), f.coverage.execution.label());
-                if !f.coverage.note.is_empty() { let _=write!(out,"<p>{}</p>",escape(&f.coverage.note)); }
+                let _ = write!(
+                    out,
+                    "<p class=\"coverage\">Data: {} · Qualification: {} · Execution: {}</p>",
+                    f.coverage.data.label(),
+                    f.coverage.qualification.label(),
+                    f.coverage.execution.label()
+                );
+                if !f.coverage.note.is_empty() {
+                    let _ = write!(out, "<p>{}</p>", escape(&f.coverage.note));
+                }
                 let _ = write!(
                     out,
                     "<strong>{}</strong><p>{}</p>",
