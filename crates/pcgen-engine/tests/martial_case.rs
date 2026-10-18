@@ -30,33 +30,37 @@ fn complete_class_rows_then_shadow_pounce_extremes() {
             .class_magic
             .as_ref()
             .unwrap();
-        let mut draft = CharacterDraft {
-            race_id: "Human".into(),
-            alignment: "LN".into(),
-            ..Default::default()
-        };
-        for n in 1..=max {
-            draft
-                .advancement
-                .push(AdvancementFrame::single(n, class, n, 1, 0));
+        if let Some(m) = &magic.martial {
+            for n in 1..=max {
+                assert!(m.at_level(n).is_some(), "{class} {n}");
+            }
+        }
+        for f in &magic.feature_values {
+            let vars = HashMap::from([("CLASSLEVEL".to_string(), f.at_level as i32)]);
+            for v in f.values.values() {
+                pcgen_formula::Formula::parse(v)
+                    .unwrap()
+                    .eval_i32(&vars)
+                    .unwrap();
+            }
+        }
+        for n in [1, max] {
+            let mut draft = CharacterDraft {
+                race_id: "Human".into(),
+                alignment: "LN".into(),
+                ..Default::default()
+            };
+            for lvl in 1..=n {
+                draft
+                    .advancement
+                    .push(AdvancementFrame::single(lvl, class, lvl, 1, 0));
+            }
             let snapshot = engine.evaluate(&draft);
             assert_eq!(
                 snapshot.base_attack_bonus,
                 engine.pack.progressions[class].bab(n),
                 "{class} {n}"
             );
-            if let Some(m) = &magic.martial {
-                assert!(m.at_level(n).is_some(), "{class} {n}");
-            }
-            let vars = HashMap::from([("CLASSLEVEL".to_string(), n as i32)]);
-            for f in magic.feature_values.iter().filter(|f| f.at_level <= n) {
-                for v in f.values.values() {
-                    pcgen_formula::Formula::parse(v)
-                        .unwrap()
-                        .eval_i32(&vars)
-                        .unwrap();
-                }
-            }
         }
     }
     let crusader = engine

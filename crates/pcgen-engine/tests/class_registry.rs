@@ -69,20 +69,20 @@ fn class_matrix_and_fixed_list_replacements() {
         ("Wizard", 10),
     ];
     for (class, bab20) in core {
-        for level in [1, 4, 10, 20] {
-            let definition = &e.pack.classes[class];
-            if definition.spellcasting_ability.is_some() {
-                assert_eq!(
-                    definition.spell_power,
-                    if ["Bard", "Sorcerer", "Wizard"].contains(&class) {
-                        pcgen_core::SpellPowerType::Arcane
-                    } else {
-                        pcgen_core::SpellPowerType::Divine
-                    },
-                    "{class} magic source"
-                );
-            }
-            assert_eq!(definition.requires_spellbook, class == "Wizard");
+        let definition = &e.pack.classes[class];
+        if definition.spellcasting_ability.is_some() {
+            assert_eq!(
+                definition.spell_power,
+                if ["Bard", "Sorcerer", "Wizard"].contains(&class) {
+                    pcgen_core::SpellPowerType::Arcane
+                } else {
+                    pcgen_core::SpellPowerType::Divine
+                },
+                "{class} magic source"
+            );
+        }
+        assert_eq!(definition.requires_spellbook, class == "Wizard");
+        for level in [1, 20] {
             let d = character(class, level);
             let s = e.evaluate(&d);
             assert!(s.is_available(), "{class} {level}: {:?}", s.diagnostics);

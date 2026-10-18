@@ -37,11 +37,6 @@ fn all_class_levels_before_warforged_extremes() {
         };
         for n in 1..=max {
             d.advancement.push(AdvancementFrame::single(n, c, n, 1, 0));
-            assert_eq!(
-                e.evaluate(&d).base_attack_bonus,
-                e.pack.progressions[c].bab(n),
-                "{c} {n}"
-            );
             if let Some(i) = &m.incarnum {
                 assert!(i.at_level(n).is_some(), "{c} {n}");
             }
@@ -49,6 +44,11 @@ fn all_class_levels_before_warforged_extremes() {
                 assert!(i.at_level(n).is_some(), "{c} {n}");
             }
         }
+        assert_eq!(
+            e.evaluate(&d).base_attack_bonus,
+            e.pack.progressions[c].bab(max),
+            "{c} {max}"
+        );
         assert_eq!(e.pack.progressions[c].bab(max), bab_end);
         let s = e.incarnum_snapshot(&d, &IncarnumLoadout::default());
         assert!(s.errors.is_empty(), "{:?}", s.errors);

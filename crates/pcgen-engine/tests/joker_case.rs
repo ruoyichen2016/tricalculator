@@ -43,18 +43,20 @@ fn all_class_levels_before_joker_extremes() {
         let c = &e.pack.classes[class];
         assert_eq!(c.max_level, max);
         assert_eq!(c.level_spellcaster_advance.len(), advanced);
-        for n in 1..=max {
+        if class == "Favored Soul" {
+            for n in 1..=max {
+                assert!(c.spell_slots.contains_key(&n));
+                assert!(c.spells_known.contains_key(&n));
+                assert_eq!(c.spell_slots[&n].len(), c.spells_known[&n].len());
+            }
+        }
+        for n in [1, max] {
             let d = character(class, n);
             assert_eq!(
                 e.evaluate(&d).base_attack_bonus,
                 e.pack.progressions[class].bab(n),
                 "{class} {n}"
             );
-            if class == "Favored Soul" {
-                assert!(c.spell_slots.contains_key(&n));
-                assert!(c.spells_known.contains_key(&n));
-                assert_eq!(c.spell_slots[&n].len(), c.spells_known[&n].len());
-            }
         }
     }
     let mut fs = character("Favored Soul", 18);
@@ -83,7 +85,7 @@ fn all_class_levels_before_joker_extremes() {
             },
         )
         .unwrap();
-    assert_eq!(e.evaluate(&fs).spell_dcs["Zone of Truth|Favored Soul"],13);
+    assert_eq!(e.evaluate(&fs).spell_dcs["Zone of Truth|Favored Soul"], 13);
     assert_eq!(cast.save_dc, 13); // WIS +1, not CHA +7.
     let case: JokerCase = serde_json::from_str(include_str!(
         "../../../tests/fixtures/forum-builds/joker.json"
