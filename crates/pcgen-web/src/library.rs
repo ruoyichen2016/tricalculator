@@ -1,10 +1,19 @@
 //! Read the same compiled class model used by the editor and engine.
-use super::ui::escape;
+use super::ui::{escape, url};
 use super::*;
 use std::fmt::Write;
+
+#[derive(Default, Deserialize)]
+pub(super) struct LibraryQuery {
+    #[serde(default)]
+    id: String,
+    #[serde(default)]
+    class: String,
+}
+
 pub(super) async fn page(
     State(state): State<AppState>,
-    Query(q): Query<super::character_context::CharacterQuery>,
+    Query(q): Query<LibraryQuery>,
 ) -> Html<String> {
     let path = state
         .config
@@ -31,14 +40,52 @@ pub(super) async fn page(
         }
     };
     let classes = super::character_context::classes(&engine);
-    let anchors: Vec<_> = classes
+    let visible_classes: Vec<_> = classes
+        .iter()
+        .copied()
+        .filter(|c| q.class.is_empty() || c.id.eq_ignore_ascii_case(&q.class))
+        .collect();
+    let anchors: Vec<_> = visible_classes
         .iter()
         .map(|c| (c.id.to_ascii_lowercase().replace(' ', "-"), c.name.as_str()))
         .collect();
     let links: Vec<_> = anchors.iter().map(|(k, v)| (k.as_str(), *v)).collect();
-    let mut out=super::ui::start(super::ui::Page::Library,&q.id,"The rule library","Core classes, fixed-list casters, and prestige classes. Every level uses the same rules model.",&links);
-    out.push_str("<p><a href=\"/martial\">Run the Shadow Pounce stress case</a> · <a href=\"/incarnum\">Run the Warforged incarnum case</a> · <a href=\"/joker\">Run the Joker case</a></p>");
-    for c in classes {
+    let mut out = super::ui::start(
+        super::ui::Page::Library,
+        &q.id,
+        "The rule library",
+        "Core classes, fixed-list casters, and prestige classes. Every level uses the same rules model.",
+        &links,
+    );
+    let id_param = if q.id.is_empty() {
+        String::new()
+    } else {
+        format!("?id={}", url(&q.id))
+    };
+    let _ = write!(
+        out,
+        "<section><div class=\"section-heading\"><h2>Class filter &amp; stress cases</h2><div><a href=\"/martial{id_param}\">Run the Shadow Pounce stress case</a> · <a href=\"/incarnum{id_param}\">Run the Warforged incarnum case</a> · <a href=\"/joker{id_param}\">Run the Joker case</a></div></div><nav class=\"sub-nav\" aria-label=\"Filter by class\"><a href=\"/classes{id_param}\" {}>All classes ({})</a>",
+        if q.class.is_empty() {
+            "aria-current=\"page\""
+        } else {
+            ""
+        },
+        classes.len()
+    );
+    for c in &classes {
+        let active = c.id.eq_ignore_ascii_case(&q.class);
+        let _ = write!(
+            out,
+            "<a href=\"/classes?id={}&class={}\" {}>{}</a>",
+            url(&q.id),
+            url(&c.id),
+            if active { "aria-current=\"page\"" } else { "" },
+            escape(&c.name)
+        );
+    }
+    out.push_str("</nav></section>");
+
+    for c in visible_classes {
         let e = engine
             .pack
             .entities
@@ -46,7 +93,22 @@ pub(super) async fn page(
             .find(|e| e.name.eq_ignore_ascii_case(&c.id) && e.metadata.class_magic.is_some())
             .unwrap();
         let m = e.metadata.class_magic.as_ref().unwrap();
-        let _=write!(out,"<section id=\"{}\"><p class=\"eyebrow\">{}</p><h2>{}</h2><p>{} Hit Die · {} skill points per level · {:?} attack progression</p>",escape(&c.id.to_ascii_lowercase().replace(' ',"-")),if c.is_prestige {"PRESTIGE CLASS"}else{"BASE CLASS"},escape(&c.name),escape(&c.hit_die),c.skill_points_per_level,c.attack_progression);
+        let _ = write!(
+            out,
+            "<section id=\"{}\"><div class=\"section-heading\"><div><p class=\"eyebrow\">{}</p><h2>{}</h2></div><span class=\"badge\">Max L{} · {}</span></div><p>{} Hit Die · {} skill points per level · {:?} attack progression</p>",
+            escape(&c.id.to_ascii_lowercase().replace(' ', "-")),
+            if c.is_prestige {
+                "PRESTIGE CLASS"
+            } else {
+                "BASE CLASS"
+            },
+            escape(&c.name),
+            c.max_level,
+            escape(&c.hit_die),
+            escape(&c.hit_die),
+            c.skill_points_per_level,
+            c.attack_progression
+        );
         if let Some(stat) = &c.spellcasting_ability {
             let _ = write!(
                 out,

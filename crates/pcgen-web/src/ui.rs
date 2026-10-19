@@ -18,6 +18,13 @@ pub(super) fn url(s: &str) -> String {
         })
         .collect()
 }
+pub(super) fn id_query(id: &str) -> String {
+    if id.is_empty() {
+        String::new()
+    } else {
+        format!("?id={}", url(id))
+    }
+}
 
 #[derive(Clone, Copy, PartialEq)]
 pub(super) enum Page {
@@ -124,4 +131,66 @@ pub(super) fn metric(out: &mut String, label: &str, value: &str, href: &str) {
         escape(label),
         escape(value)
     );
+}
+
+pub(super) fn character_bar(
+    out: &mut String,
+    state: &super::AppState,
+    action_path: &str,
+    current_id: &str,
+    hidden_fields: &[(&str, &str)],
+    links: &[(&str, &str)],
+) {
+    let _ = write!(
+        out,
+        r#"<section class="character-picker"><form method="get" action="{}">"#,
+        escape(action_path)
+    );
+    for (k, v) in hidden_fields {
+        if !v.is_empty() {
+            let _ = write!(
+                out,
+                r#"<input type="hidden" name="{}" value="{}">"#,
+                escape(k),
+                escape(v)
+            );
+        }
+    }
+    out.push_str(
+        r#"<label>Character<select name="id"><option value="">Choose a character</option>"#,
+    );
+    if let Ok(items) = state.repository.list() {
+        for item in items {
+            let classes = if item.class_ids.is_empty() {
+                String::new()
+            } else {
+                format!(" ({})", item.class_ids.join("/"))
+            };
+            let _ = write!(
+                out,
+                r#"<option value="{}" {}>{} · level {}{}</option>"#,
+                escape(&item.id),
+                if item.id == current_id {
+                    "selected"
+                } else {
+                    ""
+                },
+                escape(&item.name),
+                item.total_level,
+                escape(&classes)
+            );
+        }
+    }
+    out.push_str("</select></label><button>Open character</button></form>");
+    if !links.is_empty() {
+        out.push_str(r#"<div class="context-links">"#);
+        for (i, (href, label)) in links.iter().enumerate() {
+            if i > 0 {
+                out.push_str(r#"<span class="muted">·</span>"#);
+            }
+            let _ = write!(out, r#"<a href="{}">{}</a>"#, escape(href), escape(label));
+        }
+        out.push_str("</div>");
+    }
+    out.push_str("</section>");
 }

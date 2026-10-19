@@ -9,6 +9,29 @@ pub(super) fn input(out: &mut String, label: &str, name: &str, value: &str, kind
         escape(value)
     );
 }
+pub(super) fn input_list(
+    out: &mut String,
+    label: &str,
+    name: &str,
+    value: &str,
+    kind: &str,
+    list_id: &str,
+) {
+    let _ = write!(
+        out,
+        "<label>{}<input name=\"{name}\" value=\"{}\" type=\"{kind}\" list=\"{}\"></label>",
+        escape(label),
+        escape(value),
+        escape(list_id)
+    );
+}
+pub(super) fn datalist<'a>(out: &mut String, id: &str, items: impl IntoIterator<Item = &'a str>) {
+    let _ = write!(out, "<datalist id=\"{}\">", escape(id));
+    for item in items {
+        let _ = write!(out, "<option value=\"{}\">", escape(item));
+    }
+    out.push_str("</datalist>");
+}
 pub(super) fn check(out: &mut String, label: &str, name: &str) {
     checked(out, label, name, false);
 }

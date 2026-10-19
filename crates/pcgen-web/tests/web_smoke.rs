@@ -1570,3 +1570,101 @@ fn project_classes(character: &serde_json::Value) -> serde_json::Value {
         .map(|entry| serde_json::json!({"class_id": entry.class_id, "level": entry.level}))
         .collect::<Vec<_>>())
 }
+
+#[tokio::test]
+async fn html_workbench_routes_render_zero_js_and_support_gui_workflows() {
+    let workspace_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let config = WebConfig {
+        data_root: workspace_root.clone(),
+        cohort_root: workspace_root,
+        characters_root: temp_characters_root("gui-workflows"),
+    };
+    let characters_root = config.characters_root.clone();
+    let app = app(config);
+
+    // 1. Create a character directly from /build with initial BuildHistory.
+    let create_form = "op=create&id=studio-hero&name=Studio+Hero&race_id=Human&alignment=NG&class=Warmage&hp=6&STR=14&DEX=12&CON=14&INT=14&WIS=10&CHA=10";
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/build")
+                .header("content-type", "application/x-www-form-urlencoded")
+                .body(Body::from(create_form))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body = String::from_utf8(bytes.to_vec()).unwrap();
+    assert!(body.contains("Created character with explicit acquisition history."));
+    assert!(body.contains("Studio Hero"));
+    assert!(body.contains("id=\"build-skills\""));
+    assert!(!body.contains("<script"));
+
+    // 2. Character Overview page renders 6-ability grid and combat strip.
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/?id=studio-hero")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body = String::from_utf8(bytes.to_vec()).unwrap();
+    assert!(body.contains("Abilities &amp; combat statistics"));
+    assert!(body.contains("Armor Class"));
+    assert!(!body.contains("<script"));
+
+    // 3. Encounter desk supports focused sub-view filtering.
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/class-play?id=studio-hero&view=scene")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body = String::from_utf8(bytes.to_vec()).unwrap();
+    assert!(body.contains("id=\"scene\""));
+    assert!(!body.contains("id=\"resources\""));
+    assert!(!body.contains("id=\"air\""));
+    assert!(!body.contains("<script"));
+
+    // 4. Rules library supports class filtering and preserves character id.
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/classes?id=studio-hero&class=Warmage")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body = String::from_utf8(bytes.to_vec()).unwrap();
+    assert!(body.contains("Warmage"));
+    assert!(body.contains("id=studio-hero"));
+    assert!(!body.contains("<script"));
+
+    let _ = std::fs::remove_dir_all(characters_root);
+}

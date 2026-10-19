@@ -5,15 +5,21 @@ use axum::Form;
 use pcgen_engine::martial_case::{MartialCase, MartialCaseReport};
 use std::{collections::BTreeMap, fmt::Write};
 const CASE: &str = include_str!("../../../tests/fixtures/forum-builds/shadow-pounce.json");
-fn render(state: &AppState, f: &BTreeMap<String, String>) -> String {
+fn render(state: &AppState, id: &str, f: &BTreeMap<String, String>) -> String {
     let mut out = super::ui::start(
         super::ui::Page::Cases,
-        "",
+        id,
         "Martial stress replay",
         "Full class progression first; then audit the proposed combination.",
         &[],
     );
-    out.push_str("<section><h2>Shadow pounce / Ruby Knight Vindicator</h2><p>This is a read-only case study, not a saved character or a certified legal build. <a href=\"/classes\">Read the full class progressions</a>.</p><form method=post action=\"/martial\">");
+    let _ = write!(
+        out,
+        "<section><h2>Shadow pounce / Ruby Knight Vindicator</h2><p>This is a read-only case study, not a saved character or a certified legal build. <a href=\"/cases?case=shadow-pounce&id={}\">Back to case overview</a> · <a href=\"/classes?id={}\">Read the full class progressions</a>.</p><form method=post action=\"/martial\"><input type=\"hidden\" name=\"id\" value=\"{}\">",
+        super::ui::url(id),
+        super::ui::url(id),
+        escape(id)
+    );
     super::forms::checked(
         &mut out,
         "Target denied Dexterity",
@@ -172,12 +178,16 @@ fn render(state: &AppState, f: &BTreeMap<String, String>) -> String {
     );
     out
 }
-pub(super) async fn page(State(state): State<AppState>) -> Html<String> {
-    Html(render(&state, &BTreeMap::new()))
+pub(super) async fn page(
+    State(state): State<AppState>,
+    Query(q): Query<super::character_context::CharacterQuery>,
+) -> Html<String> {
+    Html(render(&state, &q.id, &BTreeMap::new()))
 }
 pub(super) async fn replay(
     State(state): State<AppState>,
     Form(f): Form<BTreeMap<String, String>>,
 ) -> Html<String> {
-    Html(render(&state, &f))
+    let id = f.get("id").map(String::as_str).unwrap_or("");
+    Html(render(&state, id, &f))
 }

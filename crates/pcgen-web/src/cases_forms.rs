@@ -19,7 +19,7 @@ pub(super) async fn page(
         "Original claims, acquisition evidence and separate experiments.",
         &[],
     );
-    out.push_str("<section><h2>Extreme builds</h2><nav>");
+    out.push_str("<section><h2>Extreme builds</h2><nav class=\"sub-nav\" aria-label=\"Extreme build cases\">");
     for (key, name) in [
         ("shadow-pounce", "Shadow Pounce"),
         ("warforged-umbral", "Warforged Umbral Disciple"),
@@ -27,8 +27,13 @@ pub(super) async fn page(
     ] {
         let _ = write!(
             out,
-            "<a href=\"/cases?case={key}&id={}\">{name}</a>",
-            url(&q.id)
+            "<a href=\"/cases?case={key}&id={}\" {}>{name}</a>",
+            url(&q.id),
+            if q.case == key {
+                "aria-current=\"step\""
+            } else {
+                ""
+            }
         );
     }
     out.push_str("</nav></section>");
@@ -42,7 +47,12 @@ pub(super) async fn page(
                     .join("data/rules/rainbow-warweaver.rules.json"),
             )?;
             let r = e.case_summary(&q.case)?;
-            let _=write!(out,"<section><h2>{}</h2><h3>Claims and results</h3><table><thead><tr><th>Claim</th><th>Result</th></tr></thead><tbody>",escape(&r.title));
+            let probe_href = if q.id.is_empty() {
+                r.probe_path.clone()
+            } else {
+                format!("{}?id={}", r.probe_path, url(&q.id))
+            };
+            let _=write!(out,"<section><h2>{}</h2><h3>Claims and results</h3><div class=\"table-scroll\"><table><thead><tr><th>Claim</th><th>Result</th></tr></thead><tbody>",escape(&r.title));
             for (claim, result) in r.claims {
                 let _ = write!(
                     out,
@@ -51,11 +61,11 @@ pub(super) async fn page(
                     escape(&result)
                 );
             }
-            out.push_str("</tbody></table><h3>Assumptions and missing evidence</h3><ul>");
+            out.push_str("</tbody></table></div><h3>Assumptions and missing evidence</h3><ul>");
             for a in r.assumptions {
                 let _ = write!(out, "<li>{}</li>", escape(&a));
             }
-            let _=write!(out,"</ul><p><a href=\"{}\">Open separate experiment form</a>. Experiment changes do not repair or overwrite the original build.</p></section><section><h2>Original acquisition audit</h2>",escape(&r.probe_path));
+            let _=write!(out,"</ul><p><a href=\"{}\">Open separate experiment form</a>. Experiment changes do not repair or overwrite the original build.</p></section><section><h2>Original acquisition audit</h2>",escape(&probe_href));
             build_forms::decisions(&mut out, &r.acquisition, None);
             out.push_str("</section>");
             Ok(())

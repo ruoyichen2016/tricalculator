@@ -36,19 +36,27 @@ fn select(out: &mut String, name: &str, label: &str, value: &str, options: &[(&s
     }
     out.push_str("</select></label>");
 }
-fn render(state: &AppState, f: &BTreeMap<String, String>) -> String {
+fn render(state: &AppState, id: &str, f: &BTreeMap<String, String>) -> String {
     let mut out = super::ui::start(
         super::ui::Page::Cases,
-        "",
+        id,
         "Incarnum stress replay",
         "Complete class progressions first; original build errors and a separate repair probe.",
         &[],
     );
-    out.push_str("<p><a href=\"/classes\">Full class tables</a> · <a href=\"/martial\">Shadow Pounce case</a></p><p>Read-only case study. The original post omits abilities, alignment and skill history. This probe assumes NG, CON 14, medium size, speed 30 and two light weapons. It removes the duplicate Bonus Essentia and replaces Dancing Mongoose with Wolf Fang Strike. These changes do not certify the original character.</p>");
+    let q = super::ui::id_query(id);
+    let _ = write!(
+        out,
+        "<p class=\"sub-nav\"><a href=\"/cases{q}\">← All cases</a> <a href=\"/classes{q}\">Full class tables</a> <a href=\"/martial{q}\">Shadow Pounce case</a> <a href=\"/joker{q}\">Joker case</a></p><p>Read-only case study. The original post omits abilities, alignment and skill history. This probe assumes NG, CON 14, medium size, speed 30 and two light weapons. It removes the duplicate Bonus Essentia and replaces Dancing Mongoose with Wolf Fang Strike. These changes do not certify the original character.</p>"
+    );
     let result = (|| -> Result<(), String> {
         let mut c: IncarnumCase = serde_json::from_str(CASE).map_err(|e| e.to_string())?;
         let val = |key: &str, default: &str| f.get(key).cloned().unwrap_or(default.into());
-        out.push_str("<section><h2>Allocation and target</h2><form method=\"post\" action=\"/incarnum\"><input type=\"hidden\" name=\"submitted\" value=\"1\">");
+        let _ = write!(
+            out,
+            "<section><h2>Allocation and target</h2><form method=\"post\" action=\"/incarnum\"><input type=\"hidden\" name=\"id\" value=\"{}\"><input type=\"hidden\" name=\"submitted\" value=\"1\">",
+            escape(id)
+        );
         select(
             &mut out,
             "bind",
@@ -274,12 +282,16 @@ fn render(state: &AppState, f: &BTreeMap<String, String>) -> String {
     );
     out
 }
-pub(super) async fn page(State(state): State<AppState>) -> Html<String> {
-    Html(render(&state, &BTreeMap::new()))
+pub(super) async fn page(
+    State(state): State<AppState>,
+    Query(q): Query<super::character_context::CharacterQuery>,
+) -> Html<String> {
+    Html(render(&state, &q.id, &BTreeMap::new()))
 }
 pub(super) async fn replay(
     State(state): State<AppState>,
     Form(f): Form<BTreeMap<String, String>>,
 ) -> Html<String> {
-    Html(render(&state, &f))
+    let id = f.get("id").map(String::as_str).unwrap_or("");
+    Html(render(&state, id, &f))
 }

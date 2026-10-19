@@ -4,6 +4,7 @@ use super::*;
 use axum::Form;
 use pcgen_core::magic::*;
 use std::{collections::BTreeMap, fmt::Write};
+
 #[derive(Default, Deserialize)]
 pub(super) struct Selection {
     #[serde(default)]
@@ -13,37 +14,70 @@ pub(super) struct Selection {
     #[serde(default)]
     spell: String,
 }
+
 fn render(
     state: &AppState,
     q: &Selection,
     message: &str,
     plan: Option<&pcgen_engine::execution::CastPlan>,
 ) -> String {
+    let anchors: &[(&str, &str)] = if q.id.is_empty() {
+        &[]
+    } else {
+        &[
+            ("track-select", "Track & spell"),
+            ("cast-options", "Cast & prepare"),
+            ("access", "Spell access"),
+        ]
+    };
     let mut out = ui::start(
         ui::Page::Spellcasting,
         &q.id,
         "Spellcasting",
         "Choose a casting track, then a spell. Preview uses saved remaining resources.",
-        &[],
+        anchors,
     );
     if !message.is_empty() {
         ui::notice(&mut out, message, message.starts_with("Cannot"));
     }
+    ui::character_bar(
+        &mut out,
+        state,
+        "/spellcasting",
+        &q.id,
+        &[("track", &q.track)],
+        &[
+            (&format!("/?id={}", url(&q.id)), "Character overview"),
+            (&format!("/build?id={}", url(&q.id)), "Build history"),
+            (&format!("/class-play?id={}", url(&q.id)), "Encounter desk"),
+            (
+                &format!("/workbench?id={}#casting", url(&q.id)),
+                "Advanced proofs",
+            ),
+        ],
+    );
     let result = (|| -> Result<(), String> {
         if q.id.is_empty() {
             out.push_str(
-                "<p>Select a character on the <a href=\"/\">Character page</a> first.</p>",
+                "<section><p>Select a character above or on the <a href=\"/\">Character page</a> first.</p></section>",
             );
             return Ok(());
         }
         let (env, e) = character_context::load(state, &q.id)?;
         let d = &env.character;
+        let s = e.evaluate(d);
         let track = if q.track.is_empty() {
             character_context::first_casting_track(&e, d)
         } else {
             q.track.clone()
         };
-        let _=write!(out,"<section><h2>{}</h2><p><a href=\"/build?id={}\">Review acquisition qualifications</a>. This page validates the operation, not the complete build.</p><form method=\"get\" action=\"/spellcasting\"><input type=\"hidden\" name=\"id\" value=\"{}\"><label>Casting track<select name=\"track\">",escape(&d.name),url(&q.id),escape(&q.id));
+        let _ = write!(
+            out,
+            "<section id=\"track-select\"><h2>{}</h2><p><a href=\"/build?id={}\">Review acquisition qualifications</a>. This page validates the operation, not the complete build.</p><div class=\"grid\"><form method=\"get\" action=\"/spellcasting\"><input type=\"hidden\" name=\"id\" value=\"{}\"><label>Casting track<select name=\"track\">",
+            escape(&d.name),
+            url(&q.id),
+            escape(&q.id)
+        );
         for c in d.class_levels() {
             if e.pack
                 .classes
@@ -60,25 +94,82 @@ fn render(
         }
         out.push_str("</select></label><button>Open casting track</button></form>");
         let list = e.spell_catalog(d, &track)?;
-        let _=write!(out,"<form method=\"get\" action=\"/spellcasting\"><input type=\"hidden\" name=\"id\" value=\"{}\"><input type=\"hidden\" name=\"track\" value=\"{}\"><label>Known spell<select name=\"spell\"><option value=\"\">Choose a spell</option>",escape(&q.id),escape(&track));
-        for s in list.iter().filter(|s| s.known && !s.prohibited) {
+        let _ = write!(
+            out,
+            "<form method=\"get\" action=\"/spellcasting\"><input type=\"hidden\" name=\"id\" value=\"{}\"><input type=\"hidden\" name=\"track\" value=\"{}\"><label>Known spell<select name=\"spell\"><option value=\"\">Choose a spell</option>",
+            escape(&q.id),
+            escape(&track)
+        );
+        for sp in list.iter().filter(|s| s.known && !s.prohibited) {
             let _ = write!(
                 out,
                 "<option value=\"{}\" {}>{} · level {} · {:?}</option>",
-                escape(&s.spell),
-                if s.spell == q.spell { "selected" } else { "" },
-                escape(&s.spell),
-                s.level,
-                s.power
+                escape(&sp.spell),
+                if sp.spell == q.spell { "selected" } else { "" },
+                escape(&sp.spell),
+                sp.level,
+                sp.power
             );
         }
-        out.push_str("</select></label><button>Open spell</button></form></section>");
+        out.push_str("</select></label><button>Open spell</button></form></div>");
+
+        // Track summary & prepared copies ledger
+        let cl = s
+            .caster_levels
+            .get(&track)
+            .map(ToString::to_string)
+            .unwrap_or_else(|| "—".into());
+        let known_count = list.iter().filter(|sp| sp.known && !sp.prohibited).count();
+        let preps: Vec<_> = d
+            .preparations
+            .iter()
+            .filter(|p| {
+                p.class_id
+                    .as_deref()
+                    .is_some_and(|c| c.eq_ignore_ascii_case(&track))
+                    && p.times_memorized > 0
+            })
+            .collect();
+        let spent_map = d.class_play.resources.slots_spent.get(&track);
+        let _ = write!(
+            out,
+            "<div class=\"combat-strip\"><div class=\"combat-cell\"><span>Active Track</span><strong>{}</strong><small class=\"muted\">Caster level {}</small></div><div class=\"combat-cell\"><span>Known &amp; Accessible</span><strong>{} spells</strong><small class=\"muted\">{} total on list</small></div><div class=\"combat-cell\"><span>Daily Preparations</span><strong>{} entries</strong><small class=\"muted\">{}</small></div></div>",
+            escape(&track),
+            escape(&cl),
+            known_count,
+            list.len(),
+            preps.len(),
+            if preps.is_empty() {
+                "None recorded".to_string()
+            } else {
+                preps
+                    .iter()
+                    .map(|p| format!("{} ×{}", p.name, p.times_memorized))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            }
+        );
+        if let Some(spent) = spent_map.filter(|m| !m.is_empty()) {
+            let spent_summary = spent
+                .iter()
+                .map(|(lvl, cnt)| format!("L{lvl}: {cnt} spent"))
+                .collect::<Vec<_>>()
+                .join(" · ");
+            let _ = write!(
+                out,
+                "<p class=\"muted\"><strong>Slots spent today ({}):</strong> {}</p>",
+                escape(&track),
+                escape(&spent_summary)
+            );
+        }
+        out.push_str("</section>");
+
         if let Some(s) = list
             .iter()
             .find(|s| s.spell == q.spell && s.known && !s.prohibited)
         {
             out.push_str(
-                "<section><h2>Cast options</h2><form method=\"post\" action=\"/spellcasting\">",
+                "<section id=\"cast-options\"><h2>Cast options</h2><form method=\"post\" action=\"/spellcasting\">",
             );
             for (key, value) in [
                 ("id", q.id.clone()),
@@ -92,6 +183,14 @@ fn render(
                     escape(&value)
                 );
             }
+            let _ = write!(
+                out,
+                "<p>Selected: <strong>{}</strong> (Base level {}, {:?}, source: {})</p>",
+                escape(&s.spell),
+                s.level,
+                s.power,
+                escape(&s.source_list)
+            );
             if e.pack
                 .classes
                 .get(&track)
@@ -107,11 +206,11 @@ fn render(
                 out.push_str("<button name=\"op\" value=\"prepare\">Record preparations</button>");
             }
             let mut available = Vec::new();
-            let state = pcgen_engine::apply_effects(&e.pack, d);
+            let state_eff = pcgen_engine::apply_effects(&e.pack, d);
             for entity in &e.pack.entities {
                 if let Some(rule) = entity.metadata.spell_rule {
                     if (pcgen_engine::effects::ability_matches_draft(d, entity)
-                        || state.active_abilities.contains(&entity.id.key))
+                        || state_eff.active_abilities.contains(&entity.id.key))
                         && !matches!(
                             rule,
                             SpellRule::Heighten
@@ -164,12 +263,18 @@ fn render(
                 }
             }
             out.push_str("<button name=\"op\" value=\"preview\">Preview</button> <button name=\"op\" value=\"commit\">Cast and spend resources</button></form><details><summary>Other casting tools</summary>");
-            let _=write!(out,"<p><a href=\"/workbench?id={}#casting\">Conditional entry proofs, Heighten, Earth Spell and advanced metamagic</a></p>",url(&q.id));
+            let _ = write!(
+                out,
+                "<p><a href=\"/workbench?id={}#casting\">Conditional entry proofs, Heighten, Earth Spell and advanced metamagic</a></p>",
+                url(&q.id)
+            );
             out.push_str("</details></section>");
         }
         if let Some(p) = plan {
             let r = &p.resolution;
-            out.push_str("<section><h2>Operation result</h2><dl class=\"resolution-grid\">");
+            out.push_str(
+                "<section id=\"result\"><h2>Operation result</h2><dl class=\"resolution-grid\">",
+            );
             for (label, value) in [
                 ("Spell type", format!("{:?}", r.power)),
                 ("Effective level", r.effective_level.to_string()),
@@ -193,19 +298,30 @@ fn render(
             for step in &p.steps {
                 let _ = write!(
                     out,
-                    "<li><strong>{} · {}</strong>: {}</li>",
+                    "<li><strong>{} · <span class=\"decision {:?}\">{}</span></strong>: {}</li>",
                     escape(&step.subject),
+                    step.status,
                     step.status.label(),
                     escape(&step.explanation)
                 );
             }
             out.push_str("</ol></section>");
         }
-        out.push_str("<section><h2>Spell access</h2><p>List access is separate from knowledge and preparation.</p><table><thead><tr><th>Spell</th><th>Level</th><th>Type</th><th>Known</th><th>Source list</th></tr></thead><tbody>");
+        out.push_str("<section id=\"access\"><h2>Spell access</h2><p>List access is separate from knowledge and preparation. Click any known spell to configure or preview it above.</p><div class=\"table-scroll\"><table><thead><tr><th>Spell</th><th>Level</th><th>Type</th><th>Known</th><th>Source list</th><th>Action</th></tr></thead><tbody>");
         for s in list {
+            let action_cell = if s.known && !s.prohibited {
+                format!(
+                    "<a href=\"/spellcasting?id={}&track={}&spell={}#cast-options\">Select →</a>",
+                    url(&q.id),
+                    url(&track),
+                    url(&s.spell)
+                )
+            } else {
+                "—".to_string()
+            };
             let _ = write!(
                 out,
-                "<tr><td>{}</td><td>{}</td><td>{:?}</td><td>{}</td><td>{}</td></tr>",
+                "<tr><td>{}</td><td>{}</td><td>{:?}</td><td>{}</td><td>{}</td><td>{}</td></tr>",
                 escape(&s.spell),
                 s.level,
                 s.power,
@@ -216,10 +332,11 @@ fn render(
                 } else {
                     "No"
                 },
-                escape(&s.source_list)
+                escape(&s.source_list),
+                action_cell
             );
         }
-        out.push_str("</tbody></table></section>");
+        out.push_str("</tbody></table></div></section>");
         Ok(())
     })();
     if let Err(e) = result {
@@ -231,12 +348,14 @@ fn render(
     );
     out
 }
+
 pub(super) async fn page(
     State(state): State<AppState>,
     Query(q): Query<Selection>,
 ) -> Html<String> {
     Html(render(&state, &q, "", None))
 }
+
 pub(super) async fn action(
     State(state): State<AppState>,
     Form(f): Form<BTreeMap<String, String>>,

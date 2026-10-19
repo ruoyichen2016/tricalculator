@@ -3,15 +3,19 @@ use super::*;
 use axum::Form;
 use pcgen_engine::{joker::JokerCase, spell_features::deity_favor};
 use std::{collections::BTreeMap, fmt::Write};
-fn render(state: &AppState, f: &BTreeMap<String, String>) -> String {
+fn render(state: &AppState, id: &str, f: &BTreeMap<String, String>) -> String {
     let mut out = ui::start(
         ui::Page::Cases,
-        "",
+        id,
         "The Joker stress case",
         "Class progression, casting type and temporary hit points.",
         &[],
     );
-    out.push_str("<p><a href=\"/classes\">All class levels</a> · <a href=\"/incarnum\">Warforged case</a></p><p>Read-only analysis of the supplied forum build. Missing history is not treated as satisfied prerequisites.</p>");
+    let q = ui::id_query(id);
+    let _ = write!(
+        out,
+        "<p class=\"sub-nav\"><a href=\"/cases{q}\">← All cases</a> <a href=\"/classes{q}\">All class levels</a> <a href=\"/incarnum{q}\">Warforged case</a> <a href=\"/martial{q}\">Shadow Pounce case</a></p><p>Read-only analysis of the supplied forum build. Missing history is not treated as satisfied prerequisites.</p>"
+    );
     let result = (|| -> Result<(), String> {
         let e = cached_engine(
             state,
@@ -43,7 +47,11 @@ fn render(state: &AppState, f: &BTreeMap<String, String>) -> String {
             let _ = write!(out, "<li>{}</li>", ui::escape(&message));
         }
         out.push_str("</ul>");
-        out.push_str("<h2>Deity's Favor boundary probe</h2><p>Assumes the replacement feature is selected and all selected recipients are affected allies. This resolves one use; previous temporary HP pools are not added.</p><form method=\"post\" action=\"/joker\">");
+        let _ = write!(
+            out,
+            "<h2>Deity's Favor boundary probe</h2><p>Assumes the replacement feature is selected and all selected recipients are affected allies. This resolves one use; previous temporary HP pools are not added.</p><form method=\"post\" action=\"/joker\"><input type=\"hidden\" name=\"id\" value=\"{}\">",
+            ui::escape(id)
+        );
         for (key, label, default, min, max) in [
             ("class_level", "Actual Favored Soul level", 4, 1, 20),
             ("spell_level", "Favored Soul spell level", 6, 0, 9),
@@ -99,12 +107,16 @@ fn render(state: &AppState, f: &BTreeMap<String, String>) -> String {
     ui::finish(&mut out,"Spellguard requires a defensive personal arcane spell; this rider does not change spell type.");
     out
 }
-pub(super) async fn page(State(state): State<AppState>) -> Html<String> {
-    Html(render(&state, &BTreeMap::new()))
+pub(super) async fn page(
+    State(state): State<AppState>,
+    Query(q): Query<super::character_context::CharacterQuery>,
+) -> Html<String> {
+    Html(render(&state, &q.id, &BTreeMap::new()))
 }
 pub(super) async fn replay(
     State(state): State<AppState>,
     Form(f): Form<BTreeMap<String, String>>,
 ) -> Html<String> {
-    Html(render(&state, &f))
+    let id = f.get("id").map(String::as_str).unwrap_or("");
+    Html(render(&state, id, &f))
 }
