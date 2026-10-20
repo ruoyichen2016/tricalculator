@@ -1,45 +1,76 @@
-/* Gladius design system — "parchment & arcane ink".
-   Static CSS only: frosted surfaces, warm paper, deep teal ink, gilded accents. */
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/assets/InterVariable.woff2") format("woff2");
+}
+
+/* Gladius — Nord-inspired workbench. Layered glass surfaces, restrained Frost accents. */
 :root {
   color-scheme: light dark;
-  /* Palette */
-  --ink: #1b2733;
-  --ink-soft: #34465a;
-  --muted: #64717d;
-  --paper: #f4efe4;
-  --paper-2: #ebe3d2;
-  --surface: rgba(255, 253, 248, 0.72);
-  --surface-solid: #fffdf8;
-  --surface-sunk: rgba(244, 238, 226, 0.6);
-  --line: rgba(86, 72, 46, 0.14);
-  --line-strong: rgba(86, 72, 46, 0.26);
-  --accent: #1f5566;
-  --accent-2: #2f7a8a;
-  --accent-ink: #f5f1e6;
-  --accent-soft: rgba(47, 122, 138, 0.1);
-  --accent-glow: rgba(47, 122, 138, 0.28);
-  --gold: #b58a3c;
-  --gold-soft: rgba(181, 138, 60, 0.14);
-  --danger: #b0473c;
-  --ok-bg: rgba(52, 128, 92, 0.13);
-  --ok-ink: #276147;
-  --warn-bg: rgba(212, 160, 40, 0.18);
-  --warn-ink: #7a5a12;
-  --err-bg: rgba(190, 72, 58, 0.13);
-  --err-ink: #8e3428;
-  /* Shape & depth */
-  --radius: 20px;
-  --radius-md: 14px;
-  --radius-sm: 10px;
+  /* Nord reference: https://www.nordtheme.com/docs/colors-and-palettes/
+     UI mappings and composited alpha measurements: docs/GUI_PALETTE.md.
+     Accent/status ink in light mode is darkened for small-text contrast. */
+  --ink: #2e3440;
+  --ink-soft: #434c5e;
+  --muted: #404b5c;
+  --paper: #e5e9f0;
+  --paper-2: #d8dee9;
+  --surface: #eceff4;
+  --surface-solid: #f6f8fa;
+  --surface-sunk: #e5e9f0;
+  --line: rgba(46, 52, 64, 0.14);
+  --table-line: rgba(46, 52, 64, 0.08);
+  --table-head-alpha: 62%;
+  --table-stripe-alpha: 16%;
+  --line-strong: rgba(46, 52, 64, 0.26);
+  --control-line: #7b8698;
+  --accent: #364f70;
+  --accent-2: #405c7f;
+  --accent-ink: #ffffff;
+  --action-hover: #3e597b;
+  --accent-soft: rgba(94, 129, 172, 0.10);
+  --accent-glow: rgba(94, 129, 172, 0.22);
+  --ornament: #364f70;
+  --ornament-soft: rgba(94, 129, 172, 0.08);
+  --danger: #943f48;
+  --ok-bg: rgba(163, 190, 140, 0.16);
+  --ok-ink: #426036;
+  --warn-bg: rgba(235, 203, 139, 0.20);
+  --warn-ink: #73531e;
+  --err-bg: rgba(191, 97, 106, 0.10);
+  --err-ink: #943f48;
+  /* Glass is a progressive enhancement; solid surfaces remain the fallback.
+     Apply alpha to backgrounds, never to containers and their text. */
+  --picker-fill: rgba(246, 248, 250, 0.74);
+  --field-fill: rgba(246, 248, 250, 0.76);
+  --field-hover: rgba(246, 248, 250, 0.88);
+  --control-highlight: rgba(255, 255, 255, 0.24);
+  --button-highlight: rgba(255, 255, 255, 0.04);
+  --control-shadow: 0 1px 2px rgba(46, 52, 64, 0.025);
+  --glass-panel: rgba(236, 239, 244, 0.62);
+  --glass-inner: rgba(236, 239, 244, 0.48);
+  --glass-nav: rgba(236, 239, 244, 0.76);
+  --glass-accent: #2e4059;
+  --glass-text: #303b4d;
+  --glass-edge: rgba(255, 255, 255, 0.72);
+  --glass-shadow: 0 14px 32px -22px rgba(46, 52, 64, 0.25);
+  --ambient-blue: #a9bddb;
+  --ambient-cyan: #b8dfe1;
+  --ambient-violet: #d3c9e6;
+  --radius: 26px;
+  --radius-md: 18px;
+  --radius-sm: 12px;
   --pill: 999px;
-  --shadow-sm: 0 1px 2px rgba(40, 30, 10, 0.05), 0 2px 6px rgba(40, 30, 10, 0.04);
-  --shadow: 0 1px 1px rgba(40, 30, 10, 0.03), 0 6px 18px -6px rgba(40, 30, 10, 0.1),
-    0 18px 40px -20px rgba(31, 85, 102, 0.18);
-  --shadow-lift: 0 2px 4px rgba(40, 30, 10, 0.05), 0 14px 30px -10px rgba(31, 85, 102, 0.28);
-  --blur: saturate(160%) blur(14px);
+  --shadow-sm: 0 1px 2px rgba(46, 52, 64, 0.04);
+  --shadow: 0 3px 12px rgba(46, 52, 64, 0.05);
+  --shadow-lift: 0 5px 16px rgba(46, 52, 64, 0.09);
   --space: clamp(1rem, 3vw, 2rem);
+  --ui-font: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--ui-font);
+  font-optical-sizing: auto;
   color: var(--ink);
   background: var(--paper);
   line-height: 1.6;
@@ -49,33 +80,54 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ink: #ece6d8;
-    --ink-soft: #cfc7b5;
-    --muted: #9c9a92;
-    --paper: #12171c;
-    --paper-2: #1a2128;
-    --surface: rgba(30, 38, 46, 0.66);
-    --surface-solid: #1d252d;
-    --surface-sunk: rgba(14, 19, 24, 0.5);
-    --line: rgba(230, 215, 180, 0.1);
-    --line-strong: rgba(230, 215, 180, 0.2);
-    --accent: #6fbdc9;
-    --accent-2: #8fd3dc;
-    --accent-ink: #0f1a1e;
-    --accent-soft: rgba(111, 189, 201, 0.12);
-    --accent-glow: rgba(111, 189, 201, 0.3);
-    --gold: #d8b06a;
-    --gold-soft: rgba(216, 176, 106, 0.14);
-    --danger: #e07a6c;
-    --ok-bg: rgba(90, 190, 140, 0.15);
-    --ok-ink: #8fd9b3;
-    --warn-bg: rgba(230, 180, 70, 0.15);
-    --warn-ink: #ecc977;
-    --err-bg: rgba(224, 122, 108, 0.15);
-    --err-ink: #f2a497;
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow: 0 1px 1px rgba(0, 0, 0, 0.2), 0 10px 30px -12px rgba(0, 0, 0, 0.6);
-    --shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.3), 0 16px 34px -12px rgba(0, 0, 0, 0.7);
+    --ink: #eceff4;
+    --ink-soft: #e5e9f0;
+    --muted: #d8dee9;
+    --paper: #2e3440;
+    --paper-2: #434c5e;
+    --surface: #3b4252;
+    --surface-solid: #2e3440;
+    --surface-sunk: #2e3440;
+    --line: rgba(236, 239, 244, 0.12);
+    --table-line: rgba(236, 239, 244, 0.07);
+    --table-head-alpha: 48%;
+    --table-stripe-alpha: 12%;
+    --line-strong: rgba(236, 239, 244, 0.24);
+    --control-line: #8b97ab;
+    --accent: #b7dcea;
+    --accent-2: #8fbcbb;
+    --accent-ink: #2e3440;
+    --action-hover: #9ccbd8;
+    --accent-soft: rgba(136, 192, 208, 0.12);
+    --accent-glow: rgba(136, 192, 208, 0.24);
+    --ornament: #b7dcea;
+    --ornament-soft: rgba(129, 161, 193, 0.12);
+    --danger: #edb0b7;
+    --ok-bg: rgba(163, 190, 140, 0.12);
+    --ok-ink: #b9d2a5;
+    --warn-bg: rgba(235, 203, 139, 0.12);
+    --warn-ink: #ebcb8b;
+    --err-bg: rgba(191, 97, 106, 0.12);
+    --err-ink: #edb0b7;
+    --picker-fill: rgba(30, 44, 58, 0.78);
+    --field-fill: rgba(46, 52, 64, 0.62);
+    --field-hover: rgba(46, 52, 64, 0.76);
+    --control-highlight: rgba(236, 239, 244, 0.08);
+    --button-highlight: rgba(255, 255, 255, 0.04);
+    --control-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+    --glass-panel: rgba(59, 66, 82, 0.58);
+    --glass-inner: rgba(100, 122, 146, 0.30);
+    --glass-nav: rgba(59, 66, 82, 0.80);
+    --glass-accent: #d8eef4;
+    --glass-text: #eceff4;
+    --glass-edge: rgba(236, 239, 244, 0.16);
+    --glass-shadow: 0 14px 32px -22px rgba(0, 0, 0, 0.24);
+    --ambient-blue: #3d6481;
+    --ambient-cyan: #315d65;
+    --ambient-violet: #514561;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+    --shadow: 0 3px 12px rgba(0, 0, 0, 0.12);
+    --shadow-lift: 0 5px 16px rgba(0, 0, 0, 0.18);
   }
 }
 
@@ -86,12 +138,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(60rem 40rem at -10% -10%, var(--accent-soft), transparent 60%),
-    radial-gradient(50rem 36rem at 110% 0%, var(--gold-soft), transparent 60%),
-    radial-gradient(70rem 50rem at 50% 120%, var(--accent-soft), transparent 65%),
-    linear-gradient(180deg, var(--paper), var(--paper-2));
-  background-attachment: fixed;
+  background: var(--paper);
 }
 
 a {
@@ -123,12 +170,18 @@ summary {
 
 :focus-visible {
   outline: 2px solid var(--accent-2);
-  box-shadow: 0 0 0 5px var(--accent-glow);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 ::selection {
-  background: var(--gold-soft);
-  color: var(--ink);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+  opacity: 1;
 }
 
 h1,
@@ -140,23 +193,20 @@ p {
 
 h1,
 h2 {
-  font-family: var(--serif);
-  font-weight: 500;
+  font-family: var(--ui-font);
+  font-weight: 650;
 }
 
 h1 {
-  font-size: clamp(2.5rem, 4.8vw, 4.2rem);
+  font-size: clamp(2rem, 3.6vw, 3rem);
   line-height: 1.05;
   letter-spacing: -0.035em;
   margin: 0.5rem 0 1rem;
-  background: linear-gradient(120deg, var(--ink) 30%, var(--accent) 75%, var(--gold));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--ink);
 }
 
 h2 {
-  font-size: 1.7rem;
+  font-size: 1.6rem;
   line-height: 1.25;
   letter-spacing: -0.02em;
   margin: 0 0 1rem;
@@ -182,7 +232,7 @@ small,
   font-size: 0.66rem;
   letter-spacing: 0.2em;
   font-weight: 750;
-  color: var(--gold);
+  color: var(--ornament);
   margin: 0;
   text-transform: uppercase;
 }
@@ -194,22 +244,23 @@ small,
   margin: 0;
 }
 
-/* Header & Primary Navigation — frosted, sticky */
+/* Header & Primary Navigation — sticky, glass when supported */
 .site-header {
   position: sticky;
-  top: 0;
+  top: 12px;
   z-index: 20;
-  max-width: none;
-  padding: 0.85rem max(var(--space), calc((100vw - 1340px) / 2));
+  max-width: 1280px;
+  margin: 12px auto 0;
+  width: calc(100% - 32px);
+  padding: 0.65rem 1rem;
+  border-radius: 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  background: color-mix(in srgb, var(--paper) 70%, transparent);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
-  border-bottom: 1px solid var(--line);
-  box-shadow: 0 8px 24px -18px rgba(31, 40, 50, 0.35);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
 }
 
 .brand {
@@ -226,14 +277,13 @@ small,
 .brand-mark {
   display: grid;
   place-items: center;
-  background: linear-gradient(145deg, var(--accent-2), var(--accent) 55%, #12333e);
-  color: #f6e7c4;
+  background: var(--accent);
+  color: var(--accent-ink);
   width: 36px;
   height: 40px;
   font: 600 22px var(--serif);
-  border-radius: 8px 8px 18px 8px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 0 0 1px rgba(181, 138, 60, 0.45),
-    0 6px 14px -4px var(--accent-glow);
+  border-radius: 12px;
+  box-shadow: none;
 }
 
 .brand small {
@@ -260,7 +310,11 @@ small,
   font-size: 0.83rem;
   text-decoration: none;
   color: var(--muted);
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1rem;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: var(--pill);
 }
 
@@ -271,9 +325,9 @@ small,
 
 .primary-nav a[aria-current="page"] {
   color: var(--accent-ink);
-  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  background: var(--accent);
   font-weight: 650;
-  box-shadow: 0 4px 12px -4px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: none;
 }
 
 /* Page Shell & Section Nav */
@@ -301,16 +355,14 @@ small,
   font-size: 0.68rem;
   letter-spacing: 0.12em;
   background: var(--surface);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
 }
 
 .edition strong {
-  font: 500 2.8rem/1.05 var(--serif);
-  color: var(--gold);
+  font: 550 2.8rem/1.05 var(--ui-font);
+  color: var(--ornament);
   letter-spacing: -0.04em;
 }
 
@@ -326,18 +378,19 @@ small,
   border-radius: var(--pill);
   padding: 0.4rem;
   background: var(--surface);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
   margin-bottom: 1.5rem;
   position: sticky;
-  top: 4.6rem;
+  top: 6.6rem;
   z-index: 10;
   box-shadow: var(--shadow);
 }
 
 .section-nav a {
   font-size: 0.77rem;
-  padding: 0.38rem 0.8rem;
+  padding: 0.55rem 0.95rem;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
   border-radius: var(--pill);
   text-decoration: none;
   color: var(--ink-soft);
@@ -359,7 +412,7 @@ small,
   background: var(--surface-sunk);
   border: 1px solid var(--line);
   border-radius: var(--pill);
-  box-shadow: inset 0 1px 3px rgba(40, 30, 10, 0.06);
+  box-shadow: none;
 }
 
 .sub-nav a {
@@ -394,24 +447,13 @@ section {
   position: relative;
   border: 1px solid var(--line);
   background: var(--surface);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
   border-radius: var(--radius);
   padding: var(--space);
   margin-bottom: 1.4rem;
-  scroll-margin-top: 9rem;
+  scroll-margin-top: 11rem;
   box-shadow: var(--shadow);
 }
 
-section::before {
-  /* hairline highlight along the top edge */
-  content: "";
-  position: absolute;
-  inset: 0 1.5rem auto;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
-  pointer-events: none;
-}
 
 section > p {
   max-width: 75ch;
@@ -420,8 +462,8 @@ section > p {
 }
 
 section:target {
-  border-color: var(--accent-2);
-  box-shadow: 0 0 0 4px var(--accent-glow), var(--shadow);
+  border-color: var(--line-strong);
+  box-shadow: 0 0 0 2px var(--accent-glow), var(--shadow);
 }
 
 section section {
@@ -452,22 +494,19 @@ section section {
 }
 
 .overview {
-  background:
-    radial-gradient(40rem 16rem at 100% 0%, var(--gold-soft), transparent 70%),
-    radial-gradient(30rem 14rem at 0% 100%, var(--accent-soft), transparent 70%),
-    var(--surface);
+  background: var(--surface);
   border-color: var(--line-strong);
 }
 
 .overview::after {
-  content: "";
+  content: none;
   position: absolute;
   left: var(--space);
   right: var(--space);
   top: 0;
   height: 3px;
   border-radius: 0 0 4px 4px;
-  background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--gold));
+  background: var(--accent);
 }
 
 /* Metrics & Stat Cards */
@@ -485,7 +524,7 @@ section section {
   padding: 1.15rem 1.2rem;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  background: linear-gradient(160deg, var(--surface-solid), var(--surface));
+  background: var(--surface-solid);
   color: var(--ink);
   text-decoration: none;
   box-shadow: var(--shadow-sm);
@@ -499,9 +538,9 @@ section section {
 }
 
 .metric strong {
-  font-family: var(--serif);
-  font-weight: 500;
-  font-size: 2.35rem;
+  font-family: var(--ui-font);
+  font-weight: 600;
+  font-size: 2.1rem;
   line-height: 1.15;
   color: var(--accent);
   font-variant-numeric: tabular-nums;
@@ -509,9 +548,9 @@ section section {
 
 .metric .metric-link {
   font-size: 0.68rem;
-  color: var(--gold);
+  color: var(--ornament);
   margin-top: 0.2rem;
-  opacity: 0.7;
+  opacity: 1;
 }
 
 .metric:hover {
@@ -539,22 +578,22 @@ section section {
   text-align: center;
   padding: 1rem 0.6rem 0.9rem;
   border: 1px solid var(--line);
-  border-radius: 18px 18px 26px 26px;
-  background: linear-gradient(180deg, var(--surface-solid), var(--surface-sunk));
-  box-shadow: var(--shadow-sm), inset 0 -3px 0 var(--gold-soft);
+  border-radius: var(--radius-md);
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-sm);
 }
 
 .stat-card .stat-label {
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.16em;
-  color: var(--gold);
+  color: var(--ornament);
 }
 
 .stat-card .stat-score {
-  font-family: var(--serif);
-  font-weight: 500;
-  font-size: 2.2rem;
+  font-family: var(--ui-font);
+  font-weight: 600;
+  font-size: 2.1rem;
   line-height: 1.1;
   color: var(--ink);
   margin: 0.2rem 0 0.35rem;
@@ -668,7 +707,7 @@ section section {
 .notice {
   border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
   border-left: 4px solid var(--accent);
-  background: linear-gradient(90deg, var(--accent-soft), var(--surface));
+  background: var(--surface);
   padding: 1rem 1.4rem;
 }
 
@@ -683,7 +722,7 @@ section section {
 .error {
   border-color: color-mix(in srgb, var(--danger) 30%, transparent);
   border-left: 4px solid var(--danger);
-  background: linear-gradient(90deg, var(--err-bg), var(--surface));
+  background: var(--err-bg);
   color: var(--err-ink);
 }
 
@@ -695,8 +734,8 @@ p.error {
 }
 
 .result {
-  border-left-color: #3a8a6e;
-  background: linear-gradient(90deg, var(--ok-bg), var(--surface));
+  border-left-color: var(--ok-ink);
+  background: var(--ok-bg);
 }
 
 .notice.error p {
@@ -757,29 +796,32 @@ label {
 input,
 select,
 textarea {
-  padding: 0.65rem 0.85rem;
+  padding: 0.75rem 1rem;
+  font-size: max(1rem, 16px);
   max-width: 100%;
   min-width: 0;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--control-line);
   border-radius: var(--radius-sm);
-  background: var(--surface-solid);
   color: var(--ink);
-  min-height: 42px;
-  box-shadow: inset 0 1px 2px rgba(40, 30, 10, 0.05);
+  min-height: 46px;
+  background: var(--field-fill);
+  box-shadow: inset 0 1px 0 var(--control-highlight), var(--control-shadow);
 }
 
-input:hover,
-select:hover,
-textarea:hover {
-  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+input:where(:not(:disabled):not([readonly])):hover,
+select:where(:not(:disabled)):hover,
+textarea:where(:not(:disabled):not([readonly])):hover {
+  border-color: var(--accent);
+  background-color: var(--field-hover);
 }
 
 input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--accent-2);
-  box-shadow: 0 0 0 4px var(--accent-glow);
-  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-glow), inset 0 1px 0 var(--control-highlight);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 input[type="number"] {
@@ -810,14 +852,13 @@ input[type="checkbox"] {
 textarea {
   width: 100%;
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 0.8rem;
+  font-size: max(0.9rem, 16px);
   line-height: 1.6;
-  background: var(--surface-sunk);
 }
 
 button {
-  padding: 0.7rem 1.3rem;
-  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  padding: 0.75rem 1.4rem;
+  background: linear-gradient(180deg, var(--button-highlight), transparent 65%), var(--accent);
   color: var(--accent-ink);
   border: 1px solid color-mix(in srgb, var(--accent) 70%, black);
   border-radius: var(--pill);
@@ -826,18 +867,18 @@ button {
   letter-spacing: 0.01em;
   cursor: pointer;
   margin-top: 0.75rem;
-  min-height: 42px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 6px 14px -6px var(--accent-glow);
+  min-height: 46px;
+  box-shadow: inset 0 1px 0 var(--control-highlight), var(--control-shadow);
 }
 
-button:hover {
-  filter: brightness(1.08);
+button:where(:not(:disabled)):hover {
+  background-color: var(--action-hover);
   transform: translateY(-1px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 10px 20px -8px var(--accent-glow);
+  box-shadow: inset 0 1px 0 var(--control-highlight), var(--control-shadow);
 }
 
-button:active {
-  transform: translateY(0);
+button:active:where(:not(:disabled)) {
+  transform: scale(0.98);
   filter: brightness(0.96);
 }
 
@@ -848,15 +889,92 @@ button:disabled {
 }
 
 .btn-secondary {
-  background: var(--surface-solid);
+  background: var(--field-fill);
   color: var(--accent);
-  border-color: var(--line-strong);
-  box-shadow: var(--shadow-sm);
+  border-color: var(--control-line);
+  box-shadow: inset 0 1px 0 var(--control-highlight), var(--control-shadow);
 }
 
-.btn-secondary:hover {
-  background: var(--accent-soft);
+.btn-secondary:where(:not(:disabled)):hover {
+  background-color: var(--field-hover);
   border-color: var(--accent);
+}
+
+
+/* Keep native select semantics and the platform's accessible popup.
+   Only the collapsed single-select face gets the paired-chevron treatment. */
+select:not([multiple]):not([size]),
+select[size="1"]:not([multiple]) {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2.75rem;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 21px) 50%, calc(100% - 16px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+select:enabled {
+  cursor: pointer;
+}
+
+select[multiple] {
+  min-height: 8rem;
+}
+
+option,
+optgroup {
+  background: var(--surface-solid);
+  color: var(--ink);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled,
+input[readonly],
+textarea[readonly] {
+  background-color: var(--surface-sunk);
+  color: var(--muted);
+  box-shadow: none;
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* No motion needed to communicate a press when motion is reduced. */
+@media (prefers-reduced-motion: reduce) {
+  button:where(:not(:disabled)):hover,
+  button:active:where(:not(:disabled)) {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --field-fill: var(--surface-solid);
+    --field-hover: var(--surface-solid);
+  }
+}
+
+@media (forced-colors: active) {
+  select:not([multiple]):not([size]),
+  select[size="1"]:not([multiple]) {
+    appearance: auto;
+    -webkit-appearance: auto;
+    background-image: none;
+  }
 }
 
 .grid,
@@ -898,7 +1016,7 @@ fieldset > h3 {
 
 .facts strong {
   display: block;
-  font: 500 2.3rem var(--serif);
+  font: 550 2.3rem var(--ui-font);
   color: var(--accent);
 }
 
@@ -938,8 +1056,8 @@ summary::before {
   flex: none;
   width: 0.45rem;
   height: 0.45rem;
-  border-right: 2px solid var(--gold);
-  border-bottom: 2px solid var(--gold);
+  border-right: 2px solid var(--ornament);
+  border-bottom: 2px solid var(--ornament);
   transform: rotate(-45deg);
   transition: transform 0.2s;
 }
@@ -969,9 +1087,9 @@ details > p {
 
 .effect-card {
   padding: 1.25rem;
-  background: linear-gradient(160deg, var(--surface-solid), var(--surface-sunk));
+  background: var(--surface-solid);
   border: 1px solid var(--line);
-  border-top: 3px solid var(--gold);
+  border-top: 3px solid var(--ornament);
   border-radius: var(--radius-md);
   margin: 1rem 0;
   box-shadow: var(--shadow-sm);
@@ -985,10 +1103,10 @@ details > p {
 .table-scroll {
   overflow: auto;
   max-width: 100%;
-  border: 1px solid var(--line);
+  border: 1px solid var(--table-line);
   border-radius: var(--radius-md);
   background: var(--surface-solid);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--control-shadow);
 }
 
 table {
@@ -1003,7 +1121,7 @@ td {
   padding: 0.7rem 0.85rem;
   text-align: left;
   vertical-align: top;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--table-line);
   overflow-wrap: anywhere;
 }
 
@@ -1023,7 +1141,7 @@ tbody tr:last-child td {
 }
 
 tbody tr:nth-child(even) {
-  background: color-mix(in srgb, var(--paper) 35%, transparent);
+  background: color-mix(in srgb, var(--paper) var(--table-stripe-alpha), transparent);
 }
 
 tbody tr:hover {
@@ -1036,8 +1154,6 @@ tbody tr:hover {
   align-items: center;
   gap: 1rem;
   background: var(--surface);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
   border: 1px solid var(--line);
   padding: 0.9rem 1rem 0.9rem 1.3rem;
   border-radius: var(--pill);
@@ -1087,7 +1203,7 @@ code {
   font-size: 0.84em;
   padding: 0.08em 0.4em;
   border-radius: 6px;
-  background: var(--gold-soft);
+  background: var(--ornament-soft);
   color: var(--ink-soft);
 }
 
@@ -1101,7 +1217,7 @@ li {
 }
 
 li::marker {
-  color: var(--gold);
+  color: var(--ornament);
 }
 
 /* Acquisition, Decision & Operation Primitives */
@@ -1195,8 +1311,8 @@ li::marker {
   gap: 0.5rem 1.25rem;
   align-items: center;
   padding: 0.75rem 1.1rem;
-  background: linear-gradient(90deg, var(--gold-soft), var(--accent-soft));
-  border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--ornament) 30%, transparent);
   border-radius: var(--radius-md);
   margin: 0.75rem 0 1rem;
   font-size: 0.82rem;
@@ -1239,17 +1355,17 @@ li::marker {
 
 .acquisitions button {
   padding: 0.25rem 0.75rem;
-  min-height: 30px;
+  min-height: 36px;
   margin-top: 0;
   font-size: 0.74rem;
-  background: var(--surface-solid);
+  background: var(--field-fill);
   color: var(--accent);
-  border-color: var(--line-strong);
-  box-shadow: none;
+  border-color: var(--control-line);
+  box-shadow: inset 0 1px 0 var(--control-highlight), var(--control-shadow);
 }
 
-.acquisitions button:hover {
-  background: var(--accent-soft);
+.acquisitions button:where(:not(:disabled)):hover {
+  background-color: var(--field-hover);
   border-color: var(--accent);
   filter: none;
 }
@@ -1273,11 +1389,368 @@ li::marker {
   box-shadow: var(--shadow-sm);
 }
 
-/* Glass fallback where backdrop-filter is unavailable */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root {
-    --surface: var(--surface-solid);
+/* Rules filters stay compact; the full catalog is an explicit disclosure. */
+.library-filter {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+}
+.library-filter label {
+  flex: 1 1 16rem;
+  max-width: 36rem;
+  margin: 0;
+}
+.library-filter button { margin: 0; }
+.library-more { margin: 1.25rem 0 0; background: var(--accent-soft); box-shadow: none; }
+.library-more summary { min-height: 48px; }
+.library-class-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  border-radius: var(--radius-md);
+}
+.library-class-links a { border-radius: var(--radius-sm); }
+.library-case-links { margin-bottom: 0; }
+
+/* CSS-native popup: keeps platform keyboard, typeahead and form behavior.
+   Multi-selects/listboxes and unsupported browsers retain the native UI. */
+@supports (appearance: base-select) {
+  select:not([multiple]):not([size]),
+  select[size="1"]:not([multiple]),
+  select:not([multiple]):not([size])::picker(select),
+  select[size="1"]:not([multiple])::picker(select) {
+    appearance: base-select;
   }
+
+  select:not([multiple]):not([size]),
+  select[size="1"]:not([multiple]) {
+    background-image: none;
+    padding-right: 1rem;
+    gap: 1rem;
+  }
+
+  select::picker-icon {
+    color: var(--muted);
+    margin-left: auto;
+  }
+
+  select:open::picker-icon { rotate: 180deg; }
+
+  select::picker(select) {
+    margin-block: 6px;
+    padding: 6px;
+    max-block-size: min(22rem, 55dvh);
+    max-inline-size: calc(100vw - 24px);
+    overflow: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--line-strong);
+    border-radius: 20px;
+    background: var(--surface-solid);
+    color: var(--ink);
+    box-shadow: 0 14px 38px -16px rgba(20, 35, 49, 0.35);
+  }
+
+  select:where(:not([multiple]):not([size]), [size="1"]:not([multiple])) option {
+    min-block-size: 44px;
+    padding: 0.6rem 0.85rem;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--ink);
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  select option:checked { background: var(--accent-soft); font-weight: 650; }
+  select option:where(:not(:disabled)):hover,
+  select option:focus-visible { background: var(--accent-soft); outline: 2px solid var(--accent); outline-offset: -2px; }
+  select option:disabled { color: var(--muted); opacity: 0.55; }
+  select option::checkmark { color: var(--accent); }
+
+  @supports (backdrop-filter: blur(1px)) {
+    select::picker(select) {
+      background: var(--picker-fill);
+      -webkit-backdrop-filter: blur(28px) saturate(115%);
+      backdrop-filter: blur(28px) saturate(115%);
+      box-shadow: inset 0 1px 0 var(--glass-edge), 0 14px 38px -16px rgba(20, 35, 49, 0.35);
+    }
+  }
+
+  @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+    select::picker(select) {
+      background: var(--surface-solid);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+}
+
+/* Shared state language: tint for hover, a solid ring for focus, and a
+   dashed edge for unavailable controls. Keep labels fully opaque. */
+:is(button, input, select, textarea):disabled {
+  opacity: 1;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--field-fill) 65%, transparent);
+  border-color: var(--line-strong);
+  border-style: dashed;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+  cursor: not-allowed;
+}
+
+:is(input, textarea)[readonly] {
+  background-color: color-mix(in srgb, var(--field-fill) 80%, transparent);
+  border-color: var(--line-strong);
+}
+
+:is(input, select, textarea):focus,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow), inset 0 1px 0 var(--control-highlight);
+}
+
+select:open {
+  background-color: var(--field-hover);
+  border-color: var(--accent);
+}
+
+@supports (appearance: base-select) {
+  select option:checked {
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    color: var(--ink);
+    font-weight: 650;
+  }
+  select option:where(:not(:disabled)):hover {
+    background: var(--accent-soft);
+    outline: none;
+  }
+  select option:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+  select option:checked:hover {
+    background: color-mix(in srgb, var(--accent) 24%, transparent);
+  }
+  select option:disabled {
+    opacity: 1;
+    color: var(--muted);
+    background: transparent;
+    font-style: italic;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :is(button, input, select, textarea):disabled,
+  :is(input, textarea)[readonly] { background: var(--surface-solid); }
+}
+@media (forced-colors: active) {
+  :is(button, input, select, textarea):disabled {
+    color: GrayText;
+    border-color: GrayText;
+    background: Canvas;
+  }
+  select option:checked { background: Highlight; color: HighlightText; }
+}
+
+/* Restrict expensive blur to outer surfaces, never nested cards or table rows.
+   Unsupported browsers retain the opaque backgrounds declared above. */
+@media screen {
+  body {
+    background:
+      radial-gradient(ellipse 48vw 55vh at 8% 18%, var(--ambient-blue), transparent 85%),
+      radial-gradient(ellipse 46vw 60vh at 96% 48%, var(--ambient-cyan), transparent 85%),
+      radial-gradient(ellipse 55vw 48vh at 45% 100%, var(--ambient-violet), transparent 90%),
+      var(--paper);
+    /* Viewport-sized color fields remain behind cards throughout long pages. */
+    background-attachment: fixed;
+  }
+
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .site-header,
+    .section-nav,
+    .save-bar,
+    .edition,
+    main > section:not(.notice):not(.error):not(.result) {
+      border-color: color-mix(in srgb, var(--glass-edge) 65%, var(--line));
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--glass-edge) 20%, transparent), transparent 28%, transparent 75%,
+          color-mix(in srgb, var(--glass-edge) 22%, transparent)),
+        var(--glass-panel);
+      -webkit-backdrop-filter: blur(36px) saturate(110%);
+      backdrop-filter: blur(36px) saturate(110%);
+      box-shadow: inset 0 1px 0 var(--glass-edge),
+        inset 0 -1px 0 color-mix(in srgb, var(--glass-edge) 20%, transparent),
+        var(--glass-shadow);
+    }
+
+    .site-header,
+    .section-nav,
+    .save-bar {
+      --accent: var(--glass-accent);
+      --ink-soft: var(--glass-text);
+      --muted: var(--glass-text);
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--glass-edge) 20%, transparent), transparent 28%, transparent 75%,
+          color-mix(in srgb, var(--glass-edge) 22%, transparent)),
+        var(--glass-nav);
+      border-color: color-mix(in srgb, var(--glass-edge) 65%, var(--line));
+      box-shadow: inset 0 1px 0 var(--glass-edge),
+        inset 0 -1px 0 color-mix(in srgb, var(--glass-edge) 20%, transparent),
+        var(--glass-shadow);
+      -webkit-backdrop-filter: blur(36px) saturate(110%);
+      backdrop-filter: blur(36px) saturate(110%);
+    }
+
+    /* Inner surfaces use a lighter tint in dark mode; the parent supplies blur. */
+    .metric,
+    .stat-card,
+    .combat-cell,
+    .effect-card,
+    .table-scroll {
+      background: var(--glass-inner);
+      border-color: color-mix(in srgb, var(--glass-edge) 35%, var(--line));
+      box-shadow: inset 0 1px 0 color-mix(in srgb, var(--glass-edge) 40%, transparent);
+    }
+
+    .table-scroll {
+      border-color: var(--table-line);
+      box-shadow: inset 0 1px 0 var(--control-highlight);
+    }
+
+    /* Blur the sticky header so scrolled cell text does not compete with labels. */
+    th {
+      background: color-mix(in srgb, var(--paper-2) var(--table-head-alpha), transparent);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
+
+    .site-header .primary-nav {
+      background: transparent;
+      border-color: transparent;
+    }
+
+    main > section:target:not(.notice):not(.error):not(.result) {
+      box-shadow: inset 0 1px 0 var(--glass-edge),
+        0 0 0 1px var(--accent-glow), var(--glass-shadow);
+    }
+  }
+}
+
+/* Honor the user's transparency preference and avoid decorative color in
+   forced-color mode. This also keeps text independent of backdrop content. */
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  body {
+    background: var(--paper);
+  }
+
+  .site-header,
+  .section-nav,
+  .save-bar,
+  .edition,
+  main > section:not(.notice):not(.error):not(.result) {
+    background: var(--surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .metric,
+  .stat-card,
+  .combat-cell,
+  .effect-card,
+  .table-scroll {
+    background: var(--surface-solid);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active), print {
+  th {
+    background: var(--paper-2);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  th, td { border-bottom-color: var(--line); }
+}
+
+/* Screen-oriented hierarchy inspired by Apple UI typography and Inter. */
+:root { font-optical-sizing: auto; }
+.metric > span:first-child, .stat-card .stat-label, .combat-cell span {
+  font-size: 0.75rem;
+  letter-spacing: 0.045em;
+  font-weight: 550;
+}
+.metric .metric-link, .stat-card .stat-base { font-size: 0.75rem; }
+.metric strong, .stat-card .stat-score { font-weight: 550; letter-spacing: -0.025em; }
+label { font-size: 0.85rem; font-weight: 550; }
+button, summary { font-weight: 600; letter-spacing: 0; }
+input, select, textarea { font-weight: 400; }
+textarea { font-family: var(--ui-font); line-height: 1.6; }
+table { font-size: 0.875rem; line-height: 1.55; }
+th { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; }
+.primary-nav a, .section-nav a { font-weight: 550; }
+
+/* A compact, readable scale shared by both color schemes. */
+body { font-size: 1rem; line-height: 1.65; }
+h1 { font-weight: 600; line-height: 1.15; }
+h2 { font-weight: 600; line-height: 1.3; }
+h3 { font-size: 1.05rem; font-weight: 600; line-height: 1.4; }
+strong, b { font-weight: 600; }
+p, li { line-height: 1.65; }
+label { font-size: 0.9rem; line-height: 1.5; }
+button, .acquisitions button { font-size: 0.9rem; font-weight: 550; line-height: 1.4; }
+summary { font-size: 0.95rem; font-weight: 550; line-height: 1.5; }
+table { font-size: 0.925rem; line-height: 1.6; }
+th { font-size: 0.8rem; font-weight: 550; line-height: 1.5; letter-spacing: 0.025em; }
+.metric > span:first-child, .stat-card .stat-label, .combat-cell span,
+.metric .metric-link, .stat-card .stat-base, .resolution-grid dt {
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.decision, .badge { font-size: 0.8rem; font-weight: 550; line-height: 1.4; vertical-align: middle; }
+.decision strong, .badge strong { font-weight: inherit; }
+.eyebrow { font-size: 0.8rem; font-weight: 550; letter-spacing: 0.1em; }
+.primary-nav a, .section-nav a { font-size: 0.85rem; line-height: 1.4; }
+
+h1, h2, h3 { text-wrap: balance; }
+.section-heading > * { min-width: 0; }
+.heading-actions { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; }
+.heading-actions a { display: inline-flex; align-items: center; min-height: 44px; }
+.status-summary { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; align-items: baseline; }
+.status-item { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 0.3rem; }
+.decision { white-space: nowrap; }
+.decision::before { flex-shrink: 0; }
+button + button { margin-inline-start: 0.5rem; }
+.event-actions { gap: 0.5rem; }
+.event-actions button + button { margin-inline-start: 0; }
+@media (max-width: 600px) {
+  .section-heading { gap: 0.35rem; }
+  .section-heading h2 { margin-bottom: 0.5rem; }
+  .heading-actions { width: 100%; gap: 0.25rem 1rem; }
+  .status-summary { flex-direction: column; align-items: flex-start; }
+  #attention li + li { margin-top: 1rem; }
+  #attention .decision-explanation { display: block; margin-top: 0.4rem; }
+  .save-bar { gap: 0.75rem; }
+  .save-bar button { margin: 0; }
+  button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+}
+
+/* Fluid desktop scale avoids a jump when browser zoom crosses 1440px. */
+@media screen and (min-width: 801px) {
+  :root { font-size: clamp(15px, calc(11px + 0.3125vw), 17px); }
+  .page-wrap { max-width: 1600px; }
+  .site-header { max-width: 1600px; }
+  table { font-size: 0.95rem; }
+  th { font-size: 0.85rem; }
+  th, td { padding: 0.8rem 1rem; }
+  .text-link { font-size: 0.9rem; }
+  .metric .metric-link, .stat-card .stat-base,
+  .combat-cell span, .resolution-grid dt { font-size: 0.85rem; }
 }
 
 /* Responsive Breakpoints */
@@ -1306,6 +1779,8 @@ li::marker {
   }
   .primary-nav {
     width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     border-radius: var(--radius-md);
   }
   .primary-nav a {
@@ -1348,13 +1823,13 @@ li::marker {
 
 @media (max-width: 480px) {
   :root {
-    font-size: 14px;
+    font-size: 15px;
   }
   .primary-nav {
     gap: 0.1rem;
   }
   .primary-nav a {
-    font-size: 0.71rem;
+    font-size: 0.85rem;
   }
   .character-picker form {
     flex-direction: column;

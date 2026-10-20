@@ -1,0 +1,74 @@
+[
+  {
+    "substrate": "paper",
+    "foreground": "ink",
+    "background": "#444f60",
+    "ratio": 7.19
+  },
+  {
+    "substrate": "paper",
+    "foreground": "muted",
+    "background": "#444f60",
+    "ratio": 6.14
+  },
+  {
+    "substrate": "paper",
+    "foreground": "accent",
+    "background": "#444f60",
+    "ratio": 5.7
+  },
+  {
+    "substrate": "ambient-blue",
+    "foreground": "ink",
+    "background": "#485d73",
+    "ratio": 5.9
+  },
+  {
+    "substrate": "ambient-blue",
+    "foreground": "muted",
+    "background": "#485d73",
+    "ratio": 5.03
+  },
+  {
+    "substrate": "ambient-blue",
+    "foreground": "accent",
+    "background": "#485d73",
+    "ratio": 4.67
+  },
+  {
+    "substrate": "ambient-cyan",
+    "foreground": "ink",
+    "background": "#445a6b",
+    "ratio": 6.24
+  },
+  {
+    "substrate": "ambient-cyan",
+    "foreground": "muted",
+    "background": "#445a6b",
+    "ratio": 5.32
+  },
+  {
+    "substrate": "ambient-cyan",
+    "foreground": "accent",
+    "background": "#445a6b",
+    "ratio": 4.94
+  },
+  {
+    "substrate": "ambient-violet",
+    "foreground": "ink",
+    "background": "#4e5469",
+    "ratio": 6.52
+  },
+  {
+    "substrate": "ambient-violet",
+    "foreground": "muted",
+    "background": "#4e5469",
+    "ratio": 5.56
+  },
+  {
+    "substrate": "ambient-violet",
+    "foreground": "accent",
+    "background": "#4e5469",
+    "ratio": 5.16
+  }
+]

@@ -1649,6 +1649,7 @@ async fn html_workbench_routes_render_zero_js_and_support_gui_workflows() {
 
     // 4. Rules library supports class filtering and preserves character id.
     let response = app
+        .clone()
         .oneshot(
             Request::builder()
                 .uri("/classes?id=studio-hero&class=Warmage")
@@ -1664,7 +1665,45 @@ async fn html_workbench_routes_render_zero_js_and_support_gui_workflows() {
     let body = String::from_utf8(bytes.to_vec()).unwrap();
     assert!(body.contains("Warmage"));
     assert!(body.contains("id=studio-hero"));
+    assert!(body.contains(r#"<form class="library-filter" method="get" action="/classes">"#));
+    assert!(body.contains(r#"<input type="hidden" name="id" value="studio-hero">"#));
+    assert!(body.contains(r#"<option value="Warmage" selected>Warmage</option>"#));
+    assert!(body.contains(r#"<details class="library-more"><summary>"#));
+    assert!(!body.contains(r#"<details class="library-more" open"#));
+    // No second wall of class anchors above the compact filter.
+    assert!(!body.contains(r#"aria-label="On this page""#));
+    assert!(body.contains(r#"<section id="warmage">"#));
+    assert!(!body.contains(r#"<section id="fighter">"#));
+    let disclosure = body
+        .split(r#"<details class="library-more">"#)
+        .nth(1)
+        .unwrap()
+        .split("</details>")
+        .next()
+        .unwrap();
+    assert!(disclosure.contains("Filter by class"));
+    assert!(disclosure.contains("/martial?id=studio-hero"));
+    assert!(disclosure.contains("/incarnum?id=studio-hero"));
+    assert!(disclosure.contains("/joker?id=studio-hero"));
     assert!(!body.contains("<script"));
+
+    // Unknown filters remain visible and cannot masquerade as "All classes".
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/classes?id=studio-hero&class=Unknown%3Cclass%3E")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body = String::from_utf8(bytes.to_vec()).unwrap();
+    assert!(body.contains("No matching class"));
+    assert!(body.contains(r#"<option value="Unknown&lt;class&gt;" selected>Unknown class: Unknown&lt;class&gt;</option>"#));
+    assert!(body.contains(r#"name="id" value="studio-hero""#));
 
     let _ = std::fs::remove_dir_all(characters_root);
 }

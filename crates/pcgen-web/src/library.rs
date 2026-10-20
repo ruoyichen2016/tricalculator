@@ -45,17 +45,12 @@ pub(super) async fn page(
         .copied()
         .filter(|c| q.class.is_empty() || c.id.eq_ignore_ascii_case(&q.class))
         .collect();
-    let anchors: Vec<_> = visible_classes
-        .iter()
-        .map(|c| (c.id.to_ascii_lowercase().replace(' ', "-"), c.name.as_str()))
-        .collect();
-    let links: Vec<_> = anchors.iter().map(|(k, v)| (k.as_str(), *v)).collect();
     let mut out = super::ui::start(
         super::ui::Page::Library,
         &q.id,
         "The rule library",
         "Core classes, fixed-list casters, and prestige classes. Every level uses the same rules model.",
-        &links,
+        &[],
     );
     let id_param = if q.id.is_empty() {
         String::new()
@@ -64,26 +59,66 @@ pub(super) async fn page(
     };
     let _ = write!(
         out,
-        "<section><div class=\"section-heading\"><h2>Class filter &amp; stress cases</h2><div><a href=\"/martial{id_param}\">Run the Shadow Pounce stress case</a> · <a href=\"/incarnum{id_param}\">Run the Warforged incarnum case</a> · <a href=\"/joker{id_param}\">Run the Joker case</a></div></div><nav class=\"sub-nav\" aria-label=\"Filter by class\"><a href=\"/classes{id_param}\" {}>All classes ({})</a>",
+        r#"<section id="class-filter"><h2>Class filter &amp; stress cases</h2><form class="library-filter" method="get" action="/classes"><input type="hidden" name="id" value="{}"><label>Class<select name="class"><option value="" {}>All classes ({})</option>"#,
+        escape(&q.id),
+        if q.class.is_empty() { "selected" } else { "" },
+        classes.len()
+    );
+    for c in &classes {
+        let _ = write!(
+            out,
+            r#"<option value="{}" {}>{}</option>"#,
+            escape(&c.id),
+            if c.id.eq_ignore_ascii_case(&q.class) {
+                "selected"
+            } else {
+                ""
+            },
+            escape(&c.name)
+        );
+    }
+    // Preserve an invalid query in the control instead of silently showing
+    // "All classes" while the result set is empty.
+    if !q.class.is_empty() && visible_classes.is_empty() {
+        let _ = write!(
+            out,
+            r#"<option value="{}" selected>Unknown class: {}</option>"#,
+            escape(&q.class),
+            escape(&q.class)
+        );
+    }
+    let _ = write!(
+        out,
+        r#"</select></label><button>Apply filter</button></form><details class="library-more"><summary>Browse all {} classes &amp; stress cases</summary><nav class="sub-nav library-class-links" aria-label="Filter by class"><a href="/classes{id_param}" {}>All classes ({})</a>"#,
+        classes.len(),
         if q.class.is_empty() {
-            "aria-current=\"page\""
+            r#"aria-current="page""#
         } else {
             ""
         },
         classes.len()
     );
     for c in &classes {
-        let active = c.id.eq_ignore_ascii_case(&q.class);
         let _ = write!(
             out,
-            "<a href=\"/classes?id={}&class={}\" {}>{}</a>",
+            r#"<a href="/classes?id={}&amp;class={}" {}>{}</a>"#,
             url(&q.id),
             url(&c.id),
-            if active { "aria-current=\"page\"" } else { "" },
+            if c.id.eq_ignore_ascii_case(&q.class) {
+                r#"aria-current="page""#
+            } else {
+                ""
+            },
             escape(&c.name)
         );
     }
-    out.push_str("</nav></section>");
+    let _ = write!(
+        out,
+        r#"</nav><h3>Stress cases</h3><ul class="library-case-links"><li><a href="/martial{id_param}">Run the Shadow Pounce stress case</a></li><li><a href="/incarnum{id_param}">Run the Warforged incarnum case</a></li><li><a href="/joker{id_param}">Run the Joker case</a></li></ul></details></section>"#
+    );
+    if !q.class.is_empty() && visible_classes.is_empty() {
+        out.push_str("<section><h2>No matching class</h2><p>Choose another class or All classes above.</p></section>");
+    }
 
     for c in visible_classes {
         let e = engine

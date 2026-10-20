@@ -434,6 +434,18 @@ pub fn app(config: WebConfig) -> Router {
         pack_cache: Arc::new(rules::RuleStore::default()),
     };
     Router::new()
+        .route(
+            "/assets/InterVariable.woff2",
+            get(|| async {
+                (
+                    [
+                        ("content-type", "font/woff2"),
+                        ("cache-control", "public, max-age=86400"),
+                    ],
+                    include_bytes!("ui/fonts/InterVariable.woff2").as_slice(),
+                )
+            }),
+        )
         .route("/", get(character_page::page))
         .route("/workbench", get(workbench::page))
         .route("/editor", get(editor::page).post(editor::save))

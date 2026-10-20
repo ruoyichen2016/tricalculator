@@ -70,7 +70,7 @@ pub(super) async fn page(
             let status_class = format!("{:?}", audit.status());
             let _ = write!(
                 out,
-                "<section id=\"summary\" class=\"overview\"><div class=\"section-heading\"><div><p class=\"eyebrow\">ACTIVE CHARACTER</p><h2>{}</h2></div><div><a class=\"text-link\" href=\"/build?id={}\">Edit build history →</a> · <a class=\"text-link\" href=\"/class-play?id={}\">Open encounter desk →</a></div></div><p>{} · {} · Level {}{}</p><p>Acquisition status: <span class=\"decision {}\"><strong>{}</strong></span> · Derived snapshot: <strong>{}</strong></p><div class=\"metrics\">",
+                "<section id=\"summary\" class=\"overview\"><div class=\"section-heading\"><div><p class=\"eyebrow\">ACTIVE CHARACTER</p><h2>{}</h2></div><div class=\"heading-actions\"><a class=\"text-link\" href=\"/build?id={}\">Edit build history →</a><a class=\"text-link\" href=\"/class-play?id={}\">Open encounter desk →</a></div></div><p>{} · {} · Level {}{}</p><p class=\"status-summary\"><span class=\"status-item\">Acquisition status: <span class=\"decision {}\"><strong>{}</strong></span></span><span class=\"status-item\">Derived snapshot: <strong>{}</strong></span></p><div class=\"metrics\">",
                 escape(&d.name),
                 url(&q.id),
                 url(&q.id),
@@ -148,7 +148,7 @@ pub(super) async fn page(
                     };
                     let _ = write!(
                         out,
-                        "<li><a href=\"/build?id={}&level={}\">Level {} · {}</a> — <span class=\"decision {:?}\">{}</span>{}: {}</li>",
+                        "<li><a href=\"/build?id={}&level={}\">Level {} · {}</a>: <span class=\"decision {:?}\">{}</span>{} <span class=\"decision-explanation\">{}</span></li>",
                         url(&q.id),
                         check.level.max(1),
                         check.level,

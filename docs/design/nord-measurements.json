@@ -1,0 +1,313 @@
+{
+  "reference": "https://www.nordtheme.com/docs/colors-and-palettes/",
+  "tokens": {
+    "light": {
+      "ink": "#2e3440",
+      "ink-soft": "#434c5e",
+      "muted": "#4c566a",
+      "paper": "#e5e9f0",
+      "paper-2": "#d8dee9",
+      "surface": "#eceff4",
+      "surface-solid": "#f6f8fa",
+      "surface-sunk": "#e5e9f0",
+      "line": "rgba(46, 52, 64, 0.14)",
+      "line-strong": "rgba(46, 52, 64, 0.26)",
+      "control-line": "#7b8698",
+      "accent": "#48678e",
+      "accent-2": "#405c7f",
+      "accent-ink": "#ffffff",
+      "action-hover": "#3e597b",
+      "accent-soft": "rgba(94, 129, 172, 0.10)",
+      "accent-glow": "rgba(94, 129, 172, 0.22)",
+      "ornament": "#48678e",
+      "ornament-soft": "rgba(94, 129, 172, 0.08)",
+      "danger": "#943f48",
+      "ok-bg": "rgba(163, 190, 140, 0.16)",
+      "ok-ink": "#426036",
+      "warn-bg": "rgba(235, 203, 139, 0.20)",
+      "warn-ink": "#73531e",
+      "err-bg": "rgba(191, 97, 106, 0.10)",
+      "err-ink": "#943f48",
+      "radius": "14px",
+      "radius-md": "10px",
+      "radius-sm": "8px",
+      "pill": "8px",
+      "shadow-sm": "0 1px 2px rgba(46, 52, 64, 0.04)",
+      "shadow": "0 3px 12px rgba(46, 52, 64, 0.05)",
+      "shadow-lift": "0 5px 16px rgba(46, 52, 64, 0.09)",
+      "space": "clamp(1rem, 3vw, 2rem)",
+      "serif": "\"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, \"Times New Roman\", serif"
+    },
+    "dark": {
+      "ink": "#eceff4",
+      "ink-soft": "#e5e9f0",
+      "muted": "#d8dee9",
+      "paper": "#2e3440",
+      "paper-2": "#434c5e",
+      "surface": "#3b4252",
+      "surface-solid": "#2e3440",
+      "surface-sunk": "#2e3440",
+      "line": "rgba(236, 239, 244, 0.12)",
+      "line-strong": "rgba(236, 239, 244, 0.24)",
+      "control-line": "#8b97ab",
+      "accent": "#88c0d0",
+      "accent-2": "#8fbcbb",
+      "accent-ink": "#2e3440",
+      "action-hover": "#9ccbd8",
+      "accent-soft": "rgba(136, 192, 208, 0.12)",
+      "accent-glow": "rgba(136, 192, 208, 0.24)",
+      "ornament": "#88c0d0",
+      "ornament-soft": "rgba(129, 161, 193, 0.12)",
+      "danger": "#edb0b7",
+      "ok-bg": "rgba(163, 190, 140, 0.12)",
+      "ok-ink": "#b9d2a5",
+      "warn-bg": "rgba(235, 203, 139, 0.12)",
+      "warn-ink": "#ebcb8b",
+      "err-bg": "rgba(191, 97, 106, 0.12)",
+      "err-ink": "#edb0b7",
+      "radius": "14px",
+      "radius-md": "10px",
+      "radius-sm": "8px",
+      "pill": "8px",
+      "shadow-sm": "0 1px 2px rgba(0, 0, 0, 0.08)",
+      "shadow": "0 3px 12px rgba(0, 0, 0, 0.12)",
+      "shadow-lift": "0 5px 16px rgba(0, 0, 0, 0.18)",
+      "space": "clamp(1rem, 3vw, 2rem)",
+      "serif": "\"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, \"Times New Roman\", serif"
+    }
+  },
+  "composites": [
+    [
+      "Light",
+      "line",
+      "rgba(46, 52, 64, 0.14)",
+      "#eceff4",
+      "#d1d5db"
+    ],
+    [
+      "Light",
+      "line-strong",
+      "rgba(46, 52, 64, 0.26)",
+      "#eceff4",
+      "#bbbec5"
+    ],
+    [
+      "Light",
+      "accent-soft",
+      "rgba(94, 129, 172, 0.10)",
+      "#eceff4",
+      "#dee4ed"
+    ],
+    [
+      "Light",
+      "accent-glow",
+      "rgba(94, 129, 172, 0.22)",
+      "#eceff4",
+      "#cdd7e4"
+    ],
+    [
+      "Light",
+      "ok-bg",
+      "rgba(163, 190, 140, 0.16)",
+      "#eceff4",
+      "#e0e7e3"
+    ],
+    [
+      "Light",
+      "warn-bg",
+      "rgba(235, 203, 139, 0.20)",
+      "#eceff4",
+      "#ece8df"
+    ],
+    [
+      "Light",
+      "err-bg",
+      "rgba(191, 97, 106, 0.10)",
+      "#eceff4",
+      "#e8e1e6"
+    ],
+    [
+      "Dark",
+      "line",
+      "rgba(236, 239, 244, 0.12)",
+      "#3b4252",
+      "#505765"
+    ],
+    [
+      "Dark",
+      "line-strong",
+      "rgba(236, 239, 244, 0.24)",
+      "#3b4252",
+      "#656c79"
+    ],
+    [
+      "Dark",
+      "accent-soft",
+      "rgba(136, 192, 208, 0.12)",
+      "#3b4252",
+      "#445161"
+    ],
+    [
+      "Dark",
+      "accent-glow",
+      "rgba(136, 192, 208, 0.24)",
+      "#3b4252",
+      "#4d6070"
+    ],
+    [
+      "Dark",
+      "ok-bg",
+      "rgba(163, 190, 140, 0.12)",
+      "#3b4252",
+      "#475159"
+    ],
+    [
+      "Dark",
+      "warn-bg",
+      "rgba(235, 203, 139, 0.12)",
+      "#3b4252",
+      "#505259"
+    ],
+    [
+      "Dark",
+      "err-bg",
+      "rgba(191, 97, 106, 0.12)",
+      "#3b4252",
+      "#4b4655"
+    ]
+  ],
+  "contrast": [
+    [
+      "Light",
+      "ink",
+      "surface",
+      10.84
+    ],
+    [
+      "Light",
+      "muted",
+      "surface",
+      6.4
+    ],
+    [
+      "Light",
+      "muted",
+      "paper",
+      6.06
+    ],
+    [
+      "Light",
+      "accent",
+      "surface",
+      5.05
+    ],
+    [
+      "Light",
+      "accent-ink",
+      "accent",
+      5.82
+    ],
+    [
+      "Light",
+      "accent-ink",
+      "action-hover",
+      7.19
+    ],
+    [
+      "Light",
+      "ornament",
+      "surface-solid",
+      5.47
+    ],
+    [
+      "Light",
+      "control-line",
+      "surface-solid",
+      3.46
+    ],
+    [
+      "Light",
+      "ok-ink",
+      "ok-bg over surface",
+      5.65
+    ],
+    [
+      "Light",
+      "warn-ink",
+      "warn-bg over surface",
+      5.75
+    ],
+    [
+      "Light",
+      "err-ink",
+      "err-bg over surface",
+      5.33
+    ],
+    [
+      "Dark",
+      "ink",
+      "surface",
+      8.73
+    ],
+    [
+      "Dark",
+      "muted",
+      "surface",
+      7.45
+    ],
+    [
+      "Dark",
+      "muted",
+      "paper",
+      9.25
+    ],
+    [
+      "Dark",
+      "accent",
+      "surface",
+      5.03
+    ],
+    [
+      "Dark",
+      "accent-ink",
+      "accent",
+      6.24
+    ],
+    [
+      "Dark",
+      "accent-ink",
+      "action-hover",
+      7.11
+    ],
+    [
+      "Dark",
+      "ornament",
+      "surface-solid",
+      6.24
+    ],
+    [
+      "Dark",
+      "control-line",
+      "surface-solid",
+      4.23
+    ],
+    [
+      "Dark",
+      "ok-ink",
+      "ok-bg over surface",
+      4.95
+    ],
+    [
+      "Dark",
+      "warn-ink",
+      "warn-bg over surface",
+      4.99
+    ],
+    [
+      "Dark",
+      "err-ink",
+      "err-bg over surface",
+      4.98
+    ]
+  ]
+}

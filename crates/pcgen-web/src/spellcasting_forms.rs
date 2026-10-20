@@ -298,7 +298,7 @@ fn render(
             for step in &p.steps {
                 let _ = write!(
                     out,
-                    "<li><strong>{} · <span class=\"decision {:?}\">{}</span></strong>: {}</li>",
+                    "<li><strong>{}</strong>: <span class=\"decision {:?}\">{}</span> {}</li>",
                     escape(&step.subject),
                     step.status,
                     step.status.label(),
