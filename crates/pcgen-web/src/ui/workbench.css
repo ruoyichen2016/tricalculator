@@ -1573,7 +1573,8 @@ select:open {
     .section-nav,
     .save-bar,
     .edition,
-    main > section:not(.notice):not(.error):not(.result) {
+    main > section:not(.notice):not(.error):not(.result),
+    main > form > section:not(.notice):not(.error):not(.result) {
       border-color: color-mix(in srgb, var(--glass-edge) 65%, var(--line));
       background:
         linear-gradient(135deg, color-mix(in srgb, var(--glass-edge) 20%, transparent), transparent 28%, transparent 75%,
@@ -1632,7 +1633,8 @@ select:open {
       border-color: transparent;
     }
 
-    main > section:target:not(.notice):not(.error):not(.result) {
+    main > section:target:not(.notice):not(.error):not(.result),
+    main > form > section:target:not(.notice):not(.error):not(.result) {
       box-shadow: inset 0 1px 0 var(--glass-edge),
         0 0 0 1px var(--accent-glow), var(--glass-shadow);
     }
@@ -1650,7 +1652,8 @@ select:open {
   .section-nav,
   .save-bar,
   .edition,
-  main > section:not(.notice):not(.error):not(.result) {
+  main > section:not(.notice):not(.error):not(.result),
+  main > form > section:not(.notice):not(.error):not(.result) {
     background: var(--surface);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
@@ -1751,6 +1754,42 @@ button + button { margin-inline-start: 0.5rem; }
   .text-link { font-size: 0.9rem; }
   .metric .metric-link, .stat-card .stat-base,
   .combat-cell span, .resolution-grid dt { font-size: 0.85rem; }
+}
+
+/* Shared materials across editor, build history, encounters and case tools. */
+.combat-cell small, .coverage, .save-bar span, legend, footer,
+.pill-list li, .resolution-grid dt { font-size: 0.85rem; line-height: 1.5; }
+legend, .resolution-grid dd { font-weight: 550; }
+nav a[aria-current="step"] { font-weight: 600; }
+@media screen {
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    section section:not(.notice):not(.error):not(.result),
+    details:not(.library-more), fieldset, .resolution-grid > div {
+      background: var(--glass-inner);
+      box-shadow: inset 0 1px 0 var(--control-highlight);
+      border-color: var(--line);
+    }
+    legend, .pill-list li,
+    nav:not(.primary-nav):not(.section-nav):not(.sub-nav) a {
+      background: var(--field-fill);
+      box-shadow: inset 0 1px 0 var(--control-highlight);
+    }
+    nav:not(.primary-nav):not(.section-nav):not(.sub-nav) a[aria-current="step"],
+    .sub-nav a[aria-current="page"], .sub-nav a[aria-current="step"] {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      box-shadow: none;
+    }
+  }
+}
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  section section:not(.notice):not(.error):not(.result),
+  details:not(.library-more), fieldset, .resolution-grid > div,
+  legend, .pill-list li,
+  nav:not(.primary-nav):not(.section-nav):not(.sub-nav) a {
+    background: var(--surface-solid);
+    box-shadow: none;
+  }
 }
 
 /* Responsive Breakpoints */

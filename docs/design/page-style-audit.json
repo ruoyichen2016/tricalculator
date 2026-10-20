@@ -1,0 +1,52 @@
+[
+  {
+    "page": "editor",
+    "status": 200,
+    "sections": 3
+  },
+  {
+    "page": "build",
+    "status": 200,
+    "sections": 4
+  },
+  {
+    "page": "spellcasting",
+    "status": 200,
+    "sections": 3
+  },
+  {
+    "page": "class-play",
+    "status": 200,
+    "sections": 12
+  },
+  {
+    "page": "cases",
+    "status": 200,
+    "sections": 1
+  },
+  {
+    "page": "classes",
+    "status": 200,
+    "sections": 36
+  },
+  {
+    "page": "martial",
+    "status": 200,
+    "sections": 4
+  },
+  {
+    "page": "incarnum",
+    "status": 200,
+    "sections": 8
+  },
+  {
+    "page": "joker",
+    "status": 200,
+    "sections": 17
+  },
+  {
+    "page": "workbench",
+    "status": 200,
+    "sections": 7
+  }
+]
